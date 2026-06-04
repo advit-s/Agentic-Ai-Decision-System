@@ -1,10 +1,10 @@
 # Agentic AI Decision System
 
-Backend-first agentic decision brief system for local evidence, bounded analysis, claim verification, and cited decision reports.
+Backend-first Company Intelligence Engine for local evidence, bounded analysis, claim verification, cited decision reports, and early entity relationship mapping.
 
 ## What This Project Does
 
-This project turns local documents into auditable decision briefs. It:
+This project turns local documents into auditable company intelligence. It:
 
 - loads local `.md` and `.txt` documents
 - chunks and indexes evidence in a local Chroma vector store
@@ -13,10 +13,14 @@ This project turns local documents into auditable decision briefs. It:
 - extracts material claims
 - verifies claims against retrieved evidence
 - produces a cited decision report from claim ledger state
+- extracts deterministic entities and relationships into a local graph-like JSON store
+- initializes local structured data folders and profiles fake/demo CSV data
 
 ## Why This Exists
 
-The goal is to prototype safer multi-agent decision support. Final reports come from verified claim ledger state, not uncontrolled agent chat. Contradictions, unsupported assumptions, citations, confidence, and human review needs are kept visible instead of being smoothed away.
+The goal is to prototype safer multi-agent decision support and grow toward a Company Intelligence Engine: software that uses past and present company data to surface hidden patterns, vulnerabilities, relationships, contradictions, and risks that are hard for humans to see.
+
+Final reports come from verified claim ledger state, not uncontrolled agent chat. Contradictions, unsupported assumptions, citations, confidence, and human review needs are kept visible instead of being smoothed away.
 
 ## Current Features
 
@@ -25,6 +29,10 @@ The goal is to prototype safer multi-agent decision support. Final reports come 
 - Chroma vector store
 - deterministic fake provider
 - optional NVIDIA NIM provider
+- local entity and relationship extraction
+- graph-like JSON knowledge store
+- local `company_data/` catalog
+- CSV profiling for row counts, missing values, numeric summaries, categorical top values, and warnings
 - claim ledger
 - verifier
 - report writer
@@ -44,28 +52,50 @@ The goal is to prototype safer multi-agent decision support. Final reports come 
 
 ```text
 company_docs/
-   ↓
+   |
 document loader
-   ↓
+   |
 chunker
-   ↓
+   |
 Chroma vector store
-   ↓
+   |
 retriever
-   ↓
+   |
 LangGraph workflow
-   ↓
+   |
 technical analyst
-   ↓
+   |
 risk analyst
-   ↓
+   |
 claim extraction
-   ↓
+   |
 verifier
-   ↓
+   |
 report writer
-   ↓
+   |
 decision report
+
+company_docs/
+   |
+document loader
+   |
+chunker
+   |
+deterministic graph extractor
+   |
+.decision_system/graph/knowledge_graph.json
+   |
+graph inspection
+
+company_data/
+   |
+data catalog manifest
+   |
+CSV profiler
+   |
+.decision_system/data_profiles/profiles.json
+   |
+data inspection
 ```
 
 ## Developer Setup
@@ -103,6 +133,11 @@ decision-system ask "Should we migrate billing?"
 decision-system ask "Should we migrate billing?" --show-evidence
 decision-system ask "Should we migrate billing?" --json
 decision-system ask "Should we migrate billing?" --save-run
+decision-system extract-graph
+decision-system inspect-graph
+decision-system init-data-catalog
+decision-system profile-data
+decision-system inspect-data
 decision-system eval
 ```
 
@@ -138,6 +173,11 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system ask "..." --json`: print structured workflow state
 - `decision-system ask "..." --save-run`: save full run JSON under `.decision_system/runs/`
 - `decision-system ask "..." --provider nvidia_nim`: use NVIDIA NIM for one run
+- `decision-system extract-graph`: extract entities and relationships into `.decision_system/graph/knowledge_graph.json`
+- `decision-system inspect-graph`: show entity counts, relationship counts, grouped types, and top connected entities
+- `decision-system init-data-catalog`: create `company_data/`, category folders, manifest, and fake demo CSVs
+- `decision-system profile-data`: profile local CSV files and save `.decision_system/data_profiles/profiles.json`
+- `decision-system inspect-data`: summarize saved CSV profiles
 - `decision-system eval`: run local evaluation cases
 - `decision-system eval --json`: print structured evaluation results
 - `decision-system eval --save-results`: save evaluation results under `evals/results/`
@@ -151,9 +191,12 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `src/decision_system/llm`: fake provider, NVIDIA NIM provider, provider factory
 - `src/decision_system/reports`: decision report renderer
 - `src/decision_system/evals`: local evaluation models and runner
+- `src/decision_system/graphing`: entity and relationship graph models, extraction, store, and inspection
+- `src/decision_system/data_catalog`: local data catalog initialization, CSV profiling, storage, and inspection
 - `tests`: offline unit and CLI tests
 - `docs`: architecture, setup, development, and troubleshooting docs
 - `company_docs`: local docs folder; only demo docs should be committed
+- `company_data`: local structured data folder; only manifest, `.gitkeep`, and `demo_*.csv` files should be committed
 
 ## Testing
 
@@ -165,16 +208,22 @@ decision-system eval
 ## Troubleshooting
 
 - **No documents indexed**: make sure `company_docs/` exists and contains `.md` or `.txt` files. The repo includes `company_docs/demo_billing.md`.
+- **No graph relationships extracted**: add simple relationship phrases such as `Billing depends on LegacyAuth`, `LegacyAuth owned by Platform Team`, or `CONTRADICTS: ...`.
+- **No data profiles found**: run `decision-system init-data-catalog` and then `decision-system profile-data`.
 - **Missing NVIDIA key**: set `NVIDIA_API_KEY` in `.env` or use the default fake provider.
 - **Chroma warning**: Chroma may emit dependency deprecation warnings during tests; these do not usually block local runs.
 - **Wrong provider**: check `DECISION_PROVIDER` in `.env`, or pass `--provider fake` / `--provider nvidia_nim`.
 - **Windows path with spaces**: quote paths and run commands from the repo root.
 - **`.env` not loaded**: run commands from the repo root and confirm the file is named exactly `.env`.
 
+## AI Development Workflow
+
+Claude Code is used as the primary implementer. Codex is used as the independent reviewer/verifier. All Claude work should be test-backed and reviewed before being accepted.
+
 ## Roadmap
 
-- v0.2: real provider comparison
-- v0.3: better retrieval
+- v0.2: entity and relationship extraction
+- v0.3: company data intake and CSV profiling
 - v0.4: FastAPI backend
 - v0.5: frontend
 - v0.6: database and saved decision history

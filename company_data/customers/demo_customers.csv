@@ -1,0 +1,4 @@
+customer_id,segment,lifetime_value,risk_flag
+demo-cust-001,enterprise,12000,false
+demo-cust-002,smb,4500,true
+demo-cust-003,enterprise,9800,false

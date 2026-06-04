@@ -1,0 +1,4 @@
+month,revenue,segment,notes
+2026-01,1000,enterprise,baseline fake row
+2026-02,1500,smb,
+2026-03,,enterprise,missing value demo

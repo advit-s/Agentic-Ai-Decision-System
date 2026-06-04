@@ -22,6 +22,7 @@ build/
 
 # Local generated app state
 .decision_system/
+.decision_system/data_profiles/
 evals/results/*.json
 !evals/results/.gitkeep
 
@@ -30,3 +31,11 @@ company_docs/*
 !company_docs/.gitkeep
 !company_docs/demo_*.md
 !company_docs/demo_*.txt
+
+# Local/private structured data
+company_data/**
+!company_data/
+!company_data/manifest.json
+!company_data/**/
+!company_data/**/.gitkeep
+!company_data/**/demo_*.csv

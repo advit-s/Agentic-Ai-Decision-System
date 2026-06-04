@@ -1,8 +1,30 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Claude Code project memory and workflow commands.
+
+## [0.3.0] - 2026-06-04
+
+### Added
+- Local `company_data/` folder structure for structured company data intake.
+- Data catalog manifest with supported categories and fake demo CSV metadata.
+- Fake demo CSV files for financial and customer profiling smoke tests.
+- CSV profiling for row count, column count, missing values, numeric summaries, categorical top values, date-like columns, and warnings.
+- Profile persistence under `.decision_system/data_profiles/profiles.json`.
+- `decision-system init-data-catalog`, `decision-system profile-data`, and `decision-system inspect-data`.
+- Offline tests for catalog initialization, CSV profiling, profile persistence, and CLI commands.
+
 ## [0.2.0] - 2026-06-04
 
 ### Added
+- Local entity and relationship extraction for the Company Intelligence Engine direction.
+- `Entity`, `Relationship`, and `KnowledgeGraph` Pydantic models.
+- Rule-based graph extraction for `depends on`, `owned by`, `caused`, `affects`, `blocks`, `mitigates`, `CONTRADICTS:`, and explicit related-to statements.
+- Local graph JSON persistence at `.decision_system/graph/knowledge_graph.json`.
+- `decision-system extract-graph` and `decision-system inspect-graph`.
+- Graph inspection summaries for entity counts, relationship counts, grouped types, and top connected entities.
 - Optional NVIDIA NIM provider using LangChain's `ChatNVIDIA` integration.
 - Provider factory with `fake` default and `nvidia_nim` selection.
 - `decision-system ask --provider`.

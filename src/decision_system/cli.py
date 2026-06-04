@@ -15,8 +15,17 @@ from pydantic import BaseModel
 from rich.console import Console
 
 from decision_system.config import load_settings
+from decision_system.data_catalog.initializer import (
+    DEFAULT_DATA_ROOT,
+    init_data_catalog as initialize_data_catalog,
+)
+from decision_system.data_catalog.inspector import inspect_profiles, render_inspection
+from decision_system.data_catalog.store import load_profiles, profile_and_save, save_profiles
 from decision_system.evals.runner import render_eval_report, run_eval_suite, save_eval_results
 from decision_system.graph.workflow import build_workflow
+from decision_system.graphing.extractor import extract_knowledge_graph
+from decision_system.graphing.inspector import inspect_knowledge_graph, render_graph_inspection
+from decision_system.graphing.store import load_knowledge_graph, save_knowledge_graph
 from decision_system.rag.chunker import chunk_documents
 from decision_system.rag.loader import load_documents
 from decision_system.rag.vector_store import index_chunks, inspect_collection
@@ -124,6 +133,64 @@ def inspect_index() -> None:
     console.print(f"Collection name: {inspection.collection_name}")
     console.print(f"Chunk count: {inspection.chunk_count}")
     console.print(f"Unique source filenames: {source_filenames}")
+
+
+@app.command()
+def extract_graph() -> None:
+    """Extract a local knowledge graph from configured company documents."""
+
+    settings = load_settings()
+    documents = load_documents(settings.docs_dir)
+    chunks = chunk_documents(documents)
+    knowledge_graph = extract_knowledge_graph(chunks)
+    graph_path = save_knowledge_graph(knowledge_graph).resolve()
+
+    console.print(f"Saved knowledge graph: {graph_path}")
+    console.print(f"Entity count: {len(knowledge_graph.entities)}")
+    console.print(f"Relationship count: {len(knowledge_graph.relationships)}")
+
+
+@app.command()
+def inspect_graph() -> None:
+    """Inspect the local graph-like JSON knowledge store."""
+
+    knowledge_graph = load_knowledge_graph()
+    inspection = inspect_knowledge_graph(knowledge_graph)
+    console.print(render_graph_inspection(inspection))
+
+
+@app.command()
+def init_data_catalog() -> None:
+    """Create local company_data folders, manifest, and fake demo CSV files."""
+
+    manifest_path = init_data_catalog_fn()
+    console.print(f"Initialized data catalog: {manifest_path}")
+
+
+def init_data_catalog_fn() -> Path:
+    """Initialize the data catalog through a small wrapper for testability."""
+
+    return initialize_data_catalog(DEFAULT_DATA_ROOT)
+
+
+@app.command()
+def profile_data() -> None:
+    """Profile local CSV files under company_data/."""
+
+    if not (DEFAULT_DATA_ROOT / "manifest.json").exists():
+        initialize_data_catalog(DEFAULT_DATA_ROOT)
+    store = profile_and_save(DEFAULT_DATA_ROOT)
+    profile_path = save_profiles(store)
+    console.print(f"Profiled datasets: {len(store.profiles)}")
+    console.print(f"Saved profiles: {profile_path}")
+
+
+@app.command()
+def inspect_data() -> None:
+    """Inspect saved local CSV profile summaries."""
+
+    store = load_profiles()
+    console.print(render_inspection(inspect_profiles(store)))
 
 
 @app.command()

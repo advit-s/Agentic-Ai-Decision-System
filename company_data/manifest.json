@@ -1,0 +1,39 @@
+{
+  "version": "0.3",
+  "categories": {
+    "financial": "Revenue, expenses, margins, and budget data",
+    "customers": "Customer demographics, segments, and lifetime value",
+    "sales": "Sales transactions, pipelines, and lead sources",
+    "marketing": "Campaigns, channels, and marketing metrics",
+    "feedback": "Customer surveys, reviews, and support tickets",
+    "products": "Product catalog, features, and usage data",
+    "competitors": "Competitor intelligence and market positioning",
+    "operations": "Operational KPIs, logistics, and process data",
+    "analytics": "Website/app analytics, events, and engagement",
+    "strategic": "Board decks, OKRs, and strategic plans",
+    "unknown": "Data that does not fit any known category"
+  },
+  "allowed_file_types": [
+    ".csv"
+  ],
+  "demo_datasets": [
+    {
+      "dataset_id": "demo_revenue",
+      "category": "financial",
+      "filename": "demo_revenue.csv",
+      "relative_path": "financial/demo_revenue.csv",
+      "file_type": ".csv",
+      "description": "Fake monthly revenue sample for local profiling smoke tests.",
+      "is_demo": true
+    },
+    {
+      "dataset_id": "demo_customers",
+      "category": "customers",
+      "filename": "demo_customers.csv",
+      "relative_path": "customers/demo_customers.csv",
+      "file_type": ".csv",
+      "description": "Fake customer segment sample for local profiling smoke tests.",
+      "is_demo": true
+    }
+  ]
+}

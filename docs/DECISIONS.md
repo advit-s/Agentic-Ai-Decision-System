@@ -47,3 +47,27 @@ Database, auth, and more agents would add complexity before the retrieval, verif
 Status: Accepted
 
 The fake provider remains the default for tests and offline use. NVIDIA NIM is available only when explicitly selected through `DECISION_PROVIDER=nvidia_nim` or `decision-system ask --provider nvidia_nim`, and credentials must come from `.env` or environment variables.
+
+## ADR-009: Add a Local JSON Knowledge Graph Before a Database
+
+Status: Accepted
+
+The Company Intelligence Engine needs entity and relationship structure, but v0.2 should not add a database. A local `.decision_system/graph/knowledge_graph.json` file keeps the graph inspectable, easy to test, and safe for offline use.
+
+## ADR-010: Use Deterministic Graph Extraction in v0.2
+
+Status: Accepted
+
+Entity and relationship extraction starts with rule-based patterns for phrases such as `depends on`, `owned by`, `caused`, `affects`, `blocks`, `mitigates`, `related to`, and `CONTRADICTS:`. This keeps tests deterministic and avoids adding a real LLM, extra agents, or free-form extraction loops before the storage and inspection contracts are proven.
+
+## ADR-011: Add Local CSV Data Catalog Before Connectors
+
+Status: Accepted
+
+v0.3 introduces `company_data/` as a local structured data intake area. It supports category folders, a manifest, and fake demo CSV files only. This gives the Company Intelligence Engine a place to inspect structured company data without adding enterprise connectors, auth, scheduled ingestion, or a database.
+
+## ADR-012: Persist CSV Profiles as Generated Local JSON
+
+Status: Accepted
+
+CSV profiling writes summaries to `.decision_system/data_profiles/profiles.json`. The profile store is generated local state and should not be committed. Profiles contain shape and quality signals, not semantic decisions: row counts, column counts, missing values, numeric summaries, categorical top values, date-like columns, and warnings.

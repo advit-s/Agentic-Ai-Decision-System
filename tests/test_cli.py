@@ -128,3 +128,43 @@ def test_ask_provider_fake_keeps_offline_default(tmp_path, monkeypatch):
 
     assert result.exit_code == 0
     assert "# Decision Report" in result.output
+
+
+def test_extract_graph_exits_0(tmp_path, monkeypatch):
+    docs_dir, _ = _configure_test_store(tmp_path, monkeypatch)
+    (docs_dir / "systems.md").write_text(
+        "Billing depends on LegacyAuth. LegacyAuth owned by Platform Team.",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(app, ["extract-graph"])
+
+    assert result.exit_code == 0
+    assert "Saved knowledge graph:" in result.output
+    graph_path = tmp_path / ".decision_system" / "graph" / "knowledge_graph.json"
+    assert graph_path.exists()
+    payload = json.loads(graph_path.read_text(encoding="utf-8"))
+    assert payload["entities"]
+    assert payload["relationships"]
+
+
+def test_inspect_graph_exits_0(tmp_path, monkeypatch):
+    docs_dir, _ = _configure_test_store(tmp_path, monkeypatch)
+    (docs_dir / "systems.md").write_text(
+        "Billing depends on LegacyAuth. LegacyAuth owned by Platform Team.",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    extract_result = runner.invoke(app, ["extract-graph"])
+
+    result = runner.invoke(app, ["inspect-graph"])
+
+    assert extract_result.exit_code == 0
+    assert result.exit_code == 0
+    assert "Total entity count:" in result.output
+    assert "Total relationship count:" in result.output
+    assert "Entities grouped by type:" in result.output
+    assert "Relationships grouped by relation type:" in result.output
+    assert "Top connected entities:" in result.output

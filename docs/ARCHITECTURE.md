@@ -2,7 +2,9 @@
 
 ## System Purpose
 
-The Agentic AI Decision System creates evidence-backed decision reports from local documents. It is backend-first and CLI-first: users place documents in `company_docs/`, index them locally, then ask a decision question.
+The Agentic AI Decision System is evolving into a Company Intelligence Engine. It creates evidence-backed decision reports from local documents and now starts extracting local entity and relationship structure for future hidden-pattern detection.
+
+It is backend-first and CLI-first: users place documents in `company_docs/`, index them locally, extract graph structure locally, then ask a decision question.
 
 The system is not an autonomous decision-maker. It produces a decision brief that separates cited evidence, verified claims, contradicted claims, unsupported assumptions, risk notes, confidence, and human review needs.
 
@@ -37,6 +39,41 @@ company_docs/
 
 Retrieval returns `EvidenceChunk` objects, not answers. Each chunk includes an evidence ID, source filename, chunk ID, text, and retrieval score.
 
+## Local Knowledge Graph
+
+v0.2 adds a graph-like JSON store without introducing a database:
+
+```text
+company_docs/
+  -> document loader
+  -> chunker
+  -> deterministic graph extractor
+  -> .decision_system/graph/knowledge_graph.json
+  -> graph inspector
+```
+
+The graph contains `Entity`, `Relationship`, and `KnowledgeGraph` Pydantic models. Entities and relationships keep source evidence IDs and source filenames so every extracted connection remains auditable.
+
+The first extractor is deliberately rule-based and offline. It recognizes phrases such as `depends on`, `owned by`, `caused`, `affects`, `blocks`, `mitigates`, explicit `related to`, and `CONTRADICTS:` markers. It does not call a real LLM and does not add new agents.
+
+## Local Structured Data Catalog
+
+v0.3 adds local CSV intake and profiling without adding a database:
+
+```text
+company_data/
+  -> manifest.json
+  -> category folders
+  -> fake demo CSV files or local private CSV files
+  -> CSV profiler
+  -> .decision_system/data_profiles/profiles.json
+  -> data inspector
+```
+
+The data catalog is intentionally descriptive. It profiles CSV shape and quality signals: row count, column count, missing values, numeric summaries, categorical top values, date-like columns, and warnings. It does not ingest data into Chroma, join it with the claim ledger, train models, call hosted providers, or run autonomous analysis.
+
+Only fake `demo_*.csv` files should be committed. Private company CSV files remain local.
+
 ## Analysts
 
 The technical analyst and risk analyst produce structured `AgentMemo` objects. They do not own final truth. Their claims must pass through the claim ledger and verifier before the report writer can use them as evidence-backed statements.
@@ -67,6 +104,11 @@ The report writer renders from claim ledger state, not raw model prose. Reports 
 The CLI exposes debug surfaces:
 
 - `decision-system inspect-index`
+- `decision-system extract-graph`
+- `decision-system inspect-graph`
+- `decision-system init-data-catalog`
+- `decision-system profile-data`
+- `decision-system inspect-data`
 - `decision-system ask "..." --show-evidence`
 - `decision-system ask "..." --json`
 - `decision-system ask "..." --save-run`
@@ -111,4 +153,9 @@ The local report renderer still owns final report writing.
 - No hybrid keyword search.
 - No semantic contradiction verifier.
 - No long-term persisted claim ledger.
+- No database-backed graph store.
+- No semantic entity resolution beyond deterministic v0.2 rules.
+- No database-backed structured data catalog.
+- No connector-backed data intake.
+- No semantic analysis of CSV profiles yet.
 - Hash embeddings are for local testing, not production retrieval quality.
