@@ -74,6 +74,8 @@ The data catalog is intentionally descriptive. It profiles CSV shape and quality
 
 Only fake `demo_*.csv` files should be committed. Private company CSV files remain local.
 
+v0.3.2 adds a local public dataset importer. Raw files stay in ignored `datasets/`; supported `.csv`, `.xlsx`, and `.xls` files are converted to ignored `company_data/<category>/imported_*.csv` files. SQL Server `.bak` files are explicitly skipped. Import results are recorded in `.decision_system/imports/import_manifest.json`.
+
 ## Analysts
 
 The technical analyst and risk analyst produce structured `AgentMemo` objects. They do not own final truth. Their claims must pass through the claim ledger and verifier before the report writer can use them as evidence-backed statements.
@@ -109,6 +111,8 @@ The CLI exposes debug surfaces:
 - `decision-system init-data-catalog`
 - `decision-system profile-data`
 - `decision-system inspect-data`
+- `decision-system import-datasets`
+- `decision-system inspect-imports`
 - `decision-system ask "..." --show-evidence`
 - `decision-system ask "..." --json`
 - `decision-system ask "..." --save-run`
@@ -158,4 +162,5 @@ The local report renderer still owns final report writing.
 - No database-backed structured data catalog.
 - No connector-backed data intake.
 - No semantic analysis of CSV profiles yet.
+- No native SQL Server `.bak` import.
 - Hash embeddings are for local testing, not production retrieval quality.

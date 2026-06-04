@@ -39,3 +39,7 @@ company_data/**
 !company_data/**/
 !company_data/**/.gitkeep
 !company_data/**/demo_*.csv
+
+# Local/public raw datasets and Claude local settings
+datasets/
+.claude/settings.local.json

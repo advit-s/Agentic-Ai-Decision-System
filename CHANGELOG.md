@@ -5,6 +5,23 @@
 ### Added
 - Claude Code project memory and workflow commands.
 
+## [0.3.2] - 2026-06-05
+
+### Added
+- Local public dataset importer for ignored `datasets/` files.
+- `decision-system import-datasets` and `decision-system inspect-imports`.
+- CSV and XLSX import paths plus optional XLS support through `xlrd`.
+- Clear `.bak` skipping with an auditable import manifest under `.decision_system/imports/import_manifest.json`.
+- Offline importer tests for classification, dry runs, overwrite safety, row limits, `.bak` skipping, and CLI commands.
+
+## [0.3.1] - 2026-06-05
+
+### Added
+- Synthetic demo dataset starter pack.
+- `decision-system seed-demo-data` with `--force` flag.
+- Demo CSVs for financial, customer, sales, marketing, feedback, product, competitor, operations, analytics, and strategic data.
+- `docs/DATASETS.md` with synthetic data guidance and recommended public datasets.
+
 ## [0.3.0] - 2026-06-04
 
 ### Added

@@ -1,4 +1,25 @@
-customer_id,segment,lifetime_value,risk_flag
-demo-cust-001,enterprise,12000,false
-demo-cust-002,smb,4500,true
-demo-cust-003,enterprise,9800,false
+customer_id,city,segment,signup_month,lifetime_value
+CUST-0001,New York,enterprise,2025-01,16541
+CUST-0002,Chicago,smb,2025-02,10947
+CUST-0003,Austin,smb,2025-03,4204
+CUST-0004,Denver,startup,2025-04,10000
+CUST-0005,Seattle,enterprise,2025-05,21243
+CUST-0006,Miami,enterprise,2025-06,16972
+CUST-0007,Boston,smb,2025-07,7652
+CUST-0008,Portland,startup,2025-08,10912
+CUST-0009,New York,enterprise,2025-09,19886
+CUST-0010,Chicago,smb,2025-10,5711
+CUST-0011,Austin,enterprise,2025-11,16000
+CUST-0012,Denver,smb,2025-12,9981
+CUST-0013,Seattle,smb,2025-01,9653
+CUST-0014,Miami,startup,2025-02,13417
+CUST-0015,Boston,enterprise,2025-03,21182
+CUST-0016,Portland,enterprise,2025-04,20598
+CUST-0017,New York,smb,2025-05,7991
+CUST-0018,Chicago,startup,2025-06,13994
+CUST-0019,Austin,enterprise,2025-07,21062
+CUST-0020,Denver,smb,2025-08,10774
+CUST-0021,Seattle,enterprise,2025-09,16795
+CUST-0022,Miami,smb,2025-10,7250
+CUST-0023,Boston,smb,2025-11,6834
+CUST-0024,Portland,startup,2025-12,12110

@@ -71,3 +71,11 @@ v0.3 introduces `company_data/` as a local structured data intake area. It suppo
 Status: Accepted
 
 CSV profiling writes summaries to `.decision_system/data_profiles/profiles.json`. The profile store is generated local state and should not be committed. Profiles contain shape and quality signals, not semantic decisions: row counts, column counts, missing values, numeric summaries, categorical top values, date-like columns, and warnings.
+
+## ADR-013: Import Public Datasets as Local CSV Copies
+
+Status: Accepted
+
+v0.3.2 imports local public `.csv`, `.xlsx`, and `.xls` files from ignored `datasets/` into categorized CSV files under `company_data/<category>/`. Imported files are named `imported_*.csv` and remain ignored by Git. This keeps raw public downloads and generated conversions out of commits while allowing the existing CSV profiler to inspect them.
+
+SQL Server `.bak` files are skipped with a clear manifest record instead of adding native database restore support.

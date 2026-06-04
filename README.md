@@ -122,6 +122,30 @@ python -m pip install -e ".[dev]"
 python -m pytest -q
 ```
 
+## Demo Dataset Starter Pack
+
+```bash
+decision-system init-data-catalog
+decision-system seed-demo-data
+decision-system profile-data
+decision-system inspect-data
+```
+
+The demo datasets are synthetic and safe for local development.
+
+## Public Dataset Importer
+
+Raw public datasets should live in the ignored `datasets/` folder. Supported local inputs are `.csv`, `.xlsx`, and `.xls`; SQL Server `.bak` files are skipped with a clear manifest entry.
+
+```bash
+decision-system import-datasets --source-dir datasets --max-rows 5000
+decision-system inspect-imports
+decision-system profile-data
+decision-system inspect-data
+```
+
+Imported CSVs are written under `company_data/<category>/` as `imported_*.csv` and remain ignored by Git.
+
 ## Quick Start With Fake Provider
 
 The fake provider is the default and works without any API key. The repo includes `company_docs/demo_billing.md` for local smoke tests.
@@ -176,8 +200,11 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system extract-graph`: extract entities and relationships into `.decision_system/graph/knowledge_graph.json`
 - `decision-system inspect-graph`: show entity counts, relationship counts, grouped types, and top connected entities
 - `decision-system init-data-catalog`: create `company_data/`, category folders, manifest, and fake demo CSVs
+- `decision-system seed-demo-data`: write the synthetic 10-category demo CSV starter pack
 - `decision-system profile-data`: profile local CSV files and save `.decision_system/data_profiles/profiles.json`
 - `decision-system inspect-data`: summarize saved CSV profiles
+- `decision-system import-datasets`: convert ignored public CSV/XLSX/XLS datasets into categorized local CSVs
+- `decision-system inspect-imports`: inspect the latest import manifest
 - `decision-system eval`: run local evaluation cases
 - `decision-system eval --json`: print structured evaluation results
 - `decision-system eval --save-results`: save evaluation results under `evals/results/`

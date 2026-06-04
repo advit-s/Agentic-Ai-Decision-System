@@ -1,0 +1,13 @@
+ticket_id,customer_segment,issue_type,sentiment,refund_requested
+TK-0001,enterprise,Login failure,negative,true
+TK-0002,smb,Billing discrepancy,neutral,false
+TK-0003,startup,Login failure,negative,true
+TK-0004,smb,Feature request,positive,false
+TK-0005,enterprise,Billing discrepancy,negative,false
+TK-0006,enterprise,Slow performance,negative,true
+TK-0007,smb,Login failure,negative,false
+TK-0008,startup,Account locked,negative,false
+TK-0009,smb,Billing discrepancy,negative,true
+TK-0010,enterprise,Feature request,neutral,false
+TK-0011,enterprise,Login failure,negative,true
+TK-0012,smb,Slow performance,positive,false

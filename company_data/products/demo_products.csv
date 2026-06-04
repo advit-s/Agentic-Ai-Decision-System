@@ -1,0 +1,6 @@
+product,category,units_sold,gross_margin,return_rate
+Nimbus Pro,SaaS,3420,0.72,0.02
+Orion Basic,SaaS,1890,0.68,0.04
+Titan Enterprise,SaaS,920,0.81,0.01
+Vertex Lite,SaaS,4100,0.22,0.18
+Nimbus AddOn Pack,Add-on,1500,0.55,0.03

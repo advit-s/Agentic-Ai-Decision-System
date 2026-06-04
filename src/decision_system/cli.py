@@ -15,6 +15,13 @@ from pydantic import BaseModel
 from rich.console import Console
 
 from decision_system.config import load_settings
+from decision_system.data_catalog.demo_data import seed_demo_data as _seed_demo_data_fn
+from decision_system.data_catalog.importer import (
+    DEFAULT_IMPORT_SOURCE_DIR,
+    import_datasets as import_datasets_fn,
+    load_import_manifest,
+    render_import_manifest,
+)
 from decision_system.data_catalog.initializer import (
     DEFAULT_DATA_ROOT,
     init_data_catalog as initialize_data_catalog,
@@ -191,6 +198,76 @@ def inspect_data() -> None:
 
     store = load_profiles()
     console.print(render_inspection(inspect_profiles(store)))
+
+
+@app.command()
+def seed_demo_data(
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite existing demo CSV files.",
+    ),
+) -> None:
+    """Seed company_data/ with synthetic demo CSVs for local testing."""
+
+    summary = seed_demo_data_fn(force=force)
+    console.print(
+        f"Seeded demo data: {summary['created']} created, "
+        f"{summary['overwritten']} overwritten, {summary['skipped']} skipped"
+    )
+
+
+def seed_demo_data_fn(*, force: bool = False) -> dict[str, int]:
+    """Seed demo data through a small wrapper for testability."""
+    return _seed_demo_data_fn(DEFAULT_DATA_ROOT, force=force)
+
+
+@app.command()
+def import_datasets(
+    source_dir: Path = typer.Option(
+        DEFAULT_IMPORT_SOURCE_DIR,
+        "--source-dir",
+        help="Local ignored folder containing public datasets.",
+    ),
+    max_rows: int = typer.Option(
+        5000,
+        "--max-rows",
+        min=1,
+        help="Maximum rows to write per imported dataset.",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite existing imported CSV outputs.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Inspect what would import without writing CSVs or manifest.",
+    ),
+) -> None:
+    """Convert local public datasets into categorized CSV files."""
+
+    manifest = import_datasets_fn(
+        source_dir,
+        data_root=DEFAULT_DATA_ROOT,
+        max_rows=max_rows,
+        force=force,
+        dry_run=dry_run,
+    )
+    console.print(
+        f"Imported datasets: {manifest.imported_count}; "
+        f"Skipped datasets: {manifest.skipped_count}"
+    )
+    if not dry_run:
+        console.print("Saved import manifest: .decision_system/imports/import_manifest.json")
+
+
+@app.command()
+def inspect_imports() -> None:
+    """Inspect the latest public dataset import manifest."""
+
+    console.print(render_import_manifest(load_import_manifest()))
 
 
 @app.command()

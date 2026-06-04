@@ -1,0 +1,6 @@
+goal,target_market,priority,constraint,owner
+Double ARR in 18 months,Mid-market enterprise,P0,Headcount freeze,VP Revenue
+Expand EMEA presence,Western Europe,P1,GDPR compliance,VP International
+Reduce churn below 3%,All segments,P0,Product roadmap locked,VP Customer Success
+Launch self-serve tier,Startup,P2,No additional dev headcount,VP Product
+Achieve SOC 2 certification,Enterprise,P1,Security budget cap,CISO
