@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.4.0] - 2026-06-05
+
+### Added - Orchestration Layer
+- `decision_system.orchestration` package with Pydantic v2 models: `StorageTier`, `DecisionSession`, `DecisionType`, `ProblemAnalysis`, `DispatchPlan`, `JudgeSummary`.
+- `decision-system analyze-problem` — classifies a business question into a decision type and returns required data categories, tools, roles, ontology concepts, and storage tiers.
+- `decision-system run-orchestration` — end-to-end pipeline: analyze → plan → dispatch → sandbox → detect → judge.
+- `decision-system inspect-orchestration` — loads and renders the latest orchestration run.
+- Problem analyzer: deterministic keyword → `DecisionType` mapping for 13 domain types (financial, customer, sales, marketing, feedback, product, competitor, operations, analytics, strategic, technical, risk, general).
+- Dispatch planner: selects tools, roles, and artifacts based on required data categories; enforces execution ordering.
+- Sandbox executor: explicit function-call allow-list; blocks destructive operations (delete, shell exec, HTTP, external messaging).
+- Judge summary: confidence scoring (low/medium/high), key findings, risks, missing data, recommended next actions, and human-review flags.
+- Persistence layer: save/load orchestration runs under `.decision_system/orchestration/runs/`.
+- Inspector renderers for problem analysis and dispatch plan output.
+
+### Added - Ontology Layer
+- 31 business concepts across entity, metric, relationship, and risk types.
+- Deterministic column-to-concept mapper with ~200 rules.
+- `decision-system map-ontology` and `decision-system inspect-ontology`.
+
+### Added - Pattern / Vulnerability Detection
+- Local insight models and insight store.
+- Deterministic pattern and vulnerability detectors (offline, no LLM).
+- Detection from data profiles, local CSV datasets, and knowledge graph relationships.
+- `decision-system detect-patterns`.
+- `decision-system inspect-insights`.
+- 16 detector categories: revenue risk, profit margin, customer concentration, sales channel concentration, marketing ROI, feedback risk, product risk, competitor risk, operations bottleneck, analytics conversion, strategic gaps, missing data, data quality, dependency risk, contradiction, and ownership gap.
+
 ## [Unreleased]
 
 ### Added

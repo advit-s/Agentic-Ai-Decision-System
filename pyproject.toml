@@ -4,9 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentic-decision-system"
-version = "0.3.2"
+version = "0.4.0"
 description = "Backend-first agentic decision brief prototype with LangGraph, Chroma, RAG, and a claim ledger."
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
 dependencies = [
   "langgraph>=1.0,<2.0",

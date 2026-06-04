@@ -101,6 +101,85 @@ The verifier checks whether cited evidence exists and whether a deterministic `C
 
 The report writer renders from claim ledger state, not raw model prose. Reports include recommendation, options, evidence citations, risks, contradictions, unsupported assumptions, confidence level, human review requirements, and the original question.
 
+## Ontology Layer (v0.4)
+
+The ontology layer maps CSV columns to standardized business concepts:
+
+```text
+data_profiles/profiles.json
+  -> column-to-concept matcher (31 concepts, ~200 rules)
+  -> OntologyMap (concepts, column_mappings)
+  -> .decision_system/ontology/ontology_map.json
+  -> decision-system map-ontology
+  -> decision-system inspect-ontology
+```
+
+Concepts are typed (entity, metric, relationship, risk) so downstream analysis can reason about what kind of data exists without parsing column names.
+
+## Orchestration Layer (v0.4)
+
+The orchestration layer is a bounded, deterministic pipeline that ties all subsystems together for end-to-end decision support:
+
+```text
+user question
+  -> Problem Analyzer: keyword → DecisionType + required data/tools/roles/tiers
+  -> Planner: enrich artifact paths and analysis notes
+  -> Dispatcher: select tools, roles, execution order, skip irrelevant tools
+  -> Sandbox: validate and execute allowed actions (read profiles, graph, detectors, save)
+  -> Detect: run pattern/vulnerability detectors
+  -> Judge: confidence scoring, key findings, risks, human review flags
+  -> Persistence: save session to .decision_system/orchestration/runs/
+  -> Output: structured result dict for CLI / downstream consumption
+```
+
+Key design principles:
+- **All steps are deterministic.** No LLM calls in the orchestration layer itself.
+- **Sandbox is an allow-list, not a security boundary.** It validates function names and rejects destructive patterns.
+- **Decision types** map to domain-specific tool chains: financial → profile + detect; strategic → profile + graph + detect; technical → graph only; general → profile only.
+- **Storage tiers** (4 tiers) describe which data artifacts each decision type needs.
+- **Judge summary** downgrades confidence when data is missing and flags high-severity insights for human review.
+
+## Insight Engine (v0.4)
+
+The deterministic insight engine reads saved data profiles, the local knowledge graph, and raw CSV files under ``company_data/`` to surface patterns and vulnerabilities without requiring a real LLM.
+
+```text
+.company_data/          <- local CSV datasets
+  |
+  v
+.csv profiler           <- row shape, missing values, numeric summaries
+  |
+  v
+.data_profiles/profiles.json   <- cached profile summaries
+  |
+  v
+profile-based detectors        <- missing data, data quality, sales
+                                 channel concentration, customer
+                                 concentration
+  |
+  v
+.csv loader                    <- raw CSV rows (only when profile
+                                 data is insufficient)
+  |
+  v
+business CSV detectors         <- revenue/expense risk, marketing ROI,
+                                 feedback risk, product risk,
+                                 competitor risk, operations bottleneck,
+                                 analytics conversion risk, strategic gaps
+  |
+  v
+knowledge_graph                <- dependency risk, contradiction,
+  |                                 ownership gap
+  v
+.insights/insights.json        <- ranked insight records
+  |
+  v
+decision-system detect-patterns   (offline, testable, deterministic)
+decision-system inspect-insights  (human-readable summary)
+```
+
+All detection logic is rule-based and offline. No real LLM execution is required. Thresholds are intentionally conservative to minimise false positives.
+
 ## Inspectability
 
 The CLI exposes debug surfaces:
@@ -113,11 +192,13 @@ The CLI exposes debug surfaces:
 - `decision-system inspect-data`
 - `decision-system import-datasets`
 - `decision-system inspect-imports`
+- `decision-system detect-patterns`
+- `decision-system inspect-insights`
 - `decision-system ask "..." --show-evidence`
 - `decision-system ask "..." --json`
 - `decision-system ask "..." --save-run`
 
-These commands make retrieved evidence, workflow state, claim verification, and final report output inspectable.
+These commands make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable.
 
 ## Evaluation Harness
 

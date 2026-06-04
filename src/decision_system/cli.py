@@ -33,6 +33,45 @@ from decision_system.graph.workflow import build_workflow
 from decision_system.graphing.extractor import extract_knowledge_graph
 from decision_system.graphing.inspector import inspect_knowledge_graph, render_graph_inspection
 from decision_system.graphing.store import load_knowledge_graph, save_knowledge_graph
+from decision_system.insights.detectors import run_detectors
+from decision_system.insights.inspector import (
+    inspect_insights as _inspect_insights_fn,
+    render_insight_inspection,
+)
+from decision_system.insights.store import (
+    _insights_path,
+    load_insights,
+    save_insights,
+)
+from decision_system.ontology.inspector import (
+    inspect_ontology as _inspect_ontology_fn,
+    render_ontology_inspection,
+)
+from decision_system.ontology.mapper import map_profiles_to_ontology
+from decision_system.ontology.store import (
+    DEFAULT_ONTOLOGY_DIR,
+    _ontology_path,
+    load_ontology,
+    save_ontology,
+)
+from decision_system.orchestration.inspector import (
+    inspect_dispatch_plan,
+    inspect_problem_analysis,
+    render_dispatch_plan,
+    render_problem_analysis,
+)
+from decision_system.orchestration.judge import build_judge_summary
+from decision_system.orchestration.models import DispatchPlan, JudgeSummary, ProblemAnalysis
+from decision_system.orchestration.session import (
+    create_session,
+    load_latest_run,
+)
+from decision_system.orchestration.store import save_decision_session, load_latest_session
+from decision_system.orchestration.dispatcher import build_dispatch_plan
+from decision_system.orchestration.planner import plan_data_tools_roles
+from decision_system.orchestration.problem_analyzer import analyze_problem as _analyze_problem_fn
+from decision_system.orchestration.workflow import run_orchestration as _run_orchestration_fn
+from decision_system.insights.store import DEFAULT_INSIGHTS_DIR
 from decision_system.rag.chunker import chunk_documents
 from decision_system.rag.loader import load_documents
 from decision_system.rag.vector_store import index_chunks, inspect_collection
@@ -164,6 +203,173 @@ def inspect_graph() -> None:
     knowledge_graph = load_knowledge_graph()
     inspection = inspect_knowledge_graph(knowledge_graph)
     console.print(render_graph_inspection(inspection))
+
+
+@app.command()
+def detect_patterns() -> None:
+    """Run deterministic pattern and vulnerability detection.
+
+    The command reads saved data profiles, the local knowledge graph, and
+    CSV files under ``company_data/`` as needed. All detection is offline
+    — no LLM is called. Detected insights are saved to
+    ``.decision_system/insights/insights.json``.
+    """
+    profiles = load_profiles()
+    graph = load_knowledge_graph()
+    store = run_detectors(profiles=profiles, graph=graph)
+    insights_path = save_insights(store)
+    severity_counts = store.severity_counts()
+    category_counts = store.category_counts()
+
+    console.print(f"Insights detected: {len(store.insights)}")
+    if severity_counts:
+        console.print("By severity: " + ", ".join(f"{k}: {v}" for k, v in sorted(severity_counts.items())))
+    if category_counts:
+        console.print("By category: " + ", ".join(f"{k}: {v}" for k, v in sorted(category_counts.items())))
+    console.print(f"Saved insights: {insights_path}")
+
+
+@app.command()
+def inspect_insights() -> None:
+    """Inspect saved deterministic insight summaries."""
+    store = load_insights()
+    summary = _inspect_insights_fn(store)
+    console.print(render_insight_inspection(summary))
+
+
+@app.command()
+def analyze_problem(
+    question: str, json_output: bool = typer.Option(False, "--json")
+) -> None:
+    """Analyze a business question and print required data, tools, and roles.
+
+    Outputs the problem analysis without running any data collection or
+    detection logic.
+    """
+
+    analysis = _analyze_problem_fn(question)
+    analysis = plan_data_tools_roles(analysis)
+    summary = inspect_problem_analysis(analysis)
+    if json_output:
+        typer.echo(json.dumps(_to_jsonable(summary), indent=2))
+    else:
+        console.print(render_problem_analysis(summary))
+
+
+@app.command()
+def run_orchestration(
+    question: str,
+    json_output: bool = typer.Option(False, "--json"),
+    save_run: bool = typer.Option(
+        True,
+        "--save-run/--no-save-run",
+        help="Save the orchestration run under .decision_system/orchestration/runs/.",
+    ),
+) -> None:
+    """Run the full offline orchestration pipeline for a business question.
+
+    Steps: analyze -> plan -> dispatch -> sandbox -> detect -> judge.
+    Saves results to .decision_system/orchestration/.
+    """
+
+    result = _run_orchestration_fn(
+        question,
+        save=save_run,
+    )
+    if json_output:
+        typer.echo(json.dumps(_to_jsonable(result), indent=2))
+        return
+
+    console.print(f"Run ID: {result['run_id']}")
+    console.print(f"Decision type: {result['decision_type']}")
+    console.print(f"Required data categories: {', '.join(result['required_data_categories']) or 'none'}")
+    console.print("Selected tools:")
+    for tool in result["execution_order"]:
+        console.print(f"  - {tool}")
+    console.print("Selected roles:")
+    for role in result["relevant_roles"]:
+        console.print(f"  - {role}")
+    console.print(f"Insights: {result['insight_count']}")
+    console.print("Insights by severity:")
+    for sev, count in sorted(result["insights_by_severity"].items()):
+        console.print(f"  - {sev}: {count}")
+    j = result["judge"]
+    console.print(f"Judge confidence: {j['confidence_level']}")
+    console.print(f"Human review required: {len(j['human_review_required'])} items")
+    if result["saved_path"]:
+        console.print(f"Saved run: {result['saved_path']}")
+
+
+@app.command()
+def inspect_orchestration() -> None:
+    """Inspect the latest saved orchestration run."""
+
+    session = load_latest_session()
+    if session is None:
+        console.print("No orchestration run found. Run `decision-system run-orchestration` first.")
+        raise typer.Exit(code=0)
+
+    from decision_system.orchestration.models import ProblemAnalysis, DispatchPlan
+    from decision_system.orchestration.inspector import (
+        render_problem_analysis,
+        render_dispatch_plan,
+    )
+
+    # Reconstruct analysis and dispatch plan from session metadata
+    analysis = ProblemAnalysis(
+        question=session.question,
+        decision_type=session.decision_type,
+        required_data_categories=session.required_data_categories,
+        required_tools=session.required_tools,
+        relevant_roles=session.relevant_roles,
+        required_storage_tiers=session.storage_tiers_used,
+        analysis_notes=session.context_summary,
+    )
+    plan = DispatchPlan(
+        selected_tools=session.required_tools,
+        selected_roles=session.relevant_roles,
+        selected_artifacts=session.selected_artifacts,
+        execution_order=session.execution_order,
+        skipped_tools=session.skipped_tools,
+        missing_inputs=session.missing_inputs,
+    )
+
+    console.print(render_problem_analysis(inspect_problem_analysis(analysis)))
+    console.print(render_dispatch_plan(inspect_dispatch_plan(plan)))
+    console.print("# Judge Summary")
+    console.print("")
+    console.print(f"Run ID: {session.run_id}")
+    console.print(f"Insight count: {session.insight_count}")
+    console.print(f"Ontology concepts: {session.ontology_concept_count}")
+    console.print(f"Mapped columns: {session.mapped_column_count}")
+    judge = session.judge_summary
+    if judge:
+        console.print(f"Confidence: {judge.get('confidence_level', 'unknown')}")
+        console.print(f"Human review required: {len(judge.get('human_review_required', []))} items")
+
+
+@app.command()
+def map_ontology() -> None:
+    """Map dataset columns to ontology business concepts.
+
+    Reads saved data profiles and creates a deterministic column-to-concept
+    mapping saved to ``.decision_system/ontology/ontology_map.json``.
+    """
+    profiles = load_profiles()
+    omap = map_profiles_to_ontology(profiles)
+    ontology_path = save_ontology(omap)
+    concept_count = len(omap.concepts)
+    mapping_count = len(omap.column_mappings)
+    console.print(f"Ontology mapped: {concept_count} concepts, {mapping_count} column mappings")
+    console.print(f"Saved ontology map: {ontology_path}")
+
+
+@app.command()
+def inspect_ontology() -> None:
+    """Inspect the local ontology map."""
+    omap = load_ontology()
+    summary = _inspect_ontology_fn(omap)
+    console.print(render_ontology_inspection(summary))
 
 
 @app.command()

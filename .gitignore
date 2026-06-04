@@ -22,9 +22,13 @@ build/
 
 # Local generated app state
 .decision_system/
+.decision_system/orchestration/
+.decision_system/ontology/
 .decision_system/data_profiles/
+.decision_system/insights/
 evals/results/*.json
 !evals/results/.gitkeep
+_smoke_run/
 
 # Local/private documents
 company_docs/*

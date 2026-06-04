@@ -38,6 +38,16 @@ Final reports come from verified claim ledger state, not uncontrolled agent chat
 - report writer
 - inspectability commands
 - evaluation command
+- deterministic pattern and vulnerability detection
+
+## Pattern and Vulnerability Detection
+
+```bash
+decision-system detect-patterns
+decision-system inspect-insights
+```
+
+The v0.4 insight engine uses saved data profiles, local CSV datasets, and the local knowledge graph to surface deterministic offline insights such as revenue risk, customer concentration, marketing ROI risk, competitor risk, operations bottlenecks, dependency risks, contradictions, missing data, and data quality issues.
 
 ## What Is Not Included Yet
 
@@ -205,6 +215,8 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system inspect-data`: summarize saved CSV profiles
 - `decision-system import-datasets`: convert ignored public CSV/XLSX/XLS datasets into categorized local CSVs
 - `decision-system inspect-imports`: inspect the latest import manifest
+- `decision-system detect-patterns`: run deterministic pattern and vulnerability detection
+- `decision-system inspect-insights`: inspect saved insight summaries
 - `decision-system eval`: run local evaluation cases
 - `decision-system eval --json`: print structured evaluation results
 - `decision-system eval --save-results`: save evaluation results under `evals/results/`
@@ -220,6 +232,7 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `src/decision_system/evals`: local evaluation models and runner
 - `src/decision_system/graphing`: entity and relationship graph models, extraction, store, and inspection
 - `src/decision_system/data_catalog`: local data catalog initialization, CSV profiling, storage, and inspection
+- `src/decision_system/insights`: deterministic pattern and vulnerability detection
 - `tests`: offline unit and CLI tests
 - `docs`: architecture, setup, development, and troubleshooting docs
 - `company_docs`: local docs folder; only demo docs should be committed
@@ -231,6 +244,10 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 python -m pytest -q
 decision-system eval
 ```
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE`.
 
 ## Troubleshooting
 

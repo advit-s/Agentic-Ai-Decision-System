@@ -72,7 +72,21 @@ Status: Accepted
 
 CSV profiling writes summaries to `.decision_system/data_profiles/profiles.json`. The profile store is generated local state and should not be committed. Profiles contain shape and quality signals, not semantic decisions: row counts, column counts, missing values, numeric summaries, categorical top values, date-like columns, and warnings.
 
-## ADR-013: Import Public Datasets as Local CSV Copies
+## ADR-014: Add Deterministic Insight Engine Before Real LLM Analysis
+
+Status: Accepted
+
+v0.4 introduces a rule-based insight engine that reads existing data profiles, local knowledge graph relationships, and raw CSV files to produce deterministic offline insights. No real LLM is called during detection. This keeps the Company Intelligence Engine testable, auditable, and runnable without API keys while providing visible value from existing data layers.
+
+The engine is intentionally conservative: thresholds are set to minimise false positives, and detectors gracefully skip when upstream data is absent. Insights are persisted to ``.decision_system/insights/insights.json`` and inspected via CLI commands.
+
+## ADR-015: Keep Insight Detection Offline and Testable
+
+Status: Accepted
+
+All v0.4 detectors are rule-based and deterministic. They run against cached data profiles and local files. No agent call, no free-form analysis, and no new LangGraph nodes are introduced. The insight engine is a standalone analysis layer that reads the output of existing subsystems (profiler, graph, CSV loader) without modifying their contracts.
+
+## ADR-016: Import Public Datasets as Local CSV Copies
 
 Status: Accepted
 
