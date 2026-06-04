@@ -1,0 +1,26 @@
+{
+  "case_id": "billing_migration",
+  "question": "Should we migrate billing?",
+  "documents": [
+    {
+      "filename": "billing.md",
+      "text": "Billing migration requires rollback planning and staged deployment. Billing failures affect customer payments."
+    }
+  ],
+  "expectations": {
+    "required_source_filenames": ["billing.md"],
+    "min_verified_claims": 1,
+    "min_unsupported_claims": 0,
+    "min_contradicted_claims": 0,
+    "min_evidence_citations": 1,
+    "human_review_required": false,
+    "expected_confidence_level": "high",
+    "required_report_sections": [
+      "## Recommendation",
+      "## Evidence Citations",
+      "## Risks",
+      "## Confidence Level",
+      "## Human Review Required"
+    ]
+  }
+}

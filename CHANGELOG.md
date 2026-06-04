@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.2.0] - 2026-06-04
+
+### Added
+- Optional NVIDIA NIM provider using LangChain's `ChatNVIDIA` integration.
+- Provider factory with `fake` default and `nvidia_nim` selection.
+- `decision-system ask --provider`.
+- Environment-based NVIDIA NIM configuration for API key, model, temperature, top-p, max tokens, and optional reasoning settings.
+- Mocked provider tests for structured NIM JSON parsing and malformed-output failures.
+- GitHub readiness documentation for setup, architecture, development, NVIDIA NIM, troubleshooting, and contributing.
+- Secret hygiene guidance; fake provider remains default and no real secrets should be committed.
+
+## [0.1.2] - 2026-06-04
+
+### Added
+- `decision-system eval` for repeatable local evaluation cases.
+- Evaluation case models and structured suite results.
+- Offline eval runner that indexes temporary case documents and runs the normal workflow.
+- Bundled billing, empty-context, and contradiction eval cases.
+- `decision-system eval --json` and `decision-system eval --save-results`.
+
+## [0.1.1] - 2026-06-04
+
+### Added
+- `decision-system inspect-index` for Chroma collection count and source filename inspection.
+- `decision-system ask --show-evidence` for retrieved evidence previews.
+- `decision-system ask --json` for structured workflow state output.
+- `decision-system ask --save-run` for saving full workflow results under `.decision_system/runs/`.
+
 ## [0.1.0] - 2026-06-04
 
 ### Added

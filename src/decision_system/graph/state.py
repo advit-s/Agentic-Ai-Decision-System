@@ -7,6 +7,7 @@ class WorkflowState(TypedDict, total=False):
     run_id: str
     question: str
     top_k: int
+    provider: str
     retrieved_evidence: list[EvidenceChunk]
     technical_memo: AgentMemo
     risk_memo: AgentMemo

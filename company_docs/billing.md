@@ -1,9 +1,0 @@
-# Billing Migration Notes
-
-The billing service migration should use a staged rollout with rollback planning before production cutover. The supported migration claim is that staged deployment reduces billing interruption risk because the old billing flow can remain available during each rollout phase. The migration team should keep the current billing pipeline active while the new service processes a limited set of internal accounts, then a small customer cohort, and only then the full billing population. This lets operations compare invoice totals, retry queue behavior, payment reconciliation, customer notification timing, and rollback readiness before the new service becomes the default path.
-
-The main risk claim is that customer invoices may be delayed if payment reconciliation jobs are moved before the retry queue is validated. The finance team depends on accurate retry state, invoice status, and settlement timing. If reconciliation moves too early, failed payment retries may be counted incorrectly, support tickets may rise, and month-end reporting may need manual correction. The risk is highest during the first production cohort, when both old and new billing flows may be active. Operations should review incident playbooks, reconciliation metrics, and rollback ownership before approving the migration.
-
-The current recommendation from the project notes is to migrate in stages only after rollback plans, monitoring thresholds, and customer-support escalation paths are documented. The migration should not be treated as a one-step replacement. Leaders should ask for proof that the old billing service can be restored quickly, that invoice totals match between systems, and that payment retries have been validated under realistic load.
-
-CONTRADICTS: Billing migration requires rollback planning.

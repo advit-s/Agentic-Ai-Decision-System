@@ -2,66 +2,13 @@
 
 ## System Purpose
 
-The v0.1 system creates evidence-backed decision reports from local company or project documents. It is intentionally backend-first: users place documents in `company_docs/`, index them locally, then ask a decision question from the CLI.
+The Agentic AI Decision System creates evidence-backed decision reports from local documents. It is backend-first and CLI-first: users place documents in `company_docs/`, index them locally, then ask a decision question.
 
 The system is not an autonomous decision-maker. It produces a decision brief that separates cited evidence, verified claims, contradicted claims, unsupported assumptions, risk notes, confidence, and human review needs.
 
-## v0.1 Architecture Diagram
+## Bounded Workflow
 
-```text
-company_docs/
-  -> loader
-  -> chunker
-  -> hash embeddings
-  -> local Chroma collection
-  -> retriever
-  -> LangGraph workflow
-       -> technical analyst
-       -> risk analyst / red team
-       -> claim extraction
-       -> verifier
-       -> report writer
-  -> Markdown decision report
-```
-
-## CLI Flow
-
-```text
-decision-system index
-  -> read settings
-  -> load .md and .txt files
-  -> chunk documents
-  -> write chunks to local Chroma
-
-decision-system ask "Should we migrate billing?"
-  -> read settings
-  -> build the fixed LangGraph workflow
-  -> retrieve evidence
-  -> create structured agent memos
-  -> extract claims
-  -> verify claims
-  -> render the final report
-```
-
-## RAG Flow
-
-Documents are loaded from `company_docs/`, normalized into source metadata, chunked into stable `EvidenceChunk` records, embedded with the deterministic v0.1 hash embedding function, and persisted in `.decision_system/chroma/`.
-
-Retrieval returns `EvidenceChunk` objects, not answers. Each returned chunk carries:
-
-- evidence ID
-- document ID
-- source path
-- source filename
-- chunk ID
-- chunk text
-- retrieval score
-
-This keeps generation separate from evidence retrieval.
-
-## LangGraph Node Flow
-
-The graph is linear and terminating:
+The workflow is a linear LangGraph state machine:
 
 ```text
 START
@@ -74,56 +21,94 @@ START
   -> END
 ```
 
-There are no back edges, free-form debate loops, or agent-to-agent chat edges in v0.1.
+There are no back edges, free-form debate loops, or agent-to-agent chat edges. Each node has a narrow responsibility and passes structured state to the next node.
 
-## Claim Ledger Flow
+## Evidence Pipeline
 
-Agents produce structured `AgentMemo` objects. Claim extraction converts memo claims into `Claim` records. Verification marks each material claim as:
+```text
+company_docs/
+  -> document loader
+  -> chunker
+  -> hash embeddings
+  -> local Chroma collection
+  -> retriever
+  -> EvidenceChunk objects
+```
 
+Retrieval returns `EvidenceChunk` objects, not answers. Each chunk includes an evidence ID, source filename, chunk ID, text, and retrieval score.
+
+## Analysts
+
+The technical analyst and risk analyst produce structured `AgentMemo` objects. They do not own final truth. Their claims must pass through the claim ledger and verifier before the report writer can use them as evidence-backed statements.
+
+## Claim Ledger
+
+Claim extraction converts memos into `Claim` records. The ledger keeps claim IDs, source agent, claim text, evidence IDs, status, confidence, and verification notes.
+
+Claim statuses are:
+
+- `pending`
 - `verified`
 - `unsupported`
 - `contradicted`
 
-Contradicted claims are preserved rather than deleted. This makes uncertainty visible in the final report.
+Contradicted and unsupported claims are preserved for auditability.
 
-## Report Generation Rules
+## Verifier
 
-The report is generated from the claim ledger, not raw agent conversation. The report must:
+The verifier checks whether cited evidence exists and whether a deterministic `CONTRADICTS:` marker is present. This is intentionally simple and testable. It is not a semantic truth engine yet.
 
-- cite verified evidence IDs
-- list risks
-- list contradictions
-- list unsupported assumptions
-- set confidence conservatively
-- require human review for contradictions or unsupported evidence
+## Report Writer
 
-## Why Agents Do Not Freely Chat
+The report writer renders from claim ledger state, not raw model prose. Reports include recommendation, options, evidence citations, risks, contradictions, unsupported assumptions, confidence level, human review requirements, and the original question.
 
-Free-form agent chat makes hallucination cascades, agreement traps, loops, and token waste more likely. v0.1 treats agents as bounded workflow components. Each agent gets a narrow task, structured input, and structured output.
+## Inspectability
 
-## v0.1 Limitations
+The CLI exposes debug surfaces:
+
+- `decision-system inspect-index`
+- `decision-system ask "..." --show-evidence`
+- `decision-system ask "..." --json`
+- `decision-system ask "..." --save-run`
+
+These commands make retrieved evidence, workflow state, claim verification, and final report output inspectable.
+
+## Evaluation Harness
+
+`decision-system eval` runs local cases from `evals/cases/`. Each case writes temporary documents, indexes a temporary Chroma store, runs the normal workflow with the fake provider, and checks expectations.
+
+Eval cases cover:
+
+- useful billing evidence
+- empty context
+- explicit contradiction markers
+
+Eval results are printed by default and are only saved under `evals/results/` when `--save-results` is passed.
+
+## Optional Providers
+
+The provider factory supports:
+
+- `fake`: deterministic offline provider and default
+- `nvidia_nim`: optional hosted provider using NVIDIA NIM
+
+The fake provider remains the default for tests, evals, and offline runs.
+
+## NVIDIA NIM Provider
+
+`NvidiaNimProvider` uses LangChain's `ChatNVIDIA` integration. It reads credentials and generation settings from `.env` or environment variables only. It asks the model for strict JSON and validates responses into Pydantic models before they enter workflow state.
+
+The local report renderer still owns final report writing.
+
+## Current Limits
 
 - No frontend.
 - No database.
 - No auth or permission model.
 - No enterprise connectors.
-- No real OpenAI/Ollama execution.
+- No autonomous external actions.
 - No PDF parsing.
 - No hybrid keyword search.
 - No semantic contradiction verifier.
 - No long-term persisted claim ledger.
-- Fake hash embeddings are for local testing, not production retrieval quality.
-
-## Future Extension Points
-
-- Real model providers behind the existing provider interface.
-- Production embeddings.
-- PDF and office document parsing.
-- Hybrid keyword plus vector retrieval.
-- Reranking.
-- FastAPI endpoint.
-- Web UI.
-- PostgreSQL-backed claim ledger.
-- User auth and document permissions.
-- Human approval gates.
-- More specialist agents after evaluation proves the core workflow useful.
+- Hash embeddings are for local testing, not production retrieval quality.

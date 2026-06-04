@@ -1,8 +1,7 @@
 """Provider protocol for bounded analyst behavior.
 
-The workflow depends on this shape instead of a specific model vendor. v0.1
-ships with `FakeProvider`; real OpenAI/Ollama implementations are deliberately
-not required.
+The workflow depends on this shape instead of a specific model vendor. The
+`FakeProvider` remains the default for offline tests and local smoke runs.
 """
 
 from typing import Protocol
@@ -39,6 +38,6 @@ class LLMProvider(Protocol):
         claims: list[Claim],
         evidence: list[EvidenceChunk],
     ) -> DecisionReport:
-        """Optional provider report method; v0.1 uses the local renderer."""
+        """Optional provider report method; the local renderer owns reports."""
 
         ...

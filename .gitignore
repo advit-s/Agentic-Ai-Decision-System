@@ -1,13 +1,32 @@
-.env
+# Python
 .venv/
 venv/
 __pycache__/
+*.pyc
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-.DS_Store
-*.pyc
-.decision_system/chroma/
+*.egg-info/
 dist/
 build/
-*.egg-info/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Local generated app state
+.decision_system/
+evals/results/*.json
+!evals/results/.gitkeep
+
+# Local/private documents
+company_docs/*
+!company_docs/.gitkeep
+!company_docs/demo_*.md
+!company_docs/demo_*.txt

@@ -2,6 +2,15 @@
 
 ## 2026-06-04
 
+### v0.2.0 GitHub Preparation
+
+- Added optional NVIDIA NIM provider support through `ChatNVIDIA`.
+- Kept fake provider as the default for tests, evals, and offline smoke runs.
+- Added inspectability and eval commands for local debugging.
+- Added GitHub-ready docs for setup, architecture, development, NVIDIA NIM, troubleshooting, and contributing.
+- Removed non-demo local company docs from commit candidates.
+- Updated `.gitignore` to exclude `.env`, generated app state, eval result JSON, and private company docs.
+
 ### What Was Implemented
 
 - Backend-first v0.1 CLI prototype.
@@ -23,7 +32,7 @@ python -m pytest -q
 Latest recorded result:
 
 ```text
-13 passed, 1 warning
+35 passed, 1 warning
 ```
 
 ### Smoke Test Command and Result

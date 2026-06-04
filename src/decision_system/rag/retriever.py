@@ -34,38 +34,42 @@ def retrieve_evidence(
         return []
 
     client = chromadb.PersistentClient(path=str(store_dir))
-    collection = client.get_collection(
-        name=collection_name,
-        embedding_function=HashEmbeddingFunction(),
-    )
-
-    if collection.count() == 0:
-        return []
-
-    result = collection.query(
-        query_texts=[query],
-        n_results=min(top_k, collection.count()),
-        include=["documents", "metadatas", "distances"],
-    )
-
-    ids = result.get("ids", [[]])[0]
-    documents = result.get("documents", [[]])[0]
-    metadatas = result.get("metadatas", [[]])[0]
-    distances = result.get("distances", [[]])[0]
-
-    evidence: list[EvidenceChunk] = []
-    for index, evidence_id in enumerate(ids):
-        metadata = metadatas[index] or {}
-        evidence.append(
-            EvidenceChunk(
-                evidence_id=str(metadata.get("evidence_id", evidence_id)),
-                document_id=str(metadata["document_id"]),
-                source_path=str(metadata["source_path"]),
-                source_filename=str(metadata["source_filename"]),
-                chunk_id=str(metadata["chunk_id"]),
-                text=documents[index],
-                score=float(distances[index]) if index < len(distances) else None,
-            )
+    try:
+        collection = client.get_collection(
+            name=collection_name,
+            embedding_function=HashEmbeddingFunction(),
         )
 
-    return evidence
+        chunk_count = collection.count()
+        if chunk_count == 0:
+            return []
+
+        result = collection.query(
+            query_texts=[query],
+            n_results=min(top_k, chunk_count),
+            include=["documents", "metadatas", "distances"],
+        )
+
+        ids = result.get("ids", [[]])[0]
+        documents = result.get("documents", [[]])[0]
+        metadatas = result.get("metadatas", [[]])[0]
+        distances = result.get("distances", [[]])[0]
+
+        evidence: list[EvidenceChunk] = []
+        for index, evidence_id in enumerate(ids):
+            metadata = metadatas[index] or {}
+            evidence.append(
+                EvidenceChunk(
+                    evidence_id=str(metadata.get("evidence_id", evidence_id)),
+                    document_id=str(metadata["document_id"]),
+                    source_path=str(metadata["source_path"]),
+                    source_filename=str(metadata["source_filename"]),
+                    chunk_id=str(metadata["chunk_id"]),
+                    text=documents[index],
+                    score=float(distances[index]) if index < len(distances) else None,
+                )
+            )
+
+        return evidence
+    finally:
+        client.close()

@@ -1,0 +1,26 @@
+{
+  "case_id": "contradiction_case",
+  "question": "Can billing migration proceed without rollback planning?",
+  "documents": [
+    {
+      "filename": "billing_contradiction.md",
+      "text": "Billing migration requires rollback planning and staged deployment. CONTRADICTS: The billing migration can proceed safely without rollback planning."
+    }
+  ],
+  "expectations": {
+    "required_source_filenames": ["billing_contradiction.md"],
+    "min_verified_claims": 0,
+    "min_unsupported_claims": 0,
+    "min_contradicted_claims": 1,
+    "min_evidence_citations": 0,
+    "human_review_required": true,
+    "expected_confidence_level": "low",
+    "required_report_sections": [
+      "## Recommendation",
+      "## Evidence Citations",
+      "## Risks",
+      "## Confidence Level",
+      "## Human Review Required"
+    ]
+  }
+}

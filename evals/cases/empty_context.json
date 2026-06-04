@@ -1,0 +1,21 @@
+{
+  "case_id": "empty_context",
+  "question": "Should we migrate billing without supporting context?",
+  "documents": [],
+  "expectations": {
+    "required_source_filenames": [],
+    "min_verified_claims": 0,
+    "min_unsupported_claims": 1,
+    "min_contradicted_claims": 0,
+    "min_evidence_citations": 0,
+    "human_review_required": true,
+    "expected_confidence_level": "low",
+    "required_report_sections": [
+      "## Recommendation",
+      "## Evidence Citations",
+      "## Risks",
+      "## Confidence Level",
+      "## Human Review Required"
+    ]
+  }
+}

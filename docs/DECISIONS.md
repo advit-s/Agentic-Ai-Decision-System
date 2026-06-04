@@ -41,3 +41,9 @@ Real providers are useful later, but v0.1 proves the workflow shape first. Provi
 Status: Accepted
 
 Database, auth, and more agents would add complexity before the retrieval, verification, and reporting loop is proven. They remain future milestones after evaluation.
+
+## ADR-008: Add NVIDIA NIM as Optional Hosted Provider
+
+Status: Accepted
+
+The fake provider remains the default for tests and offline use. NVIDIA NIM is available only when explicitly selected through `DECISION_PROVIDER=nvidia_nim` or `decision-system ask --provider nvidia_nim`, and credentials must come from `.env` or environment variables.

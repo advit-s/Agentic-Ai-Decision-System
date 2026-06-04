@@ -11,8 +11,13 @@ from decision_system.config import load_settings
 from decision_system.graph.state import WorkflowState
 from decision_system.ledger.claim_ledger import ClaimLedger
 from decision_system.ledger.verifier import verify_claims
-from decision_system.llm.fake_provider import FakeProvider
+from decision_system.llm.factory import get_provider
+from decision_system.llm.provider import LLMProvider
 from decision_system.reports.renderer import render_decision_report
+
+
+def _provider_for_state(state: WorkflowState) -> LLMProvider:
+    return get_provider(provider_name=state.get("provider"))
 
 
 def retrieve_evidence_node(state: WorkflowState) -> dict:
@@ -49,10 +54,11 @@ def retrieve_evidence_node(state: WorkflowState) -> dict:
 def technical_analyst_node(state: WorkflowState) -> dict:
     """Create the bounded technical analysis memo."""
 
+    provider = _provider_for_state(state)
     memo = run_technical_analysis(
         state["question"],
         state.get("retrieved_evidence", []),
-        provider=FakeProvider(),
+        provider=provider,
     )
     return {"technical_memo": memo}
 
@@ -60,11 +66,12 @@ def technical_analyst_node(state: WorkflowState) -> dict:
 def risk_analyst_node(state: WorkflowState) -> dict:
     """Create the bounded risk/red-team memo."""
 
+    provider = _provider_for_state(state)
     memo = run_risk_analysis(
         state["question"],
         state.get("retrieved_evidence", []),
         state["technical_memo"],
-        provider=FakeProvider(),
+        provider=provider,
     )
     return {"risk_memo": memo}
 
@@ -72,7 +79,7 @@ def risk_analyst_node(state: WorkflowState) -> dict:
 def claim_extraction_node(state: WorkflowState) -> dict:
     """Convert agent memo claims into ledger-ready `Claim` records."""
 
-    provider = FakeProvider()
+    provider = _provider_for_state(state)
     claims = provider.extract_claims(
         state["run_id"],
         [state["technical_memo"], state["risk_memo"]],
