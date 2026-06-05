@@ -26,6 +26,7 @@ build/
 .decision_system/ontology/
 .decision_system/data_profiles/
 .decision_system/insights/
+.decision_system/contexts/
 evals/results/*.json
 !evals/results/.gitkeep
 _smoke_run/

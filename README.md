@@ -22,6 +22,8 @@ The goal is to prototype safer multi-agent decision support and grow toward a Co
 
 Final reports come from verified claim ledger state, not uncontrolled agent chat. Contradictions, unsupported assumptions, citations, confidence, and human review needs are kept visible instead of being smoothed away.
 
+See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: company data understanding first, then bounded orchestration over that intelligence layer.
+
 ## Current Features
 
 - CLI commands
@@ -48,6 +50,19 @@ decision-system inspect-insights
 ```
 
 The v0.4 insight engine uses saved data profiles, local CSV datasets, and the local knowledge graph to surface deterministic offline insights such as revenue risk, customer concentration, marketing ROI risk, competitor risk, operations bottlenecks, dependency risks, contradictions, missing data, and data quality issues.
+
+## Insight-Aware Decision Reports
+
+```bash
+decision-system build-context "Where are we losing money?"
+decision-system build-context "Where are we losing money?" --json
+decision-system build-context "Where are we losing money?" --save
+decision-system ask "Where are we losing money?" --include-insights
+decision-system ask "Where are we losing money?" --orchestrated
+decision-system ask "Where are we losing money?" --include-insights --save-context
+```
+
+The v0.5 report layer can include relevant ontology concepts, generated insights, orchestration summaries, graph signals, and judge findings in decision reports. Context is built from local `.decision_system` stores and never exposes insights as absolute truth.
 
 ## What Is Not Included Yet
 
@@ -208,6 +223,9 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system ask "..." --json`: print structured workflow state
 - `decision-system ask "..." --save-run`: save full run JSON under `.decision_system/runs/`
 - `decision-system ask "..." --provider nvidia_nim`: use NVIDIA NIM for one run
+- `decision-system ask "..." --include-insights`: add relevant business/data insights
+- `decision-system ask "..." --orchestrated`: include orchestration context
+- `decision-system ask "..." --save-context`: save context JSON for inspection
 - `decision-system extract-graph`: extract entities and relationships into `.decision_system/graph/knowledge_graph.json`
 - `decision-system inspect-graph`: show entity counts, relationship counts, grouped types, and top connected entities
 - `decision-system init-data-catalog`: create `company_data/`, category folders, manifest, and fake demo CSVs
@@ -223,6 +241,9 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system analyze-problem "..."`: analyze a business question and print required data, tools, and roles
 - `decision-system run-orchestration "..."`: run the full offline orchestration pipeline for a business question
 - `decision-system inspect-orchestration`: inspect the latest saved orchestration run
+- `decision-system build-context "..."`: build and print decision context for a question
+- `decision-system build-context "..." --json`: print context as structured JSON
+- `decision-system build-context "..." --save`: save context to `.decision_system/contexts/`
 - `decision-system eval`: run local evaluation cases
 - `decision-system eval --json`: print structured evaluation results
 - `decision-system eval --save-results`: save evaluation results under `evals/results/`
@@ -272,11 +293,14 @@ Claude Code is used as the primary implementer. Codex is used as the independent
 
 ## Roadmap
 
+Completed:
 - v0.1: decision brief core
 - v0.2: graph/entity extraction
 - v0.3: company data intake + profiling
 - v0.4: orchestration + ontology + insight engine
 - v0.5: insight-aware decision reports
+
+Upcoming:
 - v0.6: real provider experiments
 - v0.7: FastAPI backend
 - v0.8: frontend

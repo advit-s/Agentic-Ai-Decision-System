@@ -377,7 +377,7 @@ def _detect_revenue_risk(store: InsightStore, profiles: list, csv_root) -> None:
                     f"Mean profit_margin={mean_margin:.4f} across "
                     f"{profile.row_count} rows"
                 ),
-                recommended_action="Investigate drivers of declining margins — cost structure, pricing, or mix shift.",
+                recommended_action="Investigate drivers of declining margins - cost structure, pricing, or mix shift.",
                 ontology_concepts=["profit_margin", "revenue", "expense"],
             )
             store.add(insight)
@@ -416,7 +416,7 @@ def _detect_revenue_risk(store: InsightStore, profiles: list, csv_root) -> None:
                 severity = "high" if avg_ratio >= 0.95 or len(breach_rows) > 1 else "medium"
                 parts = []
                 if breach_rows:
-                    parts.append(f"{len(breach_rows)} row(s) with expenses ≥ {EXPENSE_REVENUE_RISK_RATIO:.0%} of revenue")
+                    parts.append(f"{len(breach_rows)} row(s) with expenses >= {EXPENSE_REVENUE_RISK_RATIO:.0%} of revenue")
                 if avg_ratio >= 0.80:
                     parts.append(f"average expense/revenue ratio is {avg_ratio:.1%}")
                 evidence = "; ".join(parts)
@@ -600,7 +600,7 @@ def _detect_feedback_risk(store: InsightStore, profiles: list, csv_root) -> None
                 source_type="csv",
                 source_ids=[profile.dataset_id],
                 evidence_summary=f"Refund requests: {refund_count}/{total} rows ({refund_count/total:.0%})",
-                recommended_action="Investigate refund drivers — billing accuracy, product quality, or expectation mismatch.",
+                recommended_action="Investigate refund drivers - billing accuracy, product quality, or expectation mismatch.",
                 ontology_concepts=["refund_requested", "feedback_risk"],
             )
             store.add(insight)
@@ -892,7 +892,7 @@ def _detect_strategic_gap(store: InsightStore, profiles: list, csv_root) -> None
                         confidence="high",
                         source_type="csv",
                         source_ids=[profile.dataset_id],
-                        evidence_summary=f"Goal: '{goal}' — owner field is empty",
+                        evidence_summary=f"Goal: '{goal}' - owner field is empty",
                         recommended_action="Assign a clear owner to ensure accountability and progress tracking.",
                         ontology_concepts=["owner", "strategic_goal"],
                     )
@@ -971,7 +971,7 @@ def _detect_contradiction(store: InsightStore, graph: KnowledgeGraph) -> None:
             source_type="graph",
             source_ids=[rel.relationship_id],
             evidence_summary=(
-                f"contradicts: '{source_name}' ↔ '{target_name}'"
+                f"contradicts: '{source_name}' <-> '{target_name}'"
             ),
             recommended_action=(
                 "Investigate these contradictory statements and determine "

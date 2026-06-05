@@ -4,6 +4,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from decision_system.cli import app
+from decision_system.context.models import DecisionContext, InsightEvidence
 
 
 def _configure_test_store(tmp_path, monkeypatch, collection_name="test_cli_chunks"):
@@ -132,6 +133,191 @@ def test_ask_provider_fake_keeps_offline_default(tmp_path, monkeypatch):
 
     assert result.exit_code == 0
     assert "# Decision Report" in result.output
+
+
+class _FakeDecisionContextBuilder:
+    def build(self, question, run_id=None, **_kwargs):
+        return DecisionContext(
+            run_id=run_id or "context-run-1",
+            question=question,
+            relevant_ontology_concepts=[
+                {
+                    "concept_id": "revenue",
+                    "name": "Revenue",
+                    "type": "metric",
+                    "required": True,
+                }
+            ],
+            relevant_insights=[
+                InsightEvidence(
+                    insight_id="insight-1",
+                    title="Detected revenue pressure",
+                    category="revenue_risk",
+                    severity="high",
+                    confidence="high",
+                    evidence_summary="Synthetic revenue signal found in local profiles.",
+                    recommended_action="Review cost and revenue drivers with a human owner.",
+                    ontology_concepts=["revenue"],
+                    source_ids=["demo_financial"],
+                )
+            ],
+            graph_signals=["Billing depends on LegacyAuth"],
+            orchestration_summary={
+                "run_id": "orch-1",
+                "decision_type": "financial",
+                "insight_count": 1,
+                "insights_by_severity": {"high": 1},
+            },
+            judge_summary={
+                "confidence_level": "low",
+                "key_findings": ["Human review is needed."],
+                "human_review_required": ["Validate high-severity signal."],
+            },
+            human_review_items=["High-severity insight: Detected revenue pressure"],
+        )
+
+
+def test_ask_include_insights_adds_insight_sections_only(tmp_path, monkeypatch):
+    _configure_test_store(tmp_path, monkeypatch)
+    monkeypatch.setattr("decision_system.cli.DecisionContextBuilder", _FakeDecisionContextBuilder)
+    runner = CliRunner()
+    runner.invoke(app, ["index"])
+
+    result = runner.invoke(app, ["ask", "Where are we losing money?", "--include-insights"])
+
+    assert result.exit_code == 0
+    assert "## Business/Data Insights" in result.output
+    assert "Detected revenue pressure" in result.output
+    assert "## Ontology Concepts Used" in result.output
+    assert "## Graph and Relationship Signals" in result.output
+    assert "## Orchestration Summary" not in result.output
+    assert "Judge flag:" not in result.output
+
+
+def test_ask_orchestrated_adds_orchestration_without_insight_cards(tmp_path, monkeypatch):
+    _configure_test_store(tmp_path, monkeypatch)
+    monkeypatch.setattr("decision_system.cli.DecisionContextBuilder", _FakeDecisionContextBuilder)
+    runner = CliRunner()
+    runner.invoke(app, ["index"])
+
+    result = runner.invoke(app, ["ask", "Where are we losing money?", "--orchestrated"])
+
+    assert result.exit_code == 0
+    assert "## Orchestration Summary" in result.output
+    assert "### Judge Summary" in result.output
+    assert "## Business/Data Insights" not in result.output
+
+
+def test_ask_save_context_writes_json_without_report_sections(tmp_path, monkeypatch):
+    _configure_test_store(tmp_path, monkeypatch)
+    saved_paths: list[Path] = []
+
+    def _fake_save_context(context):
+        path = tmp_path / ".decision_system" / "contexts" / f"{context.run_id}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(context.model_dump_json(indent=2), encoding="utf-8")
+        saved_paths.append(path)
+        return path
+
+    monkeypatch.setattr("decision_system.cli.DecisionContextBuilder", _FakeDecisionContextBuilder)
+    monkeypatch.setattr("decision_system.cli.save_decision_context", _fake_save_context)
+    runner = CliRunner()
+    runner.invoke(app, ["index"])
+
+    result = runner.invoke(app, ["ask", "Where are we losing money?", "--save-context"])
+
+    assert result.exit_code == 0
+    assert "Saved context:" in result.output
+    assert saved_paths
+    payload = json.loads(saved_paths[0].read_text(encoding="utf-8"))
+    assert payload["run_id"]
+    assert payload["question"] == "Where are we losing money?"
+    assert payload["relevant_insights"][0]["insight_id"] == "insight-1"
+    assert "## Business/Data Insights" not in result.output
+    assert "## Orchestration Summary" not in result.output
+
+
+def test_ask_json_save_context_outputs_valid_json(tmp_path, monkeypatch):
+    _configure_test_store(tmp_path, monkeypatch)
+    saved_paths: list[Path] = []
+
+    def _fake_save_context(context):
+        path = tmp_path / ".decision_system" / "contexts" / f"{context.run_id}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(context.model_dump_json(indent=2), encoding="utf-8")
+        saved_paths.append(path)
+        return path
+
+    monkeypatch.setattr("decision_system.cli.DecisionContextBuilder", _FakeDecisionContextBuilder)
+    monkeypatch.setattr("decision_system.cli.save_decision_context", _fake_save_context)
+    runner = CliRunner()
+    runner.invoke(app, ["index"])
+
+    result = runner.invoke(
+        app,
+        ["ask", "Where are we losing money?", "--json", "--save-context"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["saved_context_path"] == str(saved_paths[0])
+    assert payload["decision_context"]["relevant_insights"][0]["insight_id"] == "insight-1"
+
+
+def test_build_context_json_outputs_structured_context(monkeypatch):
+    monkeypatch.setattr("decision_system.cli.DecisionContextBuilder", _FakeDecisionContextBuilder)
+
+    result = CliRunner().invoke(app, ["build-context", "Where are we losing money?", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["question"] == "Where are we losing money?"
+    assert payload["relevant_insights"][0]["insight_id"] == "insight-1"
+    assert payload["relevant_ontology_concepts"][0]["concept_id"] == "revenue"
+
+
+def test_build_context_json_save_outputs_valid_json(tmp_path, monkeypatch):
+    saved_paths: list[Path] = []
+
+    def _fake_save_context(context):
+        path = tmp_path / ".decision_system" / "contexts" / f"{context.run_id}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(context.model_dump_json(indent=2), encoding="utf-8")
+        saved_paths.append(path)
+        return path
+
+    monkeypatch.setattr("decision_system.cli.DecisionContextBuilder", _FakeDecisionContextBuilder)
+    monkeypatch.setattr("decision_system.cli.save_decision_context", _fake_save_context)
+
+    result = CliRunner().invoke(
+        app,
+        ["build-context", "Where are we losing money?", "--json", "--save"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["saved_context_path"] == str(saved_paths[0])
+    assert payload["relevant_insights"][0]["insight_id"] == "insight-1"
+
+
+def test_build_context_save_writes_context(tmp_path, monkeypatch):
+    saved_paths: list[Path] = []
+
+    def _fake_save_context(context):
+        path = tmp_path / ".decision_system" / "contexts" / f"{context.run_id}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(context.model_dump_json(indent=2), encoding="utf-8")
+        saved_paths.append(path)
+        return path
+
+    monkeypatch.setattr("decision_system.cli.DecisionContextBuilder", _FakeDecisionContextBuilder)
+    monkeypatch.setattr("decision_system.cli.save_decision_context", _fake_save_context)
+
+    result = CliRunner().invoke(app, ["build-context", "Where are we losing money?", "--save"])
+
+    assert result.exit_code == 0
+    assert "Saved context:" in result.output
+    assert saved_paths[0].exists()
 
 
 def test_extract_graph_exits_0(tmp_path, monkeypatch):

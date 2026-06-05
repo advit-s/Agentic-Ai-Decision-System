@@ -8,6 +8,8 @@ It is backend-first and CLI-first: users place documents in `company_docs/`, ind
 
 The system is not an autonomous decision-maker. It produces a decision brief that separates cited evidence, verified claims, contradicted claims, unsupported assumptions, risk notes, confidence, and human review needs.
 
+The broader product direction is captured in [Product Vision](PRODUCT_VISION.md): Phase 1 builds a company-specific intelligence layer from data, ontology, graph structure, and insights; Phase 2 adds bounded orchestration over that layer.
+
 ## Bounded Workflow
 
 The workflow is a linear LangGraph state machine:
@@ -227,6 +229,33 @@ The fake provider remains the default for tests, evals, and offline runs.
 
 The local report renderer still owns final report writing.
 
+## Decision Context and Insight-Aware Reports (v0.5)
+
+v0.5 adds a decision context layer that assembles relevant signals from local stores before the report is written:
+
+```text
+question -> DecisionContextBuilder
+  -> problem analysis
+  -> load ontology map (.decision_system/ontology/ontology_map.json)
+  -> load insights (.decision_system/insights/insights.json)
+  -> load latest orchestration run (.decision_system/orchestration/runs/)
+  -> select relevant ontology concepts (required from analysis + keyword match)
+  -> select relevant insights (high/critical always-include + data category + keyword + ontology overlap)
+  -> extract graph signals (top connected entities + contradictions)
+  -> build human review items (high/critical insights + contradictions + low-confidence judge + missing data)
+  -> DecisionContext
+  -> .decision_system/contexts/<run_id>.json
+```
+
+The `ask` command accepts three new optional flags for v0.5:
+- `--include-insights`: adds selected insights under a "Business/Data Insights" section.
+- `--orchestrated`: includes orchestration summary and judge findings.
+- `--save-context`: writes full context JSON for inspection.
+
+The `build-context` command runs the context builder standalone and prints the assembled context without invoking the LangGraph workflow. `--json` outputs structured JSON. `--save` writes to disk.
+
+All insight-aware sections are conditionally rendered so the default `ask` output remains unchanged. Insights are always phrased as detected signals with severity and confidence. Features are defined by detecting concrete patterns and signals in the data, not by comparing insights to each other.
+
 ## Current Limits
 
 - No frontend.
@@ -240,6 +269,8 @@ The local report renderer still owns final report writing.
 - No long-term persisted claim ledger.
 - No database-backed graph store.
 - No semantic entity resolution beyond deterministic v0.2 rules.
+- Context selection is rule-based: no real LLM re-ranks insights.
+- Human review items are coarsely heuristically derived (high severity + contradiction + low judge confidence + missing data).
 - No database-backed structured data catalog.
 - No connector-backed data intake.
 - No semantic analysis of CSV profiles yet.

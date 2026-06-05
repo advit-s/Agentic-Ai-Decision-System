@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0] - 2026-06-05
+
+### Added
+- Decision context builder (`DecisionContextBuilder`) assembling structured context from local stores.
+- `decision-system build-context "..."` with `--json` and `--save` flags.
+- Insight-aware decision reports via `--include-insights` on `ask`.
+- `--orchestrated` flag on `ask` to include orchestration context in reports.
+- `--save-context` flag on `ask` to persist context under `.decision_system/contexts/`.
+- Optional report sections for Business/Data Insights, Ontology Concepts Used, Graph and Relationship Signals, and Orchestration Summary.
+- Decision context models: `InsightEvidence` and `DecisionContext`.
+- Context package with selector logic (relevance by keywords, ontology concepts, severity), store (persist/load JSON), and inspect/render helpers.
+- Context builder unit tests covering missing stores, financial/customer/marketing insight selection, high-severity always-include, and contradiction human review items.
+
 ## [0.4.1] - 2026-06-05
 
 ### Fixed

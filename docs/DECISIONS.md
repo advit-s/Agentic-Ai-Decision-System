@@ -48,6 +48,24 @@ Status: Accepted
 
 The fake provider remains the default for tests and offline use. NVIDIA NIM is available only when explicitly selected through `DECISION_PROVIDER=nvidia_nim` or `decision-system ask --provider nvidia_nim`, and credentials must come from `.env` or environment variables.
 
+## ADR-017: Add Decision Context Builder Before LLM-Based Synthesis
+
+Status: Accepted
+
+v0.5 adds a `DecisionContextBuilder` that assembles structured context from local stores (ontology map, insights, orchestration sessions, knowledge graph) without calling external APIs. The context supports optional rendering in decision reports while keeping the default output unchanged for backward compatibility.
+
+Key principles:
+- All stores are loaded defensively: missing files return empty defaults.
+- Insight selection always includes high and critical severity regardless of keyword match.
+- Contradiction and missing_data insights create human review items automatically.
+- Context is persistable under `.decision_system/contexts/` and ignored by Git.
+
+## ADR-018: Keep Insight-Aware Sections Opt-In
+
+Status: Accepted
+
+Default `decision-system ask` output does not include insight-aware sections. Section inclusion is controlled by CLI flags (`--include-insights`, `--orchestrated`, `--save-context`). This preserves backward compatibility and keeps offline smoke tests stable.
+
 ## ADR-009: Add a Local JSON Knowledge Graph Before a Database
 
 Status: Accepted

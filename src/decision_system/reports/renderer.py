@@ -5,15 +5,22 @@ memo text into final truth without a verification status.
 """
 
 from decision_system.models import Claim, DecisionReport
+from decision_system.context.models import DecisionContext
 
 
-def render_decision_report(question: str, run_id: str, claims: list[Claim]) -> DecisionReport:
+def render_decision_report(
+    question: str,
+    run_id: str,
+    claims: list[Claim],
+    context: DecisionContext | None = None,
+) -> DecisionReport:
     """Render a conservative decision report from verified ledger claims.
 
     Args:
         question: Original decision question.
         run_id: Workflow run identifier.
         claims: Verified, unsupported, or contradicted claim ledger records.
+        context: Optional DecisionContext for insight-aware sections.
 
     Returns:
         A `DecisionReport` containing structured fields and Markdown.
@@ -62,6 +69,10 @@ def render_decision_report(question: str, run_id: str, claims: list[Claim]) -> D
     if not verified:
         human_review_required.append("Add supporting evidence before making this decision.")
 
+    # Add context-based human review items
+    if context and context.human_review_items:
+        human_review_required.extend(context.human_review_items)
+
     markdown = _render_markdown(
         question=question,
         recommendation=recommendation,
@@ -72,6 +83,7 @@ def render_decision_report(question: str, run_id: str, claims: list[Claim]) -> D
         unsupported=unsupported,
         confidence_level=confidence_level,
         human_review_required=human_review_required,
+        context=context,
     )
 
     return DecisionReport(
@@ -99,41 +111,126 @@ def _render_markdown(
     unsupported: list[Claim],
     confidence_level: str,
     human_review_required: list[str],
+    context: DecisionContext | None = None,
 ) -> str:
     """Build the report Markdown body from structured report sections."""
 
-    return "\n".join(
-        [
-            "# Decision Report",
+    sections = [
+        "# Decision Report",
+        "",
+        "## Recommendation",
+        recommendation,
+        "",
+        "## Options",
+        _bullets(options),
+        "",
+        "## Evidence Citations",
+        _bullets(evidence_citations) if evidence_citations else "- No verified evidence citations.",
+        "",
+        "## Risks",
+        _bullets(risks) if risks else "- No risk claims were identified.",
+        "",
+        "## Contradictions",
+        _claim_bullets(contradicted) if contradicted else "- No contradictions found.",
+        "",
+        "## Unsupported Assumptions",
+        _claim_bullets(unsupported) if unsupported else "- No unsupported assumptions found.",
+        "",
+    ]
+
+    # Optional insight-aware sections
+    if context:
+        if context.relevant_insights:
+            sections.extend(_render_insights_section(context.relevant_insights))
+        if context.relevant_ontology_concepts:
+            sections.extend(_render_ontology_section(context.relevant_ontology_concepts))
+        if context.graph_signals:
+            sections.extend(_render_graph_section(context.graph_signals))
+        if context.orchestration_summary:
+            sections.extend(_render_orchestration_section(context.orchestration_summary, context.judge_summary))
+
+    sections.extend([
+        "## Confidence Level",
+        confidence_level,
+        "",
+        "## Human Review Required",
+        _bullets(human_review_required) if human_review_required else "- No human review required for v0.1 evidence state.",
+        "",
+        "## Decision Question",
+        question,
+    ])
+
+    return "\n".join(sections)
+
+
+def _render_insights_section(insights: list) -> list[str]:
+    """Render Business/Data Insights section."""
+    lines = ["## Business/Data Insights", ""]
+    for insight in insights:
+        severity_marker = f"[{insight.severity.upper()}]"
+        lines.extend([
+            f"### {insight.title} {severity_marker}",
+            f"- **Category:** {insight.category}",
+            f"- **Confidence:** {insight.confidence}",
+            f"- **Evidence:** {insight.evidence_summary}",
+            f"- **Recommended Action:** {insight.recommended_action}",
+            f"- **Ontology Concepts:** {', '.join(insight.ontology_concepts) or '(none)'}",
+            f"- **Source IDs:** {', '.join(insight.source_ids) or '(none)'}",
             "",
-            "## Recommendation",
-            recommendation,
-            "",
-            "## Options",
-            _bullets(options),
-            "",
-            "## Evidence Citations",
-            _bullets(evidence_citations) if evidence_citations else "- No verified evidence citations.",
-            "",
-            "## Risks",
-            _bullets(risks) if risks else "- No risk claims were identified.",
-            "",
-            "## Contradictions",
-            _claim_bullets(contradicted) if contradicted else "- No contradictions found.",
-            "",
-            "## Unsupported Assumptions",
-            _claim_bullets(unsupported) if unsupported else "- No unsupported assumptions found.",
-            "",
-            "## Confidence Level",
-            confidence_level,
-            "",
-            "## Human Review Required",
-            _bullets(human_review_required) if human_review_required else "- No human review required for v0.1 evidence state.",
-            "",
-            "## Decision Question",
-            question,
-        ]
-    )
+        ])
+    lines.append("*Insights are detected signals, not absolute truth. Verify before acting.*")
+    lines.append("")
+    return lines
+
+
+def _render_ontology_section(concepts: list[dict]) -> list[str]:
+    """Render Ontology Concepts Used section."""
+    lines = ["## Ontology Concepts Used", ""]
+    for c in concepts:
+        required_mark = " *(required)*" if c.get("required") else ""
+        lines.append(f"- **{c['concept_id']}** ({c.get('type', 'unknown')}): {c['name']}{required_mark}")
+    lines.append("")
+    return lines
+
+
+def _render_graph_section(signals: list[str]) -> list[str]:
+    """Render Graph and Relationship Signals section."""
+    lines = ["## Graph and Relationship Signals", ""]
+    for signal in signals:
+        lines.append(f"- {signal}")
+    lines.append("")
+    return lines
+
+
+def _render_orchestration_section(orch_summary: dict, judge_summary: dict) -> list[str]:
+    """Render Orchestration Summary section."""
+    lines = ["## Orchestration Summary", ""]
+    lines.append(f"- **Run ID:** {orch_summary.get('run_id', 'unknown')}")
+    lines.append(f"- **Decision Type:** {orch_summary.get('decision_type', 'unknown')}")
+    lines.append(f"- **Insight Count:** {orch_summary.get('insight_count', 0)}")
+    by_sev = orch_summary.get("insights_by_severity", {})
+    if by_sev:
+        lines.append("- **Insights by Severity:**")
+        for sev, count in sorted(by_sev.items()):
+            lines.append(f"  - {sev}: {count}")
+    lines.append("")
+
+    if judge_summary:
+        lines.append("### Judge Summary")
+        lines.append(f"- **Confidence:** {judge_summary.get('confidence_level', 'unknown')}")
+        key_findings = judge_summary.get("key_findings", [])
+        if key_findings:
+            lines.append("- **Key Findings:**")
+            for f in key_findings:
+                lines.append(f"  - {f}")
+        human_review = judge_summary.get("human_review_required", [])
+        if human_review:
+            lines.append("- **Human Review Required:**")
+            for r in human_review:
+                lines.append(f"  - {r}")
+        lines.append("")
+
+    return lines
 
 
 def _bullets(items: list[str]) -> str:

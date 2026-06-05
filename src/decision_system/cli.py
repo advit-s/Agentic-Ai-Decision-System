@@ -43,6 +43,10 @@ from decision_system.insights.store import (
     load_insights,
     save_insights,
 )
+from decision_system.context.builder import DecisionContextBuilder
+from decision_system.context.inspector import inspect_context, render_context_inspection
+from decision_system.context.models import DecisionContext
+from decision_system.context.store import save_context as save_decision_context
 from decision_system.ontology.inspector import (
     inspect_ontology as _inspect_ontology_fn,
     render_ontology_inspection,
@@ -211,7 +215,7 @@ def detect_patterns() -> None:
 
     The command reads saved data profiles, the local knowledge graph, and
     CSV files under ``company_data/`` as needed. All detection is offline
-    — no LLM is called. Detected insights are saved to
+    - no LLM is called. Detected insights are saved to
     ``.decision_system/insights/insights.json``.
     """
     profiles = load_profiles()
@@ -477,6 +481,35 @@ def inspect_imports() -> None:
 
 
 @app.command()
+def build_context(
+    question: str,
+    json_output: bool = typer.Option(False, "--json", help="Print structured JSON instead of Markdown."),
+    save: bool = typer.Option(False, "--save", help="Save context to .decision_system/contexts/<run_id>.json."),
+) -> None:
+    """Build decision context for a question using local stores.
+
+    Loads ontology map, insights, orchestration runs, and knowledge graph
+    to assemble relevant context for the question.
+    """
+    builder = DecisionContextBuilder()
+    context = builder.build(question=question)
+    saved_path = save_decision_context(context) if save else None
+
+    if json_output:
+        payload = context.model_dump(mode="json")
+        if saved_path is not None:
+            payload["saved_context_path"] = str(saved_path)
+        typer.echo(json.dumps(payload, indent=2))
+        return
+
+    if saved_path is not None:
+        console.print(f"Saved context: {saved_path}")
+
+    summary = inspect_context(context)
+    console.print(render_context_inspection(summary))
+
+
+@app.command()
 def ask(
     question: str,
     top_k: int = typer.Option(6, "--top-k", help="Maximum evidence chunks to retrieve."),
@@ -500,12 +533,30 @@ def ask(
         "--provider",
         help="Provider for this run: fake or nvidia_nim.",
     ),
+    include_insights: bool = typer.Option(
+        False,
+        "--include-insights",
+        help="Add relevant business/data insights to the decision report.",
+    ),
+    orchestrated: bool = typer.Option(
+        False,
+        "--orchestrated",
+        help="Include orchestration context in the decision report.",
+    ),
+    save_context_flag: bool = typer.Option(
+        False,
+        "--save-context",
+        help="Save the decision context to .decision_system/contexts/<run_id>.json.",
+    ),
 ) -> None:
     """Run the decision workflow for a CLI question.
 
     Args:
         question: Decision question to analyze.
         top_k: Maximum evidence chunks to retrieve.
+        include_insights: Add relevant insights from the local insight store.
+        orchestrated: Include orchestration context from the latest run.
+        save_context_flag: Write the decision context JSON for inspection.
 
     The command prints Markdown to stdout. It uses the fake provider by default
     and does not execute external actions in v0.1.
@@ -519,22 +570,96 @@ def ask(
     }
     if provider is not None:
         graph_input["provider"] = provider
+
+    # v0.5: Build insight-aware context before running the workflow if requested
+    context = None
+    saved_context_path = None
+    if include_insights or orchestrated or save_context_flag:
+        builder = DecisionContextBuilder()
+        context = builder.build(question=question, run_id=graph_input["run_id"])
+        if save_context_flag:
+            saved_context_path = save_decision_context(context)
+            if not json_output:
+                console.print(f"Saved context: {saved_context_path}")
+
     result = graph.invoke(graph_input)
     saved_path = _save_run(result) if save_run else None
+
+    # v0.5: Inject context into the report for insight-aware rendering
+    if context is not None and (include_insights or orchestrated):
+        from decision_system.models import DecisionReport
+
+        report = result.get("final_report")
+        if isinstance(report, DecisionReport):
+            from decision_system.reports.renderer import render_decision_report
+
+            report_context = _report_context(
+                context,
+                include_insights=include_insights,
+                include_orchestration=orchestrated,
+            )
+            new_report = render_decision_report(
+                question=question,
+                run_id=result.get("run_id", context.run_id),
+                claims=result.get("claims", []),
+                context=report_context,
+            )
+            result["final_report"] = new_report
 
     if json_output:
         payload = _ask_json_payload(result)
         if saved_path is not None:
             payload["saved_run_path"] = str(saved_path)
+        if saved_context_path is not None:
+            payload["saved_context_path"] = str(saved_context_path)
+        if context is not None:
+            payload["decision_context"] = context.model_dump(mode="json")
         typer.echo(json.dumps(payload, indent=2))
         return
 
     if show_evidence:
         typer.echo(_render_evidence_section(result.get("retrieved_evidence", [])))
         typer.echo()
-    typer.echo(result["final_report"].markdown)
-    if saved_path is not None:
-        typer.echo(f"Saved run: {saved_path}")
+        typer.echo(result["final_report"].markdown)
+        if saved_path is not None:
+            typer.echo(f"Saved run: {saved_path}")
+    elif not json_output:
+        # Default: print the Markdown report
+        typer.echo(result["final_report"].markdown)
+        if saved_path is not None:
+            typer.echo(f"Saved run: {saved_path}")
+
+
+def _report_context(
+    context: DecisionContext,
+    *,
+    include_insights: bool,
+    include_orchestration: bool,
+) -> DecisionContext:
+    """Return a context view containing only report sections requested by flags."""
+
+    human_review_items = list(context.human_review_items)
+    if not include_orchestration:
+        human_review_items = [
+            item
+            for item in human_review_items
+            if not item.startswith("Judge ")
+        ]
+
+    return DecisionContext(
+        run_id=context.run_id,
+        question=context.question,
+        problem_analysis=context.problem_analysis,
+        relevant_data_categories=context.relevant_data_categories,
+        relevant_storage_tiers=context.relevant_storage_tiers,
+        relevant_ontology_concepts=context.relevant_ontology_concepts,
+        relevant_insights=context.relevant_insights if include_insights else [],
+        graph_signals=context.graph_signals if include_insights or include_orchestration else [],
+        orchestration_summary=context.orchestration_summary if include_orchestration else {},
+        judge_summary=context.judge_summary if include_orchestration else {},
+        human_review_items=human_review_items,
+        created_at=context.created_at,
+    )
 
 
 @app.command("eval")
