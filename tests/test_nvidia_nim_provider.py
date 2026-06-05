@@ -1,3 +1,5 @@
+"""Tests for the NVIDIA NIM provider using the OpenAI-compatible API."""
+
 import json
 import sys
 from pathlib import Path
@@ -10,14 +12,32 @@ from decision_system.llm.nvidia_nim_provider import NvidiaNimProvider
 from decision_system.models import AgentMemo, EvidenceChunk
 
 
-class FakeChatNVIDIA:
-    def __init__(self, payload):
-        self.payload = payload
-        self.calls = []
+class FakeOpenAI:
+    """Mock OpenAI client for testing."""
 
-    def invoke(self, messages):
-        self.calls.append(messages)
-        return SimpleNamespace(content=self.payload, additional_kwargs={"reasoning": "mock reasoning"})
+    def __init__(self, response_payload: str):
+        self.payload = response_payload
+        self.create_calls: list[dict] = []
+        self.chat = self._Chat(self)
+
+    class _Chat:
+        def __init__(self, parent):
+            self.parent = parent
+            self.completions = self._Completions(parent)
+
+        class _Completions:
+            def __init__(self, parent):
+                self.parent = parent
+
+            def create(self, **kwargs):
+                self.parent.create_calls.append(kwargs)
+                return SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(content=self.parent.payload),
+                        )
+                    ]
+                )
 
 
 def _settings():
@@ -28,6 +48,7 @@ def _settings():
         provider="nvidia_nim",
         nvidia_api_key="key",
         nvidia_nim_model="deepseek-ai/deepseek-v4-flash",
+        nvidia_nim_base_url="https://integrate.api.nvidia.com/v1",
         nvidia_temperature=0,
         nvidia_top_p=0.95,
         nvidia_max_tokens=4096,
@@ -61,14 +82,14 @@ def test_mocked_nim_response_parses_into_agent_memo():
             "cited_evidence_ids": ["e1"],
         }
     )
-    fake_client = FakeChatNVIDIA(payload)
+    fake_client = FakeOpenAI(payload)
     provider = NvidiaNimProvider(_settings(), client=fake_client)
 
     memo = provider.technical_memo("Should we migrate billing?", _evidence())
 
     assert isinstance(memo, AgentMemo)
     assert memo.cited_evidence_ids == ["e1"]
-    assert fake_client.calls
+    assert fake_client.create_calls
 
 
 def test_mocked_nim_response_parses_into_claim():
@@ -90,7 +111,7 @@ def test_mocked_nim_response_parses_into_claim():
             ]
         }
     )
-    provider = NvidiaNimProvider(_settings(), client=FakeChatNVIDIA(payload))
+    provider = NvidiaNimProvider(_settings(), client=FakeOpenAI(payload))
 
     claims = provider.extract_claims(
         "run-1",
@@ -111,102 +132,82 @@ def test_mocked_nim_response_parses_into_claim():
 
 
 def test_malformed_json_response_fails_safely():
-    provider = NvidiaNimProvider(_settings(), client=FakeChatNVIDIA("not-json"))
+    provider = NvidiaNimProvider(_settings(), client=FakeOpenAI("not-json"))
 
     with pytest.raises(ValueError, match="NVIDIA NIM returned malformed JSON"):
         provider.technical_memo("Should we migrate billing?", [])
 
 
-def test_provider_builds_chat_nvidia_with_configured_settings(monkeypatch):
-    captured = {}
+def test_provider_passes_api_settings_to_openai(monkeypatch):
+    captured_kwargs: dict[str, object] = {}
 
-    class CapturingChatNVIDIA:
+    class CapturingOpenAI:
         def __init__(self, **kwargs):
-            captured.update(kwargs)
+            captured_kwargs.update(kwargs)
+            self.chat = self._Chat(self)
 
-        def invoke(self, messages):
-            return SimpleNamespace(
-                content=json.dumps(
-                    {
-                        "agent_name": "technical_analyst",
-                        "question": "Should we migrate billing?",
-                        "summary": "Use staged rollout.",
-                        "claims": [],
-                        "risks": [],
-                        "options": [],
-                        "cited_evidence_ids": [],
-                    }
-                ),
-                additional_kwargs={},
-            )
+        class _Chat:
+            def __init__(self, parent):
+                self.completions = self._Completions(parent)
 
-    monkeypatch.setitem(
-        sys.modules,
-        "langchain_nvidia_ai_endpoints",
-        SimpleNamespace(ChatNVIDIA=CapturingChatNVIDIA),
-    )
-    provider = NvidiaNimProvider(_settings())
+            class _Completions:
+                def __init__(self, parent):
+                    self.parent = parent
 
-    provider.technical_memo("Should we migrate billing?", [])
+                def create(self, **kwargs):
+                    return SimpleNamespace(choices=[
+                        SimpleNamespace(message=SimpleNamespace(content=json.dumps({
+                            "agent_name": "technical_analyst",
+                            "question": "Should we migrate billing?",
+                            "summary": "Use staged rollout.",
+                            "claims": [],
+                            "risks": [],
+                            "options": [],
+                            "cited_evidence_ids": [],
+                        })))
+                    ])
 
-    assert captured["model"] == "deepseek-ai/deepseek-v4-flash"
-    assert captured["api_key"] == "key"
-    assert "base_url" not in captured
-    assert captured["temperature"] == 0
-    assert captured["top_p"] == 0.95
-    assert captured["max_tokens"] == 4096
-    assert "extra_body" not in captured
-
-
-def test_provider_passes_reasoning_config_when_enabled(monkeypatch):
-    captured = {}
-
-    class CapturingChatNVIDIA:
-        def __init__(self, **kwargs):
-            captured.update(kwargs)
-
-        def invoke(self, messages):
-            return SimpleNamespace(
-                content=json.dumps(
-                    {
-                        "agent_name": "technical_analyst",
-                        "question": "Should we migrate billing?",
-                        "summary": "Use staged rollout.",
-                        "claims": [],
-                        "risks": [],
-                        "options": [],
-                        "cited_evidence_ids": [],
-                    }
-                ),
-                additional_kwargs={},
-            )
-
-    monkeypatch.setitem(
-        sys.modules,
-        "langchain_nvidia_ai_endpoints",
-        SimpleNamespace(ChatNVIDIA=CapturingChatNVIDIA),
-    )
-    base_settings = _settings()
-    settings = Settings(
-        docs_dir=base_settings.docs_dir,
-        store_dir=base_settings.store_dir,
-        collection_name=base_settings.collection_name,
-        provider=base_settings.provider,
-        nvidia_api_key=base_settings.nvidia_api_key,
-        nvidia_nim_model=base_settings.nvidia_nim_model,
-        nvidia_temperature=base_settings.nvidia_temperature,
-        nvidia_top_p=base_settings.nvidia_top_p,
-        nvidia_max_tokens=base_settings.nvidia_max_tokens,
-        nvidia_reasoning_enabled=True,
-        nvidia_reasoning_effort="medium",
-    )
+    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=CapturingOpenAI))
+    settings = _settings()
     provider = NvidiaNimProvider(settings)
+    provider._openai = None
 
     provider.technical_memo("Should we migrate billing?", [])
 
-    assert captured["extra_body"] == {
-        "chat_template_kwargs": {
-            "thinking": True,
-            "reasoning_effort": "medium",
-        }
-    }
+    assert captured_kwargs["api_key"] == "key"
+    assert captured_kwargs["base_url"] == "https://integrate.api.nvidia.com/v1"
+
+
+def test_provider_uses_nvidia_nim_base_url_from_settings(monkeypatch):
+    """Verify that base_url is configurable."""
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            self.chat = self._Chat(self)
+
+        class _Chat:
+            def __init__(self, parent):
+                self.completions = self._Completions(parent)
+
+            class _Completions:
+                def __init__(self, parent):
+                    self.parent = parent
+
+                def create(self, **kwargs):
+                    return SimpleNamespace(choices=[
+                        SimpleNamespace(message=SimpleNamespace(content=json.dumps({
+                            "agent_name": "technical_analyst",
+                            "question": "Should we migrate billing?",
+                            "summary": "Use staged rollout.",
+                            "claims": [],
+                            "risks": [],
+                            "options": [],
+                            "cited_evidence_ids": [],
+                        })))
+                    ])
+
+    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=FakeOpenAI))
+    settings = _settings()
+    provider = NvidiaNimProvider(settings)
+    assert provider.settings.nvidia_nim_base_url == "https://integrate.api.nvidia.com/v1"

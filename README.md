@@ -185,6 +185,7 @@ decision-system eval
 ```env
 DECISION_PROVIDER=nvidia_nim
 NVIDIA_API_KEY=your_key_here
+NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_NIM_MODEL=deepseek-ai/deepseek-v4-flash
 ```
 
@@ -194,7 +195,7 @@ Run one question with NIM:
 decision-system ask "Should we migrate billing?" --provider nvidia_nim
 ```
 
-The NVIDIA provider uses LangChain's `ChatNVIDIA` integration and validates model output into Pydantic models before it enters the workflow.
+The NVIDIA provider uses NVIDIA NIM's OpenAI-compatible API through the `openai` Python package and validates model output into Pydantic models before it enters the workflow.
 
 Never commit `.env` or real API keys. The fake provider remains the default for tests and offline runs.
 

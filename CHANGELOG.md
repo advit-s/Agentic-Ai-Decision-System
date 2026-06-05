@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1] - 2026-06-05
+
+### Fixed
+- Fixed editable install dependency resolution for `python -m pip install -e ".[dev]"`.
+- Removed the direct `langchain-nvidia-ai-endpoints` dependency conflict.
+- Reworked `NvidiaNimProvider` to use NVIDIA NIM's OpenAI-compatible API through the `openai` Python package.
+- Added `NVIDIA_NIM_BASE_URL` environment configuration.
+- Corrected stale README roadmap and added missing v0.4 CLI command docs.
+- Improved ontology mappings so columns such as `signup_month`, `page`, and `sessions` map to appropriate concepts.
+- Added ontology concept IDs to deterministic insights.
+- Updated NVIDIA provider documentation to describe the current OpenAI-compatible client path.
+
 ## [0.4.0] - 2026-06-05
 
 ### Added - Orchestration Layer
@@ -69,7 +81,7 @@
 - Local graph JSON persistence at `.decision_system/graph/knowledge_graph.json`.
 - `decision-system extract-graph` and `decision-system inspect-graph`.
 - Graph inspection summaries for entity counts, relationship counts, grouped types, and top connected entities.
-- Optional NVIDIA NIM provider using LangChain's `ChatNVIDIA` integration.
+- Optional NVIDIA NIM provider, later hardened in v0.4.1 to avoid dependency conflicts.
 - Provider factory with `fake` default and `nvidia_nim` selection.
 - `decision-system ask --provider`.
 - Environment-based NVIDIA NIM configuration for API key, model, temperature, top-p, max tokens, and optional reasoning settings.

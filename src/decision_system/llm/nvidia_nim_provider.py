@@ -1,4 +1,4 @@
-"""NVIDIA NIM hosted provider using LangChain's ChatNVIDIA integration."""
+"""NVIDIA NIM hosted provider via the OpenAI-compatible API."""
 
 import json
 from typing import Any, TypeVar
@@ -19,7 +19,7 @@ class ClaimsEnvelope(BaseModel):
 
 
 class NvidiaNimProvider:
-    """Hosted provider backed by NVIDIA NIM's LangChain chat integration."""
+    """Hosted provider backed by NVIDIA NIM's OpenAI-compatible API."""
 
     def __init__(self, settings: Settings, client: Any | None = None):
         if not settings.nvidia_api_key:
@@ -28,11 +28,20 @@ class NvidiaNimProvider:
             raise ValueError("NVIDIA_NIM_MODEL is required when DECISION_PROVIDER=nvidia_nim.")
 
         self.settings = settings
-        self._chat_client = client
+        self._openai: Any | None = client
+
+    def _api(self) -> Any:
+        if self._openai is None:
+            from openai import OpenAI
+
+            self._openai = OpenAI(
+                api_key=self.settings.nvidia_api_key,
+                base_url=self.settings.nvidia_nim_base_url,
+            )
+        return self._openai
 
     def technical_memo(self, question: str, evidence: list[EvidenceChunk]) -> AgentMemo:
         """Create a structured technical memo from NIM output."""
-
         return self._complete_json(
             schema_name="AgentMemo",
             schema_model=AgentMemo,
@@ -46,7 +55,6 @@ class NvidiaNimProvider:
         technical_memo: AgentMemo,
     ) -> AgentMemo:
         """Create a structured risk memo from NIM output."""
-
         return self._complete_json(
             schema_name="AgentMemo",
             schema_model=AgentMemo,
@@ -55,7 +63,6 @@ class NvidiaNimProvider:
 
     def extract_claims(self, run_id: str, memos: list[AgentMemo]) -> list[Claim]:
         """Convert structured memos into claim-ledger records using NIM."""
-
         envelope = self._complete_json(
             schema_name="ClaimsEnvelope",
             schema_model=ClaimsEnvelope,
@@ -70,30 +77,7 @@ class NvidiaNimProvider:
         evidence: list[EvidenceChunk],
     ) -> DecisionReport:
         """Provider-side reports are not used; local renderer owns reports."""
-
         raise NotImplementedError("NvidiaNimProvider report writing is handled by the local renderer.")
-
-    def _get_client(self):
-        if self._chat_client is None:
-            from langchain_nvidia_ai_endpoints import ChatNVIDIA
-
-            client_kwargs = {
-                "model": self.settings.nvidia_nim_model,
-                "api_key": self.settings.nvidia_api_key,
-                "temperature": self.settings.nvidia_temperature,
-                "top_p": self.settings.nvidia_top_p,
-                "max_tokens": self.settings.nvidia_max_tokens,
-            }
-            if self.settings.nvidia_reasoning_enabled:
-                client_kwargs["extra_body"] = {
-                    "chat_template_kwargs": {
-                        "thinking": True,
-                        "reasoning_effort": self.settings.nvidia_reasoning_effort,
-                    }
-                }
-
-            self._chat_client = ChatNVIDIA(**client_kwargs)
-        return self._chat_client
 
     def _complete_json(
         self,
@@ -111,8 +95,14 @@ class NvidiaNimProvider:
                 "content": user_prompt,
             },
         ]
-        response = self._get_client().invoke(messages)
-        content = _string_content(response.content)
+        response = self._api().chat.completions.create(
+            model=self.settings.nvidia_nim_model,
+            messages=messages,
+            temperature=self.settings.nvidia_temperature,
+            top_p=self.settings.nvidia_top_p,
+            max_tokens=self.settings.nvidia_max_tokens,
+        )
+        content = _string_content(response.choices[0].message.content)
         try:
             payload = json.loads(content)
         except json.JSONDecodeError as exc:

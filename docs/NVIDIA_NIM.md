@@ -2,7 +2,7 @@
 
 ## What It Does
 
-The NVIDIA NIM provider lets the workflow call a hosted model through LangChain's `ChatNVIDIA` integration. It is optional. The fake provider remains the default for tests and offline development.
+The NVIDIA NIM provider lets the workflow call a hosted model through NVIDIA NIM's OpenAI-compatible API. It is optional. The fake provider remains the default for tests and offline development.
 
 The provider asks for strict JSON and validates model output into Pydantic models:
 
@@ -18,6 +18,7 @@ Copy `.env.example` to `.env` and set your own key:
 ```env
 DECISION_PROVIDER=nvidia_nim
 NVIDIA_API_KEY=your_key_here
+NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_NIM_MODEL=deepseek-ai/deepseek-v4-flash
 NVIDIA_TEMPERATURE=0
 NVIDIA_TOP_P=0.95
@@ -31,6 +32,10 @@ Never commit `.env` or real API keys.
 ## Model Name Config
 
 Use the exact model ID shown in NVIDIA Build. Put that value in `NVIDIA_NIM_MODEL`.
+
+## Base URL Config
+
+`NVIDIA_NIM_BASE_URL` defaults to `https://integrate.api.nvidia.com/v1`. Override it only when you are using a different OpenAI-compatible NIM endpoint.
 
 ## Reasoning Config
 

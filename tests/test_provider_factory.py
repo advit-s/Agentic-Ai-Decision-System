@@ -16,6 +16,7 @@ def _settings(provider="fake", api_key="", model="deepseek-ai/deepseek-v4-flash"
         provider=provider,
         nvidia_api_key=api_key,
         nvidia_nim_model=model,
+        nvidia_nim_base_url="https://integrate.api.nvidia.com/v1",
         nvidia_temperature=0,
         nvidia_top_p=0.95,
         nvidia_max_tokens=4096,

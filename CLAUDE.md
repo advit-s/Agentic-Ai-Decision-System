@@ -83,6 +83,20 @@ Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 
 ## Version History
 
+### v0.4.1 (2026-06-05)
+- Editable install/package hardening for `python -m pip install -e ".[dev]"`
+- Removed the direct `langchain-nvidia-ai-endpoints` dependency conflict
+- NVIDIA NIM provider now uses NVIDIA NIM's OpenAI-compatible API via the `openai` Python package
+- Added `NVIDIA_NIM_BASE_URL`
+- Ontology cleanup with 38 deterministic concepts and improved column mappings
+- Insights include ontology concept IDs
+
+### v0.4.0 (2026-06-05)
+- Deterministic orchestration foundation
+- Problem analyzer, planner, dispatcher, sandbox wrapper, and judge summary
+- Ontology mapping and local insight detection
+- Orchestration, ontology, and insight inspection CLI commands
+
 ### v0.3.0 (2026-06-04)
 - Local `company_data/` folder structure
 - Data catalog manifest with category metadata and fake demo CSV entries
@@ -97,7 +111,7 @@ Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 - Local JSON graph store at `.decision_system/graph/knowledge_graph.json`
 - `extract-graph` and `inspect-graph` commands
 - Graph inspection with type grouping and top connected entities
-- Optional NVIDIA NIM provider via LangChain `ChatNVIDIA`
+- Optional NVIDIA NIM provider
 - Provider factory (`fake` default)
 - `decision-system ask --provider nvidia_nim`
 
@@ -173,9 +187,11 @@ If the answer to any of these is "no," the change is out of scope for this phase
 
 | Version | Focus |
 |---------|-------|
-| **v0.4** | FastAPI backend |
-| **v0.5** | Frontend |
-| **v0.6** | Database and saved decision history |
+| **v0.5** | Insight-aware decision reports |
+| **v0.6** | Real provider experiments |
+| **v0.7** | FastAPI backend |
+| **v0.8** | Frontend |
+| **v0.9** | Database, auth, and saved workspaces |
 
 ## How Claude Should Work in This Repo
 

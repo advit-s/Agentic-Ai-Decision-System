@@ -4,7 +4,8 @@
 
 ### v0.2.0 GitHub Preparation
 
-- Added optional NVIDIA NIM provider support through `ChatNVIDIA`.
+- Added optional NVIDIA NIM provider support.
+- v0.4.1 later moved the provider to NVIDIA NIM's OpenAI-compatible API client to avoid install conflicts.
 - Kept fake provider as the default for tests, evals, and offline smoke runs.
 - Added inspectability and eval commands for local debugging.
 - Added GitHub-ready docs for setup, architecture, development, NVIDIA NIM, troubleshooting, and contributing.

@@ -107,7 +107,7 @@ The ontology layer maps CSV columns to standardized business concepts:
 
 ```text
 data_profiles/profiles.json
-  -> column-to-concept matcher (31 concepts, ~200 rules)
+  -> column-to-concept matcher (38 concepts, deterministic rules)
   -> OntologyMap (concepts, column_mappings)
   -> .decision_system/ontology/ontology_map.json
   -> decision-system map-ontology
@@ -223,7 +223,7 @@ The fake provider remains the default for tests, evals, and offline runs.
 
 ## NVIDIA NIM Provider
 
-`NvidiaNimProvider` uses LangChain's `ChatNVIDIA` integration. It reads credentials and generation settings from `.env` or environment variables only. It asks the model for strict JSON and validates responses into Pydantic models before they enter workflow state.
+`NvidiaNimProvider` uses NVIDIA NIM's OpenAI-compatible API through the `openai` Python package. It reads credentials, base URL, model, and generation settings from `.env` or environment variables only. It asks the model for strict JSON and validates responses into Pydantic models before they enter workflow state.
 
 The local report renderer still owns final report writing.
 
