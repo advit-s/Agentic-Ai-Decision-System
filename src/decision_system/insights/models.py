@@ -54,6 +54,7 @@ class Insight(BaseModel):
     source_ids: list[str] = Field(default_factory=list, description="Dataset or evidence IDs backing this insight")
     evidence_summary: str = Field(default="", description="Human-readable summary of the evidence")
     recommended_action: str = Field(default="", description="Suggested follow-up for the stakeholder")
+    ontology_concepts: list[str] = Field(default_factory=list, description="Ontology concept IDs relevant to this insight")
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 

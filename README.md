@@ -217,6 +217,11 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system inspect-imports`: inspect the latest import manifest
 - `decision-system detect-patterns`: run deterministic pattern and vulnerability detection
 - `decision-system inspect-insights`: inspect saved insight summaries
+- `decision-system map-ontology`: map dataset columns to ontology business concepts
+- `decision-system inspect-ontology`: inspect the local ontology map
+- `decision-system analyze-problem "..."`: analyze a business question and print required data, tools, and roles
+- `decision-system run-orchestration "..."`: run the full offline orchestration pipeline for a business question
+- `decision-system inspect-orchestration`: inspect the latest saved orchestration run
 - `decision-system eval`: run local evaluation cases
 - `decision-system eval --json`: print structured evaluation results
 - `decision-system eval --save-results`: save evaluation results under `evals/results/`
@@ -266,8 +271,12 @@ Claude Code is used as the primary implementer. Codex is used as the independent
 
 ## Roadmap
 
-- v0.2: entity and relationship extraction
-- v0.3: company data intake and CSV profiling
-- v0.4: FastAPI backend
-- v0.5: frontend
-- v0.6: database and saved decision history
+- v0.1: decision brief core
+- v0.2: graph/entity extraction
+- v0.3: company data intake + profiling
+- v0.4: orchestration + ontology + insight engine
+- v0.5: insight-aware decision reports
+- v0.6: real provider experiments
+- v0.7: FastAPI backend
+- v0.8: frontend
+- v0.9: database + auth + saved workspaces

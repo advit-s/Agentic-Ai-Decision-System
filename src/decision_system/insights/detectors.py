@@ -231,6 +231,7 @@ def _detect_missing_data(store: InsightStore, profile) -> None:
                 "Investigate whether missing values indicate a data capture "
                 "issue and impute or drop the column before analysis."
             ),
+            ontology_concepts=["missing_data", "risk"],
         )
         store.add(insight)
 
@@ -259,6 +260,7 @@ def _detect_data_quality(store: InsightStore, profile) -> None:
         source_ids=[profile.dataset_id],
         evidence_summary="; ".join(f"{i+1}. {w}" for i, w in enumerate(profile.warnings[:5])),
         recommended_action="Review and resolve profiling warnings before using this dataset for decision-making.",
+        ontology_concepts=["data_quality", "risk"],
     )
     store.add(insight)
 
@@ -295,6 +297,7 @@ def _detect_sales_channel_concentration(
                 "Diversify sales channels to reduce concentration risk. "
                 "Invest in underperforming channels."
             ),
+            ontology_concepts=["lead_source", "marketing_channel", "sales_channel_risk"],
         )
         store.add(insight)
 
@@ -332,6 +335,7 @@ def _detect_customer_concentration(
             recommended_action=(
                 "Diversify customer base to reduce single-segment dependency risk."
             ),
+            ontology_concepts=["customer_segment", "city", "region", "customer_concentration"],
         )
         store.add(insight)
 
@@ -374,6 +378,7 @@ def _detect_revenue_risk(store: InsightStore, profiles: list, csv_root) -> None:
                     f"{profile.row_count} rows"
                 ),
                 recommended_action="Investigate drivers of declining margins — cost structure, pricing, or mix shift.",
+                ontology_concepts=["profit_margin", "revenue", "expense"],
             )
             store.add(insight)
 
@@ -437,6 +442,7 @@ def _detect_revenue_risk(store: InsightStore, profiles: list, csv_root) -> None:
                         "Review expense drivers. Consider cost reductions or "
                         "revenue uplift strategies for affected periods."
                     ),
+                    ontology_concepts=["revenue", "expense", "time_period"],
                 )
                 store.add(insight)
 
@@ -504,6 +510,7 @@ def _detect_marketing_roi(store: InsightStore, profiles: list, csv_root) -> None
                     "Review campaign performance. Consider pausing underperforming "
                     "spend and reallocating budget to higher-ROAS channels."
                 ),
+                ontology_concepts=["marketing_spend", "revenue", "conversion_count", "marketing_channel", "traffic_source"],
             )
             store.add(insight)
 
@@ -547,6 +554,7 @@ def _detect_feedback_risk(store: InsightStore, profiles: list, csv_root) -> None
                         source_ids=[profile.dataset_id],
                         evidence_summary=f"'{top_issue}': {top_count}/{total} rows ({share:.0%})",
                         recommended_action="Investigate root cause of the dominant issue type and prioritise remediation.",
+                        ontology_concepts=["complaint_issue", "customer_segment", "feedback_risk"],
                     )
                     store.add(insight)
 
@@ -574,6 +582,7 @@ def _detect_feedback_risk(store: InsightStore, profiles: list, csv_root) -> None
                 source_ids=[profile.dataset_id],
                 evidence_summary=f"Negative sentiment: {negative_count}/{total} rows ({negative_count/total:.0%})",
                 recommended_action="Review negative feedback themes and prioritise top issues for product or support teams.",
+                ontology_concepts=["sentiment", "complaint_issue", "feedback_risk"],
             )
             store.add(insight)
 
@@ -592,6 +601,7 @@ def _detect_feedback_risk(store: InsightStore, profiles: list, csv_root) -> None
                 source_ids=[profile.dataset_id],
                 evidence_summary=f"Refund requests: {refund_count}/{total} rows ({refund_count/total:.0%})",
                 recommended_action="Investigate refund drivers — billing accuracy, product quality, or expectation mismatch.",
+                ontology_concepts=["refund_requested", "feedback_risk"],
             )
             store.add(insight)
 
@@ -639,6 +649,7 @@ def _detect_product_risk(store: InsightStore, profiles: list, csv_root) -> None:
                         "Review pricing, cost structure, and return reasons "
                         f"for '{product_name}'."
                     ),
+                    ontology_concepts=["product", "profit_margin", "return_rate", "product_risk"],
                 )
                 store.add(insight)
 
@@ -690,6 +701,7 @@ def _detect_competitor_risk(store: InsightStore, profiles: list, csv_root) -> No
                         "Evaluate whether to match competitor pricing or "
                         "differentiate on features and value."
                     ),
+                    ontology_concepts=["competitor", "competitor_price", "our_price", "review_score", "product"],
                 )
                 store.add(insight)
 
@@ -753,6 +765,7 @@ def _detect_operations_bottleneck(store: InsightStore, profiles: list, csv_root)
                     "Analyse the process for automation or resource "
                     f"improvements to reduce the {delay:.0f}-day average delay."
                 ),
+                ontology_concepts=["process", "operational_delay", "bottleneck"],
             )
             store.add(insight)
 
@@ -818,6 +831,7 @@ def _detect_analytics_conversion(store: InsightStore, profiles: list, csv_root) 
                     "Optimise landing page experience, reduce friction, "
                     "and review traffic-source quality."
                 ),
+                ontology_concepts=["page", "session_count", "bounce_rate", "conversion_rate", "traffic_source"],
             )
             store.add(insight)
 
@@ -858,6 +872,7 @@ def _detect_strategic_gap(store: InsightStore, profiles: list, csv_root) -> None
                             "Review whether the constraint can be resolved or "
                             "whether the timeline must be adjusted."
                         ),
+                        ontology_concepts=["strategic_goal", "constraint"],
                     )
                     store.add(insight)
 
@@ -879,6 +894,7 @@ def _detect_strategic_gap(store: InsightStore, profiles: list, csv_root) -> None
                         source_ids=[profile.dataset_id],
                         evidence_summary=f"Goal: '{goal}' — owner field is empty",
                         recommended_action="Assign a clear owner to ensure accountability and progress tracking.",
+                        ontology_concepts=["owner", "strategic_goal"],
                     )
                     store.add(insight)
 
@@ -927,6 +943,7 @@ def _detect_dependency_risk(store: InsightStore, graph: KnowledgeGraph) -> None:
                     "Assess whether the dependency is a single point of "
                     "failure and plan redundancy or isolation strategies."
                 ),
+                ontology_concepts=["dependency"],
             )
             store.add(insight)
 
@@ -960,6 +977,7 @@ def _detect_contradiction(store: InsightStore, graph: KnowledgeGraph) -> None:
                 "Investigate these contradictory statements and determine "
                 "which is correct based on current evidence."
             ),
+            ontology_concepts=["contradiction"],
         )
         store.add(insight)
 
@@ -1019,5 +1037,6 @@ def _detect_ownership_gap(store: InsightStore, graph: KnowledgeGraph) -> None:
                 "Assign an owner to this entity for accountability and "
                 "incident response."
             ),
+            ontology_concepts=["owner", "dependency"],
         )
         store.add(insight)

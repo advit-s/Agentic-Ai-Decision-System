@@ -721,7 +721,9 @@ class TestDetectPatternsCLI:
 
         result = CliRunner().invoke(app, ["detect-patterns"])
         assert result.exit_code == 0
-        assert "Insights detected:" in result.output
+        # Strip ANSI color codes for assertion
+        output_no_ansi = result.output.replace("\x1b[1;36m", "").replace("\x1b[0m", "").replace("\x1b[1m", "")
+        assert "Insights detected:" in output_no_ansi
 
 
 class TestInspectInsightsCLI:

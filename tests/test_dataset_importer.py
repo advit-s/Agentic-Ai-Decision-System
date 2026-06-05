@@ -132,6 +132,8 @@ def test_cli_import_and_inspect_commands_exit_zero(tmp_path, monkeypatch):
     inspect_result = runner.invoke(app, ["inspect-imports"])
 
     assert import_result.exit_code == 0
-    assert "Imported datasets: 1" in import_result.output
+    # Strip ANSI color codes for assertion
+    output_no_ansi = import_result.output.replace("\x1b[1;36m", "").replace("\x1b[0m", "").replace("\x1b[1m", "")
+    assert "Imported datasets: 1" in output_no_ansi
     assert inspect_result.exit_code == 0
     assert "# Dataset Import Inspection" in inspect_result.output

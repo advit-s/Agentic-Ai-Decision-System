@@ -148,7 +148,16 @@ class TestOntologyMap:
 
 class TestDefaultConcepts:
     def test_count(self):
-        assert len(DEFAULT_CONCEPTS) == 31
+        assert len(DEFAULT_CONCEPTS) == 38
+
+    def test_new_concepts_present(self):
+        ids = {c.concept_id for c in DEFAULT_CONCEPTS}
+        new_concepts = [
+            "time_period", "page", "session_count",
+            "traffic_source", "competitor", "process", "return_rate",
+        ]
+        for c in new_concepts:
+            assert c in ids, f"Missing new concept: {c}"
 
     def test_unique_ids(self):
         ids = [c.concept_id for c in DEFAULT_CONCEPTS]
@@ -291,6 +300,69 @@ class TestOntologyMapper:
         assert len(om.concepts) == len(DEFAULT_CONCEPTS)
         ids = {c.concept_id for c in om.concepts}
         assert "revenue" in ids
+
+    def test_maps_time_period_columns(self):
+        profile = _profile_with(
+            filename="d.csv", category="financial",
+            columns=[_col("month"), _col("date"), _col("period"), _col("signup_month")],
+        )
+        om = map_profiles_to_ontology(DataProfileStore(profiles=[profile]))
+        concept_ids = {m.mapped_concept_id for m in om.column_mappings}
+        assert "time_period" in concept_ids
+
+    def test_maps_page_column(self):
+        profile = _profile_with(
+            filename="d.csv", category="analytics",
+            columns=[_col("page"), _col("page_path"), _col("url"), _col("landing_page")],
+        )
+        om = map_profiles_to_ontology(DataProfileStore(profiles=[profile]))
+        concept_ids = {m.mapped_concept_id for m in om.column_mappings}
+        assert "page" in concept_ids
+
+    def test_maps_session_count_columns(self):
+        profile = _profile_with(
+            filename="d.csv", category="analytics",
+            columns=[_col("sessions"), _col("page_sessions"), _col("visits")],
+        )
+        om = map_profiles_to_ontology(DataProfileStore(profiles=[profile]))
+        concept_ids = {m.mapped_concept_id for m in om.column_mappings}
+        assert "session_count" in concept_ids
+
+    def test_maps_traffic_source_column(self):
+        profile = _profile_with(
+            filename="d.csv", category="analytics",
+            columns=[_col("traffic_source"), _col("source"), _col("channel")],
+        )
+        om = map_profiles_to_ontology(DataProfileStore(profiles=[profile]))
+        concept_ids = {m.mapped_concept_id for m in om.column_mappings}
+        assert "traffic_source" in concept_ids
+
+    def test_maps_competitor_column(self):
+        profile = _profile_with(
+            filename="d.csv", category="competitors",
+            columns=[_col("competitor")],
+        )
+        om = map_profiles_to_ontology(DataProfileStore(profiles=[profile]))
+        concept_ids = {m.mapped_concept_id for m in om.column_mappings}
+        assert "competitor" in concept_ids
+
+    def test_maps_process_column(self):
+        profile = _profile_with(
+            filename="d.csv", category="operations",
+            columns=[_col("process"), _col("operation"), _col("process_name")],
+        )
+        om = map_profiles_to_ontology(DataProfileStore(profiles=[profile]))
+        concept_ids = {m.mapped_concept_id for m in om.column_mappings}
+        assert "process" in concept_ids
+
+    def test_maps_return_rate_column(self):
+        profile = _profile_with(
+            filename="d.csv", category="products",
+            columns=[_col("return_rate"), _col("returns"), _col("return_ratio")],
+        )
+        om = map_profiles_to_ontology(DataProfileStore(profiles=[profile]))
+        concept_ids = {m.mapped_concept_id for m in om.column_mappings}
+        assert "return_rate" in concept_ids
 
 
 # ============================================================================
