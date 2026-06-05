@@ -328,6 +328,15 @@ This project is licensed under the MIT License. See `LICENSE`.
 
 Claude Code is used as the primary implementer. Codex is used as the independent reviewer/verifier. All Claude work should be test-backed and reviewed before being accepted.
 
+## Repository Hygiene
+
+```bash
+decision-system check-hygiene
+decision-system check-hygiene --json
+```
+
+The hygiene checker verifies that generated state, caches, raw datasets, private env files, and agent instruction files are in a safe repo state before new milestones.
+
 ## Roadmap
 
 Completed:

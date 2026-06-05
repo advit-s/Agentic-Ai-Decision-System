@@ -16,6 +16,7 @@ from rich.console import Console
 
 from decision_system.config import load_settings
 from decision_system.data_catalog.demo_data import seed_demo_data as _seed_demo_data_fn
+from decision_system.devtools.hygiene import HygieneReport, check_hygiene as _run_hygiene_fn
 from decision_system.data_catalog.importer import (
     DEFAULT_IMPORT_SOURCE_DIR,
     import_datasets as import_datasets_fn,
@@ -435,6 +436,59 @@ def seed_demo_data(
 def seed_demo_data_fn(*, force: bool = False) -> dict[str, int]:
     """Seed demo data through a small wrapper for testability."""
     return _seed_demo_data_fn(DEFAULT_DATA_ROOT, force=force)
+
+
+def _render_hygiene_report(report: HygieneReport) -> str:
+    """Render a hygiene report as ASCII-safe Markdown."""
+    lines = ["# Repository Hygiene Check", "", f"Overall: **{report.overall}**", ""]
+    if report.passed:
+        lines.append("## Passed")
+        lines.append("")
+        for c in report.passed:
+            lines.append(f"- [PASS] {c.name}: {c.detail}")
+        lines.append("")
+    if report.warnings:
+        lines.append("## Warnings")
+        lines.append("")
+        for c in report.warnings:
+            lines.append(f"- [WARN] {c.name}: {c.detail}")
+        lines.append("")
+    if report.failed:
+        lines.append("## Failed")
+        lines.append("")
+        for c in report.failed:
+            lines.append(f"- [FAIL] {c.name}: {c.detail}")
+        lines.append("")
+    summary = (
+        f"Passed: {len(report.passed)} | "
+        f"Warnings: {len(report.warnings)} | "
+        f"Failed: {len(report.failed)}"
+    )
+    lines.append(summary)
+    return "\n".join(lines)
+
+
+@app.command()
+def check_hygiene(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured JSON instead of Markdown.",
+    ),
+) -> None:
+    """Check repository hygiene for generated files, caches, and agent instructions.
+
+    Verifies that generated state, caches, raw datasets, private env files,
+    and agent instruction files are in a safe repo state before new milestones.
+    """
+    report = _run_hygiene_fn(Path.cwd())
+    if json_output:
+        payload = report.model_dump(mode="json")
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(_render_hygiene_report(report))
+    if report.overall == "FAIL":
+        raise typer.Exit(code=1)
 
 
 @app.command()

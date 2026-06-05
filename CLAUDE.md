@@ -323,11 +323,16 @@ Before making any code changes, always read `CLAUDE.md` (this file), `README.md`
 - All changes must pass `python -m pytest -q`.
 
 ### Before Handoff
-Use `.claude/commands/review-before-handoff.md` to:
-- Run tests and smoke commands
-- Summarize changed files and behavior changes
-- List risks and uncertain areas
-- Prepare a clear handoff note for review
+- Run `.claude/commands/review-before-handoff.md` or `/review-before-handoff` if available.
+- Run tests and smoke commands.
+- Summarize changed files and behavior changes.
+- List risks and uncertain areas.
+- Prepare a clear handoff note for review.
+
+### Agent Collaboration
+- Use installed skills/workflows where relevant.
+- Codex is expected to fix small/medium issues directly during review - do not open a review request for trivial work.
+- Do not leave generated artifacts in the repo (`.decision_system/`, `__pycache__/`, `.pytest_cache/`, `*.pyc`). Run `decision-system check-hygiene` to verify.
 
 ### Versioning
 - Update `CHANGELOG.md` and `pyproject.toml` version when a feature milestone is reached.

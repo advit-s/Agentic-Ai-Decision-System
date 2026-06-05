@@ -137,6 +137,26 @@ Key principles:
 
 This keeps v0.6 focused on protocol discipline and gives future specialist-agent work a repeatable regression harness.
 
+## ADR-021: Add Repository Hygiene Checks Before Releases
+
+Status: Accepted
+
+v0.6.2 adds `decision-system check-hygiene` and `docs/RELEASE_CHECKLIST.md` as
+release-readiness guardrails. This is intentionally a local inspection layer,
+not a new product workflow.
+
+Key principles:
+- **Generated state remains local.** `.decision_system/`, caches, raw
+  `datasets/`, and imported CSV outputs are checked as ignored local artifacts.
+- **Fake provider remains the default.** The hygiene check fails if
+  `.env.example` no longer declares `DECISION_PROVIDER=fake`.
+- **Agent instructions are explicit.** Root `AGENTS.md` and `CLAUDE.md` give
+  Codex and Claude Code shared scope rules and review expectations.
+- **No behavior expansion.** The hygiene layer adds no frontend, database,
+  auth, connectors, providers, external API calls, or new agents.
+- **Structured output is available.** `check-hygiene --json` emits a Pydantic
+  `HygieneReport` for auditability.
+
 ## ADR-016: Import Public Datasets as Local CSV Copies
 
 Status: Accepted

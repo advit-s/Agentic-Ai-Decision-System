@@ -15,6 +15,7 @@ from decision_system.war_room.evals import (
     check_higher_context_exists,
     check_higher_context_immutable,
     check_human_review_for_contradictions,
+    check_human_review_not_blocked,
     check_judge_summary,
     check_no_external_apis,
     check_no_unbounded_chat,
@@ -22,14 +23,17 @@ from decision_system.war_room.evals import (
     check_workspace_append_only,
     load_war_room_eval_cases,
     render_war_room_eval_report,
+    run_war_room_eval_case,
     run_quality_gates,
     save_war_room_eval_results,
 )
 from decision_system.war_room.models import (
+    AgentDispatchSpec,
     CommonWorkspace,
     HigherContext,
     JudgeIntervention,
     PersonalAgentContext,
+    WarRoomRun,
     WorkspaceArtifact,
 )
 from decision_system.cli import app
@@ -305,6 +309,93 @@ class TestRunQualityGates:
         results = run_quality_gates(run, min_artifact_count=3)
         failed_names = [r.name for r in results if not r.passed]
         assert "artifact_count" in failed_names
+
+    # --- human_review_not_blocked gate ---
+
+    def test_human_review_allowed_passes_even_with_intervention(self):
+        hc = _hc()
+        run = _FakeRun(
+            hc=hc,
+            interventions=[_intervention("i1", requires_human_review=True)],
+        )
+        results = run_quality_gates(run, human_review_required_allowed=True)
+        failed_names = [r.name for r in results if not r.passed]
+        assert "human_review_not_blocked" not in failed_names
+
+    def test_human_review_blocked_no_interventions_passes(self):
+        hc = _hc()
+        run = _FakeRun(hc=hc, interventions=[])
+        results = run_quality_gates(run, human_review_required_allowed=False)
+        failed_names = [r.name for r in results if not r.passed]
+        assert "human_review_not_blocked" not in failed_names
+
+    def test_human_review_blocked_with_intervention_fails(self):
+        hc = _hc()
+        run = _FakeRun(
+            hc=hc,
+            interventions=[_intervention("i1", requires_human_review=True)],
+        )
+        results = run_quality_gates(run, human_review_required_allowed=False)
+        failed_names = [r.name for r in results if not r.passed]
+        assert "human_review_not_blocked" in failed_names
+
+    def test_human_review_not_blocked_standalone_no_interventions(self):
+        passed, _ = check_human_review_not_blocked(None, human_review_required_allowed=True)
+        assert passed is True
+
+    def test_human_review_not_blocked_standalone_none_run(self):
+        passed, detail = check_human_review_not_blocked(None, human_review_required_allowed=False)
+        assert passed is True
+        assert "no intervention" in detail.lower()
+
+    def test_eval_case_fails_when_human_review_is_disallowed(self, monkeypatch: pytest.MonkeyPatch):
+        hc = _hc()
+        pc = _pc(hc)
+        spec = AgentDispatchSpec(
+            run_id=hc.run_id,
+            higher_context=hc,
+            personal_contexts=[pc],
+            dispatch_order=["financial_analyst"],
+            skipped_roles=[],
+            missing_inputs=[],
+        )
+        ws = CommonWorkspace(
+            run_id=hc.run_id,
+            artifacts=(_artifact("a1"),),
+            created_at="d",
+            updated_at="d",
+        )
+        run = WarRoomRun(
+            run_id=hc.run_id,
+            question=hc.question,
+            higher_context=hc,
+            dispatch_spec=spec,
+            workspace=ws,
+            judge_interventions=[_intervention("i1", requires_human_review=True)],
+            final_summary="test",
+        )
+
+        import decision_system.war_room.runner as runner_module
+
+        monkeypatch.setattr(runner_module, "run_war_room", lambda _question: run)
+
+        case = WarRoomEvalCase(
+            case_id="blocked_review_case",
+            question=hc.question,
+            expected_roles=["financial_analyst"],
+            expected_tools=["read_profiles"],
+            expected_data_categories=["financial"],
+            min_artifact_count=1,
+            human_review_required_allowed=False,
+        )
+
+        result = run_war_room_eval_case(case)
+
+        assert result.passed is False
+        assert any(
+            gate.name == "human_review_not_blocked" and not gate.passed
+            for gate in result.quality_gates
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -237,9 +237,38 @@ def check_no_unbounded_chat(run: WarRoomRun | None) -> tuple[bool, str]:
     return True, "All artifacts are bounded and non-transcript shaped."
 
 
+def check_human_review_not_blocked(
+    run: WarRoomRun | None,
+    human_review_required_allowed: bool = True,
+) -> tuple[bool, str]:
+    """Gate: case allows human review, OR no intervention requires it.
+
+    If ``human_review_required_allowed`` is False and any judge intervention
+    has ``requires_human_review=True``, the case must fail.  This enforces
+    the contract that a case explicitly declining human review cannot
+    produce artifacts that the judge flags for human review.
+    """
+    if human_review_required_allowed:
+        return True, "Case allows human review; no gate needed."
+    if run is None or not run.judge_interventions:
+        return True, "No interventions; no review requirement to block."
+    offenders = [
+        intervention.intervention_id
+        for intervention in run.judge_interventions
+        if intervention.requires_human_review
+    ]
+    if offenders:
+        return False, (
+            "Case disallows human review but judge flagged "
+            f"interventions requiring review: {offenders}"
+        )
+    return True, "No review-requiring interventions present; case constraint satisfied."
+
+
 def run_quality_gates(
     run: WarRoomRun | None,
     min_artifact_count: int = 1,
+    human_review_required_allowed: bool = True,
 ) -> list[WarRoomQualityGateResult]:
     """Run all quality gates against a war-room run."""
 
@@ -258,6 +287,10 @@ def run_quality_gates(
         ("workspace_append_only", check_workspace_append_only(run)),
         ("judge_summary", check_judge_summary(run)),
         ("human_review_contradictions", check_human_review_for_contradictions(run)),
+        (
+            "human_review_not_blocked",
+            check_human_review_not_blocked(run, human_review_required_allowed),
+        ),
         ("no_external_apis", check_no_external_apis(run)),
         ("no_unbounded_chat", check_no_unbounded_chat(run)),
     ]
@@ -298,7 +331,11 @@ def run_war_room_eval_case(case: WarRoomEvalCase) -> WarRoomEvalResult:
         higher_context = run.higher_context
         dispatch_spec = run.dispatch_spec
 
-        quality_gates = run_quality_gates(run, case.min_artifact_count)
+        quality_gates = run_quality_gates(
+            run,
+            case.min_artifact_count,
+            human_review_required_allowed=case.human_review_required_allowed,
+        )
         gate_results = {gate.name: gate.passed for gate in quality_gates}
         gates_passed = all(gate.passed for gate in quality_gates)
 

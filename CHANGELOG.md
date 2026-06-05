@@ -1,6 +1,21 @@
 # Changelog
 
-## [0.6.1] - 2026-06-06
+## [0.6.2] - 2026-06-05
+
+### Added
+- `AGENTS.md` for Codex and coding-agent repository instructions.
+- Repository hygiene checker via `src/decision_system/devtools/hygiene.py`.
+- `decision-system check-hygiene` and `decision-system check-hygiene --json` CLI commands.
+- `tests/test_hygiene.py` - tests covering clean repo layout, missing files, and CLI output.
+- `docs/RELEASE_CHECKLIST.md` - install, test, smoke, eval, git hygiene, skills audit checklist.
+
+### Fixed
+- `human_review_required_allowed` is now enforced in war-room eval quality gates.
+  If a case disallows human review but judge interventions require it, the case fails.
+- War-room eval quality gate suite now includes `human_review_not_blocked` gate.
+- Added `human_review_not_blocked` gate tests in `tests/test_war_room_evals.py`.
+
+## [0.6.1] - 2026-06-05
 
 ### Added
 - War-room evaluation cases under `evals/war_room_cases/`.

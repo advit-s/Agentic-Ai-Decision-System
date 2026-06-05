@@ -199,6 +199,7 @@ The CLI exposes debug surfaces:
 - `decision-system ask "..." --show-evidence`
 - `decision-system ask "..." --json`
 - `decision-system ask "..." --save-run`
+- `decision-system check-hygiene`
 
 These commands make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable.
 
@@ -307,6 +308,33 @@ Quality gates check:
 - artifacts remain bounded and do not look like chat transcripts
 
 The eval layer is deterministic and offline. It does not add new agents, call real providers, or create free-form agent-to-agent chat.
+
+## Repository Hygiene and Release Readiness (v0.6.2)
+
+v0.6.2 adds a repository hygiene layer for release review. It does not change
+application decision behavior, provider behavior, storage architecture, or the
+bounded war-room protocol.
+
+```text
+repo root
+-> check generated/local paths
+-> check ignored raw datasets and imported CSVs
+-> check AGENTS.md and CLAUDE.md presence
+-> check fake provider default
+-> check CLI entry point
+-> HygieneReport
+```
+
+`decision-system check-hygiene` emits a human-readable report. `--json` emits
+the same structured `HygieneReport` state for automation. Existing local
+generated state such as `.decision_system/`, `__pycache__/`, `.pytest_cache/`,
+`datasets/`, and `company_data/**/imported_*.csv` is reported as a warning when
+the files are ignored, not as a failure. Missing agent instructions, missing
+critical config, or a non-fake default provider are failures.
+
+The release checklist in `docs/RELEASE_CHECKLIST.md` complements the hygiene
+command by documenting install, test, smoke, eval, git hygiene, and skills
+directory checks.
 
 ## Current Limits
 
