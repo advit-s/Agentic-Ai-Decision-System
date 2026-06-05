@@ -65,6 +65,25 @@ decision-system ask "Where are we losing money?" --include-insights --save-conte
 
 The v0.5 report layer can include relevant ontology concepts, generated insights, orchestration summaries, graph signals, and judge findings in decision reports. Context is built from local `.decision_system` stores and never exposes insights as absolute truth.
 
+## Provider Experiment Layer (v0.7)
+
+```bash
+decision-system provider-health
+decision-system provider-smoke --provider fake
+decision-system eval-provider --provider fake
+decision-system provider-smoke --provider nvidia_nim
+decision-system provider-smoke --provider ollama
+```
+
+v0.7 adds a provider experiment harness for comparing fake, NVIDIA NIM, and Ollama outputs against fixed evaluation cases. The fake provider remains the default and requires no API key. Real providers produce mocked results in tests; they are only contacted when explicitly selected and configured.
+
+- `provider-health`: shows which provider is configured and whether NIM/Ollama have required settings.
+- `provider-smoke`: runs one small in-memory evidence case and validates AgentMemo + claims output.
+- `eval-provider`: runs all experiment cases from `evals/provider_cases/` and prints pass/fail per case.
+- `ask --provider ollama` / `ask --provider nvidia_nim`: uses the selected provider for memo/claim generation. Local retrieval, verifier, claim ledger, and report renderer are unchanged.
+
+NVIDIA NIM is for hosted testing. Ollama is for local model testing. Never commit `.env` or real API keys. The fake provider is the safe default.
+
 ## War-Cabinet Agent Context Protocol (v0.6)
 
 ```bash
@@ -281,6 +300,10 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system eval-war-room`: run war-room offline evaluation cases with quality gates
 - `decision-system eval-war-room --json`: print structured war-room eval results
 - `decision-system eval-war-room --save-results`: save war-room eval results under `.decision_system/evals/`
+- `decision-system provider-health`: show provider configuration status
+- `decision-system provider-smoke --provider X`: run a one-off provider smoke test
+- `decision-system eval-provider --provider X`: run provider experiment cases
+- `decision-system ask --provider ollama`: use Ollama for memo/claim generation only
 
 ## Project Structure
 
@@ -288,7 +311,8 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `src/decision_system/graph`: LangGraph state, nodes, and workflow
 - `src/decision_system/rag`: document loading, chunking, embeddings, vector store, retrieval
 - `src/decision_system/ledger`: claim ledger and verifier
-- `src/decision_system/llm`: fake provider, NVIDIA NIM provider, provider factory
+- `src/decision_system/llm`: fake provider, NVIDIA NIM provider, Ollama provider, provider factory
+- `src/decision_system/provider_experiments`: provider experiment models, runner, store, inspector
 - `src/decision_system/reports`: decision report renderer
 - `src/decision_system/evals`: local evaluation models and runner
 - `src/decision_system/graphing`: entity and relationship graph models, extraction, store, and inspection
@@ -346,9 +370,9 @@ Completed:
 - v0.4: orchestration + ontology + insight engine
 - v0.5: insight-aware decision reports
 - v0.6: war-cabinet agent context protocol
+- v0.7: provider experiment harness for fake, NVIDIA NIM, and Ollama
 
 Upcoming:
-- v0.7: real provider experiments and richer specialist tools
-- v0.8: FastAPI backend
-- v0.9: frontend
-- v1.0: database + auth + saved workspaces
+- v0.8: richer retrieval and bounded specialist tools
+- v0.9: FastAPI backend
+- v1.0: frontend, database, auth, and saved workspaces

@@ -36,7 +36,7 @@ The ontology is the semantic layer. It helps future LLMs and tools reason over c
 
 ## Project State
 
-The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, and the v0.6 war-cabinet agent context protocol.
+The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, and the v0.7 provider experiment harness.
 
 Generated local state belongs under `.decision_system/` and should not be committed. Private company documents and private CSV files should remain local; only fake demo documents/data are safe to commit.
 
@@ -116,7 +116,8 @@ Common storage is a structured shared workspace for evidence references, finding
 | `src/decision_system/graph/` | LangGraph state, 6 node functions, workflow builder |
 | `src/decision_system/rag/` | Document loading, chunking, hash embeddings, Chroma CRUD, retriever |
 | `src/decision_system/ledger/` | Claim ledger + verifier |
-| `src/decision_system/llm/` | Providers: `fake` (default), `nvidia_nim` |
+| `src/decision_system/llm/` | Providers: `fake` (default), `nvidia_nim`, `ollama` |
+| `src/decision_system/provider_experiments/` | Provider smoke/eval harness for fake, NIM, and Ollama |
 | `src/decision_system/reports/` | Decision report renderer |
 | `src/decision_system/evals/` | Local evaluation models and runner |
 | `src/decision_system/graphing/` | Entity/relationship graph extraction, store, inspection |
@@ -136,8 +137,9 @@ decision-system ask "question"                  - Run workflow, print Markdown r
 decision-system ask "question" --show-evidence  - Print retrieved evidence before report
 decision-system ask "question" --json           - Print structured workflow state as JSON
 decision-system ask "question" --save-run       - Save full run payload under .decision_system/runs/
-decision-system ask "question" --provider fake  - Override provider (fake or nvidia_nim)
+decision-system ask "question" --provider fake  - Override provider (fake, nvidia_nim, or ollama)
 decision-system ask "question" --provider nvidia_nim  - Use NVIDIA NIM
+decision-system ask "question" --provider ollama      - Use local Ollama
 decision-system extract-graph                   - Extract entities/rels -> .decision_system/graph/knowledge_graph.json
 decision-system inspect-graph                   - Print graph inspection summary
 decision-system init-data-catalog               - Create company_data folders, manifest, fake demo CSVs
@@ -164,11 +166,23 @@ decision-system inspect-war-room               - Inspect latest saved war-room r
 decision-system eval                            - Run local evaluation cases
 decision-system eval --json                     - Print structured eval results
 decision-system eval --save-results             - Save eval results under evals/results/
+decision-system provider-health                 - Inspect fake/NIM/Ollama provider configuration
+decision-system provider-smoke --provider fake  - Run one provider smoke test
+decision-system eval-provider --provider fake   - Run provider experiment cases
 ```
 
 Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 
 ## Version History
+
+### v0.7.0 (2026-06-05)
+- Provider experiment harness for fake, NVIDIA NIM, and Ollama
+- Optional Ollama provider using local HTTP only
+- `decision-system provider-health`
+- `decision-system provider-smoke --provider ...`
+- `decision-system eval-provider --provider ...`
+- Provider eval cases under `evals/provider_cases/`
+- Fake provider remains default; real provider tests remain mocked/offline
 
 ### v0.6.0 (2026-06-05)
 - War-cabinet agent context protocol
@@ -256,7 +270,7 @@ These are non-negotiable constraints that must be preserved in every change:
 4. **No auth yet.** No JWT, OAuth, RBAC.
 5. **No enterprise connectors yet.** (Slack, Jira, email, GitHub, Salesforce, etc.)
 6. **No new agents unless explicitly planned and approved.** Each agent requires explicit scoping and bounded inputs.
-7. **No additional real LLM providers without approval.** Only `fake` (default) and `nvidia_nim` are accepted.
+7. **No additional real LLM providers without approval.** Only `fake` (default), `nvidia_nim`, and `ollama` are accepted.
 8. **Agents do not freely chat.** The LangGraph workflow is strictly linear: retrieve -> tech analyst -> risk analyst -> claim extraction -> verifier -> report writer.
 9. **Workflows remain bounded and testable.** No unbounded loops, no recursive agent calls.
 10. **All important claims go through the claim ledger.** Nothing skips the ledger.
@@ -278,7 +292,7 @@ These are non-negotiable constraints that must be preserved in every change:
 - Hybrid search or reranking
 - PDF parsing
 - Additional LangGraph nodes or agent types without explicit design approval
-- New LLM providers beyond `fake` and `nvidia_nim`
+- New LLM providers beyond `fake`, `nvidia_nim`, and `ollama`
 - Unbounded war-room / war-cabinet agent debate
 - Model fine-tuning or training workflows unless explicitly scoped and approved
 
@@ -299,11 +313,10 @@ If the answer to any of these is "no," the change is out of scope for this phase
 
 | Version | Focus |
 |---------|-------|
-| **v0.6** | Improve ontology quality, relationship extraction, insight ranking, and context packages |
-| **v0.7** | Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear |
-| **v0.8** | Real provider comparison and optional model-adaptation experiments |
-| **v0.9** | FastAPI backend |
-| **v1.0+** | Frontend, database, auth, connectors, and saved workspaces after backend discipline is proven |
+| **v0.8** | Improve ontology quality, relationship extraction, insight ranking, and context packages |
+| **v0.9** | Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear |
+| **v1.0** | FastAPI backend |
+| **v1.1+** | Frontend, database, auth, connectors, and saved workspaces after backend discipline is proven |
 
 ## How Claude Should Work in This Repo
 

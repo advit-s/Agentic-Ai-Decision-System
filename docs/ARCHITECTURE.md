@@ -221,6 +221,7 @@ The provider factory supports:
 
 - `fake`: deterministic offline provider and default
 - `nvidia_nim`: optional hosted provider using NVIDIA NIM
+- `ollama`: optional local provider using Ollama's local HTTP API
 
 The fake provider remains the default for tests, evals, and offline runs.
 
@@ -229,6 +230,40 @@ The fake provider remains the default for tests, evals, and offline runs.
 `NvidiaNimProvider` uses NVIDIA NIM's OpenAI-compatible API through the `openai` Python package. It reads credentials, base URL, model, and generation settings from `.env` or environment variables only. It asks the model for strict JSON and validates responses into Pydantic models before they enter workflow state.
 
 The local report renderer still owns final report writing.
+
+## Ollama Provider (v0.7)
+
+`OllamaProvider` uses Ollama's local `/api/chat` endpoint through Python's
+standard library HTTP client. It reads `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, and
+generation settings from `.env` or environment variables. The provider asks for
+strict JSON and validates responses into Pydantic models before the workflow
+uses them.
+
+Ollama is local testing only. It is not contacted unless selected with
+`DECISION_PROVIDER=ollama` or `decision-system ask --provider ollama`.
+
+## Provider Experiment Harness (v0.7)
+
+v0.7 adds a provider comparison harness without changing the bounded workflow:
+
+```text
+evals/provider_cases/*.json
+-> ProviderExperimentCase
+-> selected provider: fake | nvidia_nim | ollama
+-> technical_memo
+-> risk_memo
+-> extract_claims
+-> validate AgentMemo / Claim objects
+-> ProviderExperimentSuiteResult
+-> optional .decision_system/evals/provider_results_<provider>_<timestamp>.json
+```
+
+Provider experiments measure whether a provider can produce valid structured
+memos and claims for fixed cases. They do not judge model quality deeply, do
+not bypass the claim ledger, and do not let provider prose become the final
+report. `provider-health` exits successfully even when real providers are not
+configured. `eval-provider` skips unconfigured NIM/Ollama providers unless
+`--require-configured` is used.
 
 ## Decision Context and Insight-Aware Reports (v0.5)
 
@@ -356,3 +391,4 @@ directory checks.
 - No semantic analysis of CSV profiles yet.
 - No native SQL Server `.bak` import.
 - Hash embeddings are for local testing, not production retrieval quality.
+- Provider experiments do not integrate with war-room specialist artifacts yet.

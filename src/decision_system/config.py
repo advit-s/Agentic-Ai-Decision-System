@@ -19,6 +19,7 @@ class Settings:
     store_dir: Path
     collection_name: str
     provider: str
+    # NVIDIA NIM
     nvidia_api_key: str
     nvidia_nim_model: str
     nvidia_temperature: float
@@ -27,6 +28,12 @@ class Settings:
     nvidia_reasoning_enabled: bool
     nvidia_reasoning_effort: str
     nvidia_nim_base_url: str
+    # Ollama
+    ollama_base_url: str
+    ollama_model: str
+    ollama_temperature: float
+    ollama_max_tokens: int
+    ollama_timeout_seconds: int
 
 
 def load_settings() -> Settings:
@@ -46,13 +53,20 @@ def load_settings() -> Settings:
         collection_name=os.getenv("DECISION_COLLECTION", "decision_chunks"),
         provider=os.getenv("DECISION_PROVIDER", "fake"),
         nvidia_api_key=os.getenv("NVIDIA_API_KEY", ""),
-        nvidia_nim_model=os.getenv("NVIDIA_NIM_MODEL", "deepseek-ai/deepseek-v4-flash"),
+        nvidia_nim_model=os.getenv("NVIDIA_NIM_MODEL", ""),
         nvidia_temperature=float(os.getenv("NVIDIA_TEMPERATURE", "0")),
         nvidia_top_p=float(os.getenv("NVIDIA_TOP_P", "0.95")),
         nvidia_max_tokens=int(os.getenv("NVIDIA_MAX_TOKENS", "4096")),
-        nvidia_nim_base_url=os.getenv("NVIDIA_NIM_BASE_URL", "https://integrate.api.nvidia.com/v1"),
+        nvidia_nim_base_url=os.getenv(
+            "NVIDIA_NIM_BASE_URL", "https://integrate.api.nvidia.com/v1"
+        ),
         nvidia_reasoning_enabled=_env_bool("NVIDIA_REASONING_ENABLED", default=False),
         nvidia_reasoning_effort=os.getenv("NVIDIA_REASONING_EFFORT", "medium"),
+        ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        ollama_model=os.getenv("OLLAMA_MODEL", ""),
+        ollama_temperature=float(os.getenv("OLLAMA_TEMPERATURE", "0")),
+        ollama_max_tokens=int(os.getenv("OLLAMA_MAX_TOKENS", "2048")),
+        ollama_timeout_seconds=int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "60")),
     )
 
 

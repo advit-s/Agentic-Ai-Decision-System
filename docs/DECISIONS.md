@@ -157,6 +157,29 @@ Key principles:
 - **Structured output is available.** `check-hygiene --json` emits a Pydantic
   `HygieneReport` for auditability.
 
+## ADR-022: Add Provider Experiment Harness Before Deep Provider Integration
+
+Status: Accepted
+
+v0.7 adds optional provider experiments for fake, NVIDIA NIM, and Ollama. The
+goal is to compare structured provider behavior without changing the bounded
+decision workflow or adding unbounded agents.
+
+Key principles:
+- **Fake remains default.** Tests and normal offline use still require no API
+  key or local model.
+- **NVIDIA NIM is hosted and optional.** It runs only when explicitly selected
+  and configured with environment variables.
+- **Ollama is local and optional.** It calls only the configured local
+  `OLLAMA_BASE_URL`, normally `http://localhost:11434`.
+- **Tests are mocked/offline.** No test calls NIM, Ollama, or the internet.
+- **Provider output is structured.** Provider JSON is validated into Pydantic
+  `AgentMemo` and `Claim` models.
+- **The ledger still governs reports.** Retrieval, verification, claim ledger,
+  and local report rendering remain responsible for final decision reports.
+- **No deep war-room integration yet.** Provider experiments do not add new
+  specialist agents, database storage, frontend, auth, or connectors.
+
 ## ADR-016: Import Public Datasets as Local CSV Copies
 
 Status: Accepted

@@ -1,0 +1,10 @@
+{
+  "case_id": "contradiction_case",
+  "question": "What are the risks of deploying now?",
+  "evidence_texts": [
+    "CONTRADICTS: Team A says the migration is low-risk. Team B says billing failures will affect customer payments.",
+    "Rollback planning is required before any billing migration."
+  ],
+  "expected_min_claims": 1,
+  "expected_evidence_ids": ["exp-e00", "exp-e01"]
+}

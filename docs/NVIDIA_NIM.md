@@ -62,6 +62,33 @@ decision-system ask "Should we migrate billing?" --provider nvidia_nim --show-ev
 
 Do not save or commit real provider output if it contains private information.
 
+## Provider Experiment Commands
+
+Check configuration without making a provider call:
+
+```bash
+decision-system provider-health
+```
+
+Run fake-provider experiments offline:
+
+```bash
+decision-system provider-smoke --provider fake
+decision-system eval-provider --provider fake
+```
+
+Run NVIDIA NIM experiments only after `NVIDIA_API_KEY` and
+`NVIDIA_NIM_MODEL` are configured:
+
+```bash
+decision-system provider-smoke --provider nvidia_nim
+decision-system eval-provider --provider nvidia_nim
+```
+
+If NIM is not configured, `eval-provider --provider nvidia_nim` skips
+gracefully. `provider-smoke` and `ask --provider nvidia_nim` fail with a clear
+configuration message.
+
 ## Default Provider
 
 `DECISION_PROVIDER=fake` is the safe default. It keeps tests and evals offline.

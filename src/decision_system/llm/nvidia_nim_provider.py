@@ -1,21 +1,21 @@
 """NVIDIA NIM hosted provider via the OpenAI-compatible API."""
 
-import json
 from typing import Any, TypeVar
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from decision_system.config import Settings
 from decision_system.models import AgentMemo, Claim, DecisionReport, EvidenceChunk
-
+from decision_system.llm.structured_io import (
+    ClaimsEnvelope,
+    claim_prompt,
+    parse_json_response,
+    risk_prompt,
+    system_prompt,
+    technical_prompt,
+)
 
 T = TypeVar("T", bound=BaseModel)
-
-
-class ClaimsEnvelope(BaseModel):
-    """Structured claim extraction payload returned by NVIDIA NIM."""
-
-    claims: list[Claim]
 
 
 class NvidiaNimProvider:
@@ -45,7 +45,7 @@ class NvidiaNimProvider:
         return self._complete_json(
             schema_name="AgentMemo",
             schema_model=AgentMemo,
-            user_prompt=_technical_prompt(question, evidence),
+            user_prompt=technical_prompt(question, evidence),
         )
 
     def risk_memo(
@@ -58,7 +58,7 @@ class NvidiaNimProvider:
         return self._complete_json(
             schema_name="AgentMemo",
             schema_model=AgentMemo,
-            user_prompt=_risk_prompt(question, evidence, technical_memo),
+            user_prompt=risk_prompt(question, evidence, technical_memo),
         )
 
     def extract_claims(self, run_id: str, memos: list[AgentMemo]) -> list[Claim]:
@@ -66,7 +66,7 @@ class NvidiaNimProvider:
         envelope = self._complete_json(
             schema_name="ClaimsEnvelope",
             schema_model=ClaimsEnvelope,
-            user_prompt=_claim_prompt(run_id, memos),
+            user_prompt=claim_prompt(run_id, memos),
         )
         return envelope.claims
 
@@ -88,7 +88,7 @@ class NvidiaNimProvider:
         messages = [
             {
                 "role": "system",
-                "content": _system_prompt(schema_name, schema_model),
+                "content": system_prompt(schema_name, schema_model),
             },
             {
                 "role": "user",
@@ -103,74 +103,7 @@ class NvidiaNimProvider:
             max_tokens=self.settings.nvidia_max_tokens,
         )
         content = _string_content(response.choices[0].message.content)
-        try:
-            payload = json.loads(content)
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"NVIDIA NIM returned malformed JSON for {schema_name}.") from exc
-
-        try:
-            return schema_model.model_validate(payload)
-        except ValidationError as exc:
-            raise ValueError(f"NVIDIA NIM returned invalid {schema_name} JSON.") from exc
-
-
-def _system_prompt(schema_name: str, schema_model: type[BaseModel]) -> str:
-    return "\n".join(
-        [
-            "You are a bounded decision-system model.",
-            "Return only valid JSON. Do not include Markdown, prose, or code fences.",
-            "Use only the evidence IDs provided by the user.",
-            f"The JSON must validate as {schema_name}.",
-            "Schema:",
-            json.dumps(schema_model.model_json_schema(), indent=2),
-        ]
-    )
-
-
-def _technical_prompt(question: str, evidence: list[EvidenceChunk]) -> str:
-    return json.dumps(
-        {
-            "task": "Write a technical analyst memo as JSON.",
-            "agent_name": "technical_analyst",
-            "question": question,
-            "evidence": [chunk.model_dump(mode="json") for chunk in evidence],
-        },
-        indent=2,
-    )
-
-
-def _risk_prompt(
-    question: str,
-    evidence: list[EvidenceChunk],
-    technical_memo: AgentMemo,
-) -> str:
-    return json.dumps(
-        {
-            "task": "Write a risk analyst memo as JSON.",
-            "agent_name": "risk_analyst",
-            "question": question,
-            "technical_memo": technical_memo.model_dump(mode="json"),
-            "evidence": [chunk.model_dump(mode="json") for chunk in evidence],
-        },
-        indent=2,
-    )
-
-
-def _claim_prompt(run_id: str, memos: list[AgentMemo]) -> str:
-    return json.dumps(
-        {
-            "task": "Extract material claims as JSON.",
-            "run_id": run_id,
-            "instructions": [
-                "Return an object with a claims array.",
-                "Each claim must use the provided run_id.",
-                "Use pending status because verification happens later.",
-                "Use evidence_ids from cited_evidence_ids only.",
-            ],
-            "memos": [memo.model_dump(mode="json") for memo in memos],
-        },
-        indent=2,
-    )
+        return parse_json_response("NVIDIA NIM", schema_name, schema_model, content)
 
 
 def _string_content(content: Any) -> str:

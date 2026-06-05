@@ -25,7 +25,9 @@ def test_nvidia_nim_settings_load_from_env(monkeypatch):
 
 def test_nvidia_nim_defaults_load(monkeypatch):
     monkeypatch.delenv("NVIDIA_NIM_BASE_URL", raising=False)
+    monkeypatch.delenv("NVIDIA_NIM_MODEL", raising=False)
 
     settings = load_settings()
 
     assert settings.nvidia_nim_base_url == "https://integrate.api.nvidia.com/v1"
+    assert settings.nvidia_nim_model == ""

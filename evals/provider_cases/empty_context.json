@@ -1,0 +1,7 @@
+{
+  "case_id": "empty_context",
+  "question": "Should we migrate billing?",
+  "evidence_texts": [],
+  "expected_min_claims": 0,
+  "expected_evidence_ids": []
+}

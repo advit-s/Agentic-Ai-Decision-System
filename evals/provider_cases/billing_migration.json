@@ -1,0 +1,9 @@
+{
+  "case_id": "billing_migration",
+  "question": "Should we migrate billing?",
+  "evidence_texts": [
+    "Billing migration requires rollback planning and staged deployment. Billing failures affect customer payments."
+  ],
+  "expected_min_claims": 1,
+  "expected_evidence_ids": ["exp-e00"]
+}

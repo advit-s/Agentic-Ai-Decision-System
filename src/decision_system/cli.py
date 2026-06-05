@@ -85,6 +85,21 @@ from decision_system.war_room.evals import (
 from decision_system.war_room.inspector import inspect_war_room as _inspect_war_room_impl, render_inspection as _render_war_room_inspection
 from decision_system.war_room.runner import run_war_room as _run_war_room_fn
 from decision_system.war_room.store import DEFAULT_RUNS_DIR, load_latest_run
+from decision_system.llm.factory import get_provider
+from decision_system.provider_experiments.models import (
+    ProviderExperimentCase,
+)
+from decision_system.provider_experiments.runner import (
+    load_eval_cases as _load_provider_cases,
+    run_experiment_suite,
+)
+from decision_system.provider_experiments.store import (
+    load_latest_provider_results,
+    save_experiment_results,
+)
+from decision_system.provider_experiments.inspector import (
+    render_provider_experiments,
+)
 
 
 app = typer.Typer(help="Create cited decision briefs from local company documents.")
@@ -590,7 +605,7 @@ def ask(
     provider: str | None = typer.Option(
         None,
         "--provider",
-        help="Provider for this run: fake or nvidia_nim.",
+        help="Provider for this run: fake, nvidia_nim, or ollama.",
     ),
     include_insights: bool = typer.Option(
         False,
@@ -621,6 +636,15 @@ def ask(
     and does not execute external actions in v0.1.
     """
 
+    settings = load_settings()
+    active_provider = (provider or settings.provider).strip().lower()
+
+    try:
+        get_provider(active_provider, settings=settings)
+    except Exception as exc:
+        console.print(f"[red]Provider '{active_provider}' is not ready: {exc}[/red]")
+        raise typer.Exit(code=1)
+
     graph = build_workflow()
     graph_input: dict[str, Any] = {
         "run_id": str(uuid4()),
@@ -628,7 +652,7 @@ def ask(
         "top_k": top_k,
     }
     if provider is not None:
-        graph_input["provider"] = provider
+        graph_input["provider"] = active_provider
 
     # v0.5: Build insight-aware context before running the workflow if requested
     context = None
@@ -641,7 +665,15 @@ def ask(
             if not json_output:
                 console.print(f"Saved context: {saved_context_path}")
 
-    result = graph.invoke(graph_input)
+    try:
+        result = graph.invoke(graph_input)
+    except Exception as exc:
+        if active_provider != "fake":
+            console.print(
+                f"[red]Provider '{active_provider}' run failed: {exc}[/red]"
+            )
+            raise typer.Exit(code=1)
+        raise
     saved_path = _save_run(result) if save_run else None
 
     # v0.5: Inject context into the report for insight-aware rendering
@@ -851,6 +883,202 @@ def evaluate_war_room(
         typer.echo(json.dumps(suite.model_dump(mode="json"), indent=2))
     else:
         typer.echo(render_war_room_eval_report(suite))
+
+    if suite.failed_cases > 0:
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# Provider experiment commands (v0.7)
+# ---------------------------------------------------------------------------
+
+@app.command()
+def provider_health() -> None:
+    """Print provider configuration health status.
+
+    Shows which provider is configured and whether NIM and Ollama have
+    the required settings. Never fails just because NIM/Ollama are missing.
+    """
+    settings = load_settings()
+    lines: list[str] = []
+    lines.append(f"Configured provider: {settings.provider}")
+    lines.append("")
+    lines.append("fake: always available (offline default)")
+    lines.append("")
+
+    # NIM status
+    nim_key_ok = bool(settings.nvidia_api_key)
+    nim_model_ok = bool(settings.nvidia_nim_model)
+    nim_status = "configured" if (nim_key_ok and nim_model_ok) else "incomplete"
+    lines.append(f"nvidia_nim: {nim_status}")
+    lines.append(f"  API key: {'present' if nim_key_ok else 'missing'}")
+    lines.append(f"  model: {'present' if nim_model_ok else 'missing'} ({settings.nvidia_nim_model or 'unset'})")
+    lines.append(f"  base URL: {settings.nvidia_nim_base_url}")
+    lines.append("")
+
+    # Ollama status
+    ollama_model_ok = bool(settings.ollama_model)
+    ollama_status = "configured" if ollama_model_ok else "incomplete"
+    lines.append(f"ollama: {ollama_status}")
+    lines.append(f"  base URL: {settings.ollama_base_url}")
+    lines.append(f"  model: {'present' if ollama_model_ok else 'missing'} ({settings.ollama_model or 'unset'})")
+    lines.append(f"  timeout: {settings.ollama_timeout_seconds}s")
+    lines.append("")
+
+    console.print("\n".join(lines))
+
+
+@app.command()
+def provider_smoke(
+    provider: str = typer.Option(
+        "fake",
+        "--provider",
+        help="Provider to smoke-test: fake, nvidia_nim, or ollama.",
+    ),
+) -> None:
+    """Run one small in-memory evidence case against a provider.
+
+    Validates AgentMemo and claims output.
+    """
+    settings = load_settings()
+    try:
+        target_provider = get_provider(provider, settings=settings)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1)
+    except Exception as exc:
+        console.print(f"[red]Provider init failed: {exc}[/red]")
+        raise typer.Exit(code=1)
+
+    from decision_system.models import AgentMemo, Claim, EvidenceChunk
+
+    evidence = [
+        EvidenceChunk(
+            evidence_id="smoke-e1",
+            document_id="smoke",
+            source_path="smoke",
+            source_filename="smoke.txt",
+            chunk_id="smoke-chunk-0001",
+            text="Billing migration requires rollback planning and staged deployment.",
+            score=0.95,
+        )
+    ]
+    question = "Should we migrate billing?"
+
+    tech_valid = False
+    risk_valid = False
+    claims_valid = False
+    errors: list[str] = []
+    tech: AgentMemo | None = None
+    risk: AgentMemo | None = None
+
+    # Technical memo
+    try:
+        tech = target_provider.technical_memo(question, evidence)
+        tech_valid = isinstance(tech, AgentMemo)
+        if not tech_valid:
+            errors.append(f"technical_memo returned {type(tech).__name__}")
+    except Exception as exc:
+        errors.append(f"technical_memo: {exc}")
+
+    # Risk memo
+    try:
+        tech_stub = tech if isinstance(tech, AgentMemo) else AgentMemo(
+            agent_name="technical_analyst",
+            question=question,
+            summary="(stub)",
+            claims=[],
+            risks=[],
+            options=[],
+            cited_evidence_ids=[],
+        )
+        risk = target_provider.risk_memo(question, evidence, tech_stub)
+        risk_valid = isinstance(risk, AgentMemo)
+        if not risk_valid:
+            errors.append(f"risk_memo returned {type(risk).__name__}")
+    except Exception as exc:
+        errors.append(f"risk_memo: {exc}")
+
+    # Claims
+    try:
+        memos: list[AgentMemo] = []
+        if isinstance(tech, AgentMemo):
+            memos.append(tech)
+        if isinstance(risk, AgentMemo):
+            memos.append(risk)
+        claims = target_provider.extract_claims("smoke-run", memos)
+        claims_valid = isinstance(claims, list) and all(isinstance(c, Claim) for c in claims)
+    except Exception as exc:
+        errors.append(f"extract_claims: {exc}")
+
+    if errors:
+        console.print("[red]Smoke test FAILED:[/red]")
+        for error in errors:
+            console.print(f"  - {error}")
+        raise typer.Exit(code=1)
+
+    console.print(f"[green]Smoke test PASSED[/green] for provider '{provider}'.")
+    console.print(f"  technical_memo: {tech_valid}")
+    console.print(f"  risk_memo: {risk_valid}")
+    console.print(f"  extract_claims: {claims_valid}")
+
+
+@app.command("eval-provider")
+def evaluate_provider(
+    provider: str = typer.Option(
+        "fake",
+        "--provider",
+        help="Provider to evaluate: fake, nvidia_nim, or ollama.",
+    ),
+    json_output: bool = typer.Option(False, "--json"),
+    save_results: bool = typer.Option(False, "--save-results"),
+    require_configured: bool = typer.Option(
+        False,
+        "--require-configured",
+        help="Fail instead of skipping when NIM/Ollama are not configured.",
+    ),
+) -> None:
+    """Run provider experiment evaluation cases for a selected provider."""
+
+    settings = load_settings()
+    if provider not in {"fake", "nvidia_nim", "ollama"}:
+        console.print(
+            f"[red]Unknown provider '{provider}'. Expected one of: fake, nvidia_nim, ollama.[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    # Check if the provider is actually available for non-fake providers
+    if provider != "fake":
+        if provider == "nvidia_nim":
+            if not settings.nvidia_api_key or not settings.nvidia_nim_model:
+                if require_configured:
+                    console.print("[red]nvidia_nim is not configured (missing API key or model).[/red]")
+                    raise typer.Exit(code=1)
+                console.print("Skipping: nvidia_nim is not configured (missing API key or model).")
+                return
+        elif provider == "ollama":
+            if not settings.ollama_model:
+                if require_configured:
+                    console.print("[red]ollama is not configured (missing OLLAMA_MODEL).[/red]")
+                    raise typer.Exit(code=1)
+                console.print("Skipping: ollama is not configured (missing OLLAMA_MODEL).")
+                return
+
+    cases = _load_provider_cases()
+    if not cases:
+        console.print("No provider experiment cases found under evals/provider_cases/.")
+        return
+
+    suite = run_experiment_suite(cases, provider_name=provider, settings=settings)
+
+    if save_results:
+        output_path = save_experiment_results(suite)
+        console.print(f"Saved results: {output_path}")
+
+    if json_output:
+        typer.echo(suite.model_dump_json(indent=2))
+    else:
+        console.print(render_provider_experiments(suite))
 
     if suite.failed_cases > 0:
         raise typer.Exit(code=1)

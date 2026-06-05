@@ -12,7 +12,7 @@ def get_provider(
     """Return the configured LLM provider.
 
     `fake` remains the default so tests and local runs stay offline unless the
-    user explicitly selects a hosted provider.
+    user explicitly selects a hosted or local provider.
     """
 
     resolved_settings = settings or load_settings()
@@ -24,7 +24,12 @@ def get_provider(
         from decision_system.llm.nvidia_nim_provider import NvidiaNimProvider
 
         return NvidiaNimProvider(resolved_settings)
+    if name == "ollama":
+        from decision_system.llm.ollama_provider import OllamaProvider
+
+        return OllamaProvider(resolved_settings)
 
     raise ValueError(
-        f"Unknown DECISION_PROVIDER '{name}'. Expected one of: fake, nvidia_nim."
+        f"Unknown DECISION_PROVIDER '{name}'. "
+        f"Expected one of: fake, nvidia_nim, ollama."
     )

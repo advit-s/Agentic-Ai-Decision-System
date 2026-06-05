@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.0] - 2026-06-05
+
+### Added
+- Provider experiment harness (new `decision_system.provider_experiments` package).
+- `decision-system provider-health` - prints configured provider, NIM/Ollama status.
+- `decision-system provider-smoke --provider X` - one-shot provider smoke test.
+- `decision-system eval-provider --provider X` - run provider eval cases.
+- Optional Ollama provider for local model testing via stdlib HTTP.
+- `evals/provider_cases/` - billing_migration, contradiction_case, empty_context eval cases.
+- `tests/test_provider_experiments.py` and `tests/test_ollama_provider.py` - offline tests.
+- `docs/OLLAMA.md` - Ollama setup and usage guide.
+
+### Changed
+- `Settings` now includes `ollama_*` fields from `.env`.
+- Provider factory now supports `fake`, `nvidia_nim`, and `ollama`.
+- `decision-system ask --provider` accepts `ollama` in addition to `nvidia_nim`.
+
 ## [0.6.2] - 2026-06-05
 
 ### Added

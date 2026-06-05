@@ -135,6 +135,37 @@ def test_ask_provider_fake_keeps_offline_default(tmp_path, monkeypatch):
     assert "# Decision Report" in result.output
 
 
+def test_ask_provider_nvidia_missing_config_fails_clearly(tmp_path, monkeypatch):
+    _configure_test_store(tmp_path, monkeypatch)
+    monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
+    monkeypatch.delenv("NVIDIA_NIM_MODEL", raising=False)
+
+    result = CliRunner().invoke(
+        app,
+        ["ask", "Should we migrate billing?", "--provider", "nvidia_nim"],
+    )
+
+    assert result.exit_code == 1
+    assert "Provider 'nvidia_nim' is not ready" in result.output
+    assert "NVIDIA_API_KEY" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_ask_provider_ollama_missing_config_fails_clearly(tmp_path, monkeypatch):
+    _configure_test_store(tmp_path, monkeypatch)
+    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
+
+    result = CliRunner().invoke(
+        app,
+        ["ask", "Should we migrate billing?", "--provider", "ollama"],
+    )
+
+    assert result.exit_code == 1
+    assert "Provider 'ollama' is not ready" in result.output
+    assert "OLLAMA_MODEL" in result.output
+    assert "Traceback" not in result.output
+
+
 class _FakeDecisionContextBuilder:
     def build(self, question, run_id=None, **_kwargs):
         return DecisionContext(

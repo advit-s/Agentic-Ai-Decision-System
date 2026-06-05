@@ -54,6 +54,11 @@ def _settings():
         nvidia_max_tokens=4096,
         nvidia_reasoning_enabled=False,
         nvidia_reasoning_effort="medium",
+        ollama_base_url="http://localhost:11434",
+        ollama_model="",
+        ollama_temperature=0,
+        ollama_max_tokens=2048,
+        ollama_timeout_seconds=60,
     )
 
 
