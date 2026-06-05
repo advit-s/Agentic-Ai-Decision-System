@@ -1,6 +1,6 @@
 """Judge interventions for war-room artifacts.
 
-Deterministic rules only — no LLM calls.  The judge inspects each artifact
+Deterministic rules only; no LLM calls. The judge inspects each artifact
 and may raise interventions (flags) when rules are violated.
 """
 

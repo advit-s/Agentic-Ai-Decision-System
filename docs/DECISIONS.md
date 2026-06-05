@@ -122,6 +122,21 @@ Key principles:
 
 This layer is a direct precursor to Phase 2 of the product vision: bounded orchestration over the company intelligence layer. It proves the context-sharing, role-dispatch, and judge-review contracts before adding real LLM-backed specialists.
 
+## ADR-020: Add Offline War-Room Quality Gates Before Real Specialist Agents
+
+Status: Accepted
+
+v0.6.1 adds `decision-system eval-war-room` so the war-cabinet protocol can be measured before any real LLM-backed specialists are introduced.
+
+Key principles:
+- **Eval cases are local JSON.** Cases live under `evals/war_room_cases/` and encode expected roles, tools, data categories, artifact counts, and judge requirements.
+- **Cases run the actual war-room pipeline.** The eval runner calls the deterministic `run_war_room` flow instead of scoring static fixtures.
+- **Quality gates are structured.** Gates check higher context presence and immutability, personal context references, append-only workspace behavior, judge execution, human-review behavior, offline boundaries, and no unbounded chat transcript shape.
+- **Results are inspectable.** `--json` prints structured suite state and `--save-results` writes `.decision_system/evals/war_room_results.json`.
+- **Offline default remains mandatory.** No real provider, external API, database, auth, connector, or frontend is introduced.
+
+This keeps v0.6 focused on protocol discipline and gives future specialist-agent work a repeatable regression harness.
+
 ## ADR-016: Import Public Datasets as Local CSV Copies
 
 Status: Accepted

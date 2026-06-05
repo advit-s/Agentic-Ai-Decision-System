@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.1] - 2026-06-06
+
+### Added
+- War-room evaluation cases under `evals/war_room_cases/`.
+- War-room quality gates: higher context existence, deep immutability, personal context reference, artifact count, append-only workspace, judge summary, human review flag, no external APIs, no unbounded chat.
+- `decision-system eval-war-room` with `--json` and `--save-results` flags.
+- War-room eval persistence at `.decision_system/evals/war_room_results.json`.
+- Structured models: `WarRoomEvalCase`, `WarRoomEvalResult`, `WarRoomEvalSuiteResult`.
+
 ## [0.6.0] - 2026-06-05
 
 ### Added - War-Cabinet Agent Context Protocol
@@ -44,10 +53,10 @@
 
 ### Added - Orchestration Layer
 - `decision_system.orchestration` package with Pydantic v2 models: `StorageTier`, `DecisionSession`, `DecisionType`, `ProblemAnalysis`, `DispatchPlan`, `JudgeSummary`.
-- `decision-system analyze-problem` — classifies a business question into a decision type and returns required data categories, tools, roles, ontology concepts, and storage tiers.
-- `decision-system run-orchestration` — end-to-end pipeline: analyze → plan → dispatch → sandbox → detect → judge.
-- `decision-system inspect-orchestration` — loads and renders the latest orchestration run.
-- Problem analyzer: deterministic keyword → `DecisionType` mapping for 13 domain types (financial, customer, sales, marketing, feedback, product, competitor, operations, analytics, strategic, technical, risk, general).
+- `decision-system analyze-problem`: classifies a business question into a decision type and returns required data categories, tools, roles, ontology concepts, and storage tiers.
+- `decision-system run-orchestration`: end-to-end pipeline: analyze -> plan -> dispatch -> sandbox -> detect -> judge.
+- `decision-system inspect-orchestration`: loads and renders the latest orchestration run.
+- Problem analyzer: deterministic keyword -> `DecisionType` mapping for 13 domain types (financial, customer, sales, marketing, feedback, product, competitor, operations, analytics, strategic, technical, risk, general).
 - Dispatch planner: selects tools, roles, and artifacts based on required data categories; enforces execution ordering.
 - Sandbox executor: explicit function-call allow-list; blocks destructive operations (delete, shell exec, HTTP, external messaging).
 - Judge summary: confidence scoring (low/medium/high), key findings, risks, missing data, recommended next actions, and human-review flags.

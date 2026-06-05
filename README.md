@@ -82,6 +82,16 @@ v0.6 adds a bounded multi-role analysis layer over the existing company intellig
 - **Sandboxed tool access**: allow-list only: `read_profiles`, `read_graph`, `read_insights`, `read_context`, `save_artifact`.
 - **Persisted runs**: `.decision_system/war_room/runs/<run_id>.json`, ignored by Git.
 
+## War-Room Evaluation
+
+```bash
+decision-system eval-war-room
+decision-system eval-war-room --json
+decision-system eval-war-room --save-results
+```
+
+The v0.6.1 evaluation layer runs the actual war-room pipeline for known business questions and checks expected roles, tools, data categories, artifacts, and judge summaries. Quality gates verify higher context deep immutability, personal context references, append-only workspace semantics, judge execution, offline boundaries, and no chat-transcript-shaped artifacts. Saved results go to `.decision_system/evals/war_room_results.json`.
+
 ## What Is Not Included Yet
 
 - frontend
@@ -268,6 +278,9 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system eval`: run local evaluation cases
 - `decision-system eval --json`: print structured evaluation results
 - `decision-system eval --save-results`: save evaluation results under `evals/results/`
+- `decision-system eval-war-room`: run war-room offline evaluation cases with quality gates
+- `decision-system eval-war-room --json`: print structured war-room eval results
+- `decision-system eval-war-room --save-results`: save war-room eval results under `.decision_system/evals/`
 
 ## Project Structure
 
@@ -281,6 +294,8 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `src/decision_system/graphing`: entity and relationship graph models, extraction, store, and inspection
 - `src/decision_system/data_catalog`: local data catalog initialization, CSV profiling, storage, and inspection
 - `src/decision_system/insights`: deterministic pattern and vulnerability detection
+- `src/decision_system/war_room`: war-cabinet protocol, quality gates, and eval runner
+- `evals/war_room_cases`: offline war-room evaluation cases
 - `tests`: offline unit and CLI tests
 - `docs`: architecture, setup, development, and troubleshooting docs
 - `company_docs`: local docs folder; only demo docs should be committed
@@ -291,6 +306,7 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 ```bash
 python -m pytest -q
 decision-system eval
+decision-system eval-war-room
 ```
 
 ## License

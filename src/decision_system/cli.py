@@ -76,6 +76,11 @@ from decision_system.rag.chunker import chunk_documents
 from decision_system.rag.loader import load_documents
 from decision_system.rag.vector_store import index_chunks, inspect_collection
 from decision_system.war_room.dispatcher import build_dispatch_spec as _build_wr_dispatch
+from decision_system.war_room.evals import (
+    render_war_room_eval_report,
+    run_war_room_eval_suite,
+    save_war_room_eval_results,
+)
 from decision_system.war_room.inspector import inspect_war_room as _inspect_war_room_impl, render_inspection as _render_war_room_inspection
 from decision_system.war_room.runner import run_war_room as _run_war_room_fn
 from decision_system.war_room.store import DEFAULT_RUNS_DIR, load_latest_run
@@ -767,3 +772,31 @@ def inspect_war_room() -> None:
         return
     summary = _inspect_war_room_impl(run)
     console.print(_render_war_room_inspection(summary))
+
+
+@app.command("eval-war-room")
+def evaluate_war_room(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured evaluation JSON instead of text.",
+    ),
+    save_results: bool = typer.Option(
+        False,
+        "--save-results",
+        help="Save war-room eval results under .decision_system/evals/.",
+    ),
+) -> None:
+    """Run war-room offline evaluation cases with quality gates."""
+
+    suite = run_war_room_eval_suite()
+    if save_results:
+        suite = save_war_room_eval_results(suite)
+
+    if json_output:
+        typer.echo(json.dumps(suite.model_dump(mode="json"), indent=2))
+    else:
+        typer.echo(render_war_room_eval_report(suite))
+
+    if suite.failed_cases > 0:
+        raise typer.Exit(code=1)

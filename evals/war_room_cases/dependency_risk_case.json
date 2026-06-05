@@ -1,0 +1,10 @@
+{
+  "case_id": "dependency_risk_case",
+  "question": "What are our critical system dependencies?",
+  "expected_roles": ["technical_analyst", "risk_analyst"],
+  "expected_tools": ["read_graph", "read_context", "save_artifact"],
+  "expected_data_categories": [],
+  "min_artifact_count": 2,
+  "requires_judge_summary": true,
+  "human_review_required_allowed": true
+}

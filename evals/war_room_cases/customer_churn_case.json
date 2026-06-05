@@ -1,0 +1,10 @@
+{
+  "case_id": "customer_churn_case",
+  "question": "Why are customers leaving?",
+  "expected_roles": ["customer_analyst", "risk_analyst"],
+  "expected_tools": ["read_profiles", "read_insights", "read_graph", "save_artifact"],
+  "expected_data_categories": ["customers"],
+  "min_artifact_count": 2,
+  "requires_judge_summary": true,
+  "human_review_required_allowed": true
+}

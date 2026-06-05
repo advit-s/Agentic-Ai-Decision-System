@@ -1,0 +1,10 @@
+{
+  "case_id": "money_loss_case",
+  "question": "Where are we losing money?",
+  "expected_roles": ["financial_analyst", "risk_analyst"],
+  "expected_tools": ["read_profiles", "read_graph", "read_insights", "save_artifact"],
+  "expected_data_categories": ["financial"],
+  "min_artifact_count": 2,
+  "requires_judge_summary": true,
+  "human_review_required_allowed": true
+}

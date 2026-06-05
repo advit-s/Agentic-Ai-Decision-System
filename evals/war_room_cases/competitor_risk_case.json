@@ -1,0 +1,10 @@
+{
+  "case_id": "competitor_risk_case",
+  "question": "How does the competitive landscape affect us?",
+  "expected_roles": ["strategy_analyst", "risk_analyst"],
+  "expected_tools": ["read_insights", "read_graph", "read_context", "save_artifact"],
+  "expected_data_categories": ["competitors"],
+  "min_artifact_count": 2,
+  "requires_judge_summary": true,
+  "human_review_required_allowed": true
+}

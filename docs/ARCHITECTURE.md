@@ -283,6 +283,31 @@ Three new CLI commands:
 - `decision-system run-war-room "question"`: full pipeline execution.
 - `decision-system inspect-war-room`: renders the latest run summary.
 
+## War-Room Evaluation (v0.6.1)
+
+v0.6.1 adds an offline evaluation layer for the war-cabinet protocol:
+
+```text
+evals/war_room_cases/*.json
+-> run actual war-room pipeline
+-> evaluate role/tool/category expectations
+-> run quality gates
+-> print structured suite result
+-> optionally save .decision_system/evals/war_room_results.json
+```
+
+Quality gates check:
+- higher context exists
+- higher context rejects top-level and nested mutation
+- personal contexts reference the higher context
+- common workspace remains append-only
+- judge output exists
+- high/critical judge interventions require human review
+- artifacts avoid external API markers
+- artifacts remain bounded and do not look like chat transcripts
+
+The eval layer is deterministic and offline. It does not add new agents, call real providers, or create free-form agent-to-agent chat.
+
 ## Current Limits
 
 - No frontend.

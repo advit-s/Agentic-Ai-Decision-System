@@ -1,0 +1,10 @@
+{
+  "case_id": "missing_data_case",
+  "question": "Evaluate everything with no data available",
+  "expected_roles": [],
+  "expected_tools": [],
+  "expected_data_categories": [],
+  "min_artifact_count": 0,
+  "requires_judge_summary": true,
+  "human_review_required_allowed": true
+}
