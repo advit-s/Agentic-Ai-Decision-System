@@ -104,6 +104,24 @@ Status: Accepted
 
 All v0.4 detectors are rule-based and deterministic. They run against cached data profiles and local files. No agent call, no free-form analysis, and no new LangGraph nodes are introduced. The insight engine is a standalone analysis layer that reads the output of existing subsystems (profiler, graph, CSV loader) without modifying their contracts.
 
+## ADR-019: Add War-Cabinet Agent Context Protocol (v0.6)
+
+Status: Accepted
+
+v0.6 introduces a bounded multi-role analysis layer over the existing company intelligence stores. It is not free-form agent chat; it is a structured protocol with immutable context, role-scoped personal contexts, an append-only shared workspace, deterministic artifact generation, and a deterministic judge.
+
+Key principles:
+- **HigherContext is deep-frozen.** No agent can mutate the global problem framing or nested context values.
+- **Personal contexts are role-scoped.** Each specialist gets a bounded task, perspective, allowed tools, and focus areas; not a full conversation history.
+- **Common workspace is append-only.** `WorkspaceArtifact` records are written by agents; no agent can delete or overwrite another's artifacts.
+- **Judge is deterministic.** Four rules: unsupported artifacts (medium), high/critical insight links (high + human review), contradiction links (critical + human review), low confidence (low warning).
+- **Sandbox is an allow-list.** Validated tool calls: `read_profiles`, `read_graph`, `read_insights`, `read_context`, `save_artifact`. Destructive patterns are blocked.
+- **No LLM calls.** All agent simulations are deterministic artifact generators reading local stores via sandboxed reads.
+- **Structured storage, not chat.** Coordination uses typed Pydantic artifacts, not free-form agent transcripts.
+- **War-room runs are persisted locally.** JSON files under `.decision_system/war_room/runs/` and ignored by Git.
+
+This layer is a direct precursor to Phase 2 of the product vision: bounded orchestration over the company intelligence layer. It proves the context-sharing, role-dispatch, and judge-review contracts before adding real LLM-backed specialists.
+
 ## ADR-016: Import Public Datasets as Local CSV Copies
 
 Status: Accepted

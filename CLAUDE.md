@@ -6,9 +6,37 @@ This is a **Company Intelligence Engine** - a backend-first prototype that uses 
 
 The key design principle: **final reports come from verified claim ledger state, not uncontrolled agent chat**. Contradictions, unsupported claims, citations, confidence, and human-review flags must remain visible rather than smoothed away.
 
+The full product direction is captured in `docs/PRODUCT_VISION.md`. Claude should read that file before proposing major roadmap, orchestration, ontology, graph, agent, or context changes.
+
+### Two-Phase Company Intelligence Model
+
+**Phase 1: Company Data Understanding**
+
+The system first processes company data and builds a company-specific intelligence layer. In the current prototype this means local documents, local CSVs, profiling, retrieval, deterministic ontology mapping, graph-like JSON stores, insights, and inspectability.
+
+Avoid overclaiming that the system "trains ML on company data" today. Safer wording:
+
+> The system builds a company-specific intelligence layer from local data using profiling, retrieval, ontology mapping, knowledge graph extraction, and later optional model adaptation.
+
+Future model adaptation might include fine-tuning, adapters, embeddings, memory, or stronger retrieval-augmented context, but that is not part of the current offline default.
+
+**Phase 2: Orchestration War Cabinet**
+
+The future orchestration layer should reason over the company intelligence layer. A top-level controller/model analyzes the problem, sets higher context, selects relevant data/tools/roles, dispatches bounded specialist agents or tools, uses shared structured storage, and passes outputs through a judge/verifier before any final answer.
+
+This should be a bounded war-cabinet workflow, not free-form agent chat.
+
+### Ontology Versus Graph
+
+A graph store represents connected data: entity -> relationship -> entity.
+
+An ontology explains what those entities and relationships mean: customer, vendor, system, incident, project, risk, dependency, owner, contradiction, and similar business concepts.
+
+The ontology is the semantic layer. It helps future LLMs and tools reason over company data without manually rediscovering every relationship from raw rows and text each time.
+
 ## Project State
 
-The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM configuration, deterministic graph extraction, and local CSV data profiling.
+The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, and the v0.6 war-cabinet agent context protocol.
 
 Generated local state belongs under `.decision_system/` and should not be committed. Private company documents and private CSV files should remain local; only fake demo documents/data are safe to commit.
 
@@ -36,6 +64,42 @@ company_data/ (local fake/demo CSVs plus private ignored CSVs)
   -> inspect-data summary
 ```
 
+```
+.decision_system/data_profiles + ontology + graph + insights + orchestration
+  -> DecisionContextBuilder
+  -> optional insight-aware report sections
+  -> .decision_system/contexts/<run_id>.json
+```
+
+```
+business question
+  -> HigherContext (deep-frozen shared context)
+  -> AgentDispatchSpec (role selection + personal contexts)
+  -> CommonWorkspace (append-only artifacts)
+  -> deterministic specialist artifact generators
+  -> deterministic judge interventions
+  -> .decision_system/war_room/runs/<run_id>.json
+```
+
+### Future Orchestration Shape
+
+```text
+business question
+  -> top-level problem analysis
+  -> higher context
+  -> role/tool dispatch plan
+  -> bounded specialist agents or tools
+  -> shared structured storage
+  -> judge / verifier
+  -> final answer or decision report
+```
+
+Higher context is global problem framing and constraints. Lower-level agents/tools may read it but should not freely rewrite it.
+
+Personal context is role-specific task context for a specialist worker.
+
+Common storage is a structured shared workspace for evidence references, findings, contradictions, proposed claims, questions, and intermediate artifacts. It should not become uncontrolled chat.
+
 ### Tech Stack
 - **Python 3.11+**, **Hatchling** build
 - **LangGraph** (bounded linear workflow, no loops or free chat)
@@ -57,6 +121,11 @@ company_data/ (local fake/demo CSVs plus private ignored CSVs)
 | `src/decision_system/evals/` | Local evaluation models and runner |
 | `src/decision_system/graphing/` | Entity/relationship graph extraction, store, inspection |
 | `src/decision_system/data_catalog/` | Local CSV catalog initialization, profiling, storage, inspection |
+| `src/decision_system/context/` | Decision context builder, selector, store, and inspector for insight-aware reports |
+| `src/decision_system/ontology/` | Deterministic ontology concepts and column mappings |
+| `src/decision_system/insights/` | Deterministic pattern and vulnerability detection |
+| `src/decision_system/orchestration/` | Offline problem analysis, planning, dispatch, sandbox, session, and judge summary |
+| `src/decision_system/war_room/` | War-cabinet context protocol, role dispatch, append-only workspace, judge interventions |
 
 ## Current CLI Commands
 
@@ -74,6 +143,24 @@ decision-system inspect-graph                   - Print graph inspection summary
 decision-system init-data-catalog               - Create company_data folders, manifest, fake demo CSVs
 decision-system profile-data                    - Profile local CSV files -> .decision_system/data_profiles/profiles.json
 decision-system inspect-data                    - Print saved profile summary
+decision-system seed-demo-data                  - Seed fake synthetic demo CSV data
+decision-system import-datasets                 - Convert local public CSV/XLS/XLSX datasets into categorized CSVs
+decision-system inspect-imports                 - Inspect public dataset import manifest
+decision-system map-ontology                    - Map profiled columns to ontology concepts
+decision-system inspect-ontology                - Inspect local ontology map
+decision-system detect-patterns                 - Run deterministic pattern/vulnerability detection
+decision-system inspect-insights                - Inspect saved insights
+decision-system analyze-problem "question"      - Analyze data categories, roles, tools, ontology, and tiers
+decision-system run-orchestration "question"    - Run offline orchestration foundation
+decision-system inspect-orchestration           - Inspect latest orchestration run
+decision-system build-context "question"        - Build decision context from ontology, insights, graph, orchestration
+decision-system build-context "question" --json - Print structured decision context JSON
+decision-system ask "question" --include-insights  - Add insight-aware report sections
+decision-system ask "question" --orchestrated      - Add orchestration summary/judge context
+decision-system ask "question" --save-context      - Save .decision_system/contexts/<run_id>.json
+decision-system plan-war-room "question"       - Preview war-room role dispatch and shared context
+decision-system run-war-room "question"        - Run deterministic specialist artifacts and judge review
+decision-system inspect-war-room               - Inspect latest saved war-room run
 decision-system eval                            - Run local evaluation cases
 decision-system eval --json                     - Print structured eval results
 decision-system eval --save-results             - Save eval results under evals/results/
@@ -82,6 +169,24 @@ decision-system eval --save-results             - Save eval results under evals/
 Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 
 ## Version History
+
+### v0.6.0 (2026-06-05)
+- War-cabinet agent context protocol
+- Deep-frozen shared `HigherContext`
+- Role-specific read-only `PersonalAgentContext`
+- Append-only `CommonWorkspace`
+- Deterministic role dispatch and specialist artifact simulation
+- Deterministic judge interventions for unsupported, high-risk, contradiction, and low-confidence cases
+- `decision-system plan-war-room`, `run-war-room`, and `inspect-war-room`
+- War-room run persistence under `.decision_system/war_room/runs/`
+
+### v0.5.0 (2026-06-05)
+- Decision context builder for local ontology, insight, graph, and orchestration stores
+- `decision-system build-context` with text, `--json`, and `--save` modes
+- Insight-aware report sections controlled by `ask --include-insights`
+- Orchestration summary and judge context controlled by `ask --orchestrated`
+- Context persistence under `.decision_system/contexts/` via `ask --save-context`
+- Backward-compatible default `decision-system ask "question"` behavior
 
 ### v0.4.1 (2026-06-05)
 - Editable install/package hardening for `python -m pip install -e ".[dev]"`
@@ -158,6 +263,9 @@ These are non-negotiable constraints that must be preserved in every change:
 11. **Reports cite evidence and expose unsupported/contradicted claims.** The claim ledger drives the report; raw agent prose does not.
 12. **All new work must include tests.** Every feature or fix ships with tests.
 13. **Run `python -m pytest -q` before saying done.** This is the gating step.
+14. **Higher context is controlled.** Future lower-level agents/tools may read higher context but must not freely mutate it.
+15. **Shared storage is structured.** Use typed, inspectable artifacts instead of agent chat transcripts as coordination.
+16. **Judge/verifier remains separate.** Worker outputs need review before they influence final reports or high-risk recommendations.
 
 ## What Not To Add Without Approval
 
@@ -171,6 +279,8 @@ These are non-negotiable constraints that must be preserved in every change:
 - PDF parsing
 - Additional LangGraph nodes or agent types without explicit design approval
 - New LLM providers beyond `fake` and `nvidia_nim`
+- Unbounded war-room / war-cabinet agent debate
+- Model fine-tuning or training workflows unless explicitly scoped and approved
 
 ## Scope Guardrails
 
@@ -178,6 +288,8 @@ Any proposed change must be checked against these rules **before** implementatio
 - Does it respect the above list of "not to add" items?
 - Does it keep agents bounded and non-conversational?
 - Does it route claims through the ledger before reaching the report?
+- Does it preserve source references for ontology, graph, insight, and context outputs?
+- Does it keep shared storage structured and inspectable?
 - Does it include tests?
 - Does it work with no API key (fake provider)?
 
@@ -187,16 +299,16 @@ If the answer to any of these is "no," the change is out of scope for this phase
 
 | Version | Focus |
 |---------|-------|
-| **v0.5** | Insight-aware decision reports |
-| **v0.6** | Real provider experiments |
-| **v0.7** | FastAPI backend |
-| **v0.8** | Frontend |
-| **v0.9** | Database, auth, and saved workspaces |
+| **v0.6** | Improve ontology quality, relationship extraction, insight ranking, and context packages |
+| **v0.7** | Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear |
+| **v0.8** | Real provider comparison and optional model-adaptation experiments |
+| **v0.9** | FastAPI backend |
+| **v1.0+** | Frontend, database, auth, connectors, and saved workspaces after backend discipline is proven |
 
 ## How Claude Should Work in This Repo
 
 ### Session Start
-Before making any code changes, always read `CLAUDE.md` (this file), `README.md`, `CHANGELOG.md`, `docs/ARCHITECTURE.md`, and `docs/DECISIONS.md`. Use the `plan-next` workflow command to propose milestones.
+Before making any code changes, always read `CLAUDE.md` (this file), `README.md`, `CHANGELOG.md`, `docs/PRODUCT_VISION.md`, `docs/ARCHITECTURE.md`, and `docs/DECISIONS.md`. Use the `plan-next` workflow command to propose milestones.
 
 ### Before Coding
 1. Invoke the `brainstorming` skill for creative work (new features, behavior changes).
@@ -236,3 +348,7 @@ Use `.claude/commands/review-before-handoff.md` to:
 | `src/decision_system/graphing/` | Extraction, store, inspection |
 | `src/decision_system/evals/` | Evaluation runner and bundled cases |
 | `src/decision_system/data_catalog/` | CSV catalog initialization, profiling, storage, inspection |
+| `src/decision_system/context/` | Decision context building, selection, persistence, and inspection |
+| `src/decision_system/ontology/` | Ontology mapping and inspection |
+| `src/decision_system/insights/` | Deterministic insight detectors and stores |
+| `src/decision_system/orchestration/` | Offline orchestration foundation and judge summary |

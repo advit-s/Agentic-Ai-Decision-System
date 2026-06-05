@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.0] - 2026-06-05
+
+### Added - War-Cabinet Agent Context Protocol
+- `decision_system.war_room` package with 9 modules: `models`, `context_builder`, `dispatcher`, `sandbox`, `judge`, `runner`, `store`, `inspector`, `workspace`.
+- Deep-frozen `HigherContext` shared by all war-room agents.
+- Role-specific `PersonalAgentContext` for specialist agents with bounded tool access.
+- Append-only `CommonWorkspace` for structured artifact sharing (no deletion of others' artifacts).
+- Deterministic role dispatch: keyword-based selection of specialist roles (financial, marketing, technical, risk, and 7 others).
+- Deterministic simulated specialist agents that read local stores (profiles, insights, graph) via sandboxed reads.
+- Judge intervention system with 4 deterministic rules: unsupported artifacts, high/critical insight links, contradiction links, low confidence warnings.
+- Sandboxed tool execution with explicit allow-list (`read_profiles`, `read_graph`, `read_insights`, `read_context`, `save_artifact`) and destructive-action blocking.
+- Local JSON persistence for war-room runs under `.decision_system/war_room/runs/<run_id>.json`.
+- Three new CLI commands: `plan-war-room`, `run-war-room`, `inspect-war-room`.
+- 30 unit tests covering dispatch, immutability, workspace append-only semantics, sandbox validation, judge interventions, and runner integration.
+
 ## [0.5.0] - 2026-06-05
 
 ### Added

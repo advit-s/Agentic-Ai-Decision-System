@@ -66,10 +66,6 @@ from decision_system.orchestration.inspector import (
 )
 from decision_system.orchestration.judge import build_judge_summary
 from decision_system.orchestration.models import DispatchPlan, JudgeSummary, ProblemAnalysis
-from decision_system.orchestration.session import (
-    create_session,
-    load_latest_run,
-)
 from decision_system.orchestration.store import save_decision_session, load_latest_session
 from decision_system.orchestration.dispatcher import build_dispatch_plan
 from decision_system.orchestration.planner import plan_data_tools_roles
@@ -79,6 +75,10 @@ from decision_system.insights.store import DEFAULT_INSIGHTS_DIR
 from decision_system.rag.chunker import chunk_documents
 from decision_system.rag.loader import load_documents
 from decision_system.rag.vector_store import index_chunks, inspect_collection
+from decision_system.war_room.dispatcher import build_dispatch_spec as _build_wr_dispatch
+from decision_system.war_room.inspector import inspect_war_room as _inspect_war_room_impl, render_inspection as _render_war_room_inspection
+from decision_system.war_room.runner import run_war_room as _run_war_room_fn
+from decision_system.war_room.store import DEFAULT_RUNS_DIR, load_latest_run
 
 
 app = typer.Typer(help="Create cited decision briefs from local company documents.")
@@ -688,3 +688,82 @@ def evaluate(
 
     if not suite_result.passed:
         raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# War-cabinet commands (v0.6)
+# ---------------------------------------------------------------------------
+
+@app.command()
+def plan_war_room(
+    question: str,
+) -> None:
+    """Plan a war-cabinet run without executing agents."""
+
+    spec = _build_wr_dispatch(question)
+    ctx = spec.higher_context
+    analysis = ctx.problem_analysis
+    console.print(f"Run ID: {ctx.run_id}")
+    console.print(f"Question: {ctx.question}")
+    console.print(f"Decision type: {analysis.get('decision_type', 'unknown')}")
+    console.print(f"Selected roles: {', '.join(spec.dispatch_order) or 'none'}")
+    console.print(f"Skipped roles: {', '.join(spec.skipped_roles) or 'none'}")
+    console.print(
+        f"Required data categories: {', '.join(ctx.required_data_categories) or 'none'}"
+    )
+    console.print(
+        f"Required ontology concepts: {', '.join(ctx.required_ontology_concepts) or 'none'}"
+    )
+    console.print(f"Allowed tools: {', '.join(ctx.allowed_tools) or 'none'}")
+    if spec.missing_inputs:
+        console.print("Missing inputs:")
+        for item in spec.missing_inputs:
+            console.print(f" - {item}")
+
+
+@app.command()
+def run_war_room(
+    question: str,
+) -> None:
+    """Run a complete war-cabinet simulation."""
+
+    run = _run_war_room_fn(question)
+    console.print(f"Run ID: {run.run_id}")
+    console.print(f"Question: {run.question}")
+    console.print(
+        f"Selected roles: {', '.join(run.dispatch_spec.dispatch_order) or 'none'}"
+    )
+    artifact_count = len(run.workspace.artifacts) if run.workspace else 0
+    console.print(f"Artifact count: {artifact_count}")
+    console.print(f"Judge intervention count: {len(run.judge_interventions)}")
+    human_review = sum(
+        1 for i in run.judge_interventions if i.requires_human_review
+    )
+    console.print(f"Human review required: {human_review}")
+    for artifact in (run.workspace.artifacts if run.workspace else []):
+        console.print(
+            f" - {artifact.title} (confidence={artifact.confidence})"
+        )
+    for intervention in run.judge_interventions:
+        tag = (
+            "REQUIRES HUMAN REVIEW"
+            if intervention.requires_human_review
+            else "FYI"
+        )
+        console.print(
+            f" [{tag} {intervention.severity.upper()}] {intervention.reason}"
+        )
+    saved = DEFAULT_RUNS_DIR / f"{run.run_id}.json"
+    if saved.exists():
+        console.print(f"Saved war-room run: {saved}")
+
+@app.command()
+def inspect_war_room() -> None:
+    """Inspect the latest saved war-room run."""
+
+    run = load_latest_run()
+    if run is None:
+        console.print("No war-room run found. Run `decision-system run-war-room` first.")
+        return
+    summary = _inspect_war_room_impl(run)
+    console.print(_render_war_room_inspection(summary))

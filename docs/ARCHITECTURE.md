@@ -124,7 +124,7 @@ The orchestration layer is a bounded, deterministic pipeline that ties all subsy
 
 ```text
 user question
-  -> Problem Analyzer: keyword → DecisionType + required data/tools/roles/tiers
+  -> Problem Analyzer: keyword -> DecisionType + required data/tools/roles/tiers
   -> Planner: enrich artifact paths and analysis notes
   -> Dispatcher: select tools, roles, execution order, skip irrelevant tools
   -> Sandbox: validate and execute allowed actions (read profiles, graph, detectors, save)
@@ -137,7 +137,7 @@ user question
 Key design principles:
 - **All steps are deterministic.** No LLM calls in the orchestration layer itself.
 - **Sandbox is an allow-list, not a security boundary.** It validates function names and rejects destructive patterns.
-- **Decision types** map to domain-specific tool chains: financial → profile + detect; strategic → profile + graph + detect; technical → graph only; general → profile only.
+- **Decision types** map to domain-specific tool chains: financial -> profile + detect; strategic -> profile + graph + detect; technical -> graph only; general -> profile only.
 - **Storage tiers** (4 tiers) describe which data artifacts each decision type needs.
 - **Judge summary** downgrades confidence when data is missing and flags high-severity insights for human review.
 
@@ -255,6 +255,33 @@ The `ask` command accepts three new optional flags for v0.5:
 The `build-context` command runs the context builder standalone and prints the assembled context without invoking the LangGraph workflow. `--json` outputs structured JSON. `--save` writes to disk.
 
 All insight-aware sections are conditionally rendered so the default `ask` output remains unchanged. Insights are always phrased as detected signals with severity and confidence. Features are defined by detecting concrete patterns and signals in the data, not by comparing insights to each other.
+
+## War-Cabinet Agent Context Protocol (v0.6)
+
+v0.6 introduces a bounded agent context protocol for structured multi-role analysis:
+
+```text
+business question
+-> build_higher_context (frozen, immutable)
+-> build_dispatch_spec (role selection + personal contexts)
+-> CommonWorkspace (append-only, structured artifacts)
+-> simulate specialist agents (deterministic, reads local stores via sandbox)
+-> run_judge (4 deterministic intervention rules)
+-> persist WarRoomRun to .decision_system/war_room/runs/<run_id>.json
+```
+
+- **HigherContext is deep-frozen.** All agents read it, but none mutate it or nested context values.
+- **Personal contexts are role-scoped.** Each specialist gets a bounded task, perspective, allowed tools, and focus areas.
+- **Common workspace is append-only.** Agents write `WorkspaceArtifact` records; no agent can delete or overwrite another's artifacts.
+- **Judge is deterministic.** Four rules: unsupported artifacts (medium), high/critical insight links (high + human review), contradiction links (critical + human review), low confidence (low warning).
+- **Sandbox is an allow-list.** Agents can only call `read_profiles`, `read_graph`, `read_insights`, `read_context`, `save_artifact`. Destructive operations are blocked.
+- **No LLM calls.** All agent simulations are deterministic artifact generators that read local stores.
+- **Structured storage, not chat.** Coordination happens through typed Pydantic artifacts, not free-form agent transcripts.
+
+Three new CLI commands:
+- `decision-system plan-war-room "question"`: dispatches roles without executing agents.
+- `decision-system run-war-room "question"`: full pipeline execution.
+- `decision-system inspect-war-room`: renders the latest run summary.
 
 ## Current Limits
 

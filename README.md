@@ -41,6 +41,7 @@ See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: co
 - inspectability commands
 - evaluation command
 - deterministic pattern and vulnerability detection
+- war-cabinet context protocol with deterministic specialist artifacts and judge interventions
 
 ## Pattern and Vulnerability Detection
 
@@ -63,6 +64,23 @@ decision-system ask "Where are we losing money?" --include-insights --save-conte
 ```
 
 The v0.5 report layer can include relevant ontology concepts, generated insights, orchestration summaries, graph signals, and judge findings in decision reports. Context is built from local `.decision_system` stores and never exposes insights as absolute truth.
+
+## War-Cabinet Agent Context Protocol (v0.6)
+
+```bash
+decision-system plan-war-room "Where are we losing money?"
+decision-system run-war-room "Where are we losing money?"
+decision-system inspect-war-room
+```
+
+v0.6 adds a bounded multi-role analysis layer over the existing company intelligence stores. The protocol uses immutable shared context, role-scoped personal contexts, an append-only structured workspace, deterministic artifact generators, and a deterministic judge; no free-form agent chat, no LLM calls.
+
+- **Immutable HigherContext**: frozen Pydantic model shared by all agents.
+- **Role dispatch**: keyword-based selection of specialist roles (financial, risk, marketing, technical, and more).
+- **Append-only CommonWorkspace**: structured `WorkspaceArtifact` records; no deletion of others' artifacts.
+- **Deterministic judge**: 4 rules: unsupported artifacts, high/critical insight links, contradiction links, low confidence warning.
+- **Sandboxed tool access**: allow-list only: `read_profiles`, `read_graph`, `read_insights`, `read_context`, `save_artifact`.
+- **Persisted runs**: `.decision_system/war_room/runs/<run_id>.json`, ignored by Git.
 
 ## What Is Not Included Yet
 
@@ -244,6 +262,9 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system build-context "..."`: build and print decision context for a question
 - `decision-system build-context "..." --json`: print context as structured JSON
 - `decision-system build-context "..." --save`: save context to `.decision_system/contexts/`
+- `decision-system plan-war-room "..."`: preview role dispatch and shared context for a war-room run
+- `decision-system run-war-room "..."`: run deterministic specialist artifact generation and judge review
+- `decision-system inspect-war-room`: inspect the latest saved war-room run
 - `decision-system eval`: run local evaluation cases
 - `decision-system eval --json`: print structured evaluation results
 - `decision-system eval --save-results`: save evaluation results under `evals/results/`
@@ -299,9 +320,10 @@ Completed:
 - v0.3: company data intake + profiling
 - v0.4: orchestration + ontology + insight engine
 - v0.5: insight-aware decision reports
+- v0.6: war-cabinet agent context protocol
 
 Upcoming:
-- v0.6: real provider experiments
-- v0.7: FastAPI backend
-- v0.8: frontend
-- v0.9: database + auth + saved workspaces
+- v0.7: real provider experiments and richer specialist tools
+- v0.8: FastAPI backend
+- v0.9: frontend
+- v1.0: database + auth + saved workspaces
