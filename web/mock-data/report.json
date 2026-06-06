@@ -1,0 +1,9 @@
+{
+  "run_id": "mock-report-2026-06-06",
+  "question": "Where are we losing money?",
+  "generated_at": "2026-06-06T09:30:00Z",
+  "confidence": "medium",
+  "recommendation": "Prioritize billing stabilization, refund reduction, and marketing spend review before increasing new acquisition spend.",
+  "citations": ["finance-q2", "customer-refunds", "legacy-auth-risk"],
+  "markdown": "# Decision Report\n\n## Recommendation\nPrioritize billing stabilization, refund reduction, and marketing spend review before increasing new acquisition spend.\n\n## Evidence-backed claims\n- Revenue concentration is elevated in enterprise accounts, so a small number of renewals can swing the quarter.\n- Refund volume is tied to onboarding delays and support escalations.\n- Billing migration risk remains linked to LegacyAuth dependency and rollback planning.\n\n## Risks\n- Unsupported growth assumptions should stay out of final planning until sales and finance data agree.\n- Migration work should not proceed without an owner, rollback path, and customer impact review.\n\n## Human review\nFinance and platform leads should review the high-severity findings before approving spend changes."
+}

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Decision System Local UI</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">DS</span>
+          <div>
+            <p class="eyebrow">v0.9 prototype</p>
+            <h1>Decision Console</h1>
+          </div>
+        </div>
+        <nav class="nav-list">
+          <button class="nav-item active" type="button" data-view="ask">Ask</button>
+          <button class="nav-item" type="button" data-view="reports">Reports</button>
+          <button class="nav-item" type="button" data-view="insights">Insights</button>
+          <button class="nav-item" type="button" data-view="ontology">Ontology</button>
+          <button class="nav-item" type="button" data-view="war-room">War Room</button>
+          <button class="nav-item" type="button" data-view="provider-evals">Provider Evals</button>
+          <button class="nav-item" type="button" data-view="data-profiles">Data Profiles</button>
+          <button class="nav-item" type="button" data-view="graph">Graph</button>
+        </nav>
+        <div class="source-box">
+          <label for="apiBaseUrl">API base URL</label>
+          <div class="source-row">
+            <input id="apiBaseUrl" type="url" placeholder="http://localhost:8000">
+            <button id="saveApiBase" type="button">Save</button>
+          </div>
+          <p id="dataSourceStatus" class="source-status">Using mock data</p>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Company Intelligence Engine</p>
+            <h2>Local Web UI Prototype</h2>
+          </div>
+          <div class="run-badge">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="connectionMode">Mock-first</span>
+          </div>
+        </header>
+
+        <section id="ask" class="view active-view" aria-labelledby="ask-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Question</p>
+              <h3 id="ask-title">Ask</h3>
+            </div>
+            <span class="tag">offline-safe</span>
+          </div>
+          <form id="askForm" class="ask-form">
+            <label for="questionInput">Business question</label>
+            <textarea id="questionInput" rows="5">Where are we losing money?</textarea>
+            <div class="form-actions">
+              <button class="primary-action" type="submit">Ask question</button>
+              <button class="secondary-action" id="resetMocks" type="button">Reload mocks</button>
+            </div>
+          </form>
+          <div class="answer-grid">
+            <div class="metric-row" aria-label="Current run summary">
+              <div>
+                <span class="metric-value" id="metricReports">1</span>
+                <span class="metric-label">report</span>
+              </div>
+              <div>
+                <span class="metric-value" id="metricInsights">0</span>
+                <span class="metric-label">insights</span>
+              </div>
+              <div>
+                <span class="metric-value" id="metricArtifacts">0</span>
+                <span class="metric-label">artifacts</span>
+              </div>
+              <div>
+                <span class="metric-value" id="metricGraph">0</span>
+                <span class="metric-label">graph links</span>
+              </div>
+            </div>
+            <article class="answer-panel">
+              <div class="panel-title">
+                <h4>Response</h4>
+                <span id="answerMode" class="tag muted">mock</span>
+              </div>
+              <div id="askResponse" class="markdown-body"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="reports" class="view" aria-labelledby="reports-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Ledger-grounded output</p>
+              <h3 id="reports-title">Reports</h3>
+            </div>
+            <span id="reportDate" class="tag muted"></span>
+          </div>
+          <article class="report-shell">
+            <div class="report-meta" id="reportMeta"></div>
+            <div id="reportMarkdown" class="markdown-body report-body"></div>
+          </article>
+        </section>
+
+        <section id="insights" class="view" aria-labelledby="insights-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Detected signals</p>
+              <h3 id="insights-title">Insights</h3>
+            </div>
+            <span class="tag">severity grouped</span>
+          </div>
+          <div id="insightGroups" class="group-stack"></div>
+        </section>
+
+        <section id="ontology" class="view" aria-labelledby="ontology-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Column concepts</p>
+              <h3 id="ontology-title">Ontology</h3>
+            </div>
+            <span id="ontologySummary" class="tag muted"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Column</th>
+                  <th>Concept</th>
+                  <th>Type</th>
+                  <th>Confidence</th>
+                </tr>
+              </thead>
+              <tbody id="ontologyRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="war-room" class="view" aria-labelledby="war-room-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Bounded role workspace</p>
+              <h3 id="war-room-title">War Room</h3>
+            </div>
+            <span id="warRoomSummary" class="tag muted"></span>
+          </div>
+          <div class="split-grid">
+            <div>
+              <h4>Roles</h4>
+              <div id="warRoomRoles" class="compact-list"></div>
+            </div>
+            <div>
+              <h4>Judge interventions</h4>
+              <div id="judgeInterventions" class="compact-list"></div>
+            </div>
+          </div>
+          <h4>Artifacts</h4>
+          <div id="warRoomArtifacts" class="artifact-grid"></div>
+        </section>
+
+        <section id="provider-evals" class="view" aria-labelledby="provider-evals-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Provider experiment harness</p>
+              <h3 id="provider-evals-title">Provider Evals</h3>
+            </div>
+            <span id="providerEvalSummary" class="tag muted"></span>
+          </div>
+          <div id="providerEvalRows" class="eval-list"></div>
+        </section>
+
+        <section id="data-profiles" class="view" aria-labelledby="data-profiles-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">CSV profile cache</p>
+              <h3 id="data-profiles-title">Data Profiles</h3>
+            </div>
+            <span id="profileSummary" class="tag muted"></span>
+          </div>
+          <div id="profileGrid" class="profile-grid"></div>
+        </section>
+
+        <section id="graph" class="view" aria-labelledby="graph-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Local relationship store</p>
+              <h3 id="graph-title">Graph</h3>
+            </div>
+            <span id="graphSummary" class="tag muted"></span>
+          </div>
+          <div class="split-grid graph-layout">
+            <div>
+              <h4>Entities</h4>
+              <div id="graphEntities" class="compact-list"></div>
+            </div>
+            <div>
+              <h4>Relationships</h4>
+              <div id="graphRelationships" class="compact-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="app.js" defer></script>
+  </body>
+</html>

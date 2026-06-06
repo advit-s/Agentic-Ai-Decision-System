@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-06-06T09:10:00Z",
+  "mappings": [
+    {
+      "dataset": "demo_financial.csv",
+      "column": "revenue",
+      "concept_id": "metric.revenue",
+      "concept_name": "Revenue",
+      "concept_type": "metric",
+      "confidence": "0.95"
+    },
+    {
+      "dataset": "demo_financial.csv",
+      "column": "refund_amount",
+      "concept_id": "metric.refund",
+      "concept_name": "Refund Amount",
+      "concept_type": "metric",
+      "confidence": "0.91"
+    },
+    {
+      "dataset": "demo_customer.csv",
+      "column": "customer_segment",
+      "concept_id": "entity.customer_segment",
+      "concept_name": "Customer Segment",
+      "concept_type": "entity",
+      "confidence": "0.93"
+    },
+    {
+      "dataset": "demo_operations.csv",
+      "column": "owner_team",
+      "concept_id": "relationship.owner",
+      "concept_name": "Owner",
+      "concept_type": "relationship",
+      "confidence": "0.86"
+    },
+    {
+      "dataset": "demo_marketing.csv",
+      "column": "channel",
+      "concept_id": "entity.marketing_channel",
+      "concept_name": "Marketing Channel",
+      "concept_type": "entity",
+      "confidence": "0.89"
+    }
+  ]
+}

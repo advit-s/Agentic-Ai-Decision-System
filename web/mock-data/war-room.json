@@ -1,0 +1,65 @@
+{
+  "run_id": "mock-war-room-2026-06-06",
+  "question": "Where are we losing money?",
+  "human_review_required": true,
+  "roles": [
+    {
+      "name": "financial_analyst",
+      "objective": "Inspect revenue, refund, and margin signals.",
+      "allowed_tools": ["read_profiles", "read_insights", "save_artifact"]
+    },
+    {
+      "name": "technical_analyst",
+      "objective": "Inspect graph dependencies that affect billing risk.",
+      "allowed_tools": ["read_graph", "read_context", "save_artifact"]
+    },
+    {
+      "name": "risk_analyst",
+      "objective": "Check high-severity insights and human-review triggers.",
+      "allowed_tools": ["read_insights", "read_context", "save_artifact"]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact-financial-01",
+      "role": "financial_analyst",
+      "artifact_type": "finding",
+      "title": "Revenue leakage concentrated in refunds",
+      "summary": "Refund amount and support escalation categories point to onboarding delays as the highest-confidence loss signal.",
+      "confidence": "0.78",
+      "evidence_refs": ["insight-refund-onboarding", "demo_financial.csv"]
+    },
+    {
+      "id": "artifact-technical-01",
+      "role": "technical_analyst",
+      "artifact_type": "risk_note",
+      "title": "Billing migration depends on LegacyAuth",
+      "summary": "The graph indicates that LegacyAuth remains connected to billing and rollback risk.",
+      "confidence": "0.84",
+      "evidence_refs": ["graph-rel-01", "legacy-auth-risk"]
+    },
+    {
+      "id": "artifact-risk-01",
+      "role": "risk_analyst",
+      "artifact_type": "review_item",
+      "title": "Critical technical risk requires human review",
+      "summary": "The judge should require platform and finance review before final approval.",
+      "confidence": "0.81",
+      "evidence_refs": ["insight-legacy-auth"]
+    }
+  ],
+  "judge_interventions": [
+    {
+      "rule": "critical_insight_link",
+      "severity": "critical",
+      "message": "Critical LegacyAuth dependency is linked to a proposed billing decision.",
+      "human_review_required": true
+    },
+    {
+      "rule": "low_confidence_warning",
+      "severity": "low",
+      "message": "Marketing ROI finding is useful but below high-confidence threshold.",
+      "human_review_required": false
+    }
+  ]
+}

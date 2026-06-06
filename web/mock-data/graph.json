@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-06-06T08:55:00Z",
+  "entities": [
+    {
+      "id": "entity-billing-platform",
+      "name": "Billing Platform",
+      "type": "system",
+      "degree": 3
+    },
+    {
+      "id": "entity-legacy-auth",
+      "name": "LegacyAuth",
+      "type": "system",
+      "degree": 2
+    },
+    {
+      "id": "entity-platform-team",
+      "name": "Platform Team",
+      "type": "team",
+      "degree": 2
+    },
+    {
+      "id": "entity-enterprise-customers",
+      "name": "Enterprise Customers",
+      "type": "customer_segment",
+      "degree": 1
+    }
+  ],
+  "relationships": [
+    {
+      "id": "graph-rel-01",
+      "source": "Billing Platform",
+      "target": "LegacyAuth",
+      "type": "depends_on",
+      "evidence_id": "legacy-auth-risk"
+    },
+    {
+      "id": "graph-rel-02",
+      "source": "Platform Team",
+      "target": "Billing Platform",
+      "type": "owns",
+      "evidence_id": "billing-owner"
+    },
+    {
+      "id": "graph-rel-03",
+      "source": "Billing Platform",
+      "target": "Enterprise Customers",
+      "type": "affects",
+      "evidence_id": "customer-renewals"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-06-06T09:00:00Z",
+  "profiles": [
+    {
+      "dataset": "demo_financial.csv",
+      "category": "financial",
+      "row_count": 12,
+      "column_count": 6,
+      "columns": ["month", "revenue", "expenses", "refund_amount", "margin", "customer_segment"],
+      "warnings": ["refund_amount has elevated variance across months"]
+    },
+    {
+      "dataset": "demo_customer.csv",
+      "category": "customer",
+      "row_count": 18,
+      "column_count": 7,
+      "columns": ["customer_id", "segment", "renewal_value", "churn_risk", "support_tickets", "onboarding_days", "owner"],
+      "warnings": ["enterprise segment has high renewal concentration"]
+    },
+    {
+      "dataset": "demo_marketing.csv",
+      "category": "marketing",
+      "row_count": 8,
+      "column_count": 5,
+      "columns": ["channel", "spend", "leads", "conversions", "roi"],
+      "warnings": ["paid_search ROI below target"]
+    }
+  ]
+}

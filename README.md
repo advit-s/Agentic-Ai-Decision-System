@@ -15,6 +15,7 @@ This project turns local documents into auditable company intelligence. It:
 - produces a cited decision report from claim ledger state
 - extracts deterministic entities and relationships into a local graph-like JSON store
 - initializes local structured data folders and profiles fake/demo CSV data
+- provides a local mock-first web UI prototype for inspecting generated artifacts
 
 ## Why This Exists
 
@@ -43,7 +44,11 @@ See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: co
 - evaluation command
 - deterministic pattern and vulnerability detection
 - war-cabinet context protocol with deterministic specialist artifacts and judge interventions
+<<<<<<< HEAD
 - provider evaluation harness for fake, mocked NVIDIA NIM, and mocked Ollama behavior
+=======
+- local mock-first web UI prototype under `web/`
+>>>>>>> feature/v0.9-web-ui
 
 ## Pattern and Vulnerability Detection
 
@@ -160,9 +165,23 @@ decision-system inspect-provider-evals
 
 The v0.6.1 evaluation layer runs the actual war-room pipeline for known business questions and checks expected roles, tools, data categories, artifacts, and judge summaries. Quality gates verify higher context deep immutability, personal context references, append-only workspace semantics, judge execution, offline boundaries, and no chat-transcript-shaped artifacts. Saved results go to `.decision_system/evals/war_room_results.json`.
 
+## Local Web UI Prototype
+
+The v0.9 UI is a local prototype for exploring reports, insights, ontology mappings, war-room runs, provider evals, and data profiles. It can run against mock data and does not require auth, database, or real providers.
+
+The UI lives under `web/` and uses static HTML, CSS, JavaScript, and lightweight mock JSON fixtures. It is mock-first, so it works when the backend API branch is unavailable. If a FastAPI API exists in another branch, enter its base URL in the UI to try API-backed loading; failed API calls fall back to local mock data.
+
+Run it with a simple static server:
+
+```bash
+python -m http.server 8765 --directory web
+```
+
+Then open `http://localhost:8765`. The prototype includes Ask, Reports, Insights, Ontology, War Room, Provider Evals, Data Profiles, and Graph sections.
+
 ## What Is Not Included Yet
 
-- frontend
+- production frontend or saved workspace app
 - database
 - auth
 - enterprise connectors
@@ -217,6 +236,14 @@ CSV profiler
 .decision_system/data_profiles/profiles.json
    |
 data inspection
+
+web/
+   |
+static local UI
+   |
+mock-data JSON fixtures
+   |
+optional API base URL
 ```
 
 ## Developer Setup
@@ -376,6 +403,7 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `src/decision_system/data_catalog`: local data catalog initialization, CSV profiling, storage, and inspection
 - `src/decision_system/insights`: deterministic pattern and vulnerability detection
 - `src/decision_system/war_room`: war-cabinet protocol, quality gates, and eval runner
+- `web`: local static UI prototype and mock JSON fixtures
 - `evals/war_room_cases`: offline war-room evaluation cases
 - `tests`: offline unit and CLI tests
 - `docs`: architecture, setup, development, and troubleshooting docs
@@ -386,6 +414,7 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 
 ```bash
 python -m pytest -q
+python -m pytest tests/test_web_ui.py -q
 decision-system eval
 decision-system eval-war-room
 decision-system eval-providers
@@ -403,6 +432,7 @@ This project is licensed under the MIT License. See `LICENSE`.
 - **Missing NVIDIA key**: set `NVIDIA_API_KEY` in `.env` or use the default fake provider.
 - **Chroma warning**: Chroma may emit dependency deprecation warnings during tests; these do not usually block local runs.
 - **Wrong provider**: check `DECISION_PROVIDER` in `.env`, or pass `--provider fake` / `--provider nvidia_nim`.
+- **Web UI mock data does not load**: run `python -m http.server 8765 --directory web` from the repo root and open `http://localhost:8765`.
 - **Windows path with spaces**: quote paths and run commands from the repo root.
 - **`.env` not loaded**: run commands from the repo root and confirm the file is named exactly `.env`.
 
@@ -429,8 +459,16 @@ Completed:
 - v0.5: insight-aware decision reports
 - v0.6: war-cabinet agent context protocol
 - v0.7: provider experiment harness for fake, NVIDIA NIM, and Ollama
+<<<<<<< HEAD
 - v0.8: local FastAPI backend
 
 Upcoming:
 - v0.9: richer retrieval and bounded specialist tools
 - v1.0: frontend, database, auth, and saved workspaces
+=======
+- v0.9: local mock-first web UI prototype
+
+Upcoming:
+- v0.8: richer retrieval and bounded specialist tools (parallel branch)
+- v1.0: FastAPI/backend integration and saved workspace planning
+>>>>>>> feature/v0.9-web-ui

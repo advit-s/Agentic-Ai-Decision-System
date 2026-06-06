@@ -40,8 +40,9 @@ Key sub-packages: `rag/`, `graph/`, `ledger/`, `reports/`, `graphing/`,
 
 1. **Fake/offline mode is the default.** `DECISION_PROVIDER=fake` in `.env.example`.
    No test requires a real API key.
-2. **No frontend, no database, no auth, no enterprise connectors.** This is a
-   CLI/backend prototype.
+2. **No production frontend, no database, no auth, no enterprise connectors.**
+   The v0.9 `web/` folder is the only approved local static UI prototype; core
+   logic must stay backend/CLI owned.
 3. **No real external API calls in tests.** Tests must pass offline.
 4. **No unbounded agent chat.** The war-cabinet protocol uses structured,
    append-only artifacts - not chat transcripts.
@@ -103,8 +104,9 @@ Before submitting work:
 - [ ] Tests added for new functionality.
 - [ ] `decision-system check-hygiene` passes (warnings are OK, failures are not).
 - [ ] CLAUDE.md version history updated if scope changed.
-- [ ] No scope creep: no frontend, no database, no auth, no connectors, no new
-      LLM providers, no unbounded agents.
+- [ ] No scope creep: no production frontend beyond the approved v0.9 static UI,
+      no database, no auth, no connectors, no new LLM providers, no unbounded
+      agents.
 
 ## Codex Guidance
 

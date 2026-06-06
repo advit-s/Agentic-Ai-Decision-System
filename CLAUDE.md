@@ -37,10 +37,14 @@ The ontology is the semantic layer. It helps future LLMs and tools reason over c
 ## Project State
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, and the v0.7.1 provider evaluation hardening harness.
 =======
 The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, and the v0.8 local FastAPI backend.
 >>>>>>> feature/v0.8-api-backend
+=======
+The project is a CLI/backend-first prototype with a v0.9 local static UI for artifact inspection. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, and the v0.9 mock-first web UI prototype.
+>>>>>>> feature/v0.9-web-ui
 
 Generated local state belongs under `.decision_system/` and should not be committed. Private company documents and private CSV files should remain local; only fake demo documents/data are safe to commit.
 
@@ -113,6 +117,7 @@ Common storage is a structured shared workspace for evidence references, finding
 - **FastAPI + Uvicorn** (local API backend)
 - **Rich** (CLI output)
 - **python-dotenv** (env config)
+- **Static HTML/CSS/JavaScript** (v0.9 local UI prototype only)
 
 ### Key Sub-packages
 | Path | Purpose |
@@ -134,6 +139,7 @@ Common storage is a structured shared workspace for evidence references, finding
 | `src/decision_system/insights/` | Deterministic pattern and vulnerability detection |
 | `src/decision_system/orchestration/` | Offline problem analysis, planning, dispatch, sandbox, session, and judge summary |
 | `src/decision_system/war_room/` | War-cabinet context protocol, role dispatch, append-only workspace, judge interventions |
+| `web/` | Local mock-first static UI and lightweight JSON fixtures |
 
 ## Current CLI Commands
 
@@ -189,6 +195,7 @@ Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 ## Version History
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ### v0.7.1 (2026-06-06)
 - Provider evaluation hardening harness for fake, NVIDIA NIM, and Ollama
 - `decision-system eval-providers`
@@ -204,6 +211,14 @@ Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 - Offline FastAPI `TestClient` tests
 - No auth, database, frontend, new provider, or external API requirement
 >>>>>>> feature/v0.8-api-backend
+=======
+### v0.9.0 (2026-06-06)
+- Local mock-first web UI prototype under `web/`
+- Ask, Reports, Insights, Ontology, War Room, Provider Evals, Data Profiles, and Graph views
+- Optional API base URL configuration with fallback to mock JSON
+- Tests for static files, mock data contracts, and optional FastAPI route detection
+- No auth, database, real provider requirement, or raw dataset assets
+>>>>>>> feature/v0.9-web-ui
 
 ### v0.7.0 (2026-06-05)
 - Provider experiment harness for fake, NVIDIA NIM, and Ollama
@@ -295,7 +310,7 @@ Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 These are non-negotiable constraints that must be preserved in every change:
 
 1. **Fake/offline mode is the default.** `DECISION_PROVIDER=fake`. Tests must pass without any API key.
-2. **This is a CLI/backend project.** No frontend, UI, dashboards, or web UI components at this stage.
+2. **This is a CLI/backend project with one approved static UI exception.** The v0.9 `web/` prototype may inspect artifacts with mock JSON; do not expand it into a production frontend, auth surface, database app, or core decision engine.
 3. **No database yet.** Chroma + local JSON files are sufficient.
 4. **No auth yet.** No JWT, OAuth, RBAC.
 5. **No enterprise connectors yet.** (Slack, Jira, email, GitHub, Salesforce, etc.)
@@ -313,7 +328,7 @@ These are non-negotiable constraints that must be preserved in every change:
 
 ## What Not To Add Without Approval
 
-- Web frontend, UI components, dashboards
+- Production web frontend, saved workspace app, or dashboard beyond the approved v0.9 static prototype
 - PostgreSQL, SQLAlchemy, ORM, any database
 - JWT, OAuth, RBAC, any auth
 - Slack/Jira/email/GitHub/Salesforce connectors
@@ -343,9 +358,16 @@ If the answer to any of these is "no," the change is out of scope for this phase
 
 | Version | Focus |
 |---------|-------|
+<<<<<<< HEAD
 | **v0.9** | Improve ontology quality, relationship extraction, insight ranking, and context packages |
 | **v1.0** | Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear |
 | **v1.1+** | Frontend, database, auth, connectors, and saved workspaces after backend discipline is proven |
+=======
+| **v0.8** | Improve ontology quality, relationship extraction, insight ranking, and context packages |
+| **v0.9** | Local mock-first web UI prototype |
+| **v1.0** | FastAPI/backend integration planning |
+| **v1.1+** | Production frontend, database, auth, connectors, and saved workspaces after backend discipline is proven |
+>>>>>>> feature/v0.9-web-ui
 
 ## How Claude Should Work in This Repo
 
