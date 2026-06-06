@@ -180,6 +180,28 @@ Key principles:
 - **No deep war-room integration yet.** Provider experiments do not add new
   specialist agents, database storage, frontend, auth, or connectors.
 
+## ADR-023: Add Offline Provider Evaluation Hardening
+
+Status: Accepted
+
+v0.7.1 adds `decision-system eval-providers` and
+`decision-system inspect-provider-evals` to compare fake, NVIDIA NIM, and
+Ollama behavior without making optional providers part of the default runtime.
+
+Key principles:
+- **Fake remains default.** The harness does not mutate `DECISION_PROVIDER`.
+- **Optional providers are mocked by default.** NVIDIA NIM and Ollama evaluation
+  runs do not require API keys, local daemons, or network access.
+- **Real provider runs are manual.** A caller must pass
+  `--manual-real-provider` before NIM or Ollama provider objects are initialized.
+- **Automated tests stay offline.** Tests never contact NVIDIA NIM, Ollama, the
+  internet, or a local Ollama daemon.
+- **Scoring is structured.** Results record schema validity, JSON validity,
+  citation grounding, hallucination risk, contradiction handling,
+  unsupported-claim handling, errors, and notes.
+- **Generated results remain local.** Saved results live under
+  `.decision_system/provider_evals/` and are ignored by Git.
+
 ## ADR-016: Import Public Datasets as Local CSV Copies
 
 Status: Accepted

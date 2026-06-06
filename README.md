@@ -42,6 +42,7 @@ See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: co
 - evaluation command
 - deterministic pattern and vulnerability detection
 - war-cabinet context protocol with deterministic specialist artifacts and judge interventions
+- provider evaluation harness for fake, mocked NVIDIA NIM, and mocked Ollama behavior
 
 ## Pattern and Vulnerability Detection
 
@@ -84,6 +85,22 @@ v0.7 adds a provider experiment harness for comparing fake, NVIDIA NIM, and Olla
 
 NVIDIA NIM is for hosted testing. Ollama is for local model testing. Never commit `.env` or real API keys. The fake provider is the safe default.
 
+## Provider Evaluation
+
+```bash
+decision-system eval-providers
+decision-system eval-providers --provider fake
+decision-system eval-providers --provider ollama
+decision-system eval-providers --provider nvidia_nim
+decision-system eval-providers --json
+decision-system eval-providers --save-results
+decision-system inspect-provider-evals
+```
+
+Provider evaluation is offline by default. NVIDIA NIM and Ollama are optional test providers and are mocked in automated tests.
+
+The v0.7.1 harness compares structured memo output, structured claims, contradiction handling, unsupported-claim handling, citation grounding, malformed JSON handling, refusal/failure handling, and timeout/error handling. Saved results are written to `.decision_system/provider_evals/provider_eval_results.json`, which is generated local state and ignored by Git.
+
 ## War-Cabinet Agent Context Protocol (v0.6)
 
 ```bash
@@ -107,6 +124,8 @@ v0.6 adds a bounded multi-role analysis layer over the existing company intellig
 decision-system eval-war-room
 decision-system eval-war-room --json
 decision-system eval-war-room --save-results
+decision-system eval-providers
+decision-system inspect-provider-evals
 ```
 
 The v0.6.1 evaluation layer runs the actual war-room pipeline for known business questions and checks expected roles, tools, data categories, artifacts, and judge summaries. Quality gates verify higher context deep immutability, personal context references, append-only workspace semantics, judge execution, offline boundaries, and no chat-transcript-shaped artifacts. Saved results go to `.decision_system/evals/war_room_results.json`.
@@ -300,6 +319,11 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system eval-war-room`: run war-room offline evaluation cases with quality gates
 - `decision-system eval-war-room --json`: print structured war-room eval results
 - `decision-system eval-war-room --save-results`: save war-room eval results under `.decision_system/evals/`
+- `decision-system eval-providers`: run offline/mock provider evaluation cases for fake, NVIDIA NIM, and Ollama
+- `decision-system eval-providers --provider X`: evaluate one provider (`fake`, `nvidia_nim`, or `ollama`)
+- `decision-system eval-providers --json`: print structured provider evaluation JSON
+- `decision-system eval-providers --save-results`: save provider evaluation results under `.decision_system/provider_evals/`
+- `decision-system inspect-provider-evals`: inspect saved provider evaluation results
 - `decision-system provider-health`: show provider configuration status
 - `decision-system provider-smoke --provider X`: run a one-off provider smoke test
 - `decision-system eval-provider --provider X`: run provider experiment cases
@@ -313,6 +337,7 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `src/decision_system/ledger`: claim ledger and verifier
 - `src/decision_system/llm`: fake provider, NVIDIA NIM provider, Ollama provider, provider factory
 - `src/decision_system/provider_experiments`: provider experiment models, runner, store, inspector
+- `src/decision_system/provider_eval`: provider evaluation models, runner, store, inspector
 - `src/decision_system/reports`: decision report renderer
 - `src/decision_system/evals`: local evaluation models and runner
 - `src/decision_system/graphing`: entity and relationship graph models, extraction, store, and inspection
@@ -331,6 +356,7 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 python -m pytest -q
 decision-system eval
 decision-system eval-war-room
+decision-system eval-providers
 ```
 
 ## License

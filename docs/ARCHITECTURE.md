@@ -200,6 +200,8 @@ The CLI exposes debug surfaces:
 - `decision-system ask "..." --json`
 - `decision-system ask "..." --save-run`
 - `decision-system check-hygiene`
+- `decision-system eval-providers`
+- `decision-system inspect-provider-evals`
 
 These commands make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable.
 
@@ -264,6 +266,29 @@ not bypass the claim ledger, and do not let provider prose become the final
 report. `provider-health` exits successfully even when real providers are not
 configured. `eval-provider` skips unconfigured NIM/Ollama providers unless
 `--require-configured` is used.
+
+## Provider Evaluation Harness (v0.7.1)
+
+v0.7.1 adds a safer comparison harness for fake, NVIDIA NIM, and Ollama provider
+behavior:
+
+```text
+built-in ProviderEvalCase list
+-> fake provider or mocked optional provider
+-> structured memo / claim probes
+-> contradiction, unsupported-claim, and citation scoring
+-> malformed JSON, refusal, and timeout safe-failure probes
+-> ProviderEvalSuiteResult
+-> optional .decision_system/provider_evals/provider_eval_results.json
+```
+
+The default mode never contacts NVIDIA NIM or Ollama. NIM and Ollama are mocked
+unless `--manual-real-provider` is explicitly passed. Manual mode is for local
+experiments only and is not used by automated tests. The harness records
+schema validity, JSON validity, citation grounding, hallucination risk,
+contradiction handling, unsupported-claim handling, errors, and notes. It does
+not change `DECISION_PROVIDER`, does not write reports, does not bypass the
+claim ledger, and stores saved results under ignored generated local state.
 
 ## Decision Context and Insight-Aware Reports (v0.5)
 
