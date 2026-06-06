@@ -506,6 +506,36 @@ def check_hygiene(
         raise typer.Exit(code=1)
 
 
+@app.command("serve-api")
+def serve_api(
+    host: str = typer.Option(
+        "127.0.0.1",
+        "--host",
+        help="Host interface for the local development API.",
+    ),
+    port: int = typer.Option(
+        8000,
+        "--port",
+        help="Port for the local development API.",
+    ),
+    reload: bool = typer.Option(
+        False,
+        "--reload",
+        help="Enable uvicorn auto-reload for local development.",
+    ),
+) -> None:
+    """Run the local FastAPI API for development."""
+
+    import uvicorn
+
+    uvicorn.run(
+        "decision_system.api.app:app",
+        host=host,
+        port=port,
+        reload=reload,
+    )
+
+
 @app.command()
 def import_datasets(
     source_dir: Path = typer.Option(

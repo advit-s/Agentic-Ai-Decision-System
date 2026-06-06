@@ -36,7 +36,7 @@ The ontology is the semantic layer. It helps future LLMs and tools reason over c
 
 ## Project State
 
-The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, and the v0.7 provider experiment harness.
+The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, and the v0.8 local FastAPI backend.
 
 Generated local state belongs under `.decision_system/` and should not be committed. Private company documents and private CSV files should remain local; only fake demo documents/data are safe to commit.
 
@@ -106,6 +106,7 @@ Common storage is a structured shared workspace for evidence references, finding
 - **Chroma** (local vector store)
 - **Pydantic** (all models)
 - **Typer** (CLI)
+- **FastAPI + Uvicorn** (local API backend)
 - **Rich** (CLI output)
 - **python-dotenv** (env config)
 
@@ -113,6 +114,7 @@ Common storage is a structured shared workspace for evidence references, finding
 | Path | Purpose |
 |------|---------|
 | `src/decision_system/agents/` | Bounded technical/risk analyst wrappers |
+| `src/decision_system/api/` | Local FastAPI app, API models, and route modules |
 | `src/decision_system/graph/` | LangGraph state, 6 node functions, workflow builder |
 | `src/decision_system/rag/` | Document loading, chunking, hash embeddings, Chroma CRUD, retriever |
 | `src/decision_system/ledger/` | Claim ledger + verifier |
@@ -169,11 +171,19 @@ decision-system eval --save-results             - Save eval results under evals/
 decision-system provider-health                 - Inspect fake/NIM/Ollama provider configuration
 decision-system provider-smoke --provider fake  - Run one provider smoke test
 decision-system eval-provider --provider fake   - Run provider experiment cases
+decision-system serve-api                       - Run the local FastAPI development API
 ```
 
 Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 
 ## Version History
+
+### v0.8.0 (2026-06-06)
+- Local FastAPI application
+- API endpoints for documents, ask/report, context, orchestration, war-room, ontology, insights, and evals
+- `decision-system serve-api`
+- Offline FastAPI `TestClient` tests
+- No auth, database, frontend, new provider, or external API requirement
 
 ### v0.7.0 (2026-06-05)
 - Provider experiment harness for fake, NVIDIA NIM, and Ollama
@@ -313,9 +323,8 @@ If the answer to any of these is "no," the change is out of scope for this phase
 
 | Version | Focus |
 |---------|-------|
-| **v0.8** | Improve ontology quality, relationship extraction, insight ranking, and context packages |
-| **v0.9** | Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear |
-| **v1.0** | FastAPI backend |
+| **v0.9** | Improve ontology quality, relationship extraction, insight ranking, and context packages |
+| **v1.0** | Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear |
 | **v1.1+** | Frontend, database, auth, connectors, and saved workspaces after backend discipline is proven |
 
 ## How Claude Should Work in This Repo

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0] - 2026-06-06
+
+### Added
+- FastAPI application.
+- Local API endpoints for documents, reports, ontology, insights, orchestration, war-room, and evals.
+- `decision-system serve-api`.
+- Offline API tests with TestClient.
+
 ## [0.7.0] - 2026-06-05
 
 ### Added
