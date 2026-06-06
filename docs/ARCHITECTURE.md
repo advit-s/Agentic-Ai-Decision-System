@@ -184,7 +184,7 @@ All detection logic is rule-based and offline. No real LLM execution is required
 
 ## Inspectability
 
-The CLI exposes debug surfaces:
+The CLI and local UI expose debug surfaces:
 
 - `decision-system inspect-index`
 - `decision-system extract-graph`
@@ -200,8 +200,9 @@ The CLI exposes debug surfaces:
 - `decision-system ask "..." --json`
 - `decision-system ask "..." --save-run`
 - `decision-system check-hygiene`
+- `web/index.html` via a local static server for mock-first artifact inspection
 
-These commands make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable.
+These surfaces make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable.
 
 ## Evaluation Harness
 
@@ -264,6 +265,29 @@ not bypass the claim ledger, and do not let provider prose become the final
 report. `provider-health` exits successfully even when real providers are not
 configured. `eval-provider` skips unconfigured NIM/Ollama providers unless
 `--require-configured` is used.
+
+## Local Web UI Prototype (v0.9)
+
+v0.9 adds a dependency-free local UI under `web/` for inspecting the artifacts
+the CLI and local stores already produce. It is a static prototype, not a new
+application backend:
+
+```text
+web/index.html
+  -> web/app.js
+  -> optional API base URL fetches
+  -> fallback to web/mock-data/*.json
+  -> browser views for reports, insights, ontology, war-room, provider evals,
+     data profiles, graph, and asking a question
+```
+
+The UI is mock-first so it can run while the v0.8/v1.0 API work is absent or
+in a parallel branch. It may read from future API endpoints when the user
+configures an API base URL, but failed API reads fall back to mock fixtures.
+The UI does not add auth, database storage, real provider requirements, raw
+dataset assets, or frontend-owned decision logic. Final report truth still
+belongs to the ledger-backed renderer and generated local artifacts remain
+outside `web/`.
 
 ## Decision Context and Insight-Aware Reports (v0.5)
 
@@ -373,7 +397,9 @@ directory checks.
 
 ## Current Limits
 
-- No frontend.
+- No production frontend or database-backed web app.
+- No FastAPI dependency in this branch; the static UI only optionally consumes
+  an API base URL when one exists.
 - No database.
 - No auth or permission model.
 - No enterprise connectors.

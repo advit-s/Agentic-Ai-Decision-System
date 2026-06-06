@@ -180,6 +180,29 @@ Key principles:
 - **No deep war-room integration yet.** Provider experiments do not add new
   specialist agents, database storage, frontend, auth, or connectors.
 
+## ADR-023: Add a Mock-First Local Web UI Prototype
+
+Status: Accepted
+
+v0.9 adds a local static UI under `web/` so users can inspect reports, insights,
+ontology mappings, war-room runs, provider evals, data profiles, and graph
+relationships without waiting for a backend API milestone.
+
+Key principles:
+- **Mock-first by default.** The UI loads lightweight JSON fixtures from
+  `web/mock-data/` and remains usable without an API server.
+- **Optional API integration only.** Users can configure an API base URL in the
+  browser. Failed API calls fall back to mock data instead of hard-failing.
+- **No frontend-owned core logic.** The browser renders artifacts and mock ask
+  responses; decision workflow, claim verification, report truth, and provider
+  behavior remain backend concerns.
+- **No auth or database.** The prototype adds no login, permission model,
+  server-side persistence, or saved workspace store.
+- **No raw datasets in UI assets.** Mock fixtures are small representative JSON
+  summaries, not copied private or public datasets.
+- **Tests stay offline.** UI tests validate static files and mock contracts
+  without starting an API server or calling real providers.
+
 ## ADR-016: Import Public Datasets as Local CSV Copies
 
 Status: Accepted

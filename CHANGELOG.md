@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0] - 2026-06-06
+
+### Added
+- Local web UI prototype.
+- Mock-first views for reports, insights, ontology, war-room, provider evals, and data profiles.
+- Static Graph and Ask views with optional API base URL configuration.
+- Lightweight mock JSON fixtures under `web/mock-data/`.
+
 ## [0.7.0] - 2026-06-05
 
 ### Added
