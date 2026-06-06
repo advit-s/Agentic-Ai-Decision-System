@@ -28,8 +28,10 @@ Run these offline with no API key configured:
 
 - [ ] `decision-system eval`
 - [ ] `decision-system eval-war-room`
+- [ ] `decision-system eval-providers`
 - [ ] `decision-system eval --json` (formatted output)
 - [ ] `decision-system eval-war-room --json` (formatted output)
+- [ ] `decision-system eval-providers --json` (formatted output)
 - [ ] All eval cases pass.
 
 ## Repo Hygiene
@@ -40,9 +42,10 @@ Run these offline with no API key configured:
 - [ ] `__pycache__/` and `*.pyc` are not tracked by Git.
 - [ ] `.pytest_cache/` is not tracked by Git.
 - [ ] `evals/results/*.json` generated files are not tracked by Git.
+- [ ] `.decision_system/provider_evals/` provider evaluation results are not tracked by Git.
 - [ ] `datasets/` (raw public dataset downloads) is not tracked by Git.
 - [ ] `company_data/**/imported_*.csv` files are not tracked by Git.
-- [ ] `.decision_system/` directories (graph, profiles, ontology, insights, contexts, evals, orchestration, war_room) are all in `.gitignore`.
+- [ ] `.decision_system/` directories (graph, profiles, ontology, insights, contexts, evals, provider_evals, orchestration, war_room) are all in `.gitignore`.
 - [ ] `decision-system check-hygiene` passes (warnings acceptable, failures require action).
 - [ ] `decision-system check-hygiene --json` returns valid structured JSON.
 

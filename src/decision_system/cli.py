@@ -100,6 +100,12 @@ from decision_system.provider_experiments.store import (
 from decision_system.provider_experiments.inspector import (
     render_provider_experiments,
 )
+from decision_system.provider_eval.inspector import render_provider_eval_suite
+from decision_system.provider_eval.runner import run_provider_eval_suite
+from decision_system.provider_eval.store import (
+    load_provider_eval_results,
+    save_provider_eval_results,
+)
 
 
 app = typer.Typer(help="Create cited decision briefs from local company documents.")
@@ -1082,3 +1088,67 @@ def evaluate_provider(
 
     if suite.failed_cases > 0:
         raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# Provider evaluation commands (v0.7.1)
+# ---------------------------------------------------------------------------
+
+@app.command()
+def eval_providers(
+    provider: str | None = typer.Option(
+        None,
+        "--provider",
+        help="Provider to evaluate: fake, nvidia_nim, or ollama. Defaults to all.",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured provider evaluation JSON instead of text.",
+    ),
+    save_results: bool = typer.Option(
+        False,
+        "--save-results",
+        help="Save results to .decision_system/provider_evals/provider_eval_results.json.",
+    ),
+    manual_real_provider: bool = typer.Option(
+        False,
+        "--manual-real-provider",
+        help="Explicitly allow real NIM/Ollama provider calls instead of mocked evaluation.",
+    ),
+) -> None:
+    """Compare fake, NVIDIA NIM, and Ollama provider behavior safely.
+
+    NVIDIA NIM and Ollama are mocked by default. Real provider execution
+    requires ``--manual-real-provider`` and is never needed for automated tests.
+    """
+
+    suite = run_provider_eval_suite(
+        provider_name=provider,
+        manual_real_provider=manual_real_provider,
+    )
+    if save_results:
+        saved_path = save_provider_eval_results(suite)
+        suite = suite.model_copy(update={"saved_result_path": str(saved_path)})
+
+    if json_output:
+        typer.echo(suite.model_dump_json(indent=2))
+    else:
+        console.print(render_provider_eval_suite(suite))
+
+    if suite.failed_cases > 0:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def inspect_provider_evals() -> None:
+    """Inspect the latest saved provider evaluation results."""
+
+    suite = load_provider_eval_results()
+    if suite is None:
+        console.print(
+            "No provider evaluation results found. "
+            "Run `decision-system eval-providers --save-results` first."
+        )
+        return
+    console.print(render_provider_eval_suite(suite))

@@ -36,7 +36,7 @@ The ontology is the semantic layer. It helps future LLMs and tools reason over c
 
 ## Project State
 
-The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, and the v0.7 provider experiment harness.
+The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, and the v0.7.1 provider evaluation hardening harness.
 
 Generated local state belongs under `.decision_system/` and should not be committed. Private company documents and private CSV files should remain local; only fake demo documents/data are safe to commit.
 
@@ -118,6 +118,7 @@ Common storage is a structured shared workspace for evidence references, finding
 | `src/decision_system/ledger/` | Claim ledger + verifier |
 | `src/decision_system/llm/` | Providers: `fake` (default), `nvidia_nim`, `ollama` |
 | `src/decision_system/provider_experiments/` | Provider smoke/eval harness for fake, NIM, and Ollama |
+| `src/decision_system/provider_eval/` | Offline/mock provider evaluation harness for fake, NIM, and Ollama |
 | `src/decision_system/reports/` | Decision report renderer |
 | `src/decision_system/evals/` | Local evaluation models and runner |
 | `src/decision_system/graphing/` | Entity/relationship graph extraction, store, inspection |
@@ -169,11 +170,21 @@ decision-system eval --save-results             - Save eval results under evals/
 decision-system provider-health                 - Inspect fake/NIM/Ollama provider configuration
 decision-system provider-smoke --provider fake  - Run one provider smoke test
 decision-system eval-provider --provider fake   - Run provider experiment cases
+decision-system eval-providers                  - Run offline/mock provider evaluation cases
+decision-system inspect-provider-evals          - Inspect saved provider evaluation results
 ```
 
 Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 
 ## Version History
+
+### v0.7.1 (2026-06-06)
+- Provider evaluation hardening harness for fake, NVIDIA NIM, and Ollama
+- `decision-system eval-providers`
+- `decision-system inspect-provider-evals`
+- Offline/mock evaluation by default for optional providers
+- Manual real provider mode gated by `--manual-real-provider`
+- Saved provider eval results under `.decision_system/provider_evals/`
 
 ### v0.7.0 (2026-06-05)
 - Provider experiment harness for fake, NVIDIA NIM, and Ollama

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.1] - 2026-06-06
+
+### Added
+- Provider evaluation harness.
+- `decision-system eval-providers`.
+- `decision-system inspect-provider-evals`.
+- Offline/mock evaluation for fake, NVIDIA NIM, and Ollama providers.
+- Saved provider evaluation results.
+
 ## [0.7.0] - 2026-06-05
 
 ### Added

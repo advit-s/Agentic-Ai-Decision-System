@@ -41,6 +41,7 @@ REQUIRED_GITIGNORE_RULES = [
     "*.pyc",
     ".venv/",
     "evals/results/*.json",
+    ".decision_system/provider_evals/",
 ]
 
 

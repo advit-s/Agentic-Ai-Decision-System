@@ -89,6 +89,24 @@ If NIM is not configured, `eval-provider --provider nvidia_nim` skips
 gracefully. `provider-smoke` and `ask --provider nvidia_nim` fail with a clear
 configuration message.
 
+## Provider Evaluation Commands
+
+v0.7.1 adds a provider evaluation harness that is offline by default:
+
+```bash
+decision-system eval-providers
+decision-system eval-providers --provider nvidia_nim
+decision-system eval-providers --json
+decision-system eval-providers --save-results
+decision-system inspect-provider-evals
+```
+
+`eval-providers --provider nvidia_nim` uses mocked NVIDIA NIM behavior unless
+`--manual-real-provider` is explicitly passed. Automated tests never require an
+NVIDIA API key and never call the hosted endpoint. Saved results go to
+`.decision_system/provider_evals/provider_eval_results.json`, which is ignored
+generated local state.
+
 ## Default Provider
 
 `DECISION_PROVIDER=fake` is the safe default. It keeps tests and evals offline.
