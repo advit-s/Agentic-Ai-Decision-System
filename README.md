@@ -27,6 +27,7 @@ See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: co
 ## Current Features
 
 - CLI commands
+- local FastAPI API for development clients
 - local `.md` / `.txt` documents
 - Chroma vector store
 - deterministic fake provider
@@ -85,6 +86,7 @@ v0.7 adds a provider experiment harness for comparing fake, NVIDIA NIM, and Olla
 
 NVIDIA NIM is for hosted testing. Ollama is for local model testing. Never commit `.env` or real API keys. The fake provider is the safe default.
 
+<<<<<<< HEAD
 ## Provider Evaluation
 
 ```bash
@@ -100,6 +102,34 @@ decision-system inspect-provider-evals
 Provider evaluation is offline by default. NVIDIA NIM and Ollama are optional test providers and are mocked in automated tests.
 
 The v0.7.1 harness compares structured memo output, structured claims, contradiction handling, unsupported-claim handling, citation grounding, malformed JSON handling, refusal/failure handling, and timeout/error handling. Saved results are written to `.decision_system/provider_evals/provider_eval_results.json`, which is generated local state and ignored by Git.
+=======
+## API Backend
+
+```bash
+decision-system serve-api
+```
+
+FastAPI endpoints expose the existing local decision-system workflow for API clients. The API is local-development only in v0.8 and has no auth or database yet.
+
+Available v0.8 endpoints:
+
+- `GET /health`
+- `POST /documents/index`
+- `GET /documents/index/inspect`
+- `POST /ask`
+- `POST /context/build`
+- `POST /orchestration/analyze`
+- `POST /orchestration/run`
+- `POST /war-room/plan`
+- `POST /war-room/run`
+- `GET /war-room/latest`
+- `POST /ontology/map`
+- `GET /ontology`
+- `POST /insights/detect`
+- `GET /insights`
+- `POST /evals/war-room`
+- `POST /evals/providers`
+>>>>>>> feature/v0.8-api-backend
 
 ## War-Cabinet Agent Context Protocol (v0.6)
 
@@ -328,10 +358,12 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system provider-smoke --provider X`: run a one-off provider smoke test
 - `decision-system eval-provider --provider X`: run provider experiment cases
 - `decision-system ask --provider ollama`: use Ollama for memo/claim generation only
+- `decision-system serve-api`: run the local FastAPI development API with uvicorn
 
 ## Project Structure
 
 - `src/decision_system/agents`: bounded technical and risk analyst wrappers
+- `src/decision_system/api`: local FastAPI app, Pydantic API models, and route modules
 - `src/decision_system/graph`: LangGraph state, nodes, and workflow
 - `src/decision_system/rag`: document loading, chunking, embeddings, vector store, retrieval
 - `src/decision_system/ledger`: claim ledger and verifier
@@ -397,8 +429,8 @@ Completed:
 - v0.5: insight-aware decision reports
 - v0.6: war-cabinet agent context protocol
 - v0.7: provider experiment harness for fake, NVIDIA NIM, and Ollama
+- v0.8: local FastAPI backend
 
 Upcoming:
-- v0.8: richer retrieval and bounded specialist tools
-- v0.9: FastAPI backend
+- v0.9: richer retrieval and bounded specialist tools
 - v1.0: frontend, database, auth, and saved workspaces

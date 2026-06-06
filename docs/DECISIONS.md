@@ -180,6 +180,7 @@ Key principles:
 - **No deep war-room integration yet.** Provider experiments do not add new
   specialist agents, database storage, frontend, auth, or connectors.
 
+<<<<<<< HEAD
 ## ADR-023: Add Offline Provider Evaluation Hardening
 
 Status: Accepted
@@ -201,6 +202,29 @@ Key principles:
   unsupported-claim handling, errors, and notes.
 - **Generated results remain local.** Saved results live under
   `.decision_system/provider_evals/` and are ignored by Git.
+=======
+## ADR-023: Add Local FastAPI Backend Without Auth or Database
+
+Status: Accepted
+
+v0.8 adds a FastAPI application as a local-development API surface over the
+existing backend services. It is an adapter layer, not a second implementation
+of the decision system.
+
+Key principles:
+- **Wrap existing services.** Routes call the same document indexing, workflow,
+  context, orchestration, war-room, ontology, insight, and eval modules used by
+  the CLI.
+- **No auth or database yet.** The API is for local development clients only in
+  v0.8.
+- **No frontend.** This milestone exposes JSON endpoints but does not build UI.
+- **Offline tests.** API tests use FastAPI `TestClient`, the fake provider, and
+  temporary local stores. They do not start uvicorn or call external APIs.
+- **Structured errors.** API failures use a consistent `{ "error": ... }`
+  shape and do not expose stack traces.
+- **Generated state remains local.** Indexes, runs, ontology maps, insights,
+  contexts, and eval outputs remain under ignored generated folders.
+>>>>>>> feature/v0.8-api-backend
 
 ## ADR-016: Import Public Datasets as Local CSV Copies
 

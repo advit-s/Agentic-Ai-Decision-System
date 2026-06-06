@@ -205,6 +205,44 @@ The CLI exposes debug surfaces:
 
 These commands make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable.
 
+## FastAPI Backend (v0.8)
+
+v0.8 adds a local-development FastAPI backend over the existing CLI/backend services:
+
+```text
+API client
+  -> FastAPI route
+  -> existing document, workflow, context, orchestration, war-room, ontology,
+     insight, or eval service
+  -> structured JSON response
+```
+
+The API does not add a frontend, auth, database, new provider, or new agent loop.
+Routes call the same bounded services used by the CLI and return structured JSON
+with consistent error envelopes. Stack traces are not exposed to clients.
+
+The v0.8 route surface is:
+
+- `GET /health`
+- `POST /documents/index`
+- `GET /documents/index/inspect`
+- `POST /ask`
+- `POST /context/build`
+- `POST /orchestration/analyze`
+- `POST /orchestration/run`
+- `POST /war-room/plan`
+- `POST /war-room/run`
+- `GET /war-room/latest`
+- `POST /ontology/map`
+- `GET /ontology`
+- `POST /insights/detect`
+- `GET /insights`
+- `POST /evals/war-room`
+- `POST /evals/providers`
+
+`decision-system serve-api` runs uvicorn for local development. Tests use
+FastAPI `TestClient` directly and do not require a live server or real API keys.
+
 ## Evaluation Harness
 
 `decision-system eval` runs local cases from `evals/cases/`. Each case writes temporary documents, indexes a temporary Chroma store, runs the normal workflow with the fake provider, and checks expectations.
@@ -401,6 +439,7 @@ directory checks.
 - No frontend.
 - No database.
 - No auth or permission model.
+- API is local-development only.
 - No enterprise connectors.
 - No autonomous external actions.
 - No PDF parsing.
