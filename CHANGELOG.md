@@ -1,7 +1,21 @@
 # Changelog
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+## [0.9.0] - 2026-06-06
+
+### Added
+- Local web UI prototype.
+- Mock-first views for reports, insights, ontology, war-room, provider evals, and data profiles.
+- Static Graph and Ask views with optional API base URL configuration.
+- Lightweight mock JSON fixtures under `web/mock-data/`.
+
+## [0.8.0] - 2026-06-06
+
+### Added
+- FastAPI application.
+- Local API endpoints for documents, reports, ontology, insights, orchestration, war-room, and evals.
+- `decision-system serve-api`.
+- Offline API tests with TestClient.
+
 ## [0.7.1] - 2026-06-06
 
 ### Added
@@ -10,24 +24,6 @@
 - `decision-system inspect-provider-evals`.
 - Offline/mock evaluation for fake, NVIDIA NIM, and Ollama providers.
 - Saved provider evaluation results.
-=======
-## [0.8.0] - 2026-06-06
-
-### Added
-- FastAPI application.
-- Local API endpoints for documents, reports, ontology, insights, orchestration, war-room, and evals.
-- `decision-system serve-api`.
-- Offline API tests with TestClient.
->>>>>>> feature/v0.8-api-backend
-=======
-## [0.9.0] - 2026-06-06
-
-### Added
-- Local web UI prototype.
-- Mock-first views for reports, insights, ontology, war-room, provider evals, and data profiles.
-- Static Graph and Ask views with optional API base URL configuration.
-- Lightweight mock JSON fixtures under `web/mock-data/`.
->>>>>>> feature/v0.9-web-ui
 
 ## [0.7.0] - 2026-06-05
 

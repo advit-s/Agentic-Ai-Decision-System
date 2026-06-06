@@ -1,4 +1,4 @@
-﻿# Agentic Decision System - Claude Code Project Context
+# Agentic Decision System - Claude Code Project Context
 
 ## Product Vision
 
@@ -36,15 +36,7 @@ The ontology is the semantic layer. It helps future LLMs and tools reason over c
 
 ## Project State
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, and the v0.7.1 provider evaluation hardening harness.
-=======
-The project is a CLI/backend-first prototype. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, and the v0.8 local FastAPI backend.
->>>>>>> feature/v0.8-api-backend
-=======
-The project is a CLI/backend-first prototype with a v0.9 local static UI for artifact inspection. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, and the v0.9 mock-first web UI prototype.
->>>>>>> feature/v0.9-web-ui
+The project is a CLI/backend-first prototype with a v0.9 local static UI for artifact inspection. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, the v0.7.1 provider evaluation hardening harness, the v0.8 local FastAPI backend, and the v0.9 mock-first web UI prototype.
 
 Generated local state belongs under `.decision_system/` and should not be committed. Private company documents and private CSV files should remain local; only fake demo documents/data are safe to commit.
 
@@ -182,20 +174,29 @@ decision-system eval --save-results             - Save eval results under evals/
 decision-system provider-health                 - Inspect fake/NIM/Ollama provider configuration
 decision-system provider-smoke --provider fake  - Run one provider smoke test
 decision-system eval-provider --provider fake   - Run provider experiment cases
-<<<<<<< HEAD
 decision-system eval-providers                  - Run offline/mock provider evaluation cases
 decision-system inspect-provider-evals          - Inspect saved provider evaluation results
-=======
 decision-system serve-api                       - Run the local FastAPI development API
->>>>>>> feature/v0.8-api-backend
 ```
 
 Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 
 ## Version History
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+### v0.9.0 (2026-06-06)
+- Local mock-first web UI prototype under `web/`
+- Ask, Reports, Insights, Ontology, War Room, Provider Evals, Data Profiles, and Graph views
+- Optional API base URL configuration with fallback to mock JSON
+- Tests for static files, mock data contracts, and optional FastAPI route detection
+- No auth, database, real provider requirement, or raw dataset assets
+
+### v0.8.0 (2026-06-06)
+- Local FastAPI application
+- API endpoints for documents, ask/report, context, orchestration, war-room, ontology, insights, and evals
+- `decision-system serve-api`
+- Offline FastAPI `TestClient` tests
+- No auth, database, frontend, new provider, or external API requirement
+
 ### v0.7.1 (2026-06-06)
 - Provider evaluation hardening harness for fake, NVIDIA NIM, and Ollama
 - `decision-system eval-providers`
@@ -203,22 +204,6 @@ Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 - Offline/mock evaluation by default for optional providers
 - Manual real provider mode gated by `--manual-real-provider`
 - Saved provider eval results under `.decision_system/provider_evals/`
-=======
-### v0.8.0 (2026-06-06)
-- Local FastAPI application
-- API endpoints for documents, ask/report, context, orchestration, war-room, ontology, insights, and evals
-- `decision-system serve-api`
-- Offline FastAPI `TestClient` tests
-- No auth, database, frontend, new provider, or external API requirement
->>>>>>> feature/v0.8-api-backend
-=======
-### v0.9.0 (2026-06-06)
-- Local mock-first web UI prototype under `web/`
-- Ask, Reports, Insights, Ontology, War Room, Provider Evals, Data Profiles, and Graph views
-- Optional API base URL configuration with fallback to mock JSON
-- Tests for static files, mock data contracts, and optional FastAPI route detection
-- No auth, database, real provider requirement, or raw dataset assets
->>>>>>> feature/v0.9-web-ui
 
 ### v0.7.0 (2026-06-05)
 - Provider experiment harness for fake, NVIDIA NIM, and Ollama
@@ -358,16 +343,8 @@ If the answer to any of these is "no," the change is out of scope for this phase
 
 | Version | Focus |
 |---------|-------|
-<<<<<<< HEAD
-| **v0.9** | Improve ontology quality, relationship extraction, insight ranking, and context packages |
 | **v1.0** | Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear |
-| **v1.1+** | Frontend, database, auth, connectors, and saved workspaces after backend discipline is proven |
-=======
-| **v0.8** | Improve ontology quality, relationship extraction, insight ranking, and context packages |
-| **v0.9** | Local mock-first web UI prototype |
-| **v1.0** | FastAPI/backend integration planning |
 | **v1.1+** | Production frontend, database, auth, connectors, and saved workspaces after backend discipline is proven |
->>>>>>> feature/v0.9-web-ui
 
 ## How Claude Should Work in This Repo
 

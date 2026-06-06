@@ -44,11 +44,8 @@ See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: co
 - evaluation command
 - deterministic pattern and vulnerability detection
 - war-cabinet context protocol with deterministic specialist artifacts and judge interventions
-<<<<<<< HEAD
 - provider evaluation harness for fake, mocked NVIDIA NIM, and mocked Ollama behavior
-=======
 - local mock-first web UI prototype under `web/`
->>>>>>> feature/v0.9-web-ui
 
 ## Pattern and Vulnerability Detection
 
@@ -91,7 +88,6 @@ v0.7 adds a provider experiment harness for comparing fake, NVIDIA NIM, and Olla
 
 NVIDIA NIM is for hosted testing. Ollama is for local model testing. Never commit `.env` or real API keys. The fake provider is the safe default.
 
-<<<<<<< HEAD
 ## Provider Evaluation
 
 ```bash
@@ -107,7 +103,7 @@ decision-system inspect-provider-evals
 Provider evaluation is offline by default. NVIDIA NIM and Ollama are optional test providers and are mocked in automated tests.
 
 The v0.7.1 harness compares structured memo output, structured claims, contradiction handling, unsupported-claim handling, citation grounding, malformed JSON handling, refusal/failure handling, and timeout/error handling. Saved results are written to `.decision_system/provider_evals/provider_eval_results.json`, which is generated local state and ignored by Git.
-=======
+
 ## API Backend
 
 ```bash
@@ -134,7 +130,6 @@ Available v0.8 endpoints:
 - `GET /insights`
 - `POST /evals/war-room`
 - `POST /evals/providers`
->>>>>>> feature/v0.8-api-backend
 
 ## War-Cabinet Agent Context Protocol (v0.6)
 
@@ -169,15 +164,19 @@ The v0.6.1 evaluation layer runs the actual war-room pipeline for known business
 
 The v0.9 UI is a local prototype for exploring reports, insights, ontology mappings, war-room runs, provider evals, and data profiles. It can run against mock data and does not require auth, database, or real providers.
 
-The UI lives under `web/` and uses static HTML, CSS, JavaScript, and lightweight mock JSON fixtures. It is mock-first, so it works when the backend API branch is unavailable. If a FastAPI API exists in another branch, enter its base URL in the UI to try API-backed loading; failed API calls fall back to local mock data.
+The UI lives under `web/` and uses static HTML, CSS, JavaScript, and lightweight mock JSON fixtures. It is mock-first, so it works when the backend API is unavailable. It is served automatically at `http://127.0.0.1:8000` when you run the FastAPI API:
 
-Run it with a simple static server:
+```bash
+decision-system serve-api
+```
+
+Alternatively, you can run it with a simple static server:
 
 ```bash
 python -m http.server 8765 --directory web
 ```
 
-Then open `http://localhost:8765`. The prototype includes Ask, Reports, Insights, Ontology, War Room, Provider Evals, Data Profiles, and Graph sections.
+Then open `http://localhost:8765` or `http://localhost:8000` depending on the method. The prototype includes Ask, Reports, Insights, Ontology, War Room, Provider Evals, Data Profiles, and Graph sections.
 
 ## What Is Not Included Yet
 
@@ -459,16 +458,10 @@ Completed:
 - v0.5: insight-aware decision reports
 - v0.6: war-cabinet agent context protocol
 - v0.7: provider experiment harness for fake, NVIDIA NIM, and Ollama
-<<<<<<< HEAD
+- v0.7.1: provider evaluation hardening harness
 - v0.8: local FastAPI backend
-
-Upcoming:
-- v0.9: richer retrieval and bounded specialist tools
-- v1.0: frontend, database, auth, and saved workspaces
-=======
 - v0.9: local mock-first web UI prototype
 
 Upcoming:
-- v0.8: richer retrieval and bounded specialist tools (parallel branch)
-- v1.0: FastAPI/backend integration and saved workspace planning
->>>>>>> feature/v0.9-web-ui
+- v1.0: Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear
+- v1.1+: Production frontend, database, auth, connectors, and saved workspaces after backend discipline is proven

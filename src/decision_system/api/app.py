@@ -39,6 +39,16 @@ def create_app() -> FastAPI:
     api.include_router(routes_data.router)
     api.include_router(routes_evals.router)
 
+    # Mount the static files for the web UI prototype at the root.
+    # We do this after registering all API routes so they take precedence.
+    import os
+    from pathlib import Path
+    from fastapi.staticfiles import StaticFiles
+
+    web_dir = Path(__file__).resolve().parents[3] / "web"
+    if web_dir.exists():
+        api.mount("/", StaticFiles(directory=str(web_dir), html=True), name="web")
+
     @api.exception_handler(HTTPException)
     async def handle_http_exception(
         _request: Request,

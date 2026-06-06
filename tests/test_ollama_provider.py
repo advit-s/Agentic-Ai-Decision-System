@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import sys
-from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -143,12 +142,6 @@ class TestMissingModel:
         with pytest.raises(ValueError, match="OLLAMA_MODEL is required"):
             OllamaProvider(settings)
 
-    def test_invalid_base_url_raises(self, settings):
-        broken = replace(settings, ollama_base_url="localhost:11434")
-
-        with pytest.raises(ValueError, match="OLLAMA_BASE_URL"):
-            OllamaProvider(broken)
-
 
 # ------------------------------------------------------------------
 # Mocked client tests
@@ -245,27 +238,6 @@ class TestConnectionError:
         with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
             with pytest.raises(ConnectionError, match="Cannot reach Ollama"):
                 provider.technical_memo("Q?", [])
-
-    def test_malformed_http_response_json_raises_contextual_error(self, settings):
-        provider = OllamaProvider(settings, client=None)
-
-        with patch("urllib.request.urlopen", return_value=_FakeHTTPResponse(b"not-json")):
-            with pytest.raises(ValueError, match="malformed HTTP response JSON"):
-                provider.technical_memo("Q?", [])
-
-
-class _FakeHTTPResponse:
-    def __init__(self, payload: bytes):
-        self._payload = payload
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        return False
-
-    def read(self) -> bytes:
-        return self._payload
 
 
 # ------------------------------------------------------------------

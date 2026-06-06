@@ -200,12 +200,9 @@ The CLI and local UI expose debug surfaces:
 - `decision-system ask "..." --json`
 - `decision-system ask "..." --save-run`
 - `decision-system check-hygiene`
-<<<<<<< HEAD
 - `decision-system eval-providers`
 - `decision-system inspect-provider-evals`
-=======
 - `web/index.html` via a local static server for mock-first artifact inspection
->>>>>>> feature/v0.9-web-ui
 
 These surfaces make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable.
 
@@ -309,7 +306,6 @@ report. `provider-health` exits successfully even when real providers are not
 configured. `eval-provider` skips unconfigured NIM/Ollama providers unless
 `--require-configured` is used.
 
-<<<<<<< HEAD
 ## Provider Evaluation Harness (v0.7.1)
 
 v0.7.1 adds a safer comparison harness for fake, NVIDIA NIM, and Ollama provider
@@ -332,7 +328,7 @@ schema validity, JSON validity, citation grounding, hallucination risk,
 contradiction handling, unsupported-claim handling, errors, and notes. It does
 not change `DECISION_PROVIDER`, does not write reports, does not bypass the
 claim ledger, and stores saved results under ignored generated local state.
-=======
+
 ## Local Web UI Prototype (v0.9)
 
 v0.9 adds a dependency-free local UI under `web/` for inspecting the artifacts
@@ -355,7 +351,6 @@ The UI does not add auth, database storage, real provider requirements, raw
 dataset assets, or frontend-owned decision logic. Final report truth still
 belongs to the ledger-backed renderer and generated local artifacts remain
 outside `web/`.
->>>>>>> feature/v0.9-web-ui
 
 ## Decision Context and Insight-Aware Reports (v0.5)
 

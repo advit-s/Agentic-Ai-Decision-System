@@ -180,8 +180,6 @@ Key principles:
 - **No deep war-room integration yet.** Provider experiments do not add new
   specialist agents, database storage, frontend, auth, or connectors.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 ## ADR-023: Add Offline Provider Evaluation Hardening
 
 Status: Accepted
@@ -203,8 +201,8 @@ Key principles:
   unsupported-claim handling, errors, and notes.
 - **Generated results remain local.** Saved results live under
   `.decision_system/provider_evals/` and are ignored by Git.
-=======
-## ADR-023: Add Local FastAPI Backend Without Auth or Database
+
+## ADR-024: Add Local FastAPI Backend Without Auth or Database
 
 Status: Accepted
 
@@ -225,9 +223,8 @@ Key principles:
   shape and do not expose stack traces.
 - **Generated state remains local.** Indexes, runs, ontology maps, insights,
   contexts, and eval outputs remain under ignored generated folders.
->>>>>>> feature/v0.8-api-backend
-=======
-## ADR-023: Add a Mock-First Local Web UI Prototype
+
+## ADR-025: Add a Mock-First Local Web UI Prototype
 
 Status: Accepted
 
@@ -249,7 +246,6 @@ Key principles:
   summaries, not copied private or public datasets.
 - **Tests stay offline.** UI tests validate static files and mock contracts
   without starting an API server or calling real providers.
->>>>>>> feature/v0.9-web-ui
 
 ## ADR-016: Import Public Datasets as Local CSV Copies
 
