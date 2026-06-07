@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Removing generated/cache files ==="
-find . -type d -name __pycache__ -prune -exec rm -rf {} +
-rm -rf .pytest_cache
-rm -rf .decision_system
-echo "Done."
+# Dry-run by default; pass --force to actually delete.
+FORCE="${1:-}"
+if [[ "${FORCE}" == "--force" ]]; then
+    echo "=== Removing generated/cache files (force) ==="
+    python -m decision_system.devtools.clean_generated --force
+else
+    echo "=== Dry run: would remove generated/cache files ==="
+    echo "    Re-run with --force to actually delete: ./scripts/clean-generated.sh --force"
+    python -m decision_system.devtools.clean_generated
+fi

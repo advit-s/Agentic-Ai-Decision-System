@@ -1,3 +1,12 @@
+## [0.9.2] - 2026-06-07
+### Fixed
+- Made generated-file cleanup scripts safe by default (dry-run, requires --force).
+- Added protection against root/package web asset drift via tests.
+- Reduced CLI import/startup fragility by deferring heavy imports from module scope into heavy commands.
+- Tightened missing-index API test (requires status 400 and error.code == "missing_index").
+- Tightened missing-index CLI test (requires no traceback and the "decision-system index" hint).
+- Fixed provider eval documentation typo (renamed `runer` to `runner`).
+
 # Changelog
 
 ## [0.9.1] - 2026-06-06

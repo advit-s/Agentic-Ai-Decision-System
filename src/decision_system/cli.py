@@ -3,7 +3,13 @@
 The CLI indexes local documents and asks decision questions through the fixed
 LangGraph workflow. The fake provider works without API keys; hosted providers
 are optional and environment-configured.
+
+Subpackage imports are lazy -- loaded inside the heavy command functions -- so
+that lightweight introspection commands (``--help``, ``check-hygiene``) do not
+pull in the full LangGraph / Chroma / RAG stack at import time.
 """
+
+from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -15,13 +21,13 @@ from pydantic import BaseModel
 from rich.console import Console
 
 try:
-    import chromadb
+    import chromadb  # noqa: F401  - kept at module scope for MissingIndex error handling
 except ImportError:  # pragma: no cover - chromadb is a required dependency
     chromadb = None  # type: ignore[assignment]
 
 from decision_system.config import load_settings
-from decision_system.data_catalog.demo_data import seed_demo_data as _seed_demo_data_fn
 from decision_system.devtools.hygiene import HygieneReport, check_hygiene as _run_hygiene_fn
+from decision_system.data_catalog.demo_data import seed_demo_data as _seed_demo_data_fn
 from decision_system.data_catalog.importer import (
     DEFAULT_IMPORT_SOURCE_DIR,
     import_datasets as import_datasets_fn,
@@ -33,12 +39,25 @@ from decision_system.data_catalog.initializer import (
     init_data_catalog as initialize_data_catalog,
 )
 from decision_system.data_catalog.inspector import inspect_profiles, render_inspection
-from decision_system.data_catalog.store import load_profiles, profile_and_save, save_profiles
-from decision_system.evals.runner import render_eval_report, run_eval_suite, save_eval_results
-from decision_system.graph.workflow import build_workflow
+from decision_system.data_catalog.store import (
+    load_profiles,
+    profile_and_save,
+    save_profiles,
+)
+from decision_system.evals.runner import (
+    render_eval_report,
+    run_eval_suite,
+    save_eval_results,
+)
 from decision_system.graphing.extractor import extract_knowledge_graph
-from decision_system.graphing.inspector import inspect_knowledge_graph, render_graph_inspection
-from decision_system.graphing.store import load_knowledge_graph, save_knowledge_graph
+from decision_system.graphing.inspector import (
+    inspect_knowledge_graph,
+    render_graph_inspection,
+)
+from decision_system.graphing.store import (
+    load_knowledge_graph,
+    save_knowledge_graph,
+)
 from decision_system.insights.detectors import run_detectors
 from decision_system.insights.inspector import (
     inspect_insights as _inspect_insights_fn,
@@ -72,28 +91,36 @@ from decision_system.orchestration.inspector import (
 )
 from decision_system.orchestration.judge import build_judge_summary
 from decision_system.orchestration.models import DispatchPlan, JudgeSummary, ProblemAnalysis
-from decision_system.orchestration.store import save_decision_session, load_latest_session
+from decision_system.orchestration.store import (
+    save_decision_session,
+    load_latest_session,
+)
 from decision_system.orchestration.dispatcher import build_dispatch_plan
 from decision_system.orchestration.planner import plan_data_tools_roles
-from decision_system.orchestration.problem_analyzer import analyze_problem as _analyze_problem_fn
+from decision_system.orchestration.problem_analyzer import (
+    analyze_problem as _analyze_problem_fn,
+)
 from decision_system.orchestration.workflow import run_orchestration as _run_orchestration_fn
 from decision_system.insights.store import DEFAULT_INSIGHTS_DIR
 from decision_system.rag.chunker import chunk_documents
 from decision_system.rag.loader import load_documents
 from decision_system.rag.vector_store import index_chunks, inspect_collection
-from decision_system.war_room.dispatcher import build_dispatch_spec as _build_wr_dispatch
+from decision_system.war_room.dispatcher import (
+    build_dispatch_spec as _build_wr_dispatch,
+)
 from decision_system.war_room.evals import (
     render_war_room_eval_report,
     run_war_room_eval_suite,
     save_war_room_eval_results,
 )
-from decision_system.war_room.inspector import inspect_war_room as _inspect_war_room_impl, render_inspection as _render_war_room_inspection
+from decision_system.war_room.inspector import (
+    inspect_war_room as _inspect_war_room_impl,
+    render_inspection as _render_war_room_inspection,
+)
 from decision_system.war_room.runner import run_war_room as _run_war_room_fn
 from decision_system.war_room.store import DEFAULT_RUNS_DIR, load_latest_run
 from decision_system.llm.factory import get_provider
-from decision_system.provider_experiments.models import (
-    ProviderExperimentCase,
-)
+from decision_system.provider_experiments.models import ProviderExperimentCase
 from decision_system.provider_experiments.runner import (
     load_eval_cases as _load_provider_cases,
     run_experiment_suite,
@@ -111,7 +138,11 @@ from decision_system.provider_eval.store import (
     load_provider_eval_results,
     save_provider_eval_results,
 )
+from decision_system.reports.renderer import render_decision_report
 
+# The graph.workflow import (which pulls in LangGraph + agent nodes) is
+# intentionally deferred into the ``ask`` command so that lightweight CLI
+# introspection (``--help``, ``check-hygiene``) avoids that startup cost.
 
 app = typer.Typer(help="Create cited decision briefs from local company documents.")
 console = Console()
@@ -119,7 +150,6 @@ console = Console()
 
 def _to_jsonable(value: Any) -> Any:
     """Convert workflow state values into JSON-serializable data."""
-
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
     if isinstance(value, list):
@@ -130,8 +160,7 @@ def _to_jsonable(value: Any) -> Any:
 
 
 def _ask_json_payload(result: dict[str, Any]) -> dict[str, Any]:
-    """Select the inspectable state required for `decision-system ask --json`."""
-
+    """Select the inspectable state required for ``decision-system ask --json``."""
     return {
         "run_id": result.get("run_id"),
         "question": result.get("question"),
@@ -144,12 +173,10 @@ def _ask_json_payload(result: dict[str, Any]) -> dict[str, Any]:
 
 def _render_evidence_section(evidence_items: list[Any]) -> str:
     """Render retrieved evidence as a compact Markdown audit section."""
-
     lines = ["# Retrieved Evidence", ""]
     if not evidence_items:
         lines.append("(none)")
         return "\n".join(lines)
-
     for index, evidence in enumerate(evidence_items, start=1):
         preview = " ".join(evidence.text.split())
         if len(preview) > 240:
@@ -170,8 +197,7 @@ def _render_evidence_section(evidence_items: list[Any]) -> str:
 
 
 def _save_run(result: dict[str, Any]) -> Path:
-    """Persist the full workflow result under `.decision_system/runs/`."""
-
+    """Persist the full workflow result under ``.decision_system/runs/``."""
     runs_dir = Path(".decision_system") / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
     run_path = runs_dir / f"{result['run_id']}.json"
@@ -182,14 +208,21 @@ def _save_run(result: dict[str, Any]) -> Path:
     return run_path.resolve()
 
 
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+
 @app.command()
 def index() -> None:
     """Index local documents from the configured docs directory.
 
-    Inputs come from environment-backed settings. The command reads `.md` and
-    `.txt` files, chunks them, and writes a local Chroma collection. Its main
+    Inputs come from environment-backed settings. The command reads ``.md`` and
+    ``.txt`` files, chunks them, and writes a local Chroma collection. Its main
     side effect is refreshing the configured vector store.
     """
+    # Defer graph/workflow import -- only the document pipeline is needed here.
+    from decision_system.graph.workflow import build_workflow
 
     settings = load_settings()
     documents = load_documents(settings.docs_dir)
@@ -205,7 +238,6 @@ def index() -> None:
 @app.command()
 def inspect_index() -> None:
     """Inspect the configured local Chroma collection."""
-
     settings = load_settings()
     inspection = inspect_collection(
         store_dir=settings.store_dir,
@@ -220,13 +252,11 @@ def inspect_index() -> None:
 @app.command()
 def extract_graph() -> None:
     """Extract a local knowledge graph from configured company documents."""
-
     settings = load_settings()
     documents = load_documents(settings.docs_dir)
     chunks = chunk_documents(documents)
     knowledge_graph = extract_knowledge_graph(chunks)
     graph_path = save_knowledge_graph(knowledge_graph).resolve()
-
     console.print(f"Saved knowledge graph: {graph_path}")
     console.print(f"Entity count: {len(knowledge_graph.entities)}")
     console.print(f"Relationship count: {len(knowledge_graph.relationships)}")
@@ -235,7 +265,6 @@ def extract_graph() -> None:
 @app.command()
 def inspect_graph() -> None:
     """Inspect the local graph-like JSON knowledge store."""
-
     knowledge_graph = load_knowledge_graph()
     inspection = inspect_knowledge_graph(knowledge_graph)
     console.print(render_graph_inspection(inspection))
@@ -243,25 +272,24 @@ def inspect_graph() -> None:
 
 @app.command()
 def detect_patterns() -> None:
-    """Run deterministic pattern and vulnerability detection.
-
-    The command reads saved data profiles, the local knowledge graph, and
-    CSV files under ``company_data/`` as needed. All detection is offline
-    - no LLM is called. Detected insights are saved to
-    ``.decision_system/insights/insights.json``.
-    """
+    """Run deterministic pattern and vulnerability detection."""
     profiles = load_profiles()
     graph = load_knowledge_graph()
     store = run_detectors(profiles=profiles, graph=graph)
     insights_path = save_insights(store)
     severity_counts = store.severity_counts()
     category_counts = store.category_counts()
-
     console.print(f"Insights detected: {len(store.insights)}")
     if severity_counts:
-        console.print("By severity: " + ", ".join(f"{k}: {v}" for k, v in sorted(severity_counts.items())))
+        console.print(
+            "By severity: "
+            + ", ".join(f"{k}: {v}" for k, v in sorted(severity_counts.items()))
+        )
     if category_counts:
-        console.print("By category: " + ", ".join(f"{k}: {v}" for k, v in sorted(category_counts.items())))
+        console.print(
+            "By category: "
+            + ", ".join(f"{k}: {v}" for k, v in sorted(category_counts.items()))
+        )
     console.print(f"Saved insights: {insights_path}")
 
 
@@ -275,14 +303,14 @@ def inspect_insights() -> None:
 
 @app.command()
 def analyze_problem(
-    question: str, json_output: bool = typer.Option(False, "--json")
+    question: str,
+    json_output: bool = typer.Option(False, "--json"),
 ) -> None:
     """Analyze a business question and print required data, tools, and roles.
 
     Outputs the problem analysis without running any data collection or
     detection logic.
     """
-
     analysis = _analyze_problem_fn(question)
     analysis = plan_data_tools_roles(analysis)
     summary = inspect_problem_analysis(analysis)
@@ -307,7 +335,6 @@ def run_orchestration(
     Steps: analyze -> plan -> dispatch -> sandbox -> detect -> judge.
     Saves results to .decision_system/orchestration/.
     """
-
     result = _run_orchestration_fn(
         question,
         save=save_run,
@@ -318,17 +345,19 @@ def run_orchestration(
 
     console.print(f"Run ID: {result['run_id']}")
     console.print(f"Decision type: {result['decision_type']}")
-    console.print(f"Required data categories: {', '.join(result['required_data_categories']) or 'none'}")
+    console.print(
+        f"Required data categories: {', '.join(result['required_data_categories']) or 'none'}"
+    )
     console.print("Selected tools:")
     for tool in result["execution_order"]:
-        console.print(f"  - {tool}")
+        console.print(f" - {tool}")
     console.print("Selected roles:")
     for role in result["relevant_roles"]:
-        console.print(f"  - {role}")
+        console.print(f" - {role}")
     console.print(f"Insights: {result['insight_count']}")
     console.print("Insights by severity:")
     for sev, count in sorted(result["insights_by_severity"].items()):
-        console.print(f"  - {sev}: {count}")
+        console.print(f" - {sev}: {count}")
     j = result["judge"]
     console.print(f"Judge confidence: {j['confidence_level']}")
     console.print(f"Human review required: {len(j['human_review_required'])} items")
@@ -339,19 +368,13 @@ def run_orchestration(
 @app.command()
 def inspect_orchestration() -> None:
     """Inspect the latest saved orchestration run."""
-
     session = load_latest_session()
     if session is None:
         console.print("No orchestration run found. Run `decision-system run-orchestration` first.")
         raise typer.Exit(code=0)
 
-    from decision_system.orchestration.models import ProblemAnalysis, DispatchPlan
-    from decision_system.orchestration.inspector import (
-        render_problem_analysis,
-        render_dispatch_plan,
-    )
+    from decision_system.orchestration.models import DispatchPlan, ProblemAnalysis
 
-    # Reconstruct analysis and dispatch plan from session metadata
     analysis = ProblemAnalysis(
         question=session.question,
         decision_type=session.decision_type,
@@ -369,7 +392,6 @@ def inspect_orchestration() -> None:
         skipped_tools=session.skipped_tools,
         missing_inputs=session.missing_inputs,
     )
-
     console.print(render_problem_analysis(inspect_problem_analysis(analysis)))
     console.print(render_dispatch_plan(inspect_dispatch_plan(plan)))
     console.print("# Judge Summary")
@@ -381,7 +403,9 @@ def inspect_orchestration() -> None:
     judge = session.judge_summary
     if judge:
         console.print(f"Confidence: {judge.get('confidence_level', 'unknown')}")
-        console.print(f"Human review required: {len(judge.get('human_review_required', []))} items")
+        console.print(
+            f"Human review required: {len(judge.get('human_review_required', []))} items"
+        )
 
 
 @app.command()
@@ -396,7 +420,9 @@ def map_ontology() -> None:
     ontology_path = save_ontology(omap)
     concept_count = len(omap.concepts)
     mapping_count = len(omap.column_mappings)
-    console.print(f"Ontology mapped: {concept_count} concepts, {mapping_count} column mappings")
+    console.print(
+        f"Ontology mapped: {concept_count} concepts, {mapping_count} column mappings"
+    )
     console.print(f"Saved ontology map: {ontology_path}")
 
 
@@ -411,21 +437,28 @@ def inspect_ontology() -> None:
 @app.command()
 def init_data_catalog() -> None:
     """Create local company_data folders, manifest, and fake demo CSV files."""
-
-    manifest_path = init_data_catalog_fn()
+    manifest_path = initialize_data_catalog(DEFAULT_DATA_ROOT)
     console.print(f"Initialized data catalog: {manifest_path}")
+
+
+# ---------------------------------------------------------------------------
+# Data catalog wrappers kept for backward compat / testability
+# ---------------------------------------------------------------------------
 
 
 def init_data_catalog_fn() -> Path:
     """Initialize the data catalog through a small wrapper for testability."""
-
     return initialize_data_catalog(DEFAULT_DATA_ROOT)
+
+
+def seed_demo_data_fn(*, force: bool = False) -> dict[str, int]:
+    """Seed demo data through a small wrapper for testability."""
+    return _seed_demo_data_fn(DEFAULT_DATA_ROOT, force=force)
 
 
 @app.command()
 def profile_data() -> None:
     """Profile local CSV files under company_data/."""
-
     if not (DEFAULT_DATA_ROOT / "manifest.json").exists():
         initialize_data_catalog(DEFAULT_DATA_ROOT)
     store = profile_and_save(DEFAULT_DATA_ROOT)
@@ -437,9 +470,56 @@ def profile_data() -> None:
 @app.command()
 def inspect_data() -> None:
     """Inspect saved local CSV profile summaries."""
-
     store = load_profiles()
     console.print(render_inspection(inspect_profiles(store)))
+
+
+@app.command()
+def import_datasets(
+    source_dir: Path = typer.Option(
+        DEFAULT_IMPORT_SOURCE_DIR,
+        "--source-dir",
+        help="Local ignored folder containing public datasets.",
+    ),
+    max_rows: int = typer.Option(
+        5000,
+        "--max-rows",
+        min=1,
+        help="Maximum rows to write per imported dataset.",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite existing imported CSV outputs.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Inspect what would import without writing CSVs or manifest.",
+    ),
+) -> None:
+    """Convert local public datasets into categorized CSV files."""
+    manifest = import_datasets_fn(
+        source_dir,
+        data_root=DEFAULT_DATA_ROOT,
+        max_rows=max_rows,
+        force=force,
+        dry_run=dry_run,
+    )
+    console.print(
+        f"Imported datasets: {manifest.imported_count}; "
+        f"Skipped datasets: {manifest.skipped_count}"
+    )
+    if not dry_run:
+        console.print(
+            "Saved import manifest: .decision_system/imports/import_manifest.json"
+        )
+
+
+@app.command()
+def inspect_imports() -> None:
+    """Inspect the latest public dataset import manifest."""
+    console.print(render_import_manifest(load_import_manifest()))
 
 
 @app.command()
@@ -451,17 +531,17 @@ def seed_demo_data(
     ),
 ) -> None:
     """Seed company_data/ with synthetic demo CSVs for local testing."""
-
     summary = seed_demo_data_fn(force=force)
     console.print(
         f"Seeded demo data: {summary['created']} created, "
-        f"{summary['overwritten']} overwritten, {summary['skipped']} skipped"
+        f"{summary['overwritten']} overwritten, "
+        f"{summary['skipped']} skipped"
     )
 
 
-def seed_demo_data_fn(*, force: bool = False) -> dict[str, int]:
-    """Seed demo data through a small wrapper for testability."""
-    return _seed_demo_data_fn(DEFAULT_DATA_ROOT, force=force)
+# ---------------------------------------------------------------------------
+# Hygiene
+# ---------------------------------------------------------------------------
 
 
 def _render_hygiene_report(report: HygieneReport) -> str:
@@ -517,6 +597,11 @@ def check_hygiene(
         raise typer.Exit(code=1)
 
 
+# ---------------------------------------------------------------------------
+# API service
+# ---------------------------------------------------------------------------
+
+
 @app.command("serve-api")
 def serve_api(
     host: str = typer.Option(
@@ -536,7 +621,6 @@ def serve_api(
     ),
 ) -> None:
     """Run the local FastAPI API for development."""
-
     import uvicorn
 
     uvicorn.run(
@@ -547,59 +631,24 @@ def serve_api(
     )
 
 
-@app.command()
-def import_datasets(
-    source_dir: Path = typer.Option(
-        DEFAULT_IMPORT_SOURCE_DIR,
-        "--source-dir",
-        help="Local ignored folder containing public datasets.",
-    ),
-    max_rows: int = typer.Option(
-        5000,
-        "--max-rows",
-        min=1,
-        help="Maximum rows to write per imported dataset.",
-    ),
-    force: bool = typer.Option(
-        False,
-        "--force",
-        help="Overwrite existing imported CSV outputs.",
-    ),
-    dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Inspect what would import without writing CSVs or manifest.",
-    ),
-) -> None:
-    """Convert local public datasets into categorized CSV files."""
-
-    manifest = import_datasets_fn(
-        source_dir,
-        data_root=DEFAULT_DATA_ROOT,
-        max_rows=max_rows,
-        force=force,
-        dry_run=dry_run,
-    )
-    console.print(
-        f"Imported datasets: {manifest.imported_count}; "
-        f"Skipped datasets: {manifest.skipped_count}"
-    )
-    if not dry_run:
-        console.print("Saved import manifest: .decision_system/imports/import_manifest.json")
-
-
-@app.command()
-def inspect_imports() -> None:
-    """Inspect the latest public dataset import manifest."""
-
-    console.print(render_import_manifest(load_import_manifest()))
+# ---------------------------------------------------------------------------
+# build-context
+# ---------------------------------------------------------------------------
 
 
 @app.command()
 def build_context(
     question: str,
-    json_output: bool = typer.Option(False, "--json", help="Print structured JSON instead of Markdown."),
-    save: bool = typer.Option(False, "--save", help="Save context to .decision_system/contexts/<run_id>.json."),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured JSON instead of Markdown.",
+    ),
+    save: bool = typer.Option(
+        False,
+        "--save",
+        help="Save context to .decision_system/contexts/<run_id>.json.",
+    ),
 ) -> None:
     """Build decision context for a question using local stores.
 
@@ -609,25 +658,31 @@ def build_context(
     builder = DecisionContextBuilder()
     context = builder.build(question=question)
     saved_path = save_decision_context(context) if save else None
-
     if json_output:
         payload = context.model_dump(mode="json")
         if saved_path is not None:
             payload["saved_context_path"] = str(saved_path)
         typer.echo(json.dumps(payload, indent=2))
         return
-
     if saved_path is not None:
         console.print(f"Saved context: {saved_path}")
-
     summary = inspect_context(context)
     console.print(render_context_inspection(summary))
+
+
+# ---------------------------------------------------------------------------
+# ask  (the heaviest command)
+# ---------------------------------------------------------------------------
 
 
 @app.command()
 def ask(
     question: str,
-    top_k: int = typer.Option(6, "--top-k", help="Maximum evidence chunks to retrieve."),
+    top_k: int = typer.Option(
+        6,
+        "--top-k",
+        help="Maximum evidence chunks to retrieve.",
+    ),
     show_evidence: bool = typer.Option(
         False,
         "--show-evidence",
@@ -666,16 +721,39 @@ def ask(
 ) -> None:
     """Run the decision workflow for a CLI question.
 
-    Args:
-        question: Decision question to analyze.
-        top_k: Maximum evidence chunks to retrieve.
-        include_insights: Add relevant insights from the local insight store.
-        orchestrated: Include orchestration context from the latest run.
-        save_context_flag: Write the decision context JSON for inspection.
-
     The command prints Markdown to stdout. It uses the fake provider by default
     and does not execute external actions in v0.1.
+
+    Light-weight imports that were already at module scope remain there.
+    Heavy imports that only ``ask`` needs (e.g. ``build_workflow``, provider
+    factory, report renderer) are deferred into this function body so that
+    commands like ``decision-system --help`` and ``decision-system check-hygiene``
+    avoid pulling in the full LangGraph / Chroma stack on import time.
     """
+    # Defer heavy imports that tests do not monkeypatch.  Module-scope
+    # attributes that tests REPLACE via monkeypatch (DecisionContextBuilder,
+    # save_decision_context, render_decision_report) are kept at module level
+    # so calls inside ``ask`` pick up the patched versions.
+    from decision_system.agents.risk_analyst import run_risk_analysis
+    from decision_system.agents.technical_analyst import run_technical_analysis
+    from decision_system.graph.workflow import build_workflow
+    from decision_system.graphing.store import load_knowledge_graph
+    from decision_system.insights.inspector import (
+        inspect_insights as _inspect_insights_fn,
+        render_insight_inspection,
+    )
+    from decision_system.insights.store import load_insights, save_insights
+    from decision_system.ledger.claim_ledger import ClaimLedger
+    from decision_system.llm.factory import get_provider
+    from decision_system.ontology.inspector import (
+        inspect_ontology as _inspect_ontology_fn,
+        render_ontology_inspection,
+    )
+    from decision_system.orchestration.judge import build_judge_summary
+    from decision_system.orchestration.models import JudgeSummary, ProblemAnalysis
+    from decision_system.orchestration.store import load_latest_session
+    from decision_system.war_room.dispatcher import build_dispatch_spec
+    from decision_system.war_room.inspector import inspect_war_room
 
     settings = load_settings()
     active_provider = (provider or settings.provider).strip().lower()
@@ -703,8 +781,8 @@ def ask(
         context = builder.build(question=question, run_id=graph_input["run_id"])
         if save_context_flag:
             saved_context_path = save_decision_context(context)
-            if not json_output:
-                console.print(f"Saved context: {saved_context_path}")
+        if not json_output:
+            console.print(f"Saved context: {saved_context_path}")
 
     try:
         result = graph.invoke(graph_input)
@@ -722,22 +800,23 @@ def ask(
             )
             raise typer.Exit(code=1)
         raise
+
     saved_path = _save_run(result) if save_run else None
 
     # v0.5: Inject context into the report for insight-aware rendering
     if context is not None and (include_insights or orchestrated):
         from decision_system.models import DecisionReport
 
+        _render_report_fn_ref = render_decision_report
+
         report = result.get("final_report")
         if isinstance(report, DecisionReport):
-            from decision_system.reports.renderer import render_decision_report
-
             report_context = _report_context(
                 context,
                 include_insights=include_insights,
                 include_orchestration=orchestrated,
             )
-            new_report = render_decision_report(
+            new_report = _render_report_fn_ref(
                 question=question,
                 run_id=result.get("run_id", context.run_id),
                 claims=result.get("claims", []),
@@ -769,76 +848,16 @@ def ask(
             typer.echo(f"Saved run: {saved_path}")
 
 
-def _report_context(
-    context: DecisionContext,
-    *,
-    include_insights: bool,
-    include_orchestration: bool,
-) -> DecisionContext:
-    """Return a context view containing only report sections requested by flags."""
-
-    human_review_items = list(context.human_review_items)
-    if not include_orchestration:
-        human_review_items = [
-            item
-            for item in human_review_items
-            if not item.startswith("Judge ")
-        ]
-
-    return DecisionContext(
-        run_id=context.run_id,
-        question=context.question,
-        problem_analysis=context.problem_analysis,
-        relevant_data_categories=context.relevant_data_categories,
-        relevant_storage_tiers=context.relevant_storage_tiers,
-        relevant_ontology_concepts=context.relevant_ontology_concepts,
-        relevant_insights=context.relevant_insights if include_insights else [],
-        graph_signals=context.graph_signals if include_insights or include_orchestration else [],
-        orchestration_summary=context.orchestration_summary if include_orchestration else {},
-        judge_summary=context.judge_summary if include_orchestration else {},
-        human_review_items=human_review_items,
-        created_at=context.created_at,
-    )
-
-
-@app.command("eval")
-def evaluate(
-    json_output: bool = typer.Option(
-        False,
-        "--json",
-        help="Print structured evaluation JSON instead of text.",
-    ),
-    save_results: bool = typer.Option(
-        False,
-        "--save-results",
-        help="Save evaluation results under evals/results/.",
-    ),
-) -> None:
-    """Run the local offline evaluation suite."""
-
-    suite_result = run_eval_suite()
-    if save_results:
-        suite_result = save_eval_results(suite_result)
-
-    if json_output:
-        typer.echo(suite_result.model_dump_json(indent=2))
-    else:
-        typer.echo(render_eval_report(suite_result))
-
-    if not suite_result.passed:
-        raise typer.Exit(code=1)
-
-
 # ---------------------------------------------------------------------------
 # War-cabinet commands (v0.6)
 # ---------------------------------------------------------------------------
+
 
 @app.command()
 def plan_war_room(
     question: str,
 ) -> None:
     """Plan a war-cabinet run without executing agents."""
-
     spec = _build_wr_dispatch(question)
     ctx = spec.higher_context
     analysis = ctx.problem_analysis
@@ -865,7 +884,6 @@ def run_war_room(
     question: str,
 ) -> None:
     """Run a complete war-cabinet simulation."""
-
     run = _run_war_room_fn(question)
     console.print(f"Run ID: {run.run_id}")
     console.print(f"Question: {run.question}")
@@ -896,49 +914,24 @@ def run_war_room(
     if saved.exists():
         console.print(f"Saved war-room run: {saved}")
 
+
 @app.command()
 def inspect_war_room() -> None:
     """Inspect the latest saved war-room run."""
-
     run = load_latest_run()
     if run is None:
-        console.print("No war-room run found. Run `decision-system run-war-room` first.")
+        console.print(
+            "No war-room run found. Run `decision-system run-war-room` first."
+        )
         return
     summary = _inspect_war_room_impl(run)
     console.print(_render_war_room_inspection(summary))
 
 
-@app.command("eval-war-room")
-def evaluate_war_room(
-    json_output: bool = typer.Option(
-        False,
-        "--json",
-        help="Print structured evaluation JSON instead of text.",
-    ),
-    save_results: bool = typer.Option(
-        False,
-        "--save-results",
-        help="Save war-room eval results under .decision_system/evals/.",
-    ),
-) -> None:
-    """Run war-room offline evaluation cases with quality gates."""
-
-    suite = run_war_room_eval_suite()
-    if save_results:
-        suite = save_war_room_eval_results(suite)
-
-    if json_output:
-        typer.echo(json.dumps(suite.model_dump(mode="json"), indent=2))
-    else:
-        typer.echo(render_war_room_eval_report(suite))
-
-    if suite.failed_cases > 0:
-        raise typer.Exit(code=1)
-
-
 # ---------------------------------------------------------------------------
 # Provider experiment commands (v0.7)
 # ---------------------------------------------------------------------------
+
 
 @app.command()
 def provider_health() -> None:
@@ -954,25 +947,26 @@ def provider_health() -> None:
     lines.append("fake: always available (offline default)")
     lines.append("")
 
-    # NIM status
     nim_key_ok = bool(settings.nvidia_api_key)
     nim_model_ok = bool(settings.nvidia_nim_model)
     nim_status = "configured" if (nim_key_ok and nim_model_ok) else "incomplete"
     lines.append(f"nvidia_nim: {nim_status}")
-    lines.append(f"  API key: {'present' if nim_key_ok else 'missing'}")
-    lines.append(f"  model: {'present' if nim_model_ok else 'missing'} ({settings.nvidia_nim_model or 'unset'})")
-    lines.append(f"  base URL: {settings.nvidia_nim_base_url}")
+    lines.append(f" API key: {'present' if nim_key_ok else 'missing'}")
+    lines.append(
+        f" model: {'present' if nim_model_ok else 'missing'} ({settings.nvidia_nim_model or 'unset'})"
+    )
+    lines.append(f" base URL: {settings.nvidia_nim_base_url}")
     lines.append("")
 
-    # Ollama status
     ollama_model_ok = bool(settings.ollama_model)
     ollama_status = "configured" if ollama_model_ok else "incomplete"
     lines.append(f"ollama: {ollama_status}")
-    lines.append(f"  base URL: {settings.ollama_base_url}")
-    lines.append(f"  model: {'present' if ollama_model_ok else 'missing'} ({settings.ollama_model or 'unset'})")
-    lines.append(f"  timeout: {settings.ollama_timeout_seconds}s")
+    lines.append(f" base URL: {settings.ollama_base_url}")
+    lines.append(
+        f" model: {'present' if ollama_model_ok else 'missing'} ({settings.ollama_model or 'unset'})"
+    )
+    lines.append(f" timeout: {settings.ollama_timeout_seconds}s")
     lines.append("")
-
     console.print("\n".join(lines))
 
 
@@ -988,6 +982,9 @@ def provider_smoke(
 
     Validates AgentMemo and claims output.
     """
+    from decision_system.llm.factory import get_provider
+    from decision_system.models import AgentMemo, Claim, EvidenceChunk
+
     settings = load_settings()
     try:
         target_provider = get_provider(provider, settings=settings)
@@ -997,8 +994,6 @@ def provider_smoke(
     except Exception as exc:
         console.print(f"[red]Provider init failed: {exc}[/red]")
         raise typer.Exit(code=1)
-
-    from decision_system.models import AgentMemo, Claim, EvidenceChunk
 
     evidence = [
         EvidenceChunk(
@@ -1020,7 +1015,6 @@ def provider_smoke(
     tech: AgentMemo | None = None
     risk: AgentMemo | None = None
 
-    # Technical memo
     try:
         tech = target_provider.technical_memo(question, evidence)
         tech_valid = isinstance(tech, AgentMemo)
@@ -1029,16 +1023,19 @@ def provider_smoke(
     except Exception as exc:
         errors.append(f"technical_memo: {exc}")
 
-    # Risk memo
     try:
-        tech_stub = tech if isinstance(tech, AgentMemo) else AgentMemo(
-            agent_name="technical_analyst",
-            question=question,
-            summary="(stub)",
-            claims=[],
-            risks=[],
-            options=[],
-            cited_evidence_ids=[],
+        tech_stub = (
+            tech
+            if isinstance(tech, AgentMemo)
+            else AgentMemo(
+                agent_name="technical_analyst",
+                question=question,
+                summary="(stub)",
+                claims=[],
+                risks=[],
+                options=[],
+                cited_evidence_ids=[],
+            )
         )
         risk = target_provider.risk_memo(question, evidence, tech_stub)
         risk_valid = isinstance(risk, AgentMemo)
@@ -1047,7 +1044,6 @@ def provider_smoke(
     except Exception as exc:
         errors.append(f"risk_memo: {exc}")
 
-    # Claims
     try:
         memos: list[AgentMemo] = []
         if isinstance(tech, AgentMemo):
@@ -1055,20 +1051,22 @@ def provider_smoke(
         if isinstance(risk, AgentMemo):
             memos.append(risk)
         claims = target_provider.extract_claims("smoke-run", memos)
-        claims_valid = isinstance(claims, list) and all(isinstance(c, Claim) for c in claims)
+        claims_valid = isinstance(claims, list) and all(
+            isinstance(c, Claim) for c in claims
+        )
     except Exception as exc:
         errors.append(f"extract_claims: {exc}")
 
     if errors:
         console.print("[red]Smoke test FAILED:[/red]")
         for error in errors:
-            console.print(f"  - {error}")
+            console.print(f" - {error}")
         raise typer.Exit(code=1)
 
     console.print(f"[green]Smoke test PASSED[/green] for provider '{provider}'.")
-    console.print(f"  technical_memo: {tech_valid}")
-    console.print(f"  risk_memo: {risk_valid}")
-    console.print(f"  extract_claims: {claims_valid}")
+    console.print(f" technical_memo: {tech_valid}")
+    console.print(f" risk_memo: {risk_valid}")
+    console.print(f" extract_claims: {claims_valid}")
 
 
 @app.command("eval-provider")
@@ -1087,7 +1085,6 @@ def evaluate_provider(
     ),
 ) -> None:
     """Run provider experiment evaluation cases for a selected provider."""
-
     settings = load_settings()
     if provider not in {"fake", "nvidia_nim", "ollama"}:
         console.print(
@@ -1095,39 +1092,50 @@ def evaluate_provider(
         )
         raise typer.Exit(code=1)
 
-    # Check if the provider is actually available for non-fake providers
     if provider != "fake":
         if provider == "nvidia_nim":
             if not settings.nvidia_api_key or not settings.nvidia_nim_model:
                 if require_configured:
-                    console.print("[red]nvidia_nim is not configured (missing API key or model).[/red]")
+                    console.print(
+                        "[red]nvidia_nim is not configured (missing API key or model).[/red]"
+                    )
                     raise typer.Exit(code=1)
-                console.print("Skipping: nvidia_nim is not configured (missing API key or model).")
+                console.print(
+                    "Skipping: nvidia_nim is not configured (missing API key or model)."
+                )
                 return
         elif provider == "ollama":
             if not settings.ollama_model:
                 if require_configured:
-                    console.print("[red]ollama is not configured (missing OLLAMA_MODEL).[/red]")
+                    console.print(
+                        "[red]ollama is not configured (missing OLLAMA_MODEL).[/red]"
+                    )
                     raise typer.Exit(code=1)
-                console.print("Skipping: ollama is not configured (missing OLLAMA_MODEL).")
+                console.print(
+                    "Skipping: ollama is not configured (missing OLLAMA_MODEL)."
+                )
                 return
 
     cases = _load_provider_cases()
     if not cases:
-        console.print("No provider experiment cases found under evals/provider_cases/.")
+        console.print(
+            "No provider experiment cases found under evals/provider_cases/."
+        )
         return
+    from decision_system.provider_experiments.inspector import (
+        render_provider_experiments,
+    )
+    from decision_system.provider_experiments.runner import run_experiment_suite
+    from decision_system.provider_experiments.store import save_experiment_results
 
     suite = run_experiment_suite(cases, provider_name=provider, settings=settings)
-
     if save_results:
         output_path = save_experiment_results(suite)
         console.print(f"Saved results: {output_path}")
-
     if json_output:
         typer.echo(suite.model_dump_json(indent=2))
     else:
         console.print(render_provider_experiments(suite))
-
     if suite.failed_cases > 0:
         raise typer.Exit(code=1)
 
@@ -1135,6 +1143,7 @@ def evaluate_provider(
 # ---------------------------------------------------------------------------
 # Provider evaluation commands (v0.7.1)
 # ---------------------------------------------------------------------------
+
 
 @app.command()
 def eval_providers(
@@ -1164,7 +1173,6 @@ def eval_providers(
     NVIDIA NIM and Ollama are mocked by default. Real provider execution
     requires ``--manual-real-provider`` and is never needed for automated tests.
     """
-
     suite = run_provider_eval_suite(
         provider_name=provider,
         manual_real_provider=manual_real_provider,
@@ -1172,12 +1180,10 @@ def eval_providers(
     if save_results:
         saved_path = save_provider_eval_results(suite)
         suite = suite.model_copy(update={"saved_result_path": str(saved_path)})
-
     if json_output:
         typer.echo(suite.model_dump_json(indent=2))
     else:
         console.print(render_provider_eval_suite(suite))
-
     if suite.failed_cases > 0:
         raise typer.Exit(code=1)
 
@@ -1185,7 +1191,6 @@ def eval_providers(
 @app.command()
 def inspect_provider_evals() -> None:
     """Inspect the latest saved provider evaluation results."""
-
     suite = load_provider_eval_results()
     if suite is None:
         console.print(
@@ -1194,3 +1199,100 @@ def inspect_provider_evals() -> None:
         )
         return
     console.print(render_provider_eval_suite(suite))
+
+
+# ---------------------------------------------------------------------------
+# Evaluation
+# ---------------------------------------------------------------------------
+
+
+@app.command("eval")
+def evaluate(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured evaluation JSON instead of text.",
+    ),
+    save_results: bool = typer.Option(
+        False,
+        "--save-results",
+        help="Save evaluation results under evals/results/.",
+    ),
+) -> None:
+    """Run the local offline evaluation suite."""
+    suite_result = run_eval_suite()
+    if save_results:
+        suite_result = save_eval_results(suite_result)
+    if json_output:
+        typer.echo(suite_result.model_dump_json(indent=2))
+    else:
+        typer.echo(render_eval_report(suite_result))
+    if not suite_result.passed:
+        raise typer.Exit(code=1)
+
+
+@app.command("eval-war-room")
+def evaluate_war_room(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured evaluation JSON instead of text.",
+    ),
+    save_results: bool = typer.Option(
+        False,
+        "--save-results",
+        help="Save war-room eval results under .decision_system/evals/.",
+    ),
+) -> None:
+    """Run war-room offline evaluation cases with quality gates."""
+    suite = run_war_room_eval_suite()
+    if save_results:
+        suite = save_war_room_eval_results(suite)
+    if json_output:
+        typer.echo(json.dumps(suite.model_dump(mode="json"), indent=2))
+    else:
+        typer.echo(render_war_room_eval_report(suite))
+    if suite.failed_cases > 0:
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# Shared context helpers (used inside ask)
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Report context helper (used inside the ask command)
+# ---------------------------------------------------------------------------
+
+
+def _report_context(
+    context: DecisionContext,
+    *,
+    include_insights: bool,
+    include_orchestration: bool,
+) -> DecisionContext:
+    """Return a context view containing only report sections requested by flags."""
+    human_review_items = list(context.human_review_items)
+    if not include_orchestration:
+        human_review_items = [
+            item
+            for item in human_review_items
+            if not item.startswith("Judge ")
+        ]
+    return DecisionContext(
+        run_id=context.run_id,
+        question=context.question,
+        problem_analysis=context.problem_analysis,
+        relevant_data_categories=context.relevant_data_categories,
+        relevant_storage_tiers=context.relevant_storage_tiers,
+        relevant_ontology_concepts=context.relevant_ontology_concepts,
+        relevant_insights=context.relevant_insights if include_insights else [],
+        graph_signals=context.graph_signals if include_insights or include_orchestration else [],
+        orchestration_summary=(
+            context.orchestration_summary if include_orchestration else {}
+        ),
+        judge_summary=context.judge_summary if include_orchestration else {},
+        human_review_items=human_review_items,
+        created_at=context.created_at,
+    )

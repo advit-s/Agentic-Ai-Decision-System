@@ -265,7 +265,7 @@ v0.9.1 establishes `decision_system.__version__` as the single source of truth f
 
 Status: Accepted
 
-The API endpoint `POST /evals/providers` routes to the v0.7.1 `provider_eval` harness (`decision_system.provider_eval.runer.run_provider_eval_suite`), not the older `provider_experiments` module. This ensures API callers get the full 8-case evaluation coverage with schema validity, citation grounding, hallucination risk, contradiction handling, and error probes.
+The API endpoint `POST /evals/providers` routes to the v0.7.1 `provider_eval` harness (`decision_system.provider_eval.runner.run_provider_eval_suite`), not the older `provider_experiments` module. This ensures API callers get the full 8-case evaluation coverage with schema validity, citation grounding, hallucination risk, contradiction handling, and error probes.
 
 ## ADR-028: Friendly Missing-Index Errors for Chroma
 

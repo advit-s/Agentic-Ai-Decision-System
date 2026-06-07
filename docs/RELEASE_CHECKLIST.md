@@ -74,7 +74,7 @@ Run these offline with no API key configured:
 
 ## Generated File Cleanup
 
-Before cutting a release, remove generated and cached files from the working tree. Two convenience scripts are provided:
+Before cutting a release, use the safe cleanup helper (`scripts/clean-generated.sh --force` / `scripts/clean-generated.ps1 -Force`) which is dry-run by default. It protects `datasets/`, `.env`, `company_docs/`, and `company_data/`. Two convenience scripts are provided:
 
 - macOS/Linux: `scripts/clean-generated.sh`
 - Windows/PowerShell: `scripts/clean-generated.ps1`

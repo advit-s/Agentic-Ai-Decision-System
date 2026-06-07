@@ -166,6 +166,8 @@ The v0.6.1 evaluation layer runs the actual war-room pipeline for known business
 
 The v0.9 UI is a local prototype for exploring reports, insights, ontology mappings, war-room runs, provider evals, and data profiles. It can run against mock data and does not require auth, database, or real providers.
 
+**Web asset layout.** `web/` is the source/standalone directory for manual or static-server browsing. `src/decision_system/web/` is the packaged copy served by the FastAPI API. Both directories must contain identical content; never edit only one side without mirroring the change.
+
 The UI lives under `web/` and uses static HTML, CSS, JavaScript, and lightweight mock JSON fixtures. It is mock-first, so it works when the backend API is unavailable. It is served automatically at `http://127.0.0.1:8000` when you run the FastAPI API:
 
 ```bash

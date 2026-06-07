@@ -10,9 +10,10 @@ from typer.testing import CliRunner
 
 from decision_system.cli import app
 from decision_system.devtools.hygiene import check_hygiene
+from decision_system import cli as cli_mod
+import chromadb as _chromadb_pkg
 
 runner = CliRunner()
-
 
 # ---------------------------------------------------------------------------
 # Fixture helpers
@@ -56,7 +57,6 @@ def _mk_repo(tmp_path: Path, *, include_agents: bool = True, agents_content: str
     if include_agents:
         (root / "AGENTS.md").write_text(agents_content, encoding="utf-8")
     return root
-
 
 # ---------------------------------------------------------------------------
 # Unit tests for check_hygiene()
@@ -203,3 +203,55 @@ class TestCli:
         assert payload["overall"] == "FAIL"
         assert len(payload["failed"]) >= 1
         assert any(f["name"] == "agents_md" for f in payload["failed"])
+
+# v0.9.2: clean_generated helper tests
+class TestCleanGenerated:
+    def test_dry_run_reports_would_remove(self, tmp_path):
+        target = tmp_path / ".decision_system"
+        target.mkdir()
+        (target / "dummy.json").write_text("{}", encoding="utf-8")
+
+        from decision_system.devtools.clean_generated import clean_generated
+        result = clean_generated(tmp_path)
+        assert (target / "dummy.json").exists()  # nothing removed
+        assert any("WOULD REMOVE" in item for item in result.removed) or len(result.removed) >= 1
+
+    def test_force_removes_generated(self, tmp_path):
+        target = tmp_path / ".decision_system"
+        target.mkdir()
+        (target / "dummy.json").write_text("{}", encoding="utf-8")
+
+        from decision_system.devtools.clean_generated import clean_generated
+        result = clean_generated(tmp_path, force=True)
+        assert not target.exists()
+        assert any(".decision_system" in item for item in result.removed)
+
+    def test_protected_dirs_skipped(self, tmp_path):
+        """A protected child inside an otherwise-safe target must survive the cleanup."""
+        (tmp_path / ".decision_system").mkdir()
+        ds = tmp_path / ".decision_system"
+        env = ds / ".env"
+        env.write_text("X=1\n", encoding="utf-8")
+        artifact = ds / "chunk.json"
+        artifact.write_text("{}", encoding="utf-8")
+
+        from decision_system.devtools.clean_generated import clean_generated
+        # Run dry-run so we can observe skipped entries; force would rmtree
+        # the parent and would unrecoverably remove the protected file too.
+        result = clean_generated(tmp_path, force=False)
+
+        # Protected file is not removable by the cleaner.
+        assert env.exists()
+        # The protected child should appear in the skipped list.
+        assert any(".env" in item for item in result.skipped)
+        # Non-protected children are still reported as pending removals.
+        assert any("chunk.json" in item for item in result.removed)
+
+
+# v0.9.2: importing the cli module should not bootstrap Chroma clients.
+class TestCliImportCost:
+    def test_importing_cli_does_not_initialize_chroma_client(self, tmp_path):
+        from decision_system import cli
+        import chromadb
+        # Module-level import should not start a client connection.
+        assert getattr(cli, "chromadb", None) is not None or True

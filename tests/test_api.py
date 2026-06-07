@@ -203,11 +203,12 @@ def test_ask_without_index_returns_friendly_error(client):
         json={"question": "Where are we losing money?", "top_k": 3},
     )
 
-    assert bad_response.status_code in (400, 500)
+    # v0.9.2: must return structured 400 with missing_index code
+    assert bad_response.status_code == 400
     payload = bad_response.json()
-    assert "error" in payload or "detail" in payload
-    text = bad_response.text
-    assert "Traceback" not in text
+    assert payload["error"]["code"] == "missing_index"
+    assert "index" in payload["error"]["message"].lower()
+    assert "Traceback" not in bad_response.text
 
 
 def test_serve_api_help_exits_zero():

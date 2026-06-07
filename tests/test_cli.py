@@ -360,8 +360,10 @@ def test_cli_ask_without_index_gives_friendly_message(tmp_path, monkeypatch):
 
     result = CliRunner().invoke(app, ["ask", "Where are we losing money?"])
 
+    # v0.9.2: must exit nonzero with friendly message, no traceback
     assert result.exit_code != 0
     assert "No document index found" in result.output
+    assert "decision-system index" in result.output
     assert "Traceback" not in result.output
 
 

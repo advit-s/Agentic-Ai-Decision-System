@@ -127,3 +127,43 @@ def test_fastapi_ui_route_returns_page_if_api_module_exists():
 
     assert response.status_code == 200
     assert "Local Web UI Prototype" in response.text or "decision" in response.text.lower()
+
+# v0.9.2: root and package web assets must stay byte-for-byte identical.
+_SYNCED_FILES = [
+    "index.html",
+    "app.js",
+    "styles.css",
+]
+
+_MOCK_SUBDIR = "mock-data"
+
+
+def _web_paths():
+    root = Path(__file__).resolve().parents[1]
+    return root / "web", root / "src" / "decision_system" / "web"
+
+
+def test_root_and_package_web_assets_match():
+    root_web, pkg_web = _web_paths()
+    for name in _SYNCED_FILES:
+        root_file = root_web / name
+        pkg_file = pkg_web / name
+        assert root_file.exists(), f"Missing root web file: {root_file}"
+        assert pkg_file.exists(), f"Missing package web file: {pkg_file}"
+        assert root_file.read_bytes() == pkg_file.read_bytes(), (
+            f"Web asset drift detected: {name} differs between root and package."
+        )
+
+
+def test_root_and_package_mock_data_match():
+    root_web, pkg_web = _web_paths()
+    root_mock = root_web / _MOCK_SUBDIR
+    pkg_mock = pkg_web / _MOCK_SUBDIR
+    assert root_mock.exists() and pkg_mock.exists()
+    root_files = sorted(p.name for p in root_mock.iterdir() if p.is_file())
+    pkg_files = sorted(p.name for p in pkg_mock.iterdir() if p.is_file())
+    assert root_files == pkg_files
+    for name in root_files:
+        assert (root_mock / name).read_bytes() == (pkg_mock / name).read_bytes(), (
+            f"Mock data drift detected: {name} differs between root and package."
+        )
