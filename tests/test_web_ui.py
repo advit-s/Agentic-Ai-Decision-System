@@ -96,6 +96,18 @@ def test_mock_data_contracts_cover_required_views():
     assert len(graph["relationships"]) >= 1
 
 
+def test_package_relative_web_dir_exists():
+    """Package-relative web assets should exist for pip-installed environments."""
+    import decision_system
+
+    pkg_dir = Path(decision_system.__file__).parent
+    web_dir = pkg_dir / "web"
+    assert web_dir.exists(), f"Package web directory missing: {web_dir}"
+    assert (web_dir / "index.html").exists()
+    assert (web_dir / "app.js").exists()
+    assert (web_dir / "styles.css").exists()
+
+
 def test_fastapi_ui_route_returns_page_if_api_module_exists():
     spec = importlib.util.find_spec("decision_system.api")
     if spec is None:

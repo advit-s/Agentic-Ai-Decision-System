@@ -72,6 +72,19 @@ Run these offline with no API key configured:
 - [ ] `.gitignore` covers all generated paths listed above.
 - [ ] No generated demo data (`company_data/**/imported_*`) is in the index.
 
+## Generated File Cleanup
+
+Before cutting a release, remove generated and cached files from the working tree. Two convenience scripts are provided:
+
+- macOS/Linux: `scripts/clean-generated.sh`
+- Windows/PowerShell: `scripts/clean-generated.ps1`
+
+Or run the equivalent commands directly:
+
+- [ ] Bash: `find . -type d -name __pycache__ -prune -exec rm -rf {} + && rm -rf .pytest_cache .decision_system`
+- [ ] PowerShell: `Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force; Remove-Item .pytest_cache -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item .decision_system -Recurse -Force -ErrorAction SilentlyContinue`
+- [ ] Verify `git status --short` shows no generated files after cleanup.
+
 ## Skills Directory Audit
 
 The following skills directories may exist in the repo:

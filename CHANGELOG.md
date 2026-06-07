@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.1] - 2026-06-06
+
+### Fixed
+- Aligned API version reporting with project version (0.9.1).
+- Routed API provider evaluation endpoint to the canonical provider-eval harness.
+- Added friendly missing-index errors for CLI and API ask flows.
+- Hardened web UI static asset packaging (package-relative path).
+- Clarified provider evaluation command naming in documentation.
+- Improved release cleanup guidance for generated files and caches.
+
 ## [0.9.0] - 2026-06-06
 
 ### Added

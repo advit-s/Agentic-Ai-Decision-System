@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from decision_system import __version__
 from decision_system.api.models import ApiError, ErrorResponse
 from decision_system.api import routes_context
 from decision_system.api import routes_data
@@ -20,11 +21,11 @@ from decision_system.api import routes_war_room
 
 
 def create_app() -> FastAPI:
-    """Create the v0.8 local-development FastAPI app."""
+    """Create the local-development FastAPI app."""
 
     api = FastAPI(
         title="Agentic Decision System API",
-        version="0.8.0",
+        version=__version__,
         description="Local FastAPI wrapper over the offline decision-system backend.",
     )
 
@@ -41,13 +42,17 @@ def create_app() -> FastAPI:
 
     # Mount the static files for the web UI prototype at the root.
     # We do this after registering all API routes so they take precedence.
-    import os
     from pathlib import Path
     from fastapi.staticfiles import StaticFiles
 
-    web_dir = Path(__file__).resolve().parents[3] / "web"
+    # Prefer package-relative web assets (survives pip install).
+    package_web = Path(__file__).resolve().parent / "web"
+    # Fallback to repo-root for editable installs and existing tests.
+    repo_web = Path(__file__).resolve().parents[3] / "web"
+    web_dir = package_web if package_web.exists() else repo_web
     if web_dir.exists():
         api.mount("/", StaticFiles(directory=str(web_dir), html=True), name="web")
+
 
     @api.exception_handler(HTTPException)
     async def handle_http_exception(

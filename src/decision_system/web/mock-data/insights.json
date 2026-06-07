@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-06-06T09:15:00Z",
+  "insights": [
+    {
+      "id": "insight-revenue-concentration",
+      "title": "Enterprise renewals dominate revenue exposure",
+      "severity": "high",
+      "category": "financial",
+      "confidence": "0.82",
+      "summary": "Three enterprise customers account for most renewal value in the mock profile, creating quarter-end concentration risk.",
+      "evidence_refs": ["finance-q2", "customer-renewals"]
+    },
+    {
+      "id": "insight-refund-onboarding",
+      "title": "Refunds cluster around onboarding delays",
+      "severity": "medium",
+      "category": "customer",
+      "confidence": "0.74",
+      "summary": "Refund notes and support categories point to delayed onboarding as a repeat driver of revenue leakage.",
+      "evidence_refs": ["customer-refunds", "support-escalations"]
+    },
+    {
+      "id": "insight-legacy-auth",
+      "title": "LegacyAuth remains a migration dependency",
+      "severity": "critical",
+      "category": "technical",
+      "confidence": "0.88",
+      "summary": "The local graph links billing migration, LegacyAuth, and rollback risk, so platform review is required before migration approval.",
+      "evidence_refs": ["legacy-auth-risk", "graph-rel-01"]
+    },
+    {
+      "id": "insight-paid-search",
+      "title": "Paid search ROI is below target",
+      "severity": "low",
+      "category": "marketing",
+      "confidence": "0.68",
+      "summary": "The mock marketing profile shows paid search spend with weaker conversion than lifecycle campaigns.",
+      "evidence_refs": ["marketing-roi"]
+    }
+  ]
+}

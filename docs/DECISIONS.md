@@ -254,3 +254,27 @@ Status: Accepted
 v0.3.2 imports local public `.csv`, `.xlsx`, and `.xls` files from ignored `datasets/` into categorized CSV files under `company_data/<category>/`. Imported files are named `imported_*.csv` and remain ignored by Git. This keeps raw public downloads and generated conversions out of commits while allowing the existing CSV profiler to inspect them.
 
 SQL Server `.bak` files are skipped with a clear manifest record instead of adding native database restore support.
+
+## ADR-026: Version Reporting Single Source of Truth
+
+Status: Accepted
+
+v0.9.1 establishes `decision_system.__version__` as the single source of truth for the project version. The FastAPI app reads this value for its app version and `/health` response, and it is updated consistently with `pyproject.toml`.
+
+## ADR-027: Provider Eval Endpoint Uses Canonical Harness
+
+Status: Accepted
+
+The API endpoint `POST /evals/providers` routes to the v0.7.1 `provider_eval` harness (`decision_system.provider_eval.runer.run_provider_eval_suite`), not the older `provider_experiments` module. This ensures API callers get the full 8-case evaluation coverage with schema validity, citation grounding, hallucination risk, contradiction handling, and error probes.
+
+## ADR-028: Friendly Missing-Index Errors for Chroma
+
+Status: Accepted
+
+When the Chroma vector store has not been populated, `chromadb.errors.NotFoundError` is caught at both the CLI `ask` command and the API `POST /ask` endpoint. The CLI and API both return a friendly message (`"Collection not found. Run decision-system index first."`) instead of an unhandled traceback. The API returns a structured 400 response with `code: "missing_index"`.
+
+## ADR-029: Web UI Static Assets Available From Package and Repo Root
+
+Status: Accepted
+
+The web UI static files are always accessible from two locations: the original `web/` directory at the repo root (for standalone static-server use) and `src/decision_system/web/` inside the package (for FastAPI static mounts). The package-relative path ensures the API can serve the web UI correctly regardless of where the installed package is located.

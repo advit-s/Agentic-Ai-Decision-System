@@ -14,6 +14,11 @@ import typer
 from pydantic import BaseModel
 from rich.console import Console
 
+try:
+    import chromadb
+except ImportError:  # pragma: no cover - chromadb is a required dependency
+    chromadb = None  # type: ignore[assignment]
+
 from decision_system.config import load_settings
 from decision_system.data_catalog.demo_data import seed_demo_data as _seed_demo_data_fn
 from decision_system.devtools.hygiene import HygieneReport, check_hygiene as _run_hygiene_fn
@@ -703,6 +708,13 @@ def ask(
 
     try:
         result = graph.invoke(graph_input)
+    except chromadb.errors.NotFoundError as _idx_exc:
+        console.print(
+            "[red]No document index found. "
+            "Run [bold]decision-system index[/bold] first, "
+            "or add documents to [bold]company_docs/[/bold].[/red]"
+        )
+        raise typer.Exit(code=1) from _idx_exc
     except Exception as exc:
         if active_provider != "fake":
             console.print(

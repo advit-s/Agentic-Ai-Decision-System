@@ -351,6 +351,20 @@ def test_build_context_save_writes_context(tmp_path, monkeypatch):
     assert saved_paths[0].exists()
 
 
+def test_cli_ask_without_index_gives_friendly_message(tmp_path, monkeypatch):
+    _configure_test_store(
+        tmp_path,
+        monkeypatch,
+        collection_name="never_indexed_chunks",
+    )
+
+    result = CliRunner().invoke(app, ["ask", "Where are we losing money?"])
+
+    assert result.exit_code != 0
+    assert "No document index found" in result.output
+    assert "Traceback" not in result.output
+
+
 def test_extract_graph_exits_0(tmp_path, monkeypatch):
     docs_dir, _ = _configure_test_store(tmp_path, monkeypatch)
     (docs_dir / "systems.md").write_text(

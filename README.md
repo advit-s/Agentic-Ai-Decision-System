@@ -102,6 +102,8 @@ decision-system inspect-provider-evals
 
 Provider evaluation is offline by default. NVIDIA NIM and Ollama are optional test providers and are mocked in automated tests.
 
+> **Command naming note:** `decision-system eval-provider --provider X` (singular) is the older v0.7 experiment smoke/eval command (3 cases, `provider_experiments` path). `decision-system eval-providers` (plural) is the canonical v0.7.1 provider evaluation harness (8 cases, `provider_eval` path). Both commands remain available.
+
 The v0.7.1 harness compares structured memo output, structured claims, contradiction handling, unsupported-claim handling, citation grounding, malformed JSON handling, refusal/failure handling, and timeout/error handling. Saved results are written to `.decision_system/provider_evals/provider_eval_results.json`, which is generated local state and ignored by Git.
 
 ## API Backend

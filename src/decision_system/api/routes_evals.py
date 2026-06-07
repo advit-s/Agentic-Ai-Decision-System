@@ -9,16 +9,15 @@ from pydantic import BaseModel
 
 from decision_system.api.models import ApiRunResponse, api_error, to_jsonable
 from decision_system.config import load_settings
-from decision_system.provider_experiments.runner import (
-    load_eval_cases as load_provider_eval_cases,
-    run_experiment_suite,
+from decision_system.provider_eval.runner import (
+    DEFAULT_PROVIDER_EVAL_CASES,
+    run_provider_eval_suite,
 )
-from decision_system.provider_experiments.store import save_experiment_results
+from decision_system.provider_eval.store import save_provider_eval_results
 from decision_system.war_room.evals import (
     run_war_room_eval_suite,
     save_war_room_eval_results,
 )
-
 
 router = APIRouter(tags=["evals"])
 
@@ -28,9 +27,9 @@ class EvalRequest(BaseModel):
 
 
 class ProviderEvalRequest(BaseModel):
-    provider: str = "fake"
+    provider: str | None = None
     save_results: bool = False
-    require_configured: bool = False
+    manual_real_provider: bool = False
 
 
 @router.post("/evals/war-room", response_model=ApiRunResponse)
@@ -49,51 +48,34 @@ def eval_war_room(request: EvalRequest | None = None) -> ApiRunResponse:
 @router.post("/evals/providers", response_model=ApiRunResponse)
 def eval_providers(request: ProviderEvalRequest | None = None) -> ApiRunResponse:
     request = request or ProviderEvalRequest()
-    settings = load_settings()
-    provider = request.provider.strip().lower()
-    if provider not in {"fake", "nvidia_nim", "ollama"}:
+    provider = (request.provider or "").strip().lower() or None
+
+    if provider is not None and provider not in {"fake", "nvidia_nim", "ollama"}:
         raise api_error(
             400,
             "unknown_provider",
             f"Unknown provider '{provider}'. Expected one of: fake, nvidia_nim, ollama.",
         )
 
-    if provider == "nvidia_nim" and (
-        not settings.nvidia_api_key or not settings.nvidia_nim_model
-    ):
-        if request.require_configured:
-            raise api_error(
-                400,
-                "provider_not_ready",
-                "nvidia_nim is not configured (missing API key or model).",
-            )
-        return ApiRunResponse(
-            run_id=str(uuid4()),
-            status="skipped",
-            data={"provider_name": provider, "reason": "nvidia_nim is not configured"},
+    # The new provider_eval harness handles mocked behavior for NIM/Ollama
+    # by default. No API keys or Ollama daemon are required.
+    try:
+        suite = run_provider_eval_suite(
+            provider_name=provider,
+            manual_real_provider=request.manual_real_provider,
         )
+    except Exception as exc:
+        raise api_error(
+            500,
+            "provider_eval_error",
+            f"Provider evaluation failed: {exc}",
+        ) from exc
 
-    if provider == "ollama" and not settings.ollama_model:
-        if request.require_configured:
-            raise api_error(
-                400,
-                "provider_not_ready",
-                "ollama is not configured (missing OLLAMA_MODEL).",
-            )
-        return ApiRunResponse(
-            run_id=str(uuid4()),
-            status="skipped",
-            data={"provider_name": provider, "reason": "ollama is not configured"},
-        )
-
-    suite = run_experiment_suite(
-        load_provider_eval_cases(),
-        provider_name=provider,
-        settings=settings,
-    )
     data = to_jsonable(suite)
     if request.save_results:
-        data["saved_path"] = str(save_experiment_results(suite))
+        saved_path = save_provider_eval_results(suite)
+        data["saved_path"] = str(saved_path)
+
     return ApiRunResponse(
         run_id=str(uuid4()),
         status="completed" if suite.failed_cases == 0 else "failed",

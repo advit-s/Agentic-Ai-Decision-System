@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from decision_system import __version__
 from decision_system.api.models import ApiStatusResponse
 from decision_system.config import load_settings
 
@@ -17,7 +18,7 @@ def health() -> ApiStatusResponse:
     return ApiStatusResponse(
         status="ok",
         service="decision-system-api",
-        version="0.8.0",
+        version=__version__,
         mode="local-development",
         provider=settings.provider,
         auth="none",

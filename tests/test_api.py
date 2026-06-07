@@ -7,6 +7,7 @@ from typer.testing import CliRunner
 
 from decision_system.api.app import app
 from decision_system.cli import app as cli_app
+from decision_system.provider_eval.runner import DEFAULT_PROVIDER_EVAL_CASES
 
 
 @pytest.fixture()
@@ -157,8 +158,23 @@ def test_ontology_insights_and_eval_endpoints(client):
 
     assert provider_eval_response.status_code == 200
     provider_payload = provider_eval_response.json()
-    assert provider_payload["data"]["provider_name"] == "fake"
+    assert provider_payload["data"]["provider_names"] == ["fake"]
+    assert provider_payload["status"] == "completed"
     assert provider_payload["data"]["failed_cases"] == 0
+    assert len(provider_payload["data"]["results"]) == len(
+        DEFAULT_PROVIDER_EVAL_CASES
+    )
+
+    # Default request (no provider) returns all three providers as mocked results
+    provider_all_response = client.post("/evals/providers", json={})
+    assert provider_all_response.status_code == 200
+    all_payload = provider_all_response.json()
+    assert set(all_payload["data"]["provider_names"]) == {
+        "fake",
+        "nvidia_nim",
+        "ollama",
+    }
+    assert all_payload["data"]["manual_real_provider"] is False
 
 
 def test_api_errors_use_consistent_shape_without_tracebacks(client):
@@ -179,6 +195,19 @@ def test_api_errors_use_consistent_shape_without_tracebacks(client):
     assert provider_payload["error"]["code"] == "provider_not_ready"
     assert "NVIDIA_API_KEY" in provider_payload["error"]["message"]
     assert "Traceback" not in provider_response.text
+
+
+def test_ask_without_index_returns_friendly_error(client):
+    bad_response = client.post(
+        "/ask",
+        json={"question": "Where are we losing money?", "top_k": 3},
+    )
+
+    assert bad_response.status_code in (400, 500)
+    payload = bad_response.json()
+    assert "error" in payload or "detail" in payload
+    text = bad_response.text
+    assert "Traceback" not in text
 
 
 def test_serve_api_help_exits_zero():

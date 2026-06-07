@@ -329,6 +329,14 @@ contradiction handling, unsupported-claim handling, errors, and notes. It does
 not change `DECISION_PROVIDER`, does not write reports, does not bypass the
 claim ledger, and stores saved results under ignored generated local state.
 
+## API Version Reporting and Provider Eval Hardening (v0.9.1)
+
+v0.9.1 adds post-merge hardening for the v0.9 web UI and API:
+- The FastAPI app reports the project version (`decision_system.__version__`) at `/health` and in the app version field.
+- The provider eval API endpoint routes to the canonical `provider_eval` harness (not `provider_experiments`), surfaced as `POST /evals/providers` with `ProviderEvalRequest`.
+- Both CLI `ask` and API `POST /ask` surface `chromadb.errors.NotFoundError` as friendly "missing index" messages instead of raw tracebacks.
+- The web UI static files are now served from both the repo-root `web/` path and the package-relative `src/decision_system/web/` path for robustness.
+
 ## Local Web UI Prototype (v0.9)
 
 v0.9 adds a dependency-free local UI under `web/` for inspecting the artifacts
