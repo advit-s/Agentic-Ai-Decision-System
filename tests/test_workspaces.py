@@ -111,6 +111,7 @@ def test_workspace_status_counts_artifacts(workspace_env, runner):
     # Manually add artifacts
     settings = load_settings()
     repo, db = _workspace_repo(settings)
+    art_repo = None
     try:
         ws = repo.get_active()
         assert ws is not None
@@ -376,6 +377,104 @@ def test_import_artifacts_idempotent(tmp_path, runner, monkeypatch):
     r2 = runner.invoke(app, ["workspace-commands", "import-artifacts"])
     assert r2.exit_code == 0
     assert "skipped" in r2.output
+
+
+# ---------------------------------------------------------------------------
+# Top-level alias tests (v1.0.1: commands available without workspace-commands)
+# ---------------------------------------------------------------------------
+
+
+def test_top_level_init_workspace(workspace_env, runner):
+    result = runner.invoke(app, ["init-workspace", "top-demo"])
+    assert result.exit_code == 0
+    assert "top-demo" in result.output
+
+
+def test_top_level_list_workspaces(workspace_env, runner):
+    runner.invoke(app, ["init-workspace", "list-alias-a"])
+    runner.invoke(app, ["init-workspace", "list-alias-b"])
+    result = runner.invoke(app, ["list-workspaces"])
+    assert result.exit_code == 0
+    assert "list-alias-a" in result.output
+    assert "list-alias-b" in result.output
+
+
+def test_top_level_use_workspace(workspace_env, runner):
+    runner.invoke(app, ["init-workspace", "use-a"])
+    runner.invoke(app, ["init-workspace", "use-b"])
+    result = runner.invoke(app, ["use-workspace", "use-a"])
+    assert result.exit_code == 0
+    assert "use-a" in result.output
+    settings = load_settings()
+    repo, db = _workspace_repo(settings)
+    try:
+        active = repo.get_active()
+    finally:
+        db.close()
+    assert active is not None and active.name == "use-a"
+
+
+def test_top_level_workspace_status(workspace_env, runner):
+    runner.invoke(app, ["init-workspace", "status-alias"])
+    result = runner.invoke(app, ["workspace-status"])
+    assert result.exit_code == 0
+    assert "status-alias" in result.output
+
+
+def test_top_level_inspect_workspace(workspace_env, runner):
+    runner.invoke(app, ["init-workspace", "inspect-alias"])
+    result = runner.invoke(app, ["inspect-workspace"])
+    assert result.exit_code == 0
+    assert "inspect-alias" in result.output
+
+
+def test_top_level_import_workspace_positional(workspace_env, runner, tmp_path):
+    runner.invoke(app, ["init-workspace", "export-alias"])
+    runner.invoke(app, ["export-workspace"])
+    export_path = (
+        Path(".decision_system") / "workspaces" / "exports" / "export-alias.json"
+    )
+    assert export_path.exists()
+
+    # Copy with a different workspace name to avoid conflict
+    import shutil
+
+    import_path = tmp_path / "imported-alias.json"
+    shutil.copy(export_path, import_path)
+    data = json.loads(import_path.read_text(encoding="utf-8"))
+    data["workspace"]["name"] = "imported-pos"
+    data["workspace"]["workspace_id"] = "imported-pos"
+    import_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["import-workspace", str(import_path)])
+    assert result.exit_code == 0
+    assert "imported" in result.output
+
+
+def test_top_level_import_workspace_no_path_fails(workspace_env, runner):
+    result = runner.invoke(app, ["import-workspace"])
+    assert result.exit_code != 0
+
+
+def test_top_level_import_artifacts(workspace_env, runner, monkeypatch):
+    ds = Path(".decision_system") / "insights"
+    ds.mkdir(parents=True, exist_ok=True)
+    (ds / "insights.json").write_text(
+        json.dumps({"insights": [{"category": "t", "severity": "low"}]}),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(workspace_env[0])
+    runner.invoke(app, ["init-workspace", "import-alias"])
+    result = runner.invoke(app, ["import-artifacts"])
+    assert result.exit_code == 0
+    assert "Imported" in result.output
+
+
+def test_workspace_commands_sub_app_still_works(workspace_env, runner):
+    """Backward-compat: workspace-commands prefix still functions."""
+    result = runner.invoke(app, ["workspace-commands", "list-workspaces"])
+    assert result.exit_code == 0
+    assert "workspace" in result.output.lower()
 
 
 def test_version_consistency(tmp_path):

@@ -1,3 +1,10 @@
+## [1.0.1] - 2026-06-08
+### Fixed
+- Synced root and packaged web UI assets.
+- Added top-level workspace CLI command aliases.
+- Fixed workspace API activation so only one workspace is active.
+- Tightened workspace CLI/API integration tests.
+
 ## [1.0.0] - 2026-06-07
 ### Added
 - Local SQLite workspace store under `src/decision_system/storage/` with idempotent migrations.

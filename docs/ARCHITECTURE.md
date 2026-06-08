@@ -87,7 +87,7 @@ Generated JSON outputs (.decision_system/{graph,profiles,ontology,insights,conte
     v
 SQLite workspace DB (.decision_system/workspaces/workspaces.sqlite)
     |
-    | workspace-commands CLI
+    | top-level workspace CLI commands
     v
 Typed artifacts per workspace (data_profile, ontology_map, insight_store, decision_context, decision_report, orchestration_run, war_room_run, provider_eval_run, graph, import_manifest)
 ```
@@ -108,7 +108,7 @@ The workspace CLI is a top-level Typer sub-app:
 - `decision-system workspace-status` -- show active workspace + artifact type counts
 - `decision-system inspect-workspace [--json]` -- inspect metadata + recent artifacts
 - `decision-system export-workspace [--output path]` -- export workspace to JSON bundle
-- `decision-system import-workspace --input path [--force]` -- import workspace JSON bundle
+- `decision-system import-workspace <path> [--force]` -- import workspace JSON bundle
 - `decision-system import-artifacts [--dry-run]` -- import existing generated JSON outputs into active workspace
 
 

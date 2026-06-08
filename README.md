@@ -141,8 +141,9 @@ decision-system list-workspaces
 decision-system use-workspace local-demo
 decision-system workspace-status
 decision-system inspect-workspace
+decision-system inspect-workspace --json
 decision-system export-workspace
-decision-system import-workspace --input path/to/export.json
+decision-system import-workspace .decision_system/workspaces/exports/local-demo-export.json
 ```
 
 v1.0 adds local SQLite-backed workspaces while preserving generated JSON outputs. Workspaces are local-only and do not add auth, cloud sync, or enterprise database support.

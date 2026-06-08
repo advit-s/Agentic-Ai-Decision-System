@@ -86,7 +86,7 @@ def create_workspace(req: CreateWorkspaceRequest) -> dict[str, Any]:
         existing = ws_repo.get_by_name(req.name)
         if existing is not None:
             if req.activate:
-                ws_repo.ensure_active(existing.workspace_id)
+                ws_repo.set_active(existing.workspace_id)
                 existing = ws_repo.get_by_id(existing.workspace_id)
             return {
                 "status": "exists",
@@ -106,7 +106,7 @@ def create_workspace(req: CreateWorkspaceRequest) -> dict[str, Any]:
         )
         ws_repo.ensure_exists(ws)
         if req.activate:
-            ws_repo.ensure_active(ws.workspace_id)
+            ws_repo.set_active(ws.workspace_id)
         created = ws_repo.get_by_id(ws.workspace_id)
         return {
             "status": "created",
@@ -146,7 +146,7 @@ def activate_workspace(name: str) -> dict[str, Any]:
                 "status": "error",
                 "error": f"Workspace '{name}' not found.",
             }
-        ws_repo.ensure_active(ws.workspace_id)
+        ws_repo.set_active(ws.workspace_id)
         updated = ws_repo.get_by_id(ws.workspace_id)
         return {
             "status": "ok",

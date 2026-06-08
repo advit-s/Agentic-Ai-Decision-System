@@ -1,8 +1,12 @@
 """Workspace management commands for the decision-system.
 
 These commands operate on the local SQLite-backed workspace store under
-``.decision_system/workspaces/``. They are provided as a Typer sub-app
-wired into the main CLI.
+``.decision_system/workspaces/``. They are provided:
+
+1. As top-level commands (e.g. ``decision-system init-workspace <name>``)
+2. As a backward-compatible sub-app (e.g. ``decision-system workspace-commands init-workspace <name>``)
+
+Both paths share the same core logic functions.
 """
 
 from __future__ import annotations
@@ -17,9 +21,8 @@ from rich.table import Table
 
 from decision_system.config import load_settings
 from decision_system.storage.export_import import (
-    WorkspaceImporter,
     WorkspaceExporter,
-    get_default_db_path,
+    WorkspaceImporter,
     init_workspace_dir,
 )
 from decision_system.storage.inspector import WorkspaceInspector
@@ -27,7 +30,6 @@ from decision_system.storage.migrations import run_migrations
 from decision_system.storage.models import ArtifactType, StoredArtifact, Workspace
 from decision_system.storage.repositories import (
     ArtifactRepository,
-    SettingsRepository,
     WorkspaceRepository,
 )
 from decision_system.storage.sqlite_store import DatabaseConnection
@@ -38,7 +40,6 @@ workspace_app = typer.Typer(
 )
 
 console = Console()
-
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -63,11 +64,10 @@ def _workspace_repo(settings):
     return WorkspaceRepository(db), db
 
 
-def _active_workspace(settings) -> Workspace | None:
+def _active_workspace_blocking(settings) -> Workspace | None:
     repo, db = _workspace_repo(settings)
     try:
-        ws = repo.get_active()
-        return ws
+        return repo.get_active()
     finally:
         db.close()
 
@@ -78,47 +78,50 @@ def _fail(msg: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Commands
+# Core command logic (shared between top-level and sub-app registrations)
 # ---------------------------------------------------------------------------
 
 
-@workspace_app.command("init-workspace")
-def init_workspace(
-    name: str = typer.Argument(
-        ..., help="Name for the new workspace (alphanumeric + hyphens/underscores)."
-    ),
-    description: str = typer.Option(
-        "", "--description", "-d", help="Description for the workspace."
-    ),
+def _cmd_init_workspace(
+    name: str,
+    description: str = "",
+    activate: bool = True,
 ) -> None:
     """Create (or accept existing) local workspace, activating if needed."""
     settings = load_settings()
     workspace_name = name.strip()
     workspace_id = (
-        workspace_name.lower()
-        .replace(" ", "-")
-        .replace("_", "-")
+        workspace_name.lower().replace(" ", "-").replace("_", "-")
     )
 
     repo, db = _workspace_repo(settings)
     try:
         existing = repo.get_by_name(workspace_name)
         if existing is not None:
-            repo.ensure_active(existing.workspace_id)
-            _report_active_workspace(existing, settings)
+            if activate:
+                repo.set_active(existing.workspace_id)
+                _report_active_workspace(existing, settings)
+            else:
+                console.print(f"Workspace exists: {existing.name}")
             return
 
         ws = Workspace(
             workspace_id=workspace_id,
             name=workspace_name,
             description=description,
-            active=True,
+            active=activate,
         )
-        # Ensure no other workspace is active
-        repo.ensure_exists(ws)
-        repo.set_active(ws.workspace_id)
-        created = repo.get_by_id(ws.workspace_id)
-        _report_active_workspace(created, settings)
+        created = repo.create(ws)
+        if activate:
+            repo.set_active(workspace_id)
+        ws_after = repo.get_by_id(workspace_id)
+        if ws_after:
+            if activate:
+                _report_active_workspace(ws_after, settings)
+            else:
+                console.print(f"Workspace created: {ws.name}")
+        else:
+            _fail("Workspace created but not retrievable.")
     finally:
         db.close()
 
@@ -131,8 +134,7 @@ def _report_active_workspace(ws: Workspace | None, settings) -> None:
     console.print(f"Database: {db_path}")
 
 
-@workspace_app.command("list-workspaces")
-def list_workspaces() -> None:
+def _cmd_list_workspaces() -> None:
     """List all known workspaces and indicate which is active."""
     settings = load_settings()
     repo, db = _workspace_repo(settings)
@@ -145,6 +147,13 @@ def list_workspaces() -> None:
         console.print("No workspaces found. Run `decision-system init-workspace <name>` first.")
         return
 
+    # Find active workspace
+    active_id = None
+    for ws in workspaces:
+        if ws.active:
+            active_id = ws.workspace_id
+            break
+
     table = Table(title="Workspaces")
     table.add_column("Name", style="cyan")
     table.add_column("Description")
@@ -152,7 +161,10 @@ def list_workspaces() -> None:
     table.add_column("Created")
 
     for ws in workspaces:
-        active_mark = "[green]yes[/green]" if ws.active else "[dim]no[/dim]"
+        if ws.workspace_id == active_id:
+            active_mark = "[green]yes[/green]"
+        else:
+            active_mark = "[dim]no[/dim]"
         table.add_row(
             ws.name,
             ws.description or "(no description)",
@@ -162,10 +174,7 @@ def list_workspaces() -> None:
     console.print(table)
 
 
-@workspace_app.command("use-workspace")
-def use_workspace(
-    name: str = typer.Argument(..., help="Name of the workspace to activate."),
-) -> None:
+def _cmd_use_workspace(name: str) -> None:
     """Set a named workspace as the active workspace for subsequent commands."""
     settings = load_settings()
     repo, db = _workspace_repo(settings)
@@ -180,32 +189,25 @@ def use_workspace(
         db.close()
 
 
-@workspace_app.command("workspace-status")
-def workspace_status(
-    include_generated: bool = typer.Option(
-        False,
-        "--include-generated-summary",
-        help="Also include a lightweight summary of generated local JSON files.",
-    ),
+def _cmd_workspace_status(
+    include_generated: bool = False,
 ) -> None:
     """Show the active workspace and its artifact counts."""
     settings = load_settings()
-    repo, db = _workspace_repo(settings)
-    try:
-        ws = repo.get_active()
-    finally:
-        db.close()
+    ws = _active_workspace_blocking(settings)
 
     if ws is None:
-        console.print(
-            "No active workspace. Run `decision-system init-workspace <name>` first."
-        )
+        console.print("No active workspace. Run `decision-system init-workspace <name>` first.")
         return
 
     db_path = _get_db_path(settings)
-    art_repo = ArtifactRepository(db)
-    counts = art_repo.count_by_type(ws.workspace_id)
-    db.close()
+
+    # Re-open a fresh connection for artifact counts
+    db2 = _connect(settings)
+    try:
+        counts = ArtifactRepository(db2).count_by_type(ws.workspace_id)
+    finally:
+        db2.close()
 
     console.print(f"Active workspace: {ws.name}")
     console.print(f"ID: {ws.workspace_id}")
@@ -225,6 +227,197 @@ def workspace_status(
 
     if include_generated:
         _print_generated_summary()
+
+
+def _cmd_inspect_workspace(
+    json_output: bool = False,
+) -> None:
+    """Inspect the active workspace: metadata, artifact counts, recent artifacts."""
+    settings = load_settings()
+    db_path = _get_db_path(settings)
+
+    if not db_path.exists():
+        console.print(f"No workspace database found at {db_path}.")
+        console.print("Run `decision-system init-workspace <name>` first.")
+        return
+
+    repo, db = _workspace_repo(settings)
+    ws = None
+    try:
+        ws = repo.get_active()
+    finally:
+        db.close()
+
+    if ws is None:
+        console.print("No active workspace. Run `decision-system init-workspace <name>` first.")
+        return
+
+    # Use a fresh connection for the inspector
+    db2 = _connect(settings)
+    try:
+        inspector = WorkspaceInspector(
+            workspaces=WorkspaceRepository(db2),
+            artifacts=ArtifactRepository(db2),
+            database_path=str(db_path),
+        )
+        status = inspector.status()
+        if status is None:
+            _fail("Could not load workspace status.")
+
+        recent = inspector.recent_artifacts(ws.workspace_id)
+
+        if json_output:
+            payload = _inspect_json(status, recent)
+            typer.echo(json.dumps(payload, indent=2))
+            return
+
+        console.print(f"Active workspace: {ws.name} ({ws.workspace_id})")
+        console.print(f"Database: {db_path}")
+        console.print(f"Description: {ws.description or '(none)'}")
+        console.print(f"Created at: {ws.created_at.strftime('%Y-%m-%d %H:%M UTC')}")
+
+        if status.artifact_counts:
+            table = Table(title="Artifact Counts")
+            table.add_column("Type", style="cyan")
+            table.add_column("Count", justify="right")
+            for atype, cnt in sorted(status.artifact_counts.items()):
+                table.add_row(atype, str(cnt))
+            console.print(table)
+        else:
+            console.print("No artifacts yet.")
+
+        if recent:
+            console.print("\nRecent artifacts:")
+            for art in recent:
+                console.print(
+                    f" - {art['title'] or art['artifact_id']} "
+                    f"({art['artifact_type']}) {art['source_path']}"
+                )
+        else:
+            console.print("No recent artifacts.")
+    finally:
+        db2.close()
+
+
+def _cmd_export_workspace(
+    output: str | None = None,
+) -> None:
+    """Export the active workspace to a JSON bundle."""
+    settings = load_settings()
+    ws = _active_workspace_blocking(settings)
+
+    if ws is None:
+        _fail("No active workspace. Run `decision-system init-workspace <name>` first.")
+
+    db = _connect(settings)
+    try:
+        exporter = WorkspaceExporter(db)
+        try:
+            out_path = exporter.export_workspace(ws.workspace_id, output_path=output)
+        except ValueError as exc:
+            _fail(str(exc))
+        else:
+            console.print(f"Exported workspace '{ws.name}' to: {out_path}")
+    finally:
+        db.close()
+
+
+def _cmd_import_workspace(
+    input_path: str = "",
+    force: bool = False,
+) -> None:
+    """Import a workspace from a JSON export file."""
+    if not input_path:
+        _fail("Provide a path to the workspace JSON export file.")
+    settings = load_settings()
+    db = _connect(settings)
+    try:
+        importer = WorkspaceImporter(db)
+        try:
+            bundle = importer.import_workspace(input_path, force=force)
+        except (ValueError, FileNotFoundError) as exc:
+            _fail(str(exc))
+        else:
+            console.print(
+                f"Imported workspace '{bundle.workspace.name}' "
+                f"with {len(bundle.artifacts)} artifacts."
+            )
+    finally:
+        db.close()
+
+
+def _run_import_artifacts(
+    dry_run: bool = False,
+) -> None:
+    """Import existing generated JSON outputs into the active workspace."""
+    settings = load_settings()
+    ws = _active_workspace_blocking(settings)
+
+    if ws is None:
+        _fail("No active workspace. Run 'decision-system init-workspace <name>' first.")
+        return  # _fail raises; guard for type checker
+
+    base = Path(".decision_system")
+    discoverable = _collect_importable_artifacts(base)
+    if not discoverable:
+        console.print("No existing artifacts found under .decision_system/.")
+        return
+
+    # Check which source paths are already stored
+    repo, db = _workspace_repo(settings)
+    try:
+        existing_artifacts = ArtifactRepository(db).get_by_workspace(ws.workspace_id)
+    finally:
+        db.close()
+
+    already_paths = {a.source_path for a in existing_artifacts}
+
+    imported: list[tuple[str, str]] = []
+    skipped: list[str] = []
+
+    for filepath, atype, title in discoverable:
+        rel = str(filepath)
+        if rel in already_paths:
+            skipped.append(rel)
+            continue
+        if dry_run:
+            imported.append((rel, atype.value))
+            continue
+
+        db2 = _connect(settings)
+        try:
+            try:
+                content = json.loads(filepath.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                content = {}
+            artifact = StoredArtifact(
+                artifact_id=f"imported-{atype.value}-{filepath.name}",
+                workspace_id=ws.workspace_id,
+                artifact_type=atype,
+                source_path=rel,
+                title=title,
+                content=content if isinstance(content, dict) else {"raw": content},
+            )
+            ArtifactRepository(db2).add(artifact)
+            imported.append((rel, atype.value))
+        finally:
+            db2.close()
+
+    if dry_run:
+        lines = ["dry-run: would import %d artifacts" % len(imported)]
+        for rel, atype_val in imported:
+            lines.append(" %s: %s" % (atype_val, rel))
+        if skipped:
+            lines.append("Already present (skipped): %d" % len(skipped))
+        console.print("\n".join(lines))
+        return
+
+    if imported:
+        console.print(f"Imported {len(imported)} artifacts into workspace '{ws.name}'.")
+        for rel, atype in imported:
+            console.print(f" [{atype}] {rel}")
+    if skipped:
+        console.print(f"\nAlready present (skipped): {len(skipped)}")
 
 
 def _print_generated_summary() -> None:
@@ -260,73 +453,6 @@ def _human_bytes(n: int) -> str:
     return f"{n:.1f} TB"
 
 
-@workspace_app.command("inspect-workspace")
-def inspect_workspace(
-    json_output: bool = typer.Option(False, "--json"),
-) -> None:
-    """Inspect the active workspace: metadata, artifact counts, recent artifacts."""
-    settings = load_settings()
-    db_path = _get_db_path(settings)
-
-    if not db_path.exists():
-        console.print(f"No workspace database found at {db_path}.")
-        console.print("Run `decision-system init-workspace <name>` first.")
-        return
-
-    repo, db = _workspace_repo(settings)
-    try:
-        ws = repo.get_active()
-    finally:
-        db.close()
-
-    if ws is None:
-        console.print(
-            "No active workspace. Run `decision-system init-workspace <name>` first."
-        )
-        return
-
-    inspector = WorkspaceInspector(
-        workspaces=repo,
-        artifacts=ArtifactRepository(db),
-        database_path=str(db_path),
-    )
-    status = inspector.status()
-    if status is None:
-        _fail("Could not load workspace status.")
-
-    recent = inspector.recent_artifacts(ws.workspace_id)
-
-    if json_output:
-        payload = _inspect_json(status, recent)
-        typer.echo(json.dumps(payload, indent=2))
-        return
-
-    console.print(f"Active workspace: {ws.name} ({ws.workspace_id})")
-    console.print(f"Database: {db_path}")
-    console.print(f"Description: {ws.description or '(none)'}")
-    console.print(f"Created at: {ws.created_at.strftime('%Y-%m-%d %H:%M UTC')}")
-
-    if status.artifact_counts:
-        table = Table(title="Artifact Counts")
-        table.add_column("Type", style="cyan")
-        table.add_column("Count", justify="right")
-        for atype, cnt in sorted(status.artifact_counts.items()):
-            table.add_row(atype, str(cnt))
-        console.print(table)
-    else:
-        console.print("No artifacts yet.")
-
-    if recent:
-        console.print("\nRecent artifacts:")
-        for art in recent:
-            console.print(
-                f" - {art['title'] or art['artifact_id']} "
-                f"({art['artifact_type']}) {art['source_path']}"
-            )
-    else:
-        console.print("No recent artifacts.")
-
-
 def _inspect_json(status, recent) -> dict[str, Any]:
     ws = status.workspace
     return {
@@ -342,85 +468,42 @@ def _inspect_json(status, recent) -> dict[str, Any]:
     }
 
 
-@workspace_app.command("export-workspace")
-def export_workspace(
-    output: str | None = typer.Option(
-        None,
-        "--output",
-        "-o",
-        help="Output JSON file path (defaults to .decision_system/workspaces/exports/<name>.json).",
-    ),
-) -> None:
-    """Export the active workspace to a JSON bundle."""
-    settings = load_settings()
-    repo, db = _workspace_repo(settings)
-    try:
-        ws = repo.get_active()
-    finally:
-        db.close()
-
-    if ws is None:
-        _fail(
-            "No active workspace. Run `decision-system init-workspace <name>` first."
-        )
-
-    exporter = WorkspaceExporter(db)
-    try:
-        out_path = exporter.export_workspace(ws.workspace_id, output_path=output)
-        console.print(f"Exported workspace '{ws.name}' to: {out_path}")
-    except ValueError as exc:
-        _fail(str(exc))
-
-
-@workspace_app.command("import-workspace")
-def import_workspace(
-    input_path: str = typer.Option(
-        ...,
-        "--input",
-        "-i",
-        help="Path to a workspace JSON export file.",
-    ),
-    force: bool = typer.Option(
-        False,
-        "--force",
-        help="Overwrite workspace if it already exists by name.",
-    ),
-) -> None:
-    """Import a workspace from a JSON export file."""
-    settings = load_settings()
-    db = _connect(settings)
-    try:
-        importer = WorkspaceImporter(db)
-        try:
-            bundle = importer.import_workspace(input_path, force=force)
-        except (ValueError, FileNotFoundError) as exc:
-            _fail(str(exc))
-        else:
-            console.print(
-                f"Imported workspace '{bundle.workspace.name}' "
-                f"with {len(bundle.artifacts)} artifacts."
-            )
-    finally:
-        db.close()
-
-
 # ---------------------------------------------------------------------------
-# Wire into main CLI
-# ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
-# Artifact import from existing JSON outputs (v1.0)
+# Artifact import rules (shared between both command paths)
 # ---------------------------------------------------------------------------
 
 # Mapping of source file paths to ArtifactType and title
 _IMPORT_RULES: list[tuple[Path, ArtifactType, str]] = [
-    (Path(".decision_system") / "data_profiles" / "profiles.json", ArtifactType.DATA_PROFILE, "Data Profiles"),
-    (Path(".decision_system") / "ontology" / "ontology_map.json", ArtifactType.ONTOLOGY_MAP, "Ontology Map"),
-    (Path(".decision_system") / "insights" / "insights.json", ArtifactType.INSIGHT_STORE, "Insights"),
-    (Path(".decision_system") / "graph" / "knowledge_graph.json", ArtifactType.GRAPH, "Knowledge Graph"),
-    (Path(".decision_system") / "imports" / "import_manifest.json", ArtifactType.IMPORT_MANIFEST, "Import Manifest"),
-    (Path(".decision_system") / "provider_evals" / "provider_eval_results.json", ArtifactType.PROVIDER_EVAL_RUN, "Provider Eval Results"),
+    (
+        Path(".decision_system") / "data_profiles" / "profiles.json",
+        ArtifactType.DATA_PROFILE,
+        "Data Profiles",
+    ),
+    (
+        Path(".decision_system") / "ontology" / "ontology_map.json",
+        ArtifactType.ONTOLOGY_MAP,
+        "Ontology Map",
+    ),
+    (
+        Path(".decision_system") / "insights" / "insights.json",
+        ArtifactType.INSIGHT_STORE,
+        "Insights",
+    ),
+    (
+        Path(".decision_system") / "graph" / "knowledge_graph.json",
+        ArtifactType.GRAPH,
+        "Knowledge Graph",
+    ),
+    (
+        Path(".decision_system") / "imports" / "import_manifest.json",
+        ArtifactType.IMPORT_MANIFEST,
+        "Import Manifest",
+    ),
+    (
+        Path(".decision_system") / "provider_evals" / "provider_eval_results.json",
+        ArtifactType.PROVIDER_EVAL_RUN,
+        "Provider Eval Results",
+    ),
 ]
 
 
@@ -454,8 +537,94 @@ def _collect_importable_artifacts(
     return results
 
 
+# ---------------------------------------------------------------------------
+# Sub-app commands (backward-compatible: decision-system workspace-commands ...)
+# ---------------------------------------------------------------------------
+
+
+@workspace_app.command("init-workspace")
+def ws_init_workspace(
+    name: str = typer.Argument(
+        ..., help="Name for the new workspace (alphanumeric + hyphens/underscores)."
+    ),
+    description: str = typer.Option(
+        "", "--description", "-d", help="Description for the workspace."
+    ),
+    activate: bool = typer.Option(
+        True, "--activate/--no-activate", help="Activate the workspace on creation."
+    ),
+) -> None:
+    """Create (or accept existing) local workspace, activating if needed."""
+    _cmd_init_workspace(name, description, activate=activate)
+
+
+@workspace_app.command("list-workspaces")
+def ws_list_workspaces() -> None:
+    """List all known workspaces and indicate which is active."""
+    _cmd_list_workspaces()
+
+
+@workspace_app.command("use-workspace")
+def ws_use_workspace(
+    name: str = typer.Argument(..., help="Name of the workspace to activate."),
+) -> None:
+    """Set a named workspace as the active workspace for subsequent commands."""
+    _cmd_use_workspace(name)
+
+
+@workspace_app.command("workspace-status")
+def ws_workspace_status(
+    include_generated: bool = typer.Option(
+        False,
+        "--include-generated-summary",
+        help="Also include a lightweight summary of generated local JSON files.",
+    ),
+) -> None:
+    """Show the active workspace and its artifact counts."""
+    _cmd_workspace_status(include_generated=include_generated)
+
+
+@workspace_app.command("inspect-workspace")
+def ws_inspect_workspace(
+    json_output: bool = typer.Option(False, "--json"),
+) -> None:
+    """Inspect the active workspace: metadata, artifact counts, recent artifacts."""
+    _cmd_inspect_workspace(json_output=json_output)
+
+
+@workspace_app.command("export-workspace")
+def ws_export_workspace(
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output JSON file path (defaults to .decision_system/workspaces/exports/<name>.json).",
+    ),
+) -> None:
+    """Export the active workspace to a JSON bundle."""
+    _cmd_export_workspace(output=output)
+
+
+@workspace_app.command("import-workspace")
+def ws_import_workspace(
+    input_path: str = typer.Option(
+        ...,
+        "--input",
+        "-i",
+        help="Path to a workspace JSON export file.",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite workspace if it already exists by name.",
+    ),
+) -> None:
+    """Import a workspace from a JSON export file."""
+    _cmd_import_workspace(input_path=input_path, force=force)
+
+
 @workspace_app.command("import-artifacts")
-def import_artifacts(
+def ws_import_artifacts(
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
@@ -468,71 +637,123 @@ def import_artifacts(
     them as typed workspace artifacts. Existing artifacts are skipped when
     the source path already exists (idempotent).
     """
-    settings = load_settings()
-    repo, db = _workspace_repo(settings)
-    try:
-        ws = repo.get_active()
-        if ws is None:
-            _fail(
-                "No active workspace. Run "
-                "'decision-system init-workspace <name>' first."
-            )
-            return
-        base = Path(".decision_system")
-        discoverable = _collect_importable_artifacts(base)
-        if not discoverable:
-            console.print("No existing artifacts found under .decision_system/.")
-            return
-        art_repo = ArtifactRepository(db)
-        imported: list[tuple[str, str]] = []
-        skipped: list[str] = []
-        for filepath, atype, title in discoverable:
-            rel = str(filepath)
-            existing = art_repo.get_by_workspace(ws.workspace_id)
-            already = any(a.source_path == rel for a in existing)
-            if already:
-                skipped.append(rel)
-                continue
-            if dry_run:
-                imported.append((rel, atype.value))
-                continue
-            try:
-                content = json.loads(filepath.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                content = {}
-            artifact = StoredArtifact(
-                artifact_id=f"imported-{atype.value}-{filepath.name}",
-                workspace_id=ws.workspace_id,
-                artifact_type=atype,
-                source_path=rel,
-                title=title,
-                content=content if isinstance(content, dict) else {"raw": content},
-            )
-            art_repo.add(artifact)
-            imported.append((rel, atype.value))
-        db.connect().commit()
-    finally:
-        db.close()
-    if dry_run:
-        lines = ["dry-run: would import %d artifacts" % len(imported)]
-        for rel, atype_val in imported:
-            lines.append("  %s: %s" % (atype_val, rel))
-        if skipped:
-            lines.append("Already present (skipped): %d" % len(skipped))
-        console.print("\n".join(lines))
-        return
-        for rel, atype in imported:
-            console.print(f"  [{atype}] {rel}")
-        if skipped:
-            console.print(f"\nAlready present (skipped): {len(skipped)}")
-        return
-    console.print(f"Imported {len(imported)} artifacts into workspace '{ws.name}'.")
-    for rel, atype in imported:
-        console.print(f"  [{atype}] {rel}")
-    if skipped:
-        console.print(f"Already present (skipped): {len(skipped)}")
+    _run_import_artifacts(dry_run=dry_run)
+
+
+# ---------------------------------------------------------------------------
+# Wire into main CLI
+# ---------------------------------------------------------------------------
 
 
 def register_workspace_commands(main_app: Any) -> None:
-    """Attach workspace commands to the main Typer app."""
+    """Attach workspace commands to the main Typer app.
+
+    Registers:
+    - Top-level aliases: ``decision-system init-workspace``, ``list-workspaces``, etc.
+    - Backward-compatible ``decision-system workspace-commands`` sub-app
+    """
+    # Register top-level workspace commands directly on the main app.
+    # We use main_app.command() so they appear at the top level, and
+    # also keep the workspace-commands sub-app for backward compat.
+
+    @main_app.command("init-workspace")
+    def _top_init_workspace(
+        name: str = typer.Argument(..., help="Workspace name."),
+        description: str = typer.Option(
+            "", "--description", "-d", help="Workspace description."
+        ),
+    activate: bool = typer.Option(
+        True, "--activate/--no-activate", help="Activate the workspace on creation."
+    ),
+    ) -> None:
+        """Create (or accept existing) local workspace, activating if needed."""
+        _cmd_init_workspace(name, description, activate=activate)
+
+    @main_app.command()
+    def list_workspaces() -> None:
+        """List all known workspaces and indicate which is active."""
+        _cmd_list_workspaces()
+
+    @main_app.command("use-workspace")
+    def _top_use_workspace(
+        name: str = typer.Argument(..., help="Name of the workspace to activate."),
+    ) -> None:
+        """Set a named workspace as the active workspace for subsequent commands."""
+        _cmd_use_workspace(name)
+
+    @main_app.command("workspace-status")
+    def _top_workspace_status(
+        include_generated_summary: bool = typer.Option(
+            False,
+            "--include-generated-summary",
+            help="Also include a lightweight summary of generated local JSON files.",
+        ),
+    ) -> None:
+        """Show the active workspace and its artifact counts."""
+        _cmd_workspace_status(
+            include_generated=include_generated_summary,
+        )
+
+    @main_app.command("inspect-workspace")
+    def _top_inspect_workspace(
+        json_output: bool = typer.Option(False, "--json"),
+    ) -> None:
+        """Inspect the active workspace: metadata, artifact counts, recent artifacts."""
+        _cmd_inspect_workspace(json_output=json_output)
+
+    @main_app.command("export-workspace")
+    def _top_export_workspace(
+        output: str | None = typer.Option(
+            None,
+            "--output",
+            "-o",
+            help="Output JSON file path (defaults to .decision_system/workspaces/exports/<name>.json).",
+        ),
+    ) -> None:
+        """Export the active workspace to a JSON bundle."""
+        _cmd_export_workspace(output=output)
+
+    @main_app.command("import-workspace")
+    def _top_import_workspace(
+        input_path: str = typer.Argument(
+            None,
+            help="Path to a workspace JSON export file.",
+        ),
+        force: bool = typer.Option(
+            False,
+            "--force",
+            help="Overwrite workspace if it already exists by name.",
+        ),
+        _input_flag: str | None = typer.Option(
+            None,
+            "--input",
+            "-i",
+            help="Alternative way to specify the import path.",
+        ),
+    ) -> None:
+        """Import a workspace from a JSON export file."""
+        resolved = input_path if input_path else (_input_flag or "")
+        if not resolved:
+            raise typer.BadParameter(
+                "Provide a path as a positional argument or via --input / -i."
+            )
+        _cmd_import_workspace(input_path=resolved, force=force)
+
+    @main_app.command("import-artifacts")
+    def _top_import_artifacts(
+        dry_run: bool = typer.Option(
+            False,
+            "--dry-run",
+            help="Show what would be imported without writing to the database.",
+        ),
+    ) -> None:
+        """Import existing generated JSON outputs into the active workspace.
+
+        Scans known ``.decision_system/`` paths for artifact files and stores
+        them as typed workspace artifacts. Existing artifacts are skipped when
+        the source path already exists (idempotent).
+        """
+        _run_import_artifacts(dry_run=dry_run)
+
+    # --- Backward-compatible sub-app (decision-system workspace-commands ...) ---
     main_app.add_typer(workspace_app, name="workspace-commands")

@@ -211,10 +211,33 @@ def test_ask_without_index_returns_friendly_error(client):
     assert "Traceback" not in bad_response.text
 
 
-def test_serve_api_help_exits_zero():
+def test_api_workspace_activation_ensures_exactly_one_active(client):
+    """v1.0.1 regression: creating multiple workspaces with activate=true
+    must leave exactly one workspace active, not multiple."""
+    client.post(
+        "/workspaces",
+        json={"name": "ws-a", "description": "A", "activate": True},
+    )
+    client.post(
+        "/workspaces",
+        json={"name": "ws-b", "description": "B", "activate": True},
+    )
+    list_resp = client.get("/workspaces")
+    assert list_resp.status_code == 200
+    payload = list_resp.json()
+    active_ws = [w for w in payload["workspaces"] if w.get("active")]
+    assert len(active_ws) == 1, (
+        "Expected exactly 1 active workspace, got "
+        + str(len(active_ws))
+        + ": "
+        + repr([(w.get("name"), w.get("active")) for w in payload["workspaces"]])
+    )
+    assert payload["active_workspace_id"] == "ws-b"
     result = CliRunner().invoke(cli_app, ["serve-api", "--help"])
 
     assert result.exit_code == 0
     assert "Run the local FastAPI API" in result.output
     assert "--host" in result.output
     assert "--port" in result.output
+
+
