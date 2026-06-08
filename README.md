@@ -133,6 +133,32 @@ Available v0.8 endpoints:
 - `POST /evals/war-room`
 - `POST /evals/providers`
 
+## Local Workspaces (v1.0)
+
+```bash
+decision-system init-workspace local-demo
+decision-system list-workspaces
+decision-system use-workspace local-demo
+decision-system workspace-status
+decision-system inspect-workspace
+decision-system export-workspace
+decision-system import-workspace --input path/to/export.json
+```
+
+v1.0 adds local SQLite-backed workspaces while preserving generated JSON outputs. Workspaces are local-only and do not add auth, cloud sync, or enterprise database support.
+
+- `init-workspace`: create or reuse a named workspace, activate it, and initialise the local SQLite database.
+- `list-workspaces`: show all known workspaces and which one is active.
+- `use-workspace`: switch the active workspace for subsequent commands.
+- `workspace-status`: show the active workspace and artifact type counts.
+- `inspect-workspace`: inspect the active workspace metadata and recent artifacts (`--json` for machine-readable output).
+- `export-workspace`: save workspace state to `.decision_system/workspaces/exports/<name>.json`.
+- `import-workspace`: load a workspace export, with `--force` to overwrite an existing workspace by name.
+
+Raw dataset artifacts are intentionally excluded from exports.
+
+The default database path is `.decision_system/workspaces/workspaces.sqlite`; override it with `DECISION_WORKSPACE_DB`.
+
 ## War-Cabinet Agent Context Protocol (v0.6)
 
 ```bash
@@ -465,7 +491,7 @@ Completed:
 - v0.7.1: provider evaluation hardening harness
 - v0.8: local FastAPI backend
 - v0.9: local mock-first web UI prototype
+- v1.0: local SQLite workspace persistence, CLI commands, JSON export/import
 
 Upcoming:
-- v1.0: Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear
-- v1.1+: Production frontend, database, auth, connectors, and saved workspaces after backend discipline is proven
+- v1.1+: Production frontend, auth, connectors, saved workspace app, and deeper persistence after backend discipline is proven

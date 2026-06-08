@@ -278,3 +278,37 @@ When the Chroma vector store has not been populated, `chromadb.errors.NotFoundEr
 Status: Accepted
 
 The web UI static files are always accessible from two locations: the original `web/` directory at the repo root (for standalone static-server use) and `src/decision_system/web/` inside the package (for FastAPI static mounts). The package-relative path ensures the API can serve the web UI correctly regardless of where the installed package is located.
+
+## ADR-030: Use Local SQLite Workspaces Before Cloud/Database Complexity
+
+Status: Accepted
+
+v1.0 introduces a local SQLite-backed workspace layer that stores typed artifacts for query, inspection, export, and import without forcing any existing workflow onto a database.
+
+Key principles:
+
+- **SQLite is local-only persistence.** The workspace DB lives at `.decision_system/workspaces/workspaces.sqlite` and is ignored by Git. No PostgreSQL, cloud database, auth, or enterprise connectors.
+- **Existing JSON outputs remain canonical.** `ask`, `index`, `profile-data`, `map-ontology`, `detect-patterns`, `run-war-room`, and `eval-providers` continue writing/looking at their `.decision_system/` JSON outputs unchanged. The workspace DB is an optional import/query layer only.
+- **No mandatory workspace.** The CLI and API work without a workspace initialized. SQLite is never required.
+- **Idempotent migrations.** Tables use `IF NOT EXISTS` and repeated initialization never drops data. Tests verify this.
+- **Typed artifacts, not chat transcripts.** Workspaces store curated structured artifacts with `ArtifactType` enum values. Raw datasets are excluded from exports.
+- **Future versions can write directly to workspace.** v1.0 imports from JSON. Future versions may write directly to SQLite, but this does not change existing JSON outputs.
+
+This keeps company data local and auditable while staying safe for offline testing. A full database moves barriers too high for the v1.0 scope.
+
+## ADR-030: Use Local SQLite Workspaces Before Cloud/Database Complexity
+
+Status: Accepted
+
+v1.0 introduces a local SQLite-backed workspace layer under `.decision_system/workspaces/workspaces.sqlite`. The workspace stores typed artifacts (data profiles, ontology maps, insights, reports, orchestration runs, war-room runs, provider eval results, graph data, and import manifests) and provides CLI commands for init, list, use, status, inspect, export, and import.
+
+Key principles:
+
+- **SQLite is local-only persistence.** No database server, no cloud storage, no auth, no enterprise connectors. The database file lives in `.decision_system/workspaces/` and is ignored by Git.
+- **JSON outputs remain canonical.** Existing commands (ask, index, profile-data, map-ontology, detect-patterns, run-war-room, eval-providers) continue writing JSON files as before. The workspace DB is an import/query/audit layer, not a replacement.
+- **Idempotent migrations.** Tables are created with `IF NOT EXISTS`. Repeated initialization never drops data. Tests verify this contract.
+- **No mandatory workspace.** Existing commands work without a workspace initialized. The workspace layer is optional and additive.
+- **Typed artifacts, not chat transcripts.** Workspaces store structured `StoredArtifact` records with `ArtifactType` enum values. Raw datasets are excluded from exports.
+- **Future versions can write directly to workspace.** v1.0 imports from existing JSON. Future versions may write directly to the SQLite DB, but that does not require changing existing JSON outputs.
+
+This choice is safer than adding PostgreSQL, SQLAlchemy, or a cloud database because it keeps company data local, auditable, and offline-capable. SQLite is sufficient for a prototype that indexes local documents and CSVs. A full database moves the barrier of entry too high and introduces Oauth, migration, and hosting concerns that the v1.0 scope explicitly avoids.

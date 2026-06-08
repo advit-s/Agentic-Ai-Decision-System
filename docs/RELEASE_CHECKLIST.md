@@ -45,7 +45,7 @@ Run these offline with no API key configured:
 - [ ] `.decision_system/provider_evals/` provider evaluation results are not tracked by Git.
 - [ ] `datasets/` (raw public dataset downloads) is not tracked by Git.
 - [ ] `company_data/**/imported_*.csv` files are not tracked by Git.
-- [ ] `.decision_system/` directories (graph, profiles, ontology, insights, contexts, evals, provider_evals, orchestration, war_room) are all in `.gitignore`.
+- [ ] `.decision_system/` directories (graph, profiles, ontology, insights, contexts, evals, provider_evals, orchestration, war_room, workspaces) are all in `.gitignore`.
 - [ ] `decision-system check-hygiene` passes (warnings acceptable, failures require action).
 - [ ] `decision-system check-hygiene --json` returns valid structured JSON.
 

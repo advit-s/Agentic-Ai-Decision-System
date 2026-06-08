@@ -22,6 +22,7 @@ build/
 
 # Local generated app state
 .decision_system/
+.decision_system/workspaces/
 .decision_system/orchestration/
 .decision_system/ontology/
 .decision_system/data_profiles/

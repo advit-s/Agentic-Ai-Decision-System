@@ -18,6 +18,7 @@
         </div>
         <nav class="nav-list">
           <button class="nav-item active" type="button" data-view="ask">Ask</button>
+<button class="nav-item" type="button" data-view="workspaces">Workspaces</button>
           <button class="nav-item" type="button" data-view="reports">Reports</button>
           <button class="nav-item" type="button" data-view="insights">Insights</button>
           <button class="nav-item" type="button" data-view="ontology">Ontology</button>
@@ -186,7 +187,46 @@
           <div id="profileGrid" class="profile-grid"></div>
         </section>
 
-        <section id="graph" class="view" aria-labelledby="graph-title">
+        
+<section id="workspaces" class="view" aria-labelledby="workspaces-title">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">Local SQLite workspace store</p>
+      <h3 id="workspaces-title">Workspaces</h3>
+    </div>
+    <span class="tag muted">v1.0</span>
+  </div>
+  <div class="metric-row" style="margin-bottom:16px">
+    <div>
+      <span class="metric-value" id="wsActiveName">-</span>
+      <span class="metric-label">active workspace</span>
+    </div>
+    <div>
+      <span class="metric-value" id="wsArtifactCount">0</span>
+      <span class="metric-label">artifacts</span>
+    </div>
+    <div>
+      <span class="metric-value" id="wsDbPath">-</span>
+      <span class="metric-label">db path</span>
+    </div>
+  </div>
+  <div class="split-grid">
+    <div>
+      <h4>Artifact types</h4>
+      <div id="wsArtifactTypes" class="compact-list">
+        <p class="empty-state">No workspace initialized</p>
+      </div>
+    </div>
+    <div>
+      <h4>Recent artifacts</h4>
+      <div id="wsRecentArtifacts" class="compact-list">
+        <p class="empty-state">No artifacts yet</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="graph" class="view" aria-labelledby="graph-title">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Local relationship store</p>

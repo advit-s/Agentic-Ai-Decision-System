@@ -145,6 +145,15 @@ from decision_system.reports.renderer import render_decision_report
 # introspection (``--help``, ``check-hygiene``) avoids that startup cost.
 
 app = typer.Typer(help="Create cited decision briefs from local company documents.")
+
+# ---------------------------------------------------------------------------
+# Optional workspace sub-commands (v1.0)
+# ---------------------------------------------------------------------------
+try:
+    from decision_system.cli_workspaces import register_workspace_commands
+    register_workspace_commands(app)
+except ImportError:
+    pass
 console = Console()
 
 

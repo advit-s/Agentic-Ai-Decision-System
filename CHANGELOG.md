@@ -1,3 +1,17 @@
+## [1.0.0] - 2026-06-07
+### Added
+- Local SQLite workspace store under `src/decision_system/storage/` with idempotent migrations.
+- Workspace CLI commands: `init-workspace`, `list-workspaces`, `use-workspace`, `workspace-status`, `inspect-workspace`, `export-workspace`, `import-workspace`.
+- Workspace artifact repository with typed artifact tracking (document, dataset, profile, ontology, insight, report, orchestration, war-room, provider eval, audit).
+- JSON export/import support for local workspace bundles with controlled artifact type allowlist.
+- Workspace inspection with Rich tables and optional `--json` output.
+- Offline tests for storage layer and workspace CLI integration (49 new tests).
+### Fixed
+- Aligned v0.9.2 package/API version metadata before v1.0 implementation.
+- Fixed `Settings` backward compatibility so existing `Settings(...)` calls that omit `workspace_db_path` still work.
+
+# Changelog
+
 ## [0.9.2] - 2026-06-07
 ### Fixed
 - Made generated-file cleanup scripts safe by default (dry-run, requires --force).
@@ -6,8 +20,6 @@
 - Tightened missing-index API test (requires status 400 and error.code == "missing_index").
 - Tightened missing-index CLI test (requires no traceback and the "decision-system index" hint).
 - Fixed provider eval documentation typo (renamed `runer` to `runner`).
-
-# Changelog
 
 ## [0.9.1] - 2026-06-06
 

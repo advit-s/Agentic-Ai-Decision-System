@@ -34,6 +34,10 @@ class Settings:
     ollama_temperature: float
     ollama_max_tokens: int
     ollama_timeout_seconds: int
+    # Workspace (default so direct Settings(...) calls stay backward compatible)
+    workspace_db_path: str = str(
+        Path(".decision_system") / "workspaces" / "workspaces.sqlite"
+    )
 
 
 def load_settings() -> Settings:
@@ -47,6 +51,7 @@ def load_settings() -> Settings:
     """
 
     load_dotenv()
+
     return Settings(
         docs_dir=Path(os.getenv("DECISION_DOCS_DIR", "company_docs")),
         store_dir=Path(os.getenv("DECISION_STORE_DIR", ".decision_system/chroma")),
@@ -67,6 +72,10 @@ def load_settings() -> Settings:
         ollama_temperature=float(os.getenv("OLLAMA_TEMPERATURE", "0")),
         ollama_max_tokens=int(os.getenv("OLLAMA_MAX_TOKENS", "2048")),
         ollama_timeout_seconds=int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "60")),
+        workspace_db_path=os.getenv(
+            "DECISION_WORKSPACE_DB",
+            str(Path(".decision_system") / "workspaces" / "workspaces.sqlite"),
+        ),
     )
 
 

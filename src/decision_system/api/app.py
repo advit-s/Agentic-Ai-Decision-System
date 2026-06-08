@@ -18,6 +18,7 @@ from decision_system.api import routes_ontology
 from decision_system.api import routes_orchestration
 from decision_system.api import routes_reports
 from decision_system.api import routes_war_room
+from decision_system.api import routes_workspaces
 
 
 def create_app() -> FastAPI:
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
     api.include_router(routes_insights.router)
     api.include_router(routes_data.router)
     api.include_router(routes_evals.router)
+    api.include_router(routes_workspaces.router)
 
     # Mount the static files for the web UI prototype at the root.
     # We do this after registering all API routes so they take precedence.

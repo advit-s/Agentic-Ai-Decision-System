@@ -76,7 +76,41 @@ The data catalog is intentionally descriptive. It profiles CSV shape and quality
 
 Only fake `demo_*.csv` files should be committed. Private company CSV files remain local.
 
-v0.3.2 adds a local public dataset importer. Raw files stay in ignored `datasets/`; supported `.csv`, `.xlsx`, and `.xls` files are converted to ignored `company_data/<category>/imported_*.csv` files. SQL Server `.bak` files are explicitly skipped. Import results are recorded in `.decision_system/imports/import_manifest.json`.
+## Local Workspace Layer (v1.0)
+
+v1.0 adds an optional local SQLite-backed workspace layer that stores typed artifacts without replacing the existing JSON outputs:
+
+```text
+Generated JSON outputs (.decision_system/{graph,profiles,ontology,insights,contexts,orchestration,war_room,evals}/*.json)
+    |
+    | import-artifacts command
+    v
+SQLite workspace DB (.decision_system/workspaces/workspaces.sqlite)
+    |
+    | workspace-commands CLI
+    v
+Typed artifacts per workspace (data_profile, ontology_map, insight_store, decision_context, decision_report, orchestration_run, war_room_run, provider_eval_run, graph, import_manifest)
+```
+
+Key design principles:
+
+- **JSON outputs remain canonical.** Existing commands continue writing JSON files as their primary output. The workspace DB imports and indexes those outputs for query/inspect convenience.
+- **SQLite is local-only persistence.** No PostgreSQL, no cloud database, no auth, no enterprise connectors. The workspace DB lives at `.decision_system/workspaces/workspaces.sqlite` and is ignored by Git.
+- **No mandatory workspace requirement.** Existing commands (`ask`, `index`, `profile-data`, `map-ontology`, `detect-patterns`, `run-war-room`, `eval-providers`) work without a workspace. The SQLite DB is never required for the core workflow.
+- **Idempotent migrations.** Tables are created with `IF NOT EXISTS`. Repeated initialization never drops data.
+- **Typed artifacts, not chat transcripts.** Workspaces store curated structured artifacts with `ArtifactType` enum values. Raw datasets are excluded from exports.
+
+The workspace CLI is a top-level Typer sub-app:
+
+- `decision-system init-workspace <name>` -- create or reuse a workspace (activates if newly created)
+- `decision-system list-workspaces` -- list workspaces, mark active
+- `decision-system use-workspace <name>` -- switch active workspace
+- `decision-system workspace-status` -- show active workspace + artifact type counts
+- `decision-system inspect-workspace [--json]` -- inspect metadata + recent artifacts
+- `decision-system export-workspace [--output path]` -- export workspace to JSON bundle
+- `decision-system import-workspace --input path [--force]` -- import workspace JSON bundle
+- `decision-system import-artifacts [--dry-run]` -- import existing generated JSON outputs into active workspace
+
 
 ## Analysts
 
