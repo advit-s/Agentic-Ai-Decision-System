@@ -1,3 +1,16 @@
+## [1.2.0] - 2026-06-09
+### Added
+- Deterministic local secret scanning (`decision-system scan-secrets`).
+- Redaction preview for PII-like values and secret-like tokens (`decision-system redact-preview`).
+- Local audit log under `.decision_system/security/audit/audit_log.jsonl`.
+- Policy checks for repo hygiene and governance (`decision-system policy-check`).
+- Local approval request workflow (`decision-system approval request/list/inspect`).
+- 9 security module package: models, secret_scan, redaction, audit, policy, approvals, store, inspector.
+- 64 security tests with synthetic data only.
+
+### Changed
+- Project version is now 1.2.0.
+
 ## [1.1.0] - 2026-06-08
 ### Added
 - Safe connector framework with connector registry, job manifests, and inspection.

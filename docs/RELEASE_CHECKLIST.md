@@ -62,6 +62,25 @@ Run these offline with no API key configured:
 - [ ] Exported zip has no `__pycache__/` or `*.pyc` files.
 - [ ] `decision-system connectors list` shows 5 connectors with correct stub flags.
 
+## Security Integration (v1.2)
+
+- [ ] `.decision_system/security/` is in `.gitignore` and ignored by Git.
+- [ ] `decision-system scan-secrets` runs offline and returns a finding summary.
+- [ ] `decision-system scan-secrets --json` returns structured findings.
+- [ ] Secret scanner never prints full secret values (masked preview only).
+- [ ] `decision-system redact-preview "..."` returns redacted text and findings without modifying files.
+- [ ] `decision-system redact-preview "..." --json` returns structured redaction result.
+- [ ] `decision-system audit-log` reads `.decision_system/security/audit/audit_log.jsonl` and handles missing log.
+- [ ] `decision-system policy-check` runs all 7 checks and reports OK/WARN/FAIL.
+- [ ] `decision-system policy-check --json` returns structured policy result.
+- [ ] `decision-system approval request --reason "..."` creates a local approval record.
+- [ ] `decision-system approval list` shows pending requests.
+- [ ] `decision-system approval inspect <id>` handles missing ID gracefully.
+- [ ] `GET /security/policy`, `POST /security/redact-preview`, and `GET /security/audit` return structured responses via TestClient.
+- [ ] All security tests pass with synthetic data only (no real API keys).
+- [ ] No external service calls in `decision_system/security/` modules.
+- [ ] Web UI security section renders policy status, audit summary, and approvals from mock data.
+
 ## Configuration Defaults
 
 - [ ] `.env.example` has `DECISION_PROVIDER=fake`.

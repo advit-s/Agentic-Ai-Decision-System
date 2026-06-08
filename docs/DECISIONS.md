@@ -314,19 +314,23 @@ Key principles:
 
 This is the safest expansion path: real connector logic exists for one data source while the four common enterprise targets are represented as stubs. Adding live GitHub/Jira/Slack/Email integrations requires an explicit future ADR with OAuth/scoping design.
 
-## ADR-030: Use Local SQLite Workspaces Before Cloud/Database Complexity
+## ADR-032: Add Deterministic Local Security, Governance, and Audit
 
 Status: Accepted
 
-v1.0 introduces a local SQLite-backed workspace layer under `.decision_system/workspaces/workspaces.sqlite`. The workspace stores typed artifacts (data profiles, ontology maps, insights, reports, orchestration runs, war-room runs, provider eval results, graph data, and import manifests) and provides CLI commands for init, list, use, status, inspect, export, and import.
+v1.2 adds offline security primitives: secret scanning, PII redaction preview, audit logging, policy checks, and local approval requests. All features are deterministic, require no external services, and do not add auth, cloud scanning, or secret vaults.
 
 Key principles:
 
-- **SQLite is local-only persistence.** No database server, no cloud storage, no auth, no enterprise connectors. The database file lives in `.decision_system/workspaces/` and is ignored by Git.
-- **JSON outputs remain canonical.** Existing commands (ask, index, profile-data, map-ontology, detect-patterns, run-war-room, eval-providers) continue writing JSON files as before. The workspace DB is an import/query/audit layer, not a replacement.
-- **Idempotent migrations.** Tables are created with `IF NOT EXISTS`. Repeated initialization never drops data. Tests verify this contract.
-- **No mandatory workspace.** Existing commands work without a workspace initialized. The workspace layer is optional and additive.
-- **Typed artifacts, not chat transcripts.** Workspaces store structured `StoredArtifact` records with `ArtifactType` enum values. Raw datasets are excluded from exports.
-- **Future versions can write directly to workspace.** v1.0 imports from existing JSON. Future versions may write directly to the SQLite DB, but that does not require changing existing JSON outputs.
+- **Security is local and deterministic.** Every check runs against local files and state. No external scanner, no cloud API, no telemetry.
+- **Fake provider remains default.** No security check requires a real LLM or API key.
+- **Audit log is local JSONL.** Events append to `.decision_system/security/audit/audit_log.jsonl`. The writer is reusable by future modules and does not require a workspace.
+- **Secret scanning never prints full values.** Matched text is masked to first+last 4 characters before display. Only file path, line number, severity, and masked preview appear in output.
+- **Redaction is preview-only.** `redact-preview` returns a `RedactionPreviewResult` with replacements and redacted text. It never writes to disk.
+- **Policy checks are offline rules.** Seven checks validate repo hygiene: fake provider default in `.env.example`, required `.gitignore` entries, untracked `.env` files, no network patterns in connector stubs, no leaked secrets in source, agent instruction files present, and release checklist present.
+- **Approval requests are local JSON files.** `approval request` creates a file under `.decision_system/security/approvals/` with `pending`/`approved`/`rejected`/`cancelled` status. No notifications, no external services, no auth.
+- **All generated security paths are in `.gitignore`.** `.decision_system/security/` is ignored. Hygiene checks pass with the directory present.
+- **API exposes a minimal surface.** `GET /security/policy`, `POST /security/redact-preview`, and `GET /security/audit` are added. No auth header, no secret body fields.
+- **Web UI shows a mock-first security section.** Policy status, audit log summary, and approval requests render from mock fixtures when no API is configured.
 
-This choice is safer than adding PostgreSQL, SQLAlchemy, or a cloud database because it keeps company data local, auditable, and offline-capable. SQLite is sufficient for a prototype that indexes local documents and CSVs. A full database moves the barrier of entry too high and introduces Oauth, migration, and hosting concerns that the v1.0 scope explicitly avoids.
+This keeps security tooling accessible for a local prototype without forcing cloud dependencies, secret vaults, or RBAC.

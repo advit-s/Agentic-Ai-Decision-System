@@ -26,14 +26,10 @@ import typer
 from pydantic import BaseModel
 from rich.console import Console
 
-# Heavy third-party imports are intentionally deferred into command functions.
-# chromadb is the single heaviest module-level import (~0.5s); a lightweight
-# import helper is provided so ask() can still catch MissingIndexError without
-# paying the cost for commands that never touch the vector store.
-try:
-    from chromadb.errors import NotFoundError as _ChromaNotFoundError
-except ImportError:  # pragma: no cover - chromadb is a required dependency
-    _ChromaNotFoundError = None  # type: ignore[assignment,misc]
+# Heavy third-party imports (chromadb, LangGraph, etc.) are intentionally
+# deferred into command functions so that lightweight commands (``--help``,
+# ``check-hygiene``) remain fast.  A string-based helper below detects
+# missing-index errors without importing chromadb at module scope.
 
 # ---------------------------------------------------------------------------
 # Lightweight imports: config, hygiene, hygiene HTML renderer, data catalog
@@ -106,6 +102,21 @@ console = Console()
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
+
+
+def _is_missing_index_error(exc: Exception) -> bool:
+    """Return True when *exc* signals a missing Chroma collection.
+
+    Avoids importing ``chromadb`` at function-definition time so that the
+    helper itself does not pull heavy dependencies.  Detection is done via
+    class-name and message inspection.
+    """
+    name = exc.__class__.__name__
+    module = exc.__class__.__module__ or ""
+    message = str(exc)
+    return (
+        name == "NotFoundError" and "chromadb" in module
+    ) or "Collection [decision_chunks] does not exist" in message
 
 
 def _to_jsonable(value: Any) -> Any:
@@ -217,11 +228,11 @@ def inspect_index() -> None:
 @app.command()
 def extract_graph() -> None:
     """Extract a local knowledge graph from configured company documents."""
-    from decision_system.graphing.extractor import (
-        extract_knowledge_graph,  # noqa: PLC0415
+    from decision_system.graphing.extractor import (  # noqa: PLC0415
+        extract_knowledge_graph,
     )
-    from decision_system.graphing.store import (
-        save_knowledge_graph,  # noqa: PLC0415
+    from decision_system.graphing.store import (  # noqa: PLC0415
+        save_knowledge_graph,
     )
     from decision_system.rag.chunker import chunk_documents  # noqa: PLC0415
     from decision_system.rag.loader import load_documents  # noqa: PLC0415
@@ -241,12 +252,12 @@ def extract_graph() -> None:
 @app.command()
 def inspect_graph() -> None:
     """Inspect the local graph-like JSON knowledge store."""
-    from decision_system.graphing.inspector import (
-        inspect_knowledge_graph,  # noqa: PLC0415
-        render_graph_inspection,  # noqa: PLC0415
+    from decision_system.graphing.inspector import (  # noqa: PLC0415
+        inspect_knowledge_graph,
+        render_graph_inspection,
     )
-    from decision_system.graphing.store import (
-        load_knowledge_graph,  # noqa: PLC0415
+    from decision_system.graphing.store import (  # noqa: PLC0415
+        load_knowledge_graph,
     )
 
     knowledge_graph = load_knowledge_graph()
@@ -287,6 +298,7 @@ def detect_patterns() -> None:
         )
     console.print(f"Saved insights: {insights_path}")
 
+
 @app.command()
 def inspect_insights() -> None:
     """Inspect saved deterministic insight summaries."""
@@ -307,8 +319,8 @@ def analyze_problem(
     json_output: bool = typer.Option(False, "--json"),
 ) -> None:
     """Analyze a business question and print required data, tools, and roles."""
-    from decision_system.orchestration.dispatcher import (
-        build_dispatch_plan,  # noqa: PLC0415
+    from decision_system.orchestration.dispatcher import (  # noqa: PLC0415
+        build_dispatch_plan,
     )
     from decision_system.orchestration.inspector import (  # noqa: PLC0415
         inspect_dispatch_plan,
@@ -320,11 +332,11 @@ def analyze_problem(
         DispatchPlan,
         ProblemAnalysis,
     )
-    from decision_system.orchestration.planner import (
-        plan_data_tools_roles,  # noqa: PLC0415
+    from decision_system.orchestration.planner import (  # noqa: PLC0415
+        plan_data_tools_roles,
     )
-    from decision_system.orchestration.problem_analyzer import (
-        analyze_problem as _analyze_problem_fn,  # noqa: PLC0415
+    from decision_system.orchestration.problem_analyzer import (  # noqa: PLC0415
+        analyze_problem as _analyze_problem_fn,
     )
 
     analysis = _analyze_problem_fn(question)
@@ -403,8 +415,8 @@ def inspect_orchestration() -> None:
         DispatchPlan,
         ProblemAnalysis,
     )
-    from decision_system.orchestration.store import (
-        load_latest_session,  # noqa: PLC0415
+    from decision_system.orchestration.store import (  # noqa: PLC0415
+        load_latest_session,
     )
 
     session = load_latest_session()
@@ -452,15 +464,15 @@ def inspect_orchestration() -> None:
 @app.command()
 def map_ontology() -> None:
     """Map dataset columns to ontology business concepts."""
-    from decision_system.data_catalog.store import (
-        load_profiles,  # noqa: PLC0415
+    from decision_system.data_catalog.store import (  # noqa: PLC0415
+        load_profiles,
     )
-    from decision_system.ontology.mapper import (
-        map_profiles_to_ontology,  # noqa: PLC0415
+    from decision_system.ontology.mapper import (  # noqa: PLC0415
+        map_profiles_to_ontology,
     )
-    from decision_system.ontology.store import (
-        DEFAULT_ONTOLOGY_DIR,  # noqa: PLC0415
-        save_ontology,  # noqa: PLC0415
+    from decision_system.ontology.store import (  # noqa: PLC0415
+        DEFAULT_ONTOLOGY_DIR,
+        save_ontology,
     )
 
     profiles = load_profiles()
@@ -657,6 +669,305 @@ def check_hygiene(
 
 
 # ---------------------------------------------------------------------------
+# Security / Governance sub-commands (v1.2)
+# ---------------------------------------------------------------------------
+# Each function is decorated at module scope so Typer registers it.
+# Heavy security imports are deferred inside each function body so that
+# ``--help`` and ``check-hygiene`` remain fast.
+# ---------------------------------------------------------------------------
+
+_security_app = typer.Typer(
+    name="security",
+    help="Security, governance, and audit utilities.",
+    no_args_is_help=True,
+)
+app.add_typer(_security_app)
+
+
+@_security_app.command("scan-secrets")
+def _cmd_scan_secrets(
+    path: str = typer.Option(
+        ".",
+        "--path",
+        help="Root path to scan for secrets.",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit structured JSON instead of Markdown.",
+    ),
+) -> None:
+    """Scan local files for obvious secrets and credentials."""
+    from decision_system.security.audit import append_event  # noqa: PLC0415
+    from decision_system.security.inspector import (  # noqa: PLC0415
+        inspect_secret_scan,
+        render_secret_scan,
+    )
+    from decision_system.security.secret_scan import (  # noqa: PLC0415
+        scan_repo,
+    )
+    from decision_system.security.store import (  # noqa: PLC0415
+        save_secret_scan,
+    )
+
+    result = scan_repo(path)
+    save_secret_scan(result)
+    append_event(
+        "secret_scan_run",
+        f"Scanned {result.files_scanned} files; {len(result.findings)} findings ({result.overall_status})",
+        metadata={
+            "files_scanned": result.files_scanned,
+            "files_skipped": result.files_skipped,
+            "findings_count": len(result.findings),
+            "status": result.overall_status,
+        },
+    )
+    if json_output:
+        payload = inspect_secret_scan(result)
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(render_secret_scan(inspect_secret_scan(result)))
+
+
+@_security_app.command("redact-preview")
+def _cmd_redact_preview(
+    text: str = typer.Argument(..., help="Text to preview redacted."),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit structured JSON instead of Markdown.",
+    ),
+) -> None:
+    """Preview PII / secret redactions without modifying any file."""
+    from decision_system.security.audit import append_event  # noqa: PLC0415
+    from decision_system.security.inspector import (  # noqa: PLC0415
+        inspect_redaction,
+        render_redaction,
+    )
+    from decision_system.security.redaction import (  # noqa: PLC0415
+        redact,
+    )
+    from decision_system.security.store import (  # noqa: PLC0415
+        save_redaction_result,
+    )
+
+    result = redact(text)
+    save_redaction_result(result)
+    append_event(
+        "redact_preview",
+        f"Redacted {result.finding_count} spans in preview text",
+        metadata={"finding_count": result.finding_count},
+    )
+    if json_output:
+        payload = inspect_redaction(result)
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(render_redaction(inspect_redaction(result)))
+
+
+@_security_app.command("audit-log")
+def _cmd_audit_log(
+    limit: int = typer.Option(
+        20,
+        "--limit",
+        help="Maximum events to display.",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit structured JSON instead of Markdown.",
+    ),
+) -> None:
+    """Inspect the local JSONL audit log."""
+    from decision_system.security.audit import (  # noqa: PLC0415
+        load_events,
+        render_audit_log,
+    )
+
+    events = load_events(limit=limit)
+    if json_output:
+        from decision_system.security.inspector import (  # noqa: PLC0415
+            inspect_audit_log,
+        )
+        payload = inspect_audit_log(events)
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(render_audit_log(events, limit=limit))
+
+
+@_security_app.command("policy-check")
+def _cmd_policy_check(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit structured JSON instead of Markdown.",
+    ),
+) -> None:
+    """Run deterministic policy checks against the repo layout."""
+    from decision_system.security.audit import append_event  # noqa: PLC0415
+    from decision_system.security.inspector import (  # noqa: PLC0415
+        inspect_policy,
+        render_policy,
+    )
+    from decision_system.security.policy import (  # noqa: PLC0415
+        run_policy_checks,
+    )
+    from decision_system.security.store import (  # noqa: PLC0415
+        save_policy_result,
+    )
+
+    result = run_policy_checks()
+    save_policy_result(result)
+    append_event(
+        "policy_check_run",
+        f"Policy check: {result.overall_status.upper()} "
+        f"({result.passed_count}/{len(result.checks)} passed)",
+        metadata={
+            "passed": result.passed_count,
+            "failed": result.failed_count,
+            "warnings": result.warning_count,
+            "status": result.overall_status,
+        },
+    )
+    if json_output:
+        payload = inspect_policy(result)
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(render_policy(inspect_policy(result)))
+    if result.overall_status == "fail":
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# Approval sub-commands (v1.2)
+# ---------------------------------------------------------------------------
+
+_approval_app = typer.Typer(
+    name="approval",
+    help="Local approval-request workflow.",
+    no_args_is_help=True,
+)
+app.add_typer(_approval_app)
+
+
+@_approval_app.command("request")
+def _cmd_approval_request(
+    reason: str = typer.Option(
+        "user-requested operation",
+        "--reason",
+        help="Why this approval is needed.",
+    ),
+    requested_by: str = typer.Option(
+        "local-user",
+        "--requested-by",
+        help="Identity of the requester (no real auth yet).",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit structured JSON instead of Markdown.",
+    ),
+) -> None:
+    """Create a new local approval-request record."""
+    from decision_system.security.approvals import (  # noqa: PLC0415
+        create_approval,
+    )
+    from decision_system.security.audit import append_event  # noqa: PLC0415
+    from decision_system.security.store import (  # noqa: PLC0415
+        save_approval_request,
+    )
+
+    request = create_approval(reason, requested_by=requested_by)
+    save_approval_request(request)
+    append_event(
+        "approval_created",
+        f"Approval {request.approval_id} created by {requested_by}: {reason}",
+        metadata={
+            "approval_id": request.approval_id,
+            "status": request.status,
+            "reason": reason[:200],
+        },
+    )
+    if json_output:
+        typer.echo(json.dumps(request.model_dump(mode="json"), indent=2))
+    else:
+        console.print(
+            f"Created approval request: {request.approval_id}\n"
+            f"Reason: {reason}\n"
+            f"Requested by: {requested_by}\n"
+            f"Status: {request.status}\n"
+            f"Created: {request.created_at}"
+        )
+
+
+@_approval_app.command("list")
+def _cmd_approval_list(
+    status: str = typer.Option(
+        "pending",
+        "--status",
+        help="Filter by status: pending, approved, rejected, cancelled.",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit structured JSON instead of Markdown.",
+    ),
+) -> None:
+    """List local approval-request records."""
+    from decision_system.security.approvals import (  # noqa: PLC0415
+        list_approvals,
+    )
+    from decision_system.security.inspector import (  # noqa: PLC0415
+        inspect_approvals,
+        render_approvals,
+    )
+
+    filter_val: str | None = status if status else None
+    requests = list_approvals(status_filter=filter_val)
+    if json_output:
+        payload = inspect_approvals(requests)
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(render_approvals(inspect_approvals(requests)))
+
+
+@_approval_app.command("inspect")
+def _cmd_approval_inspect(
+    approval_id: str = typer.Argument(
+        ...,
+        help="ID of the approval request to inspect.",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit structured JSON instead of Markdown.",
+    ),
+) -> None:
+    """Inspect a single local approval-request record."""
+    from decision_system.security.approvals import (  # noqa: PLC0415
+        inspect_approval,
+    )
+
+    request = inspect_approval(approval_id)
+    if request is None:
+        console.print(f"[red]Approval request not found: {approval_id}[/red]")
+        raise typer.Exit(code=1)
+    if json_output:
+        typer.echo(json.dumps(request.model_dump(mode="json"), indent=2))
+    else:
+        console.print(f"ID:       {request.approval_id}")
+        console.print(f"Reason:   {request.reason}")
+        console.print(f"Status:   {request.status}")
+        console.print(f"By:       {request.requested_by}")
+        console.print(f"Created:  {request.created_at}")
+        console.print(f"Resolved: {request.resolved_at or '(active)'}")
+        if request.metadata:
+            console.print("Metadata:")
+            for k, v in request.metadata.items():
+                console.print(f"  {k}: {v}")
+
+
+# ---------------------------------------------------------------------------
 # API service
 # ---------------------------------------------------------------------------
 
@@ -787,22 +1098,22 @@ def ask(
     # pattern detectors, eval runners, and war-room code at import time. Tests
     # monkeypatch the three module-scope symbols above; they do NOT monkeypatch
     # these, so deferring them is safe.
-    from decision_system.agents.risk_analyst import (
-        run_risk_analysis,  # noqa: PLC0415
+    from decision_system.agents.risk_analyst import (  # noqa: PLC0415
+        run_risk_analysis,
     )
-    from decision_system.agents.technical_analyst import (
-        run_technical_analysis,  # noqa: PLC0415
+    from decision_system.agents.technical_analyst import (  # noqa: PLC0415
+        run_technical_analysis,
     )
     from decision_system.evals.runner import (  # noqa: PLC0415
         render_eval_report,
         run_eval_suite,
         save_eval_results,
     )
-    from decision_system.graph.workflow import (
-        build_workflow,  # noqa: PLC0415 - LangGraph + agent nodes
+    from decision_system.graph.workflow import (  # noqa: PLC0415  - LangGraph + agent nodes
+        build_workflow,
     )
-    from decision_system.graphing.store import (
-        load_knowledge_graph,  # noqa: PLC0415
+    from decision_system.graphing.store import (  # noqa: PLC0415
+        load_knowledge_graph,
     )
     from decision_system.insights.inspector import (  # noqa: PLC0415
         inspect_insights as _inspect_insights_fn,
@@ -812,11 +1123,11 @@ def ask(
         load_insights,
         save_insights,
     )
-    from decision_system.ledger.claim_ledger import (
-        ClaimLedger,  # noqa: PLC0415
+    from decision_system.ledger.claim_ledger import (  # noqa: PLC0415
+        ClaimLedger,
     )
-    from decision_system.llm.factory import (
-        get_provider,  # noqa: PLC0415
+    from decision_system.llm.factory import (  # noqa: PLC0415
+        get_provider,
     )
     from decision_system.ontology.inspector import (  # noqa: PLC0415
         inspect_ontology as _inspect_ontology_fn,
@@ -835,8 +1146,8 @@ def ask(
     from decision_system.provider_eval.inspector import (  # noqa: PLC0415
         render_provider_eval_suite,
     )
-    from decision_system.provider_eval.runner import (
-        run_provider_eval_suite,  # noqa: PLC0415
+    from decision_system.provider_eval.runner import (  # noqa: PLC0415
+        run_provider_eval_suite,
     )
     from decision_system.provider_eval.store import (  # noqa: PLC0415
         load_provider_eval_results,
@@ -855,12 +1166,12 @@ def ask(
     )
     from decision_system.rag.chunker import chunk_documents  # noqa: PLC0415
     from decision_system.rag.loader import load_documents  # noqa: PLC0415
-    from decision_system.rag.vector_store import (
-        index_chunks,  # noqa: PLC0415
+    from decision_system.rag.vector_store import (  # noqa: PLC0415
+        index_chunks,
         inspect_collection,
     )
-    from decision_system.reports.renderer import (
-        render_decision_report,  # noqa: PLC0415 - monkeypatched by tests
+    from decision_system.reports.renderer import (  # noqa: PLC0415  - monkeypatched by tests
+        render_decision_report,
     )
     from decision_system.war_room.dispatcher import (  # noqa: PLC0415
         build_dispatch_spec as _build_wr_dispatch,
@@ -874,11 +1185,11 @@ def ask(
         inspect_war_room as _inspect_war_room_impl,
         render_inspection as _render_war_room_inspection,
     )
-    from decision_system.war_room.runner import (
-        run_war_room as _run_war_room_fn,  # noqa: PLC0415
+    from decision_system.war_room.runner import (  # noqa: PLC0415
+        run_war_room as _run_war_room_fn,
     )
-    from decision_system.war_room.store import (
-        DEFAULT_RUNS_DIR,  # noqa: PLC0415
+    from decision_system.war_room.store import (  # noqa: PLC0415
+        DEFAULT_RUNS_DIR,
         load_latest_run,
     )
 
@@ -913,17 +1224,17 @@ def ask(
 
     try:
         result = graph.invoke(graph_input)
-    except _ChromaNotFoundError as _idx_exc:
-        console.print(
-            "[red]No document index found. "
-            "Run [bold]decision-system index[/bold] first, "
-            "or add documents to [bold]company_docs/[/bold].[/red]"
-        )
-        raise typer.Exit(code=1) from _idx_exc
-    except Exception as exc:
+    except Exception as _idx_exc:
+        if _is_missing_index_error(_idx_exc):
+            console.print(
+                "[red]No document index found. "
+                "Run [bold]decision-system index[/bold] first, "
+                "or add documents to [bold]company_docs/[/bold].[/red]"
+            )
+            raise typer.Exit(code=1) from _idx_exc
         if active_provider != "fake":
             console.print(
-                f"[red]Provider '{active_provider}' run failed: {exc}[/red]"
+                f"[red]Provider '{active_provider}' run failed: {_idx_exc}[/red]"
             )
             raise typer.Exit(code=1)
         raise
@@ -1024,8 +1335,8 @@ def run_war_room(
     from decision_system.war_room.runner import (  # noqa: PLC0415
         run_war_room as _run_war_room_fn,
     )
-    from decision_system.war_room.store import (
-        DEFAULT_RUNS_DIR,  # noqa: PLC0415
+    from decision_system.war_room.store import (  # noqa: PLC0415
+        DEFAULT_RUNS_DIR,
     )
 
     run = _run_war_room_fn(question)
@@ -1072,8 +1383,8 @@ def inspect_war_room() -> None:
         inspect_war_room as _inspect_war_room_impl,
         render_inspection as _render_war_room_inspection,
     )
-    from decision_system.war_room.store import (
-        load_latest_run,  # noqa: PLC0415
+    from decision_system.war_room.store import (  # noqa: PLC0415
+        load_latest_run,
     )
 
     run = load_latest_run()
@@ -1137,8 +1448,8 @@ def provider_smoke(
     ),
 ) -> None:
     """Run one small in-memory evidence case against a provider."""
-    from decision_system.llm.factory import (
-        get_provider,  # noqa: PLC0415
+    from decision_system.llm.factory import (  # noqa: PLC0415
+        get_provider,
     )
     from decision_system.models import (  # noqa: PLC0415
         AgentMemo,
@@ -1397,8 +1708,8 @@ def inspect_provider_evals() -> None:
     from decision_system.provider_eval.inspector import (  # noqa: PLC0415
         render_provider_eval_suite,
     )
-    from decision_system.provider_eval.store import (
-        load_provider_eval_results,  # noqa: PLC0415
+    from decision_system.provider_eval.store import (  # noqa: PLC0415
+        load_provider_eval_results,
     )
 
     suite = load_provider_eval_results()

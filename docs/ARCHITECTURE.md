@@ -275,6 +275,12 @@ The v0.8 route surface is:
 - `POST /evals/war-room`
 - `POST /evals/providers`
 
+The v1.2 security route surface adds:
+
+- `GET /security/policy` — run deterministic policy checks
+- `POST /security/redact-preview` — preview PII and secret redactions
+- `GET /security/audit` — read local audit log events
+
 `decision-system serve-api` runs uvicorn for local development. Tests use
 FastAPI `TestClient` directly and do not require a live server or real API keys.
 
@@ -499,6 +505,50 @@ critical config, or a non-fake default provider are failures.
 The release checklist in `docs/RELEASE_CHECKLIST.md` complements the hygiene
 command by documenting install, test, smoke, eval, git hygiene, and skills
 directory checks.
+
+## Security, Governance, and Audit (v1.2)
+
+v1.2 adds deterministic offline security primitives without auth, cloud scanning, or secret vaults:
+
+```text
+CLI security commands
+-> local secret scanner (regex, no external service)
+-> redaction preview (in-memory, no file writes)
+-> audit log appender (local JSONL, reusable by any module)
+-> policy checker (7 offline rules, returns OK/WARN/FAIL)
+-> approval request store (local JSON files, optional approve/reject)
+
+FastAPI API surface
+-> GET  /security/policy (run policy checks)
+-> POST /security/redact-preview (preview PII/secret replacements)
+-> GET  /security/audit (read audit log)
+
+Web UI (mock-first)
+-> policy status panel
+-> audit log summary
+-> approval request list
+```
+
+Package layout under `src/decision_system/security/`:
+
+| Module | Purpose |
+|--------|---------|
+| `models.py` | Pydantic models: SecretFinding, RedactionFinding, AuditEvent, PolicyCheck, PolicyCheckResult, ApprovalRequest |
+| `store.py` | Load/save helpers for audit events and approval index |
+| `secret_scan.py` | Deterministic regex scanner for API keys, tokens, private keys, AWS keys, `.env` secrets, `sk-` and `nvapi-` prefixes |
+| `redaction.py` | In-memory PII/secret redaction preview: emails, phones, secret tokens, customer IDs |
+| `audit.py` | JSONL writer/reader for timestamped audit events |
+| `policy.py` | 7 offline policy checks: fake provider default, gitignore coverage, untracked `.env`, connector stubs, source secrets, agent docs, release checklist |
+| `approvals.py` | Local approval request persistence with status lifecycle |
+| `inspector.py` | Render helpers for secret scan, redaction, audit log, policy, and approval output |
+
+All security features share these constraints:
+
+- **Full secret values are never returned.** Only masked previews (`abcd****wxyz`).
+- **No external service calls.** Patterns and policy rules are regex and file-inspection only.
+- **No workspace requirement.** Security commands and audit logging work without a workspace initialized.
+- **Tests use synthetic data only.** No real API keys, no Ollama daemon, no NVIDIA NIM.
+- **Generated paths are ignored.** `.decision_system/security/` is in `.gitignore`.
 
 ## Current Limits
 

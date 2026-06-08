@@ -133,6 +133,25 @@ Available v0.8 endpoints:
 - `POST /evals/war-room`
 - `POST /evals/providers`
 
+## Security, Governance, and Audit (v1.2)
+
+```bash
+decision-system scan-secrets
+decision-system scan-secrets --json
+decision-system redact-preview "contact customer@example.com"
+decision-system redact-preview "contact customer@example.com" --json
+decision-system audit-log
+decision-system audit-log --json
+decision-system policy-check
+decision-system policy-check --json
+decision-system approval request --reason "testing"
+decision-system approval list
+decision-system approval list --json
+decision-system approval inspect APPROVAL_ID
+```
+
+v1.2 adds deterministic local security and governance checks. The secret scanner finds obvious credential patterns (API keys, tokens, private keys, AWS keys) in tracked repo files. The redaction preview shows what PII-like values would be replaced without modifying files. The audit log records security events in a local JSONL file. Policy checks validate repo hygiene (fake provider default, ignored directories, no tracked `.env` files). Approval requests create local approval records for human review workflows. All security features are deterministic, offline, and require no external services, auth server, or secret vault.
+
 ## Local Workspaces (v1.0)
 
 ```bash

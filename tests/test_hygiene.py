@@ -165,6 +165,22 @@ class TestDSAbsent:
         assert ds_warnings == []
 
 
+class TestSecurityDirIsGenerated:
+    def test_security_dir_warns_as_generated(self, tmp_path: Path):
+        """v1.2: .decision_system/security/ must be treated as generated state."""
+        root = _mk_repo(tmp_path)
+        sec = root / ".decision_system" / "security" / "audit"
+        sec.mkdir(parents=True)
+        (sec / "audit_log.jsonl").write_text(
+            '{"event_id":"e1","event_type":"scan","actor":"u","message":"m","metadata":{}}\n',
+            encoding="utf-8",
+        )
+        report = check_hygiene(root)
+        ds_checks = [c for c in report.warnings if c.name == "decision_system_generated"]
+        assert ds_checks, "Expected decision_system_generated warning for .decision_system/security/"
+        assert report.overall == "WARN"
+
+
 class TestCli:
     def test_check_hygiene_help(self):
         result = runner.invoke(app, ["check-hygiene", "--help"])

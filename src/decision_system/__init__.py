@@ -1,3 +1,3 @@
-"""Agentic Decision System - backend-first Company Intelligence Engine."""
+"""Agentic Decision System - backend-first local Company Intelligence Engine."""
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"

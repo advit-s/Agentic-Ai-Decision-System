@@ -26,7 +26,8 @@
           <button class="nav-item" type="button" data-view="provider-evals">Provider Evals</button>
           <button class="nav-item" type="button" data-view="data-profiles">Data Profiles</button>
           <button class="nav-item" type="button" data-view="graph">Graph</button>
-        </nav>
+         <button class="nav-item" type="button" data-view="security">Security</button>
+</nav>
         <div class="source-box">
           <label for="apiBaseUrl">API base URL</label>
           <div class="source-row">
@@ -245,7 +246,30 @@
             </div>
           </div>
         </section>
-      </main>
+      <section id="security" class="view" aria-labelledby="security-title">
+<div class="section-heading">
+<div>
+<p class="eyebrow">Governance and audit</p>
+<h3 id="security-title">Security</h3>
+</div>
+<span class="tag">offline-only</span>
+</div>
+<div class="split-grid">
+<div>
+<h4>Policy status</h4>
+<div id="securityPolicyStatus" class="compact-list"><p class="empty-state">No policy data</p></div>
+</div>
+<div>
+<h4>Audit log summary</h4>
+<div id="securityAuditLog" class="compact-list"><p class="empty-state">No audit events</p></div>
+</div>
+</div>
+<h4>Approval requests</h4>
+<div id="securityApprovals" class="compact-list"><p class="empty-state">No approval requests yet</p></div>
+<p class="small-muted" style="margin-top:16px">No real auth, secret vault, or cloud scanning in this prototype. Security checks are local and deterministic.</p>
+</section>
+<!-- graph starts after security -->
+</main>
     </div>
     <script src="app.js" defer></script>
   </body>

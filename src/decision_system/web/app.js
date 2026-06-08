@@ -358,7 +358,22 @@ function renderGraph() {
     )
     .join("");
 }
-
+function renderSecurity() {
+      const sec = state.data.security || structuredClone(FALLBACK_DATA.security);
+      const policy = sec.policy;
+      const checks = (policy && policy.checks ? policy.checks : []).slice(0, 6);
+      el("securityPolicyStatus").innerHTML = checks.length ? checks.map((c) => {
+        const cls = c.passed ? "status-pass" : "status-fail";
+        return `<div class="compact-item"><strong class="${cls}">${safe(c.name)}</strong> <span class="small-muted">${safe(c.message || "")}</span></div>`;
+      }).join("") : "<p class="empty-state">No policy data</p>";
+      el("securityAuditLog").innerHTML = (sec.audit_events || []).slice(0, 5).map((ev) => {
+        return `<div class="compact-item"><strong>${safe(ev.event_type)}</strong> <span class="small-muted">${ev.created_at ? new Date(ev.created_at).toLocaleString() : ""}</span> ${ev.message ? `<div>${safe(ev.message)}</div>` : ""}</div>`;
+      }).join("") || "<p class="empty-state">No audit events</p>";
+      el("securityApprovals").innerHTML = (sec.approval_requests || []).slice(0, 5).map((r) => {
+        const cls = r.status === "approved" ? "status-pass" : r.status === "rejected" ? "status-fail" : "";
+        return `<div class="compact-item"><strong class="${cls}">#${safe(r.approval_id || r.id || "?")}</strong> <span>${safe(r.reason || r.message || "")}</span> <span class="small-muted">${safe(r.requested_by || r.actor || "unknown")} | ${safe(r.status || "pending")}</span></div>`;
+      }).join("") || "<p class="empty-state">No approval requests yet</p>";
+    }
 function renderAll() {
   renderConnection();
   renderMetrics();
@@ -369,6 +384,7 @@ function renderAll() {
   renderProviderEvals();
   renderProfiles();
   renderGraph();
+  renderSecurity();
 }
 
 async function submitQuestion(event) {

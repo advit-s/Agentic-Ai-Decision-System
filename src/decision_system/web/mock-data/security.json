@@ -1,0 +1,42 @@
+{
+  "policy": {
+    "checks": [
+      {
+        "check_id": "fake-provider-default",
+        "name": "Fake provider is default",
+        "passed": true,
+        "severity": "info",
+        "message": "DECISION_PROVIDER=fake"
+      },
+      {
+        "check_id": "generated-dirs-ignored",
+        "name": "Generated directories are ignored",
+        "passed": true,
+        "severity": "info",
+        "message": "All required ignore rules present"
+      },
+      {
+        "check_id": "env-not-tracked",
+        "name": "No .env files are tracked",
+        "passed": true,
+        "severity": "info",
+        "message": "No .env files tracked by git"
+      }
+    ],
+    "passed_count": 3,
+    "warning_count": 0,
+    "failed_count": 0,
+    "overall_status": "ok"
+  },
+  "approval_requests": [],
+  "audit_events": [
+    {
+      "event_id": "e1",
+      "event_type": "policy_check_run",
+      "actor": "local-user",
+      "message": "Policy checks completed",
+      "metadata": {"overall_status": "ok"},
+      "created_at": "2026-06-09T10:00:00Z"
+    }
+  ]
+}
