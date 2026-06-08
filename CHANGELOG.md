@@ -1,3 +1,13 @@
+## [1.1.0] - 2026-06-08
+### Added
+- Safe connector framework with connector registry, job manifests, and inspection.
+- Real `local-files` connector with dry-run and copy-based import.
+- Offline connector stubs for GitHub, Jira, Slack, and Email.
+- Connector CLI commands: `connectors list`, `connectors inspect`, `connectors dry-run`, `connectors import`, `connectors inspect-jobs`.
+- Connector API endpoints under `/connectors`.
+- Optional workspace artifact integration for connector import jobs.
+- Connector job persistence under `.decision_system/connectors/`.
+
 ## [1.0.1] - 2026-06-08
 ### Fixed
 - Synced root and packaged web UI assets.

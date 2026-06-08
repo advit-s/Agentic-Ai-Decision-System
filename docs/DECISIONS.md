@@ -296,6 +296,24 @@ Key principles:
 
 This keeps company data local and auditable while staying safe for offline testing. A full database moves barriers too high for the v1.0 scope.
 
+## ADR-031: Add Connector Registry With Local-Files First And External Stubs
+
+Status: Accepted
+
+v1.1 introduces a safe connector framework for controlled data intake. The first real connector is `local-files`, which copies supported files into `.decision_system/connectors/`. GitHub, Jira, Slack, and Email are offline stubs that do not make network calls and do not store credentials.
+
+Key principles:
+
+- **Local-files first.** Only `local-files` is a real connector. It supports dry-run and copy-based import.
+- **External connectors are stubs.** GitHub, Jira, Slack, and Email connectors report `is_stub=True` and produce safe errors for dry-run/import/API calls.
+- **No OAuth or secrets.** Connectors do not store API tokens, cookies, or session state.
+- **Source files are never modified.** The local-files connector only copies; existing destination files get a numeric suffix.
+- **Protected files are skipped.** `.env`, `.gitignore`, key files, Python cache, virtual environment folders, and raw dataset directories are skipped with reasons.
+- **Jobs are persisted locally.** Import jobs live under `.decision_system/connectors/jobs.json` and are ignored by Git.
+- **Workspace integration is best-effort.** Connectors do not write to the workspace SQLite database directly; workspace integration is handled separately by the import-artifacts command.
+
+This is the safest expansion path: real connector logic exists for one data source while the four common enterprise targets are represented as stubs. Adding live GitHub/Jira/Slack/Email integrations requires an explicit future ADR with OAuth/scoping design.
+
 ## ADR-030: Use Local SQLite Workspaces Before Cloud/Database Complexity
 
 Status: Accepted

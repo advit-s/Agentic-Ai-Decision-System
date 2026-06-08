@@ -209,12 +209,33 @@ python -m http.server 8765 --directory web
 
 Then open `http://localhost:8765` or `http://localhost:8000` depending on the method. The prototype includes Ask, Reports, Insights, Ontology, War Room, Provider Evals, Data Profiles, and Graph sections.
 
+## Safe Connectors
+
+```bash
+decision-system connectors list
+decision-system connectors inspect local-files
+decision-system connectors dry-run local-files --path company_docs
+decision-system connectors import local-files --path company_docs
+decision-system connectors inspect-jobs
+```
+
+v1.1 adds a safe connector framework for controlled data intake. Only `local-files` is a real connector; GitHub, Jira, Slack, and Email are offline stubs and do not make network calls. No OAuth/token storage is implemented.
+
+```bash
+decision-system connectors inspect github
+decision-system connectors inspect jira
+decision-system connectors inspect slack
+decision-system connectors inspect email
+```
+
+Stub connectors fail safely with a clear message. Dry-run should always be used before importing. Connector jobs are generated under `.decision_system/connectors/` and are ignored by Git. No source files are deleted or modified during import.
+
 ## What Is Not Included Yet
 
 - production frontend or saved workspace app
 - database
 - auth
-- enterprise connectors
+- enterprise connectors (live scoped-network versions)
 - Slack/Jira/email/GitHub integrations
 - autonomous external actions
 
@@ -495,4 +516,5 @@ Completed:
 - v1.0: local SQLite workspace persistence, CLI commands, JSON export/import
 
 Upcoming:
-- v1.1+: Production frontend, auth, connectors, saved workspace app, and deeper persistence after backend discipline is proven
+- v1.1+ (current): Safe connector framework with local-files as the primary real connector; external connectors remain offline stubs until explicit design approval
+- v1.1+ (future): Production frontend, auth, connectors, saved workspace app, and deeper persistence after backend discipline is proven

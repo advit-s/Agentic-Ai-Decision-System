@@ -5,8 +5,14 @@ LangGraph workflow. The fake provider works without API keys; hosted providers
 are optional and environment-configured.
 
 Subpackage imports are lazy -- loaded inside the heavy command functions -- so
-that lightweight introspection commands (``--help``, ``check-hygiene``) do not
-pull in the full LangGraph / Chroma / RAG stack at import time.
+that lightweight introspection commands (``--help``, ``check-hygiene``) avoid
+pulling in LangGraph, Chroma, RAG, agent nodes, eval runners, or war-room
+modules at import time.
+
+Only the few symbols that tests regularly monkeypatch via
+``monkeypatch.setattr("decision_system.cli.<name>")`` (``DecisionContextBuilder``,
+``save_decision_context``, and ``render_decision_report``) plus the web UI
+static assets remain at module scope.
 """
 
 from __future__ import annotations
@@ -20,152 +26,86 @@ import typer
 from pydantic import BaseModel
 from rich.console import Console
 
+# Heavy third-party imports are intentionally deferred into command functions.
+# chromadb is the single heaviest module-level import (~0.5s); a lightweight
+# import helper is provided so ask() can still catch MissingIndexError without
+# paying the cost for commands that never touch the vector store.
 try:
-    import chromadb  # noqa: F401  - kept at module scope for MissingIndex error handling
+    from chromadb.errors import NotFoundError as _ChromaNotFoundError
 except ImportError:  # pragma: no cover - chromadb is a required dependency
-    chromadb = None  # type: ignore[assignment]
+    _ChromaNotFoundError = None  # type: ignore[assignment,misc]
 
-from decision_system.config import load_settings
-from decision_system.devtools.hygiene import HygieneReport, check_hygiene as _run_hygiene_fn
-from decision_system.data_catalog.demo_data import seed_demo_data as _seed_demo_data_fn
-from decision_system.data_catalog.importer import (
+# ---------------------------------------------------------------------------
+# Lightweight imports: config, hygiene, hygiene HTML renderer, data catalog
+# store/inspector, and the three symbols tests monkeypatch by dotted path.
+# ---------------------------------------------------------------------------
+from decision_system.config import load_settings  # noqa: E402
+from decision_system.devtools.hygiene import (  # noqa: E402
+    HygieneReport,
+    check_hygiene as _run_hygiene_fn,
+)
+from decision_system.data_catalog.demo_data import (  # noqa: E402
+    seed_demo_data as _seed_demo_data_fn,
+)
+from decision_system.data_catalog.importer import (  # noqa: E402
     DEFAULT_IMPORT_SOURCE_DIR,
     import_datasets as import_datasets_fn,
     load_import_manifest,
     render_import_manifest,
 )
-from decision_system.data_catalog.initializer import (
+from decision_system.data_catalog.initializer import (  # noqa: E402
     DEFAULT_DATA_ROOT,
     init_data_catalog as initialize_data_catalog,
 )
-from decision_system.data_catalog.inspector import inspect_profiles, render_inspection
-from decision_system.data_catalog.store import (
+from decision_system.data_catalog.inspector import (  # noqa: E402
+    inspect_profiles,
+    render_inspection,
+)
+from decision_system.data_catalog.store import (  # noqa: E402
     load_profiles,
     profile_and_save,
     save_profiles,
 )
-from decision_system.evals.runner import (
-    render_eval_report,
-    run_eval_suite,
-    save_eval_results,
+from decision_system.context.builder import (  # noqa: E402  # monkeypatched by tests
+    DecisionContextBuilder,
 )
-from decision_system.graphing.extractor import extract_knowledge_graph
-from decision_system.graphing.inspector import (
-    inspect_knowledge_graph,
-    render_graph_inspection,
+from decision_system.context.inspector import (  # noqa: E402
+    inspect_context,
+    render_context_inspection,
 )
-from decision_system.graphing.store import (
-    load_knowledge_graph,
-    save_knowledge_graph,
+from decision_system.context.models import DecisionContext  # noqa: E402
+from decision_system.context.store import (  # noqa: E402
+    save_context as save_decision_context,  # monkeypatched by tests
 )
-from decision_system.insights.detectors import run_detectors
-from decision_system.insights.inspector import (
-    inspect_insights as _inspect_insights_fn,
-    render_insight_inspection,
-)
-from decision_system.insights.store import (
-    _insights_path,
-    load_insights,
-    save_insights,
-)
-from decision_system.context.builder import DecisionContextBuilder
-from decision_system.context.inspector import inspect_context, render_context_inspection
-from decision_system.context.models import DecisionContext
-from decision_system.context.store import save_context as save_decision_context
-from decision_system.ontology.inspector import (
-    inspect_ontology as _inspect_ontology_fn,
-    render_ontology_inspection,
-)
-from decision_system.ontology.mapper import map_profiles_to_ontology
-from decision_system.ontology.store import (
-    DEFAULT_ONTOLOGY_DIR,
-    _ontology_path,
-    load_ontology,
-    save_ontology,
-)
-from decision_system.orchestration.inspector import (
-    inspect_dispatch_plan,
-    inspect_problem_analysis,
-    render_dispatch_plan,
-    render_problem_analysis,
-)
-from decision_system.orchestration.judge import build_judge_summary
-from decision_system.orchestration.models import DispatchPlan, JudgeSummary, ProblemAnalysis
-from decision_system.orchestration.store import (
-    save_decision_session,
-    load_latest_session,
-)
-from decision_system.orchestration.dispatcher import build_dispatch_plan
-from decision_system.orchestration.planner import plan_data_tools_roles
-from decision_system.orchestration.problem_analyzer import (
-    analyze_problem as _analyze_problem_fn,
-)
-from decision_system.orchestration.workflow import run_orchestration as _run_orchestration_fn
-from decision_system.insights.store import DEFAULT_INSIGHTS_DIR
-from decision_system.rag.chunker import chunk_documents
-from decision_system.rag.loader import load_documents
-from decision_system.rag.vector_store import index_chunks, inspect_collection
-from decision_system.war_room.dispatcher import (
-    build_dispatch_spec as _build_wr_dispatch,
-)
-from decision_system.war_room.evals import (
-    render_war_room_eval_report,
-    run_war_room_eval_suite,
-    save_war_room_eval_results,
-)
-from decision_system.war_room.inspector import (
-    inspect_war_room as _inspect_war_room_impl,
-    render_inspection as _render_war_room_inspection,
-)
-from decision_system.war_room.runner import run_war_room as _run_war_room_fn
-from decision_system.war_room.store import DEFAULT_RUNS_DIR, load_latest_run
-from decision_system.llm.factory import get_provider
-from decision_system.provider_experiments.models import ProviderExperimentCase
-from decision_system.provider_experiments.runner import (
-    load_eval_cases as _load_provider_cases,
-    run_experiment_suite,
-)
-from decision_system.provider_experiments.store import (
-    load_latest_provider_results,
-    save_experiment_results,
-)
-from decision_system.provider_experiments.inspector import (
-    render_provider_experiments,
-)
-from decision_system.provider_eval.inspector import render_provider_eval_suite
-from decision_system.provider_eval.runner import run_provider_eval_suite
-from decision_system.provider_eval.store import (
-    load_provider_eval_results,
-    save_provider_eval_results,
-)
-from decision_system.reports.renderer import render_decision_report
-
-# The graph.workflow import (which pulls in LangGraph + agent nodes) is
-# intentionally deferred into the ``ask`` command so that lightweight CLI
-# introspection (``--help``, ``check-hygiene``) avoids that startup cost.
 
 app = typer.Typer(help="Create cited decision briefs from local company documents.")
 
 # ---------------------------------------------------------------------------
-# Optional workspace sub-commands (v1.0)
+# Optional workspace sub-commands (v1.0) -- self-contained sub-module.
 # ---------------------------------------------------------------------------
 try:
-    from decision_system.cli_workspaces import register_workspace_commands
+    from decision_system.cli_workspaces import register_workspace_commands  # noqa: E402
     register_workspace_commands(app)
 except ImportError:
     pass
 
 # ---------------------------------------------------------------------------
-# Optional connector sub-commands (v1.1)
+# Optional connector sub-commands (v1.1) -- self-contained sub-module.
 # ---------------------------------------------------------------------------
 try:
-    from decision_system.cli_connectors import register_connector_commands
-
+    from decision_system.cli_connectors import (  # noqa: E402
+        register_connector_commands,
+    )
     register_connector_commands(app)
 except ImportError:
     pass
 
 console = Console()
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
 
 
 def _to_jsonable(value: Any) -> Any:
@@ -186,7 +126,9 @@ def _ask_json_payload(result: dict[str, Any]) -> dict[str, Any]:
         "question": result.get("question"),
         "retrieved_evidence": _to_jsonable(result.get("retrieved_evidence", [])),
         "claims": _to_jsonable(result.get("claims", [])),
-        "verification_results": _to_jsonable(result.get("verification_results", [])),
+        "verification_results": _to_jsonable(
+            result.get("verification_results", [])
+        ),
         "final_report": _to_jsonable(result.get("final_report")),
     }
 
@@ -209,6 +151,7 @@ def _render_evidence_section(evidence_items: list[Any]) -> str:
                 f"- source_filename: {evidence.source_filename}",
                 f"- chunk_id: {evidence.chunk_id}",
                 f"- score: {score}",
+                "",
                 f"- text preview: {preview}",
                 "",
             ]
@@ -229,20 +172,18 @@ def _save_run(result: dict[str, Any]) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Commands
+# Commands -- heavy imports are deferred into each function body.
 # ---------------------------------------------------------------------------
 
 
 @app.command()
 def index() -> None:
-    """Index local documents from the configured docs directory.
-
-    Inputs come from environment-backed settings. The command reads ``.md`` and
-    ``.txt`` files, chunks them, and writes a local Chroma collection. Its main
-    side effect is refreshing the configured vector store.
-    """
-    # Defer graph/workflow import -- only the document pipeline is needed here.
-    from decision_system.graph.workflow import build_workflow
+    """Index local documents from the configured docs directory."""
+    # Defer graph/workflow (LangGraph) import; only the document pipeline is needed here.
+    from decision_system.graph.workflow import build_workflow  # noqa: PLC0415
+    from decision_system.rag.chunker import chunk_documents  # noqa: PLC0415
+    from decision_system.rag.loader import load_documents  # noqa: PLC0415
+    from decision_system.rag.vector_store import index_chunks  # noqa: PLC0415
 
     settings = load_settings()
     documents = load_documents(settings.docs_dir)
@@ -252,12 +193,16 @@ def index() -> None:
         store_dir=settings.store_dir,
         collection_name=settings.collection_name,
     )
-    console.print(f"Indexed {len(documents)} documents into {chunk_count} chunks.")
+    console.print(
+        f"Indexed {len(documents)} documents into {chunk_count} chunks."
+    )
 
 
 @app.command()
 def inspect_index() -> None:
     """Inspect the configured local Chroma collection."""
+    from decision_system.rag.vector_store import inspect_collection  # noqa: PLC0415
+
     settings = load_settings()
     inspection = inspect_collection(
         store_dir=settings.store_dir,
@@ -272,6 +217,15 @@ def inspect_index() -> None:
 @app.command()
 def extract_graph() -> None:
     """Extract a local knowledge graph from configured company documents."""
+    from decision_system.graphing.extractor import (
+        extract_knowledge_graph,  # noqa: PLC0415
+    )
+    from decision_system.graphing.store import (
+        save_knowledge_graph,  # noqa: PLC0415
+    )
+    from decision_system.rag.chunker import chunk_documents  # noqa: PLC0415
+    from decision_system.rag.loader import load_documents  # noqa: PLC0415
+
     settings = load_settings()
     documents = load_documents(settings.docs_dir)
     chunks = chunk_documents(documents)
@@ -279,12 +233,22 @@ def extract_graph() -> None:
     graph_path = save_knowledge_graph(knowledge_graph).resolve()
     console.print(f"Saved knowledge graph: {graph_path}")
     console.print(f"Entity count: {len(knowledge_graph.entities)}")
-    console.print(f"Relationship count: {len(knowledge_graph.relationships)}")
+    console.print(
+        f"Relationship count: {len(knowledge_graph.relationships)}"
+    )
 
 
 @app.command()
 def inspect_graph() -> None:
     """Inspect the local graph-like JSON knowledge store."""
+    from decision_system.graphing.inspector import (
+        inspect_knowledge_graph,  # noqa: PLC0415
+        render_graph_inspection,  # noqa: PLC0415
+    )
+    from decision_system.graphing.store import (
+        load_knowledge_graph,  # noqa: PLC0415
+    )
+
     knowledge_graph = load_knowledge_graph()
     inspection = inspect_knowledge_graph(knowledge_graph)
     console.print(render_graph_inspection(inspection))
@@ -293,7 +257,14 @@ def inspect_graph() -> None:
 @app.command()
 def detect_patterns() -> None:
     """Run deterministic pattern and vulnerability detection."""
-    profiles = load_profiles()
+    from decision_system.data_catalog.store import load_profiles  # noqa: PLC0415
+    from decision_system.graphing.store import load_knowledge_graph  # noqa: PLC0415
+    from decision_system.insights.detectors import run_detectors  # noqa: PLC0415
+    from decision_system.insights.store import save_insights  # noqa: PLC0415
+
+    profiles = load_profiles(
+        ".decision_system/data_profiles/profiles.json"
+    )
     graph = load_knowledge_graph()
     store = run_detectors(profiles=profiles, graph=graph)
     insights_path = save_insights(store)
@@ -303,19 +274,28 @@ def detect_patterns() -> None:
     if severity_counts:
         console.print(
             "By severity: "
-            + ", ".join(f"{k}: {v}" for k, v in sorted(severity_counts.items()))
+            + ", ".join(
+                f"{k}: {v}" for k, v in sorted(severity_counts.items())
+            )
         )
     if category_counts:
         console.print(
             "By category: "
-            + ", ".join(f"{k}: {v}" for k, v in sorted(category_counts.items()))
+            + ", ".join(
+                f"{k}: {v}" for k, v in sorted(category_counts.items())
+            )
         )
     console.print(f"Saved insights: {insights_path}")
-
 
 @app.command()
 def inspect_insights() -> None:
     """Inspect saved deterministic insight summaries."""
+    from decision_system.insights.inspector import (  # noqa: PLC0415
+        inspect_insights as _inspect_insights_fn,
+        render_insight_inspection,
+    )
+    from decision_system.insights.store import load_insights  # noqa: PLC0415
+
     store = load_insights()
     summary = _inspect_insights_fn(store)
     console.print(render_insight_inspection(summary))
@@ -326,11 +306,27 @@ def analyze_problem(
     question: str,
     json_output: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Analyze a business question and print required data, tools, and roles.
+    """Analyze a business question and print required data, tools, and roles."""
+    from decision_system.orchestration.dispatcher import (
+        build_dispatch_plan,  # noqa: PLC0415
+    )
+    from decision_system.orchestration.inspector import (  # noqa: PLC0415
+        inspect_dispatch_plan,
+        inspect_problem_analysis,
+        render_dispatch_plan,
+        render_problem_analysis,
+    )
+    from decision_system.orchestration.models import (  # noqa: PLC0415
+        DispatchPlan,
+        ProblemAnalysis,
+    )
+    from decision_system.orchestration.planner import (
+        plan_data_tools_roles,  # noqa: PLC0415
+    )
+    from decision_system.orchestration.problem_analyzer import (
+        analyze_problem as _analyze_problem_fn,  # noqa: PLC0415
+    )
 
-    Outputs the problem analysis without running any data collection or
-    detection logic.
-    """
     analysis = _analyze_problem_fn(question)
     analysis = plan_data_tools_roles(analysis)
     summary = inspect_problem_analysis(analysis)
@@ -347,26 +343,33 @@ def run_orchestration(
     save_run: bool = typer.Option(
         True,
         "--save-run/--no-save-run",
-        help="Save the orchestration run under .decision_system/orchestration/runs/.",
+        help=(
+            "Save the orchestration run under "
+            ".decision_system/orchestration/runs/."
+        ),
     ),
 ) -> None:
-    """Run the full offline orchestration pipeline for a business question.
-
-    Steps: analyze -> plan -> dispatch -> sandbox -> detect -> judge.
-    Saves results to .decision_system/orchestration/.
-    """
-    result = _run_orchestration_fn(
-        question,
-        save=save_run,
+    """Run the full offline orchestration pipeline for a business question."""
+    from decision_system.orchestration.judge import (  # noqa: PLC0415
+        build_judge_summary,
     )
+    from decision_system.orchestration.store import (  # noqa: PLC0415
+        load_latest_session,
+        save_decision_session,
+    )
+    from decision_system.orchestration.workflow import (  # noqa: PLC0415
+        run_orchestration as _run_orchestration_fn,
+    )
+
+    result = _run_orchestration_fn(question, save=save_run)
     if json_output:
         typer.echo(json.dumps(_to_jsonable(result), indent=2))
         return
-
     console.print(f"Run ID: {result['run_id']}")
     console.print(f"Decision type: {result['decision_type']}")
     console.print(
-        f"Required data categories: {', '.join(result['required_data_categories']) or 'none'}"
+        "Required data categories: "
+        + ", ".join(result["required_data_categories"]) or "none"
     )
     console.print("Selected tools:")
     for tool in result["execution_order"]:
@@ -380,7 +383,9 @@ def run_orchestration(
         console.print(f" - {sev}: {count}")
     j = result["judge"]
     console.print(f"Judge confidence: {j['confidence_level']}")
-    console.print(f"Human review required: {len(j['human_review_required'])} items")
+    console.print(
+        f"Human review required: {len(j['human_review_required'])} items"
+    )
     if result["saved_path"]:
         console.print(f"Saved run: {result['saved_path']}")
 
@@ -388,12 +393,27 @@ def run_orchestration(
 @app.command()
 def inspect_orchestration() -> None:
     """Inspect the latest saved orchestration run."""
+    from decision_system.orchestration.inspector import (  # noqa: PLC0415
+        inspect_dispatch_plan,
+        inspect_problem_analysis,
+        render_dispatch_plan,
+        render_problem_analysis,
+    )
+    from decision_system.orchestration.models import (  # noqa: PLC0415
+        DispatchPlan,
+        ProblemAnalysis,
+    )
+    from decision_system.orchestration.store import (
+        load_latest_session,  # noqa: PLC0415
+    )
+
     session = load_latest_session()
     if session is None:
-        console.print("No orchestration run found. Run `decision-system run-orchestration` first.")
+        console.print(
+            "No orchestration run found. "
+            "Run `decision-system run-orchestration` first."
+        )
         raise typer.Exit(code=0)
-
-    from decision_system.orchestration.models import DispatchPlan, ProblemAnalysis
 
     analysis = ProblemAnalysis(
         question=session.question,
@@ -424,24 +444,33 @@ def inspect_orchestration() -> None:
     if judge:
         console.print(f"Confidence: {judge.get('confidence_level', 'unknown')}")
         console.print(
-            f"Human review required: {len(judge.get('human_review_required', []))} items"
+            "Human review required: "
+            f"{len(judge.get('human_review_required', []))} items"
         )
 
 
 @app.command()
 def map_ontology() -> None:
-    """Map dataset columns to ontology business concepts.
+    """Map dataset columns to ontology business concepts."""
+    from decision_system.data_catalog.store import (
+        load_profiles,  # noqa: PLC0415
+    )
+    from decision_system.ontology.mapper import (
+        map_profiles_to_ontology,  # noqa: PLC0415
+    )
+    from decision_system.ontology.store import (
+        DEFAULT_ONTOLOGY_DIR,  # noqa: PLC0415
+        save_ontology,  # noqa: PLC0415
+    )
 
-    Reads saved data profiles and creates a deterministic column-to-concept
-    mapping saved to ``.decision_system/ontology/ontology_map.json``.
-    """
     profiles = load_profiles()
     omap = map_profiles_to_ontology(profiles)
     ontology_path = save_ontology(omap)
     concept_count = len(omap.concepts)
     mapping_count = len(omap.column_mappings)
     console.print(
-        f"Ontology mapped: {concept_count} concepts, {mapping_count} column mappings"
+        f"Ontology mapped: {concept_count} concepts, "
+        f"{mapping_count} column mappings"
     )
     console.print(f"Saved ontology map: {ontology_path}")
 
@@ -449,6 +478,12 @@ def map_ontology() -> None:
 @app.command()
 def inspect_ontology() -> None:
     """Inspect the local ontology map."""
+    from decision_system.ontology.inspector import (  # noqa: PLC0415
+        inspect_ontology as _inspect_ontology_fn,
+        render_ontology_inspection,
+    )
+    from decision_system.ontology.store import load_ontology  # noqa: PLC0415
+
     omap = load_ontology()
     summary = _inspect_ontology_fn(omap)
     console.print(render_ontology_inspection(summary))
@@ -462,7 +497,7 @@ def init_data_catalog() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Data catalog wrappers kept for backward compat / testability
+# Backward-compat wrappers for tests
 # ---------------------------------------------------------------------------
 
 
@@ -490,6 +525,8 @@ def profile_data() -> None:
 @app.command()
 def inspect_data() -> None:
     """Inspect saved local CSV profile summaries."""
+    from decision_system.data_catalog.store import load_profiles  # noqa: PLC0415
+
     store = load_profiles()
     console.print(render_inspection(inspect_profiles(store)))
 
@@ -532,7 +569,8 @@ def import_datasets(
     )
     if not dry_run:
         console.print(
-            "Saved import manifest: .decision_system/imports/import_manifest.json"
+            "Saved import manifest: "
+            ".decision_system/imports/import_manifest.json"
         )
 
 
@@ -566,7 +604,12 @@ def seed_demo_data(
 
 def _render_hygiene_report(report: HygieneReport) -> str:
     """Render a hygiene report as ASCII-safe Markdown."""
-    lines = ["# Repository Hygiene Check", "", f"Overall: **{report.overall}**", ""]
+    lines = [
+        "# Repository Hygiene Check",
+        "",
+        f"Overall: **{report.overall}**",
+        "",
+    ]
     if report.passed:
         lines.append("## Passed")
         lines.append("")
@@ -602,11 +645,7 @@ def check_hygiene(
         help="Print structured JSON instead of Markdown.",
     ),
 ) -> None:
-    """Check repository hygiene for generated files, caches, and agent instructions.
-
-    Verifies that generated state, caches, raw datasets, private env files,
-    and agent instruction files are in a safe repo state before new milestones.
-    """
+    """Check repository hygiene for generated files, caches, and agent instructions."""
     report = _run_hygiene_fn(Path.cwd())
     if json_output:
         payload = report.model_dump(mode="json")
@@ -641,7 +680,7 @@ def serve_api(
     ),
 ) -> None:
     """Run the local FastAPI API for development."""
-    import uvicorn
+    import uvicorn  # noqa: PLC0415
 
     uvicorn.run(
         "decision_system.api.app:app",
@@ -670,11 +709,7 @@ def build_context(
         help="Save context to .decision_system/contexts/<run_id>.json.",
     ),
 ) -> None:
-    """Build decision context for a question using local stores.
-
-    Loads ontology map, insights, orchestration runs, and knowledge graph
-    to assemble relevant context for the question.
-    """
+    """Build decision context for a question using local stores."""
     builder = DecisionContextBuilder()
     context = builder.build(question=question)
     saved_path = save_decision_context(context) if save else None
@@ -691,7 +726,7 @@ def build_context(
 
 
 # ---------------------------------------------------------------------------
-# ask  (the heaviest command)
+# ask (the heaviest command) -- all heavy imports live inside this function.
 # ---------------------------------------------------------------------------
 
 
@@ -736,44 +771,116 @@ def ask(
     save_context_flag: bool = typer.Option(
         False,
         "--save-context",
-        help="Save the decision context to .decision_system/contexts/<run_id>.json.",
+        help=(
+            "Save the decision context to "
+            ".decision_system/contexts/<run_id>.json."
+        ),
     ),
 ) -> None:
     """Run the decision workflow for a CLI question.
 
-    The command prints Markdown to stdout. It uses the fake provider by default
-    and does not execute external actions in v0.1.
-
-    Light-weight imports that were already at module scope remain there.
-    Heavy imports that only ``ask`` needs (e.g. ``build_workflow``, provider
-    factory, report renderer) are deferred into this function body so that
-    commands like ``decision-system --help`` and ``decision-system check-hygiene``
-    avoid pulling in the full LangGraph / Chroma stack on import time.
+    All heavy imports (LangGraph, Chroma, agent nodes, RAG, providers,
+    eval runners, orchestration, war-room) are loaded lazily inside this
+    function so that ``--help`` and ``check-hygiene`` remain fast.
     """
-    # Defer heavy imports that tests do not monkeypatch.  Module-scope
-    # attributes that tests REPLACE via monkeypatch (DecisionContextBuilder,
-    # save_decision_context, render_decision_report) are kept at module level
-    # so calls inside ``ask`` pick up the patched versions.
-    from decision_system.agents.risk_analyst import run_risk_analysis
-    from decision_system.agents.technical_analyst import run_technical_analysis
-    from decision_system.graph.workflow import build_workflow
-    from decision_system.graphing.store import load_knowledge_graph
-    from decision_system.insights.inspector import (
+    # Heavy imports: these are the modules that trigger LangGraph, Chroma,
+    # pattern detectors, eval runners, and war-room code at import time. Tests
+    # monkeypatch the three module-scope symbols above; they do NOT monkeypatch
+    # these, so deferring them is safe.
+    from decision_system.agents.risk_analyst import (
+        run_risk_analysis,  # noqa: PLC0415
+    )
+    from decision_system.agents.technical_analyst import (
+        run_technical_analysis,  # noqa: PLC0415
+    )
+    from decision_system.evals.runner import (  # noqa: PLC0415
+        render_eval_report,
+        run_eval_suite,
+        save_eval_results,
+    )
+    from decision_system.graph.workflow import (
+        build_workflow,  # noqa: PLC0415 - LangGraph + agent nodes
+    )
+    from decision_system.graphing.store import (
+        load_knowledge_graph,  # noqa: PLC0415
+    )
+    from decision_system.insights.inspector import (  # noqa: PLC0415
         inspect_insights as _inspect_insights_fn,
         render_insight_inspection,
     )
-    from decision_system.insights.store import load_insights, save_insights
-    from decision_system.ledger.claim_ledger import ClaimLedger
-    from decision_system.llm.factory import get_provider
-    from decision_system.ontology.inspector import (
+    from decision_system.insights.store import (  # noqa: PLC0415
+        load_insights,
+        save_insights,
+    )
+    from decision_system.ledger.claim_ledger import (
+        ClaimLedger,  # noqa: PLC0415
+    )
+    from decision_system.llm.factory import (
+        get_provider,  # noqa: PLC0415
+    )
+    from decision_system.ontology.inspector import (  # noqa: PLC0415
         inspect_ontology as _inspect_ontology_fn,
         render_ontology_inspection,
     )
-    from decision_system.orchestration.judge import build_judge_summary
-    from decision_system.orchestration.models import JudgeSummary, ProblemAnalysis
-    from decision_system.orchestration.store import load_latest_session
-    from decision_system.war_room.dispatcher import build_dispatch_spec
-    from decision_system.war_room.inspector import inspect_war_room
+    from decision_system.orchestration.judge import (  # noqa: PLC0415
+        build_judge_summary,
+    )
+    from decision_system.orchestration.models import (  # noqa: PLC0415
+        JudgeSummary,
+        ProblemAnalysis,
+    )
+    from decision_system.orchestration.store import (  # noqa: PLC0415
+        load_latest_session,
+    )
+    from decision_system.provider_eval.inspector import (  # noqa: PLC0415
+        render_provider_eval_suite,
+    )
+    from decision_system.provider_eval.runner import (
+        run_provider_eval_suite,  # noqa: PLC0415
+    )
+    from decision_system.provider_eval.store import (  # noqa: PLC0415
+        load_provider_eval_results,
+        save_provider_eval_results,
+    )
+    from decision_system.provider_experiments.inspector import (  # noqa: PLC0415
+        render_provider_experiments,
+    )
+    from decision_system.provider_experiments.runner import (  # noqa: PLC0415
+        load_eval_cases as _load_provider_cases,
+        run_experiment_suite,
+    )
+    from decision_system.provider_experiments.store import (  # noqa: PLC0415
+        load_latest_provider_results,
+        save_experiment_results,
+    )
+    from decision_system.rag.chunker import chunk_documents  # noqa: PLC0415
+    from decision_system.rag.loader import load_documents  # noqa: PLC0415
+    from decision_system.rag.vector_store import (
+        index_chunks,  # noqa: PLC0415
+        inspect_collection,
+    )
+    from decision_system.reports.renderer import (
+        render_decision_report,  # noqa: PLC0415 - monkeypatched by tests
+    )
+    from decision_system.war_room.dispatcher import (  # noqa: PLC0415
+        build_dispatch_spec as _build_wr_dispatch,
+    )
+    from decision_system.war_room.evals import (  # noqa: PLC0415
+        render_war_room_eval_report,
+        run_war_room_eval_suite,
+        save_war_room_eval_results,
+    )
+    from decision_system.war_room.inspector import (  # noqa: PLC0415
+        inspect_war_room as _inspect_war_room_impl,
+        render_inspection as _render_war_room_inspection,
+    )
+    from decision_system.war_room.runner import (
+        run_war_room as _run_war_room_fn,  # noqa: PLC0415
+    )
+    from decision_system.war_room.store import (
+        DEFAULT_RUNS_DIR,  # noqa: PLC0415
+        load_latest_run,
+    )
 
     settings = load_settings()
     active_provider = (provider or settings.provider).strip().lower()
@@ -806,7 +913,7 @@ def ask(
 
     try:
         result = graph.invoke(graph_input)
-    except chromadb.errors.NotFoundError as _idx_exc:
+    except _ChromaNotFoundError as _idx_exc:
         console.print(
             "[red]No document index found. "
             "Run [bold]decision-system index[/bold] first, "
@@ -825,10 +932,9 @@ def ask(
 
     # v0.5: Inject context into the report for insight-aware rendering
     if context is not None and (include_insights or orchestrated):
-        from decision_system.models import DecisionReport
+        from decision_system.models import DecisionReport  # noqa: PLC0415
 
         _render_report_fn_ref = render_decision_report
-
         report = result.get("final_report")
         if isinstance(report, DecisionReport):
             report_context = _report_context(
@@ -854,14 +960,15 @@ def ask(
             payload["decision_context"] = context.model_dump(mode="json")
         typer.echo(json.dumps(payload, indent=2))
         return
-
     if show_evidence:
         typer.echo(_render_evidence_section(result.get("retrieved_evidence", [])))
         typer.echo()
         typer.echo(result["final_report"].markdown)
         if saved_path is not None:
             typer.echo(f"Saved run: {saved_path}")
-    elif not json_output:
+    elif json_output:
+        pass  # already handled above
+    else:
         # Default: print the Markdown report
         typer.echo(result["final_report"].markdown)
         if saved_path is not None:
@@ -874,23 +981,33 @@ def ask(
 
 
 @app.command()
-def plan_war_room(
-    question: str,
-) -> None:
+def plan_war_room(question: str) -> None:
     """Plan a war-cabinet run without executing agents."""
+    from decision_system.war_room.dispatcher import (  # noqa: PLC0415
+        build_dispatch_spec as _build_wr_dispatch,
+    )
+
     spec = _build_wr_dispatch(question)
     ctx = spec.higher_context
     analysis = ctx.problem_analysis
     console.print(f"Run ID: {ctx.run_id}")
     console.print(f"Question: {ctx.question}")
-    console.print(f"Decision type: {analysis.get('decision_type', 'unknown')}")
-    console.print(f"Selected roles: {', '.join(spec.dispatch_order) or 'none'}")
-    console.print(f"Skipped roles: {', '.join(spec.skipped_roles) or 'none'}")
     console.print(
-        f"Required data categories: {', '.join(ctx.required_data_categories) or 'none'}"
+        f"Decision type: {analysis.get('decision_type', 'unknown')}"
     )
     console.print(
-        f"Required ontology concepts: {', '.join(ctx.required_ontology_concepts) or 'none'}"
+        f"Selected roles: {', '.join(spec.dispatch_order) or 'none'}"
+    )
+    console.print(
+        f"Skipped roles: {', '.join(spec.skipped_roles) or 'none'}"
+    )
+    categories_str = ", ".join(ctx.required_data_categories)
+    console.print(
+        f"Required data categories: {categories_str or 'none'}"
+    )
+    concepts_str = ", ".join(ctx.required_ontology_concepts)
+    console.print(
+        f"Required ontology concepts: {concepts_str or 'none'}"
     )
     console.print(f"Allowed tools: {', '.join(ctx.allowed_tools) or 'none'}")
     if spec.missing_inputs:
@@ -904,20 +1021,32 @@ def run_war_room(
     question: str,
 ) -> None:
     """Run a complete war-cabinet simulation."""
+    from decision_system.war_room.runner import (  # noqa: PLC0415
+        run_war_room as _run_war_room_fn,
+    )
+    from decision_system.war_room.store import (
+        DEFAULT_RUNS_DIR,  # noqa: PLC0415
+    )
+
     run = _run_war_room_fn(question)
     console.print(f"Run ID: {run.run_id}")
     console.print(f"Question: {run.question}")
     console.print(
-        f"Selected roles: {', '.join(run.dispatch_spec.dispatch_order) or 'none'}"
+        f"Selected roles: "
+        f"{', '.join(run.dispatch_spec.dispatch_order) or 'none'}"
     )
     artifact_count = len(run.workspace.artifacts) if run.workspace else 0
     console.print(f"Artifact count: {artifact_count}")
     console.print(f"Judge intervention count: {len(run.judge_interventions)}")
     human_review = sum(
-        1 for i in run.judge_interventions if i.requires_human_review
+        1
+        for i in run.judge_interventions
+        if i.requires_human_review
     )
     console.print(f"Human review required: {human_review}")
-    for artifact in (run.workspace.artifacts if run.workspace else []):
+    for artifact in (
+        run.workspace.artifacts if run.workspace else []
+    ):
         console.print(
             f" - {artifact.title} (confidence={artifact.confidence})"
         )
@@ -928,7 +1057,8 @@ def run_war_room(
             else "FYI"
         )
         console.print(
-            f" [{tag} {intervention.severity.upper()}] {intervention.reason}"
+            f" [{tag} {intervention.severity.upper()}] "
+            f"{intervention.reason}"
         )
     saved = DEFAULT_RUNS_DIR / f"{run.run_id}.json"
     if saved.exists():
@@ -938,6 +1068,14 @@ def run_war_room(
 @app.command()
 def inspect_war_room() -> None:
     """Inspect the latest saved war-room run."""
+    from decision_system.war_room.inspector import (  # noqa: PLC0415
+        inspect_war_room as _inspect_war_room_impl,
+        render_inspection as _render_war_room_inspection,
+    )
+    from decision_system.war_room.store import (
+        load_latest_run,  # noqa: PLC0415
+    )
+
     run = load_latest_run()
     if run is None:
         console.print(
@@ -955,11 +1093,7 @@ def inspect_war_room() -> None:
 
 @app.command()
 def provider_health() -> None:
-    """Print provider configuration health status.
-
-    Shows which provider is configured and whether NIM and Ollama have
-    the required settings. Never fails just because NIM/Ollama are missing.
-    """
+    """Print provider configuration health status."""
     settings = load_settings()
     lines: list[str] = []
     lines.append(f"Configured provider: {settings.provider}")
@@ -971,9 +1105,12 @@ def provider_health() -> None:
     nim_model_ok = bool(settings.nvidia_nim_model)
     nim_status = "configured" if (nim_key_ok and nim_model_ok) else "incomplete"
     lines.append(f"nvidia_nim: {nim_status}")
-    lines.append(f" API key: {'present' if nim_key_ok else 'missing'}")
     lines.append(
-        f" model: {'present' if nim_model_ok else 'missing'} ({settings.nvidia_nim_model or 'unset'})"
+        f" API key: {'present' if nim_key_ok else 'missing'}"
+    )
+    lines.append(
+        f" model: {'present' if nim_model_ok else 'missing'} "
+        f"({settings.nvidia_nim_model or 'unset'})"
     )
     lines.append(f" base URL: {settings.nvidia_nim_base_url}")
     lines.append("")
@@ -983,7 +1120,8 @@ def provider_health() -> None:
     lines.append(f"ollama: {ollama_status}")
     lines.append(f" base URL: {settings.ollama_base_url}")
     lines.append(
-        f" model: {'present' if ollama_model_ok else 'missing'} ({settings.ollama_model or 'unset'})"
+        f" model: {'present' if ollama_model_ok else 'missing'} "
+        f"({settings.ollama_model or 'unset'})"
     )
     lines.append(f" timeout: {settings.ollama_timeout_seconds}s")
     lines.append("")
@@ -998,12 +1136,15 @@ def provider_smoke(
         help="Provider to smoke-test: fake, nvidia_nim, or ollama.",
     ),
 ) -> None:
-    """Run one small in-memory evidence case against a provider.
-
-    Validates AgentMemo and claims output.
-    """
-    from decision_system.llm.factory import get_provider
-    from decision_system.models import AgentMemo, Claim, EvidenceChunk
+    """Run one small in-memory evidence case against a provider."""
+    from decision_system.llm.factory import (
+        get_provider,  # noqa: PLC0415
+    )
+    from decision_system.models import (  # noqa: PLC0415
+        AgentMemo,
+        Claim,
+        EvidenceChunk,
+    )
 
     settings = load_settings()
     try:
@@ -1022,7 +1163,10 @@ def provider_smoke(
             source_path="smoke",
             source_filename="smoke.txt",
             chunk_id="smoke-chunk-0001",
-            text="Billing migration requires rollback planning and staged deployment.",
+            text=(
+                "Billing migration requires rollback planning "
+                "and staged deployment."
+            ),
             score=0.95,
         )
     ]
@@ -1083,7 +1227,9 @@ def provider_smoke(
             console.print(f" - {error}")
         raise typer.Exit(code=1)
 
-    console.print(f"[green]Smoke test PASSED[/green] for provider '{provider}'.")
+    console.print(
+        f"[green]Smoke test PASSED[/green] for provider '{provider}'."
+    )
     console.print(f" technical_memo: {tech_valid}")
     console.print(f" risk_memo: {risk_valid}")
     console.print(f" extract_claims: {claims_valid}")
@@ -1101,14 +1247,29 @@ def evaluate_provider(
     require_configured: bool = typer.Option(
         False,
         "--require-configured",
-        help="Fail instead of skipping when NIM/Ollama are not configured.",
+        help=(
+            "Fail instead of skipping when NIM/Ollama "
+            "are not configured."
+        ),
     ),
 ) -> None:
     """Run provider experiment evaluation cases for a selected provider."""
+    from decision_system.provider_experiments.inspector import (  # noqa: PLC0415
+        render_provider_experiments,
+    )
+    from decision_system.provider_experiments.runner import (  # noqa: PLC0415
+        load_eval_cases as _load_provider_cases,
+        run_experiment_suite,
+    )
+    from decision_system.provider_experiments.store import (  # noqa: PLC0415
+        save_experiment_results,
+    )
+
     settings = load_settings()
     if provider not in {"fake", "nvidia_nim", "ollama"}:
         console.print(
-            f"[red]Unknown provider '{provider}'. Expected one of: fake, nvidia_nim, ollama.[/red]"
+            f"[red]Unknown provider '{provider}'. "
+            "Expected one of: fake, nvidia_nim, ollama.[/red]"
         )
         raise typer.Exit(code=1)
 
@@ -1117,38 +1278,40 @@ def evaluate_provider(
             if not settings.nvidia_api_key or not settings.nvidia_nim_model:
                 if require_configured:
                     console.print(
-                        "[red]nvidia_nim is not configured (missing API key or model).[/red]"
+                        "[red]nvidia_nim is not configured "
+                        "(missing API key or model).[/red]"
                     )
                     raise typer.Exit(code=1)
                 console.print(
-                    "Skipping: nvidia_nim is not configured (missing API key or model)."
+                    "Skipping: nvidia_nim is not configured "
+                    "(missing API key or model)."
                 )
                 return
         elif provider == "ollama":
             if not settings.ollama_model:
                 if require_configured:
                     console.print(
-                        "[red]ollama is not configured (missing OLLAMA_MODEL).[/red]"
+                        "[red]ollama is not configured "
+                        "(missing OLLAMA_MODEL).[/red]"
                     )
                     raise typer.Exit(code=1)
                 console.print(
-                    "Skipping: ollama is not configured (missing OLLAMA_MODEL)."
+                    "Skipping: ollama is not configured "
+                    "(missing OLLAMA_MODEL)."
                 )
                 return
 
     cases = _load_provider_cases()
     if not cases:
         console.print(
-            "No provider experiment cases found under evals/provider_cases/."
+            "No provider experiment cases found under "
+            "evals/provider_cases/."
         )
         return
-    from decision_system.provider_experiments.inspector import (
-        render_provider_experiments,
-    )
-    from decision_system.provider_experiments.runner import run_experiment_suite
-    from decision_system.provider_experiments.store import save_experiment_results
 
-    suite = run_experiment_suite(cases, provider_name=provider, settings=settings)
+    suite = run_experiment_suite(
+        cases, provider_name=provider, settings=settings
+    )
     if save_results:
         output_path = save_experiment_results(suite)
         console.print(f"Saved results: {output_path}")
@@ -1170,36 +1333,56 @@ def eval_providers(
     provider: str | None = typer.Option(
         None,
         "--provider",
-        help="Provider to evaluate: fake, nvidia_nim, or ollama. Defaults to all.",
+        help=(
+            "Provider to evaluate: fake, nvidia_nim, or ollama. "
+            "Defaults to all."
+        ),
     ),
     json_output: bool = typer.Option(
         False,
         "--json",
-        help="Print structured provider evaluation JSON instead of text.",
+        help=(
+            "Print structured provider evaluation JSON "
+            "instead of text."
+        ),
     ),
     save_results: bool = typer.Option(
         False,
         "--save-results",
-        help="Save results to .decision_system/provider_evals/provider_eval_results.json.",
+        help=(
+            "Save results to "
+            ".decision_system/provider_evals/provider_eval_results.json."
+        ),
     ),
     manual_real_provider: bool = typer.Option(
         False,
         "--manual-real-provider",
-        help="Explicitly allow real NIM/Ollama provider calls instead of mocked evaluation.",
+        help=(
+            "Explicitly allow real NIM/Ollama provider calls "
+            "instead of mocked evaluation."
+        ),
     ),
 ) -> None:
-    """Compare fake, NVIDIA NIM, and Ollama provider behavior safely.
+    """Compare fake, NVIDIA NIM, and Ollama provider behavior safely."""
+    from decision_system.provider_eval.inspector import (  # noqa: PLC0415
+        render_provider_eval_suite,
+    )
+    from decision_system.provider_eval.runner import (  # noqa: PLC0415
+        run_provider_eval_suite,
+    )
+    from decision_system.provider_eval.store import (  # noqa: PLC0415
+        save_provider_eval_results,
+    )
 
-    NVIDIA NIM and Ollama are mocked by default. Real provider execution
-    requires ``--manual-real-provider`` and is never needed for automated tests.
-    """
     suite = run_provider_eval_suite(
         provider_name=provider,
         manual_real_provider=manual_real_provider,
     )
     if save_results:
         saved_path = save_provider_eval_results(suite)
-        suite = suite.model_copy(update={"saved_result_path": str(saved_path)})
+        suite = suite.model_copy(
+            update={"saved_result_path": str(saved_path)}
+        )
     if json_output:
         typer.echo(suite.model_dump_json(indent=2))
     else:
@@ -1211,6 +1394,13 @@ def eval_providers(
 @app.command()
 def inspect_provider_evals() -> None:
     """Inspect the latest saved provider evaluation results."""
+    from decision_system.provider_eval.inspector import (  # noqa: PLC0415
+        render_provider_eval_suite,
+    )
+    from decision_system.provider_eval.store import (
+        load_provider_eval_results,  # noqa: PLC0415
+    )
+
     suite = load_provider_eval_results()
     if suite is None:
         console.print(
@@ -1240,6 +1430,12 @@ def evaluate(
     ),
 ) -> None:
     """Run the local offline evaluation suite."""
+    from decision_system.evals.runner import (  # noqa: PLC0415
+        render_eval_report,
+        run_eval_suite,
+        save_eval_results,
+    )
+
     suite_result = run_eval_suite()
     if save_results:
         suite_result = save_eval_results(suite_result)
@@ -1261,10 +1457,19 @@ def evaluate_war_room(
     save_results: bool = typer.Option(
         False,
         "--save-results",
-        help="Save war-room eval results under .decision_system/evals/.",
+        help=(
+            "Save war-room eval results under "
+            ".decision_system/evals/."
+        ),
     ),
 ) -> None:
     """Run war-room offline evaluation cases with quality gates."""
+    from decision_system.war_room.evals import (  # noqa: PLC0415
+        render_war_room_eval_report,
+        run_war_room_eval_suite,
+        save_war_room_eval_results,
+    )
+
     suite = run_war_room_eval_suite()
     if save_results:
         suite = save_war_room_eval_results(suite)
@@ -1274,11 +1479,6 @@ def evaluate_war_room(
         typer.echo(render_war_room_eval_report(suite))
     if suite.failed_cases > 0:
         raise typer.Exit(code=1)
-
-
-# ---------------------------------------------------------------------------
-# Shared context helpers (used inside ask)
-# ---------------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------------
@@ -1307,12 +1507,22 @@ def _report_context(
         relevant_data_categories=context.relevant_data_categories,
         relevant_storage_tiers=context.relevant_storage_tiers,
         relevant_ontology_concepts=context.relevant_ontology_concepts,
-        relevant_insights=context.relevant_insights if include_insights else [],
-        graph_signals=context.graph_signals if include_insights or include_orchestration else [],
-        orchestration_summary=(
-            context.orchestration_summary if include_orchestration else {}
+        relevant_insights=(
+            context.relevant_insights if include_insights else []
         ),
-        judge_summary=context.judge_summary if include_orchestration else {},
+        graph_signals=(
+            context.graph_signals
+            if include_insights or include_orchestration
+            else []
+        ),
+        orchestration_summary=(
+            context.orchestration_summary
+            if include_orchestration
+            else {}
+        ),
+        judge_summary=(
+            context.judge_summary if include_orchestration else {}
+        ),
         human_review_items=human_review_items,
         created_at=context.created_at,
     )

@@ -49,6 +49,19 @@ Run these offline with no API key configured:
 - [ ] `decision-system check-hygiene` passes (warnings acceptable, failures require action).
 - [ ] `decision-system check-hygiene --json` returns valid structured JSON.
 
+## Connector Integrity (v1.1)
+
+- [ ] `.decision_system/connectors/` is in `.gitignore` and ignored by Git.
+- [ ] No connector secrets or OAuth tokens are stored or committed.
+- [ ] Connector stubs (GitHub, Jira, Slack, Email) do not perform network calls.
+- [ ] `connectors dry-run` works offline with no external I/O.
+- [ ] `connectors import` works offline and only writes to generated paths.
+- [ ] Connector imports skip protected files (`.env`, keys, cache directories).
+- [ ] Connector imports skip unsupported files with a clear reason.
+- [ ] Duplicate job saves do not corrupt existing connector job state.
+- [ ] Exported zip has no `__pycache__/` or `*.pyc` files.
+- [ ] `decision-system connectors list` shows 5 connectors with correct stub flags.
+
 ## Configuration Defaults
 
 - [ ] `.env.example` has `DECISION_PROVIDER=fake`.
