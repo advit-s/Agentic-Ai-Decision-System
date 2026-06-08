@@ -23,6 +23,7 @@ class ArtifactType(StrEnum):
     GRAPH = "graph"
     IMPORT_MANIFEST = "import_manifest"
     AUDIT_EVENT = "audit_event"
+    CONNECTOR_IMPORT_JOB = "connector_import_job"
     UNKNOWN = "unknown"
 
 

@@ -35,6 +35,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 REQUIRED_GITIGNORE_RULES = [
     ".env",
     ".decision_system/",
+    ".decision_system/connectors/",
     "__pycache__/",
     ".pytest_cache/",
     "datasets/",

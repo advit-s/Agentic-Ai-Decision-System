@@ -44,6 +44,7 @@ datasets/
 evals/results/*.json
 !evals/results/.gitkeep
 .decision_system/provider_evals/
+.decision_system/connectors/
 """
 
 

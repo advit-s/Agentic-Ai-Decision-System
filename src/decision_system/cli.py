@@ -154,6 +154,17 @@ try:
     register_workspace_commands(app)
 except ImportError:
     pass
+
+# ---------------------------------------------------------------------------
+# Optional connector sub-commands (v1.1)
+# ---------------------------------------------------------------------------
+try:
+    from decision_system.cli_connectors import register_connector_commands
+
+    register_connector_commands(app)
+except ImportError:
+    pass
+
 console = Console()
 
 

@@ -30,6 +30,7 @@ build/
 .decision_system/contexts/
 .decision_system/evals/
 .decision_system/provider_evals/
+.decision_system/connectors/
 evals/results/*.json
 !evals/results/.gitkeep
 _smoke_run/
