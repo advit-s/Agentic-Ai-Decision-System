@@ -213,7 +213,6 @@ def _check_secrets_in_source() -> PolicyCheck:
                 continue
             if fname.startswith("test_") and "security" in fname:
                 continue
-                continue
             try:
                 text = file_path.read_text(encoding="utf-8", errors="replace")
                 # Look for actual API key values, not regex patterns

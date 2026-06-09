@@ -1,4 +1,4 @@
-\\\\\\\\/goal# Agentic Decision System - Local Development Dockerfile
+# Agentic Decision System - Local Development Dockerfile
 # No secrets baked in. Fake/offline provider is the default.
 # No real provider keys required for build or basic run.
 

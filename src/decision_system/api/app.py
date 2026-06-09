@@ -20,7 +20,8 @@ from decision_system.api import routes_reports
 from decision_system.api import routes_security
 from decision_system.api import routes_war_room
 from decision_system.api import routes_workspaces
-
+from decision_system.api import routes_enterprise
+from decision_system.api import routes_observability
 
 
 def create_app() -> FastAPI:

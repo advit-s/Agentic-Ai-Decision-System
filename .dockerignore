@@ -22,9 +22,6 @@ build/
 .env.local
 .env.*.local
 
-# Generated local state
-.decision_system/
-
 # Private data
 datasets/
 
