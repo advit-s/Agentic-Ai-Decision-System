@@ -43,9 +43,9 @@ def get_observability_metrics() -> dict[str, Any]:
 
 
 @router.get("/eval-history")
-def get_observability_eval_history(limit: int = 20) -> dict[str, Any]:
+def get_observability_eval_history() -> dict[str, Any]:
     """Return recent evaluation run history."""
-    runs = load_eval_runs(limit=limit)
+    runs = load_eval_runs()
     return {
         "eval_runs": [r.model_dump(mode="json") for r in runs],
         "count": len(runs),
@@ -63,9 +63,9 @@ def get_observability_quality_report() -> dict[str, Any]:
 
 
 @router.get("/traces")
-def get_observability_traces(limit: int = 20) -> dict[str, Any]:
+def get_observability_traces() -> dict[str, Any]:
     """Return recent trace summaries."""
-    traces = load_traces(limit=limit)
+    traces = load_traces()
     return {
         "traces": [t.model_dump(mode="json") for t in traces],
         "count": len(traces),

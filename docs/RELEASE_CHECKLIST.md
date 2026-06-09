@@ -122,6 +122,29 @@ Run these offline with no API key configured:
 - [ ] No tracked generated state in the working tree.
 - [ ] All CHANGELOG.md entries are up to date for v1.6.
 
+## Frontend Product UI (v1.7)
+
+- [ ] `web/index.html` contains all 9 sections: dashboard, ask, data, war-room, workspaces, connectors, security, observability, enterprise.
+- [ ] `web/app.js` renders all 9 sections with API integration and mock fallback.
+- [ ] `web/styles.css` provides responsive styling for all sections.
+- [ ] Navigation sidebar has buttons for all 9 sections.
+- [ ] Dashboard shows system readiness, provider status, document index state, workspace state, overview metrics, and quick links.
+- [ ] Decision Brief section includes offline mode notice, Ask form, and claim status summary.
+- [ ] Data & Ontology section has tabbed sub-views: profiles, ontology, insights, knowledge graph.
+- [ ] War Room section shows roles, judge interventions, and artifacts with protocol explanation.
+- [ ] Workspaces section shows active workspace, artifact type counts, and recent artifacts.
+- [ ] Connectors section shows all 5 connectors with real/stub labeling and no token input fields.
+- [ ] Security & Governance section shows policy check status, audit log events, and approval requests.
+- [ ] Observability section shows metrics, eval history, quality reports, and trace summaries.
+- [ ] Enterprise Readiness section shows readiness level badge, pass/fail counts, and detailed gap list.
+- [ ] Mock data fixtures exist for all sections under `web/mock-data/`.
+- [ ] `FALLBACK_DATA.security` is defined (fixes v0.9 Security view crash).
+- [ ] `GET /enterprise-readiness` API endpoint returns static readiness assessment.
+- [ ] `GET /observability/metrics`, `/eval-history`, `/quality-report`, `/traces` API endpoints exist.
+- [ ] Root `web/` and package `src/decision_system/web/` assets are byte-for-byte identical.
+- [ ] 651 tests pass offline with no API keys.
+- [ ] All CHANGELOG.md entries are up to date for v1.7.
+
 ## Configuration Defaults
 
 - [ ] `.env.example` has `DECISION_PROVIDER=fake`.

@@ -1,0 +1,11 @@
+{
+  "metrics": {},
+  "metric_count": 0,
+  "eval_runs": [],
+  "eval_count": 0,
+  "quality_reports": [],
+  "quality_count": 0,
+  "traces": [],
+  "trace_count": 0,
+  "note": "Observability is standalone scaffolding. No data is automatically recorded by the core workflow yet. Use CLI commands (metrics, eval-history, quality-report, trace-summary) to populate this data."
+}

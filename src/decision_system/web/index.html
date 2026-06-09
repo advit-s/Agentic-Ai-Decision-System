@@ -3,31 +3,31 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Decision System Local UI</title>
+    <title>Company Intelligence Engine</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <div class="app-shell">
+      <!-- Sidebar -->
       <aside class="sidebar" aria-label="Primary navigation">
         <div class="brand">
-          <span class="brand-mark" aria-hidden="true">DS</span>
+          <span class="brand-mark" aria-hidden="true">CI</span>
           <div>
-            <p class="eyebrow">v0.9 prototype</p>
-            <h1>Decision Console</h1>
+            <p class="eyebrow">v1.7 prototype</p>
+            <h1>Intelligence Console</h1>
           </div>
         </div>
         <nav class="nav-list">
-          <button class="nav-item active" type="button" data-view="ask">Ask</button>
-<button class="nav-item" type="button" data-view="workspaces">Workspaces</button>
-          <button class="nav-item" type="button" data-view="reports">Reports</button>
-          <button class="nav-item" type="button" data-view="insights">Insights</button>
-          <button class="nav-item" type="button" data-view="ontology">Ontology</button>
+          <button class="nav-item active" type="button" data-view="dashboard">Dashboard</button>
+          <button class="nav-item" type="button" data-view="ask">Decision Brief</button>
+          <button class="nav-item" type="button" data-view="data">Data &amp; Ontology</button>
           <button class="nav-item" type="button" data-view="war-room">War Room</button>
-          <button class="nav-item" type="button" data-view="provider-evals">Provider Evals</button>
-          <button class="nav-item" type="button" data-view="data-profiles">Data Profiles</button>
-          <button class="nav-item" type="button" data-view="graph">Graph</button>
-         <button class="nav-item" type="button" data-view="security">Security</button>
-</nav>
+          <button class="nav-item" type="button" data-view="workspaces">Workspaces</button>
+          <button class="nav-item" type="button" data-view="connectors">Connectors</button>
+          <button class="nav-item" type="button" data-view="security">Security &amp; Governance</button>
+          <button class="nav-item" type="button" data-view="observability">Observability</button>
+          <button class="nav-item" type="button" data-view="enterprise">Enterprise Readiness</button>
+        </nav>
         <div class="source-box">
           <label for="apiBaseUrl">API base URL</label>
           <div class="source-row">
@@ -36,13 +36,17 @@
           </div>
           <p id="dataSourceStatus" class="source-status">Using mock data</p>
         </div>
+        <div class="sidebar-footer">
+          <span class="fake-badge">Fake provider default</span>
+        </div>
       </aside>
 
+      <!-- Main content -->
       <main class="workspace">
         <header class="topbar">
           <div>
             <p class="eyebrow">Company Intelligence Engine</p>
-            <h2>Local Web UI Prototype</h2>
+            <h2 id="appTitle">Dashboard</h2>
           </div>
           <div class="run-badge">
             <span class="status-dot" aria-hidden="true"></span>
@@ -50,107 +54,181 @@
           </div>
         </header>
 
-        <section id="ask" class="view active-view" aria-labelledby="ask-title">
+        <!-- ===== 1. Dashboard ===== -->
+        <section id="dashboard" class="view active-view" aria-labelledby="dashboard-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">System overview</p>
+              <h3 id="dashboard-title">Dashboard</h3>
+            </div>
+            <span id="dashboardVersion" class="tag muted"></span>
+          </div>
+          <div class="dashboard-grid">
+            <div class="dashboard-card card-readiness">
+              <h4>System Readiness</h4>
+              <div id="readinessStatus" class="readiness-display">
+                <span class="status-indicator ok">&#9679;</span>
+                <span>Prototype ready</span>
+              </div>
+              <p class="small-muted">Phase 1 (data understanding) and Phase 2 (war cabinet) both operational.</p>
+            </div>
+            <div class="dashboard-card card-provider">
+              <h4>Provider</h4>
+              <div id="providerDisplay" class="readiness-display">
+                <span class="status-indicator ok">&#9679;</span>
+                <span id="providerName">fake</span>
+              </div>
+              <p class="small-muted">Offline-safe default. No API keys required.</p>
+            </div>
+            <div class="dashboard-card card-index">
+              <h4>Document Index</h4>
+              <div id="indexDisplay" class="readiness-display">
+                <span class="status-indicator warn">&#9679;</span>
+                <span id="indexStatus">Not indexed</span>
+              </div>
+              <p class="small-muted">Run <code>decision-system index</code> or use the Data &amp; Ontology section.</p>
+            </div>
+            <div class="dashboard-card card-workspace">
+              <h4>Workspace</h4>
+              <div id="workspaceDisplay" class="readiness-display">
+                <span class="status-indicator warn">&#9679;</span>
+                <span id="wsStatus">No active workspace</span>
+              </div>
+              <p class="small-muted">Workspaces provide artifact tracking and export.</p>
+            </div>
+          </div>
+          <div class="dashboard-metrics">
+            <div class="metric-row">
+              <div><span class="metric-value" id="dashProfiles">0</span><span class="metric-label">Data Profiles</span></div>
+              <div><span class="metric-value" id="dashInsights">0</span><span class="metric-label">Insights</span></div>
+              <div><span class="metric-value" id="dashEntities">0</span><span class="metric-label">Graph Entities</span></div>
+              <div><span class="metric-value" id="dashRelationships">0</span><span class="metric-label">Graph Links</span></div>
+              <div><span class="metric-value" id="dashConnectors">0</span><span class="metric-label">Connectors</span></div>
+              <div><span class="metric-value" id="dashWarRooms">0</span><span class="metric-label">War Room Runs</span></div>
+            </div>
+          </div>
+          <div class="dashboard-quick-links">
+            <h4>Quick Links</h4>
+            <div id="quickLinks" class="quick-link-grid"></div>
+          </div>
+        </section>
+
+        <!-- ===== 2. Decision Brief / Ask ===== -->
+        <section id="ask" class="view" aria-labelledby="ask-title">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Question</p>
-              <h3 id="ask-title">Ask</h3>
+              <h3 id="ask-title">Decision Brief</h3>
             </div>
             <span class="tag">offline-safe</span>
           </div>
+          <div class="ask-notice">
+            <strong>&#9432; Offline mode</strong>
+            <span>Using fake/offline provider with mock or API-backed responses.</span>
+          </div>
           <form id="askForm" class="ask-form">
             <label for="questionInput">Business question</label>
-            <textarea id="questionInput" rows="5">Where are we losing money?</textarea>
+            <textarea id="questionInput" rows="3" placeholder="e.g. Where are we losing money?">Where are we losing money?</textarea>
             <div class="form-actions">
               <button class="primary-action" type="submit">Ask question</button>
               <button class="secondary-action" id="resetMocks" type="button">Reload mocks</button>
             </div>
           </form>
           <div class="answer-grid">
-            <div class="metric-row" aria-label="Current run summary">
-              <div>
-                <span class="metric-value" id="metricReports">1</span>
-                <span class="metric-label">report</span>
-              </div>
-              <div>
-                <span class="metric-value" id="metricInsights">0</span>
-                <span class="metric-label">insights</span>
-              </div>
-              <div>
-                <span class="metric-value" id="metricArtifacts">0</span>
-                <span class="metric-label">artifacts</span>
-              </div>
-              <div>
-                <span class="metric-value" id="metricGraph">0</span>
-                <span class="metric-label">graph links</span>
-              </div>
-            </div>
             <article class="answer-panel">
               <div class="panel-title">
                 <h4>Response</h4>
                 <span id="answerMode" class="tag muted">mock</span>
               </div>
-              <div id="askResponse" class="markdown-body"></div>
+              <div id="askResponse" class="markdown-body">
+                <p>Ask a business question to see the decision brief.</p>
+              </div>
             </article>
+            <div id="claimSummary" class="claim-summary" style="display:none">
+              <h4>Claim Status</h4>
+              <div class="claim-pills" id="claimPills"></div>
+            </div>
           </div>
         </section>
 
-        <section id="reports" class="view" aria-labelledby="reports-title">
+        <!-- ===== 3. Data & Ontology ===== -->
+        <section id="data" class="view" aria-labelledby="data-title">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Ledger-grounded output</p>
-              <h3 id="reports-title">Reports</h3>
+              <p class="eyebrow">Company data understanding</p>
+              <h3 id="data-title">Data &amp; Ontology</h3>
             </div>
-            <span id="reportDate" class="tag muted"></span>
+            <span class="tag">Phase 1</span>
           </div>
-          <article class="report-shell">
-            <div class="report-meta" id="reportMeta"></div>
-            <div id="reportMarkdown" class="markdown-body report-body"></div>
-          </article>
+          <div class="data-tabs">
+            <button class="data-tab active" data-tab="profiles">Data Profiles</button>
+            <button class="data-tab" data-tab="ontology">Ontology</button>
+            <button class="data-tab" data-tab="insights">Insights</button>
+            <button class="data-tab" data-tab="graph">Knowledge Graph</button>
+          </div>
+          <div class="data-panel active" id="tab-profiles">
+            <div class="section-subhead">
+              <h4>CSV Profile Cache</h4>
+              <span id="profileSummary" class="tag muted"></span>
+            </div>
+            <div id="profileGrid" class="profile-grid"></div>
+          </div>
+          <div class="data-panel" id="tab-ontology">
+            <div class="section-subhead">
+              <h4>Column-to-Concept Mapping</h4>
+              <span id="ontologySummary" class="tag muted"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Dataset</th>
+                    <th>Column</th>
+                    <th>Concept</th>
+                    <th>Type</th>
+                    <th>Confidence</th>
+                  </tr>
+                </thead>
+                <tbody id="ontologyRows"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="data-panel" id="tab-insights">
+            <div class="section-subhead">
+              <h4>Detected Signals</h4>
+              <span class="tag">severity grouped</span>
+            </div>
+            <div id="insightGroups" class="group-stack"></div>
+          </div>
+          <div class="data-panel" id="tab-graph">
+            <div class="section-subhead">
+              <h4>Local Relationship Store</h4>
+              <span id="graphSummary" class="tag muted"></span>
+            </div>
+            <div class="split-grid graph-layout">
+              <div>
+                <h4>Entities</h4>
+                <div id="graphEntities" class="compact-list"></div>
+              </div>
+              <div>
+                <h4>Relationships</h4>
+                <div id="graphRelationships" class="compact-list"></div>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <section id="insights" class="view" aria-labelledby="insights-title">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Detected signals</p>
-              <h3 id="insights-title">Insights</h3>
-            </div>
-            <span class="tag">severity grouped</span>
-          </div>
-          <div id="insightGroups" class="group-stack"></div>
-        </section>
-
-        <section id="ontology" class="view" aria-labelledby="ontology-title">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Column concepts</p>
-              <h3 id="ontology-title">Ontology</h3>
-            </div>
-            <span id="ontologySummary" class="tag muted"></span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Dataset</th>
-                  <th>Column</th>
-                  <th>Concept</th>
-                  <th>Type</th>
-                  <th>Confidence</th>
-                </tr>
-              </thead>
-              <tbody id="ontologyRows"></tbody>
-            </table>
-          </div>
-        </section>
-
+        <!-- ===== 4. War Room ===== -->
         <section id="war-room" class="view" aria-labelledby="war-room-title">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Bounded role workspace</p>
+              <p class="eyebrow">Bounded multi-role analysis</p>
               <h3 id="war-room-title">War Room</h3>
             </div>
             <span id="warRoomSummary" class="tag muted"></span>
+          </div>
+          <div class="war-room-explain">
+            <p>The war room implements a bounded agent context protocol: <strong>HigherContext</strong> (deep-frozen shared framing), <strong>PersonalAgentContext</strong> (role-specific scope), <strong>CommonWorkspace</strong> (append-only artifacts), and a <strong>deterministic judge</strong> with 4 intervention rules. No free-form agent chat.</p>
           </div>
           <div class="split-grid">
             <div>
@@ -158,7 +236,7 @@
               <div id="warRoomRoles" class="compact-list"></div>
             </div>
             <div>
-              <h4>Judge interventions</h4>
+              <h4>Judge Interventions</h4>
               <div id="judgeInterventions" class="compact-list"></div>
             </div>
           </div>
@@ -166,110 +244,170 @@
           <div id="warRoomArtifacts" class="artifact-grid"></div>
         </section>
 
-        <section id="provider-evals" class="view" aria-labelledby="provider-evals-title">
+        <!-- ===== 5. Workspaces ===== -->
+        <section id="workspaces" class="view" aria-labelledby="workspaces-title">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Provider experiment harness</p>
-              <h3 id="provider-evals-title">Provider Evals</h3>
+              <p class="eyebrow">Local SQLite workspace store</p>
+              <h3 id="workspaces-title">Workspaces</h3>
             </div>
-            <span id="providerEvalSummary" class="tag muted"></span>
+            <span class="tag muted">v1.0</span>
           </div>
-          <div id="providerEvalRows" class="eval-list"></div>
+          <div class="metric-row" style="margin-bottom:16px">
+            <div>
+              <span class="metric-value" id="wsActiveName">-</span>
+              <span class="metric-label">active workspace</span>
+            </div>
+            <div>
+              <span class="metric-value" id="wsArtifactCount">0</span>
+              <span class="metric-label">artifacts</span>
+            </div>
+            <div>
+              <span class="metric-value" id="wsDbPath">-</span>
+              <span class="metric-label">db path</span>
+            </div>
+          </div>
+          <div class="split-grid">
+            <div>
+              <h4>Artifact Types</h4>
+              <div id="wsArtifactTypes" class="compact-list">
+                <p class="empty-state">No workspace initialized</p>
+              </div>
+            </div>
+            <div>
+              <h4>Recent Artifacts</h4>
+              <div id="wsRecentArtifacts" class="compact-list">
+                <p class="empty-state">No artifacts yet</p>
+              </div>
+            </div>
+          </div>
+          <div class="workspace-actions">
+            <p class="small-muted">Workspaces provide artifact tracking, JSON export/import, and typed artifact storage. Run <code>decision-system init-workspace &lt;name&gt;</code> to get started.</p>
+          </div>
         </section>
 
-        <section id="data-profiles" class="view" aria-labelledby="data-profiles-title">
+        <!-- ===== 6. Connectors ===== -->
+        <section id="connectors" class="view" aria-labelledby="connectors-title">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">CSV profile cache</p>
-              <h3 id="data-profiles-title">Data Profiles</h3>
+              <p class="eyebrow">Safe data intake</p>
+              <h3 id="connectors-title">Connectors</h3>
             </div>
-            <span id="profileSummary" class="tag muted"></span>
+            <span class="tag muted">v1.1</span>
           </div>
-          <div id="profileGrid" class="profile-grid"></div>
+          <div class="connector-notice">
+            <strong>&#9432;</strong> Only <code>local-files</code> is a real connector. GitHub, Jira, Slack, and Email are offline stubs. No OAuth or token storage is implemented.
+          </div>
+          <div id="connectorGrid" class="connector-grid"></div>
+          <h4>Recent Jobs</h4>
+          <div id="connectorJobs" class="compact-list">
+            <p class="empty-state">No connector jobs yet</p>
+          </div>
         </section>
 
-        
-<section id="workspaces" class="view" aria-labelledby="workspaces-title">
-  <div class="section-heading">
-    <div>
-      <p class="eyebrow">Local SQLite workspace store</p>
-      <h3 id="workspaces-title">Workspaces</h3>
-    </div>
-    <span class="tag muted">v1.0</span>
-  </div>
-  <div class="metric-row" style="margin-bottom:16px">
-    <div>
-      <span class="metric-value" id="wsActiveName">-</span>
-      <span class="metric-label">active workspace</span>
-    </div>
-    <div>
-      <span class="metric-value" id="wsArtifactCount">0</span>
-      <span class="metric-label">artifacts</span>
-    </div>
-    <div>
-      <span class="metric-value" id="wsDbPath">-</span>
-      <span class="metric-label">db path</span>
-    </div>
-  </div>
-  <div class="split-grid">
-    <div>
-      <h4>Artifact types</h4>
-      <div id="wsArtifactTypes" class="compact-list">
-        <p class="empty-state">No workspace initialized</p>
-      </div>
-    </div>
-    <div>
-      <h4>Recent artifacts</h4>
-      <div id="wsRecentArtifacts" class="compact-list">
-        <p class="empty-state">No artifacts yet</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="graph" class="view" aria-labelledby="graph-title">
+        <!-- ===== 7. Security & Governance ===== -->
+        <section id="security" class="view" aria-labelledby="security-title">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Local relationship store</p>
-              <h3 id="graph-title">Graph</h3>
+              <p class="eyebrow">Governance and audit</p>
+              <h3 id="security-title">Security &amp; Governance</h3>
             </div>
-            <span id="graphSummary" class="tag muted"></span>
+            <span class="tag">offline-only</span>
           </div>
-          <div class="split-grid graph-layout">
+          <div class="split-grid security-grid">
             <div>
-              <h4>Entities</h4>
-              <div id="graphEntities" class="compact-list"></div>
+              <h4>Policy Status</h4>
+              <div id="securityPolicyStatus" class="compact-list"><p class="empty-state">No policy data</p></div>
             </div>
             <div>
-              <h4>Relationships</h4>
-              <div id="graphRelationships" class="compact-list"></div>
+              <h4>Audit Log</h4>
+              <div id="securityAuditLog" class="compact-list"><p class="empty-state">No audit events</p></div>
+            </div>
+          </div>
+          <h4>Approval Requests</h4>
+          <div id="securityApprovals" class="compact-list"><p class="empty-state">No approval requests yet</p></div>
+          <div class="security-note">
+            <p class="small-muted">No real auth, secret vault, or cloud scanning in this prototype. Security checks are local and deterministic. Secret scanner never prints full values — only masked previews (first+last 4 characters).</p>
+          </div>
+        </section>
+
+        <!-- ===== 8. Observability ===== -->
+        <section id="observability" class="view" aria-labelledby="observability-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Metrics, evals, traces</p>
+              <h3 id="observability-title">Observability</h3>
+            </div>
+            <span class="tag muted">v1.3</span>
+          </div>
+          <div class="obs-notice">
+            <strong>&#9432; Standalone scaffolding</strong> The observability module is correctly scaffolded and tested, but the core workflow does not yet record data automatically. Use CLI commands to populate these stores.
+          </div>
+          <div class="obs-grid">
+            <div class="obs-card">
+              <h4>Metrics</h4>
+              <div id="obsMetrics" class="obs-content">
+                <p class="empty-state">No metrics recorded yet. Run <code>decision-system metrics</code>.</p>
+              </div>
+            </div>
+            <div class="obs-card">
+              <h4>Eval History</h4>
+              <div id="obsEvalHistory" class="obs-content">
+                <p class="empty-state">No eval runs recorded yet. Run <code>decision-system eval-history</code>.</p>
+              </div>
+            </div>
+            <div class="obs-card">
+              <h4>Quality Reports</h4>
+              <div id="obsQualityReports" class="obs-content">
+                <p class="empty-state">No quality reports yet. Run <code>decision-system quality-report</code>.</p>
+              </div>
+            </div>
+            <div class="obs-card">
+              <h4>Trace Summaries</h4>
+              <div id="obsTraces" class="obs-content">
+                <p class="empty-state">No traces recorded yet. Run <code>decision-system trace-summary</code>.</p>
+              </div>
             </div>
           </div>
         </section>
-      <section id="security" class="view" aria-labelledby="security-title">
-<div class="section-heading">
-<div>
-<p class="eyebrow">Governance and audit</p>
-<h3 id="security-title">Security</h3>
-</div>
-<span class="tag">offline-only</span>
-</div>
-<div class="split-grid">
-<div>
-<h4>Policy status</h4>
-<div id="securityPolicyStatus" class="compact-list"><p class="empty-state">No policy data</p></div>
-</div>
-<div>
-<h4>Audit log summary</h4>
-<div id="securityAuditLog" class="compact-list"><p class="empty-state">No audit events</p></div>
-</div>
-</div>
-<h4>Approval requests</h4>
-<div id="securityApprovals" class="compact-list"><p class="empty-state">No approval requests yet</p></div>
-<p class="small-muted" style="margin-top:16px">No real auth, secret vault, or cloud scanning in this prototype. Security checks are local and deterministic.</p>
-</section>
-<!-- graph starts after security -->
-</main>
+
+        <!-- ===== 9. Enterprise Readiness ===== -->
+        <section id="enterprise" class="view" aria-labelledby="enterprise-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Gap analysis</p>
+              <h3 id="enterprise-title">Enterprise Readiness</h3>
+            </div>
+            <span id="enterpriseVersion" class="tag muted"></span>
+          </div>
+          <div class="enterprise-header">
+            <div class="readiness-level" id="readinessLevel">
+              <span class="level-badge prototype">Prototype Ready</span>
+            </div>
+            <p class="small-muted">Honest assessment distinguishing prototype-ready, enterprise-ready, and production-ready capabilities. The assessment is a mostly-static checklist — it does not probe the live system.</p>
+          </div>
+          <div class="enterprise-scores">
+            <div class="score-card pass">
+              <span class="score-value" id="entPassed">0</span>
+              <span class="score-label">Working</span>
+            </div>
+            <div class="score-card fail">
+              <span class="score-value" id="entMissing">0</span>
+              <span class="score-label">Gaps</span>
+            </div>
+          </div>
+          <div class="split-grid">
+            <div>
+              <h4>What Works</h4>
+              <div id="entPassedList" class="compact-list"></div>
+            </div>
+            <div>
+              <h4>What Is Missing</h4>
+              <div id="entMissingList" class="compact-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
     <script src="app.js" defer></script>
   </body>

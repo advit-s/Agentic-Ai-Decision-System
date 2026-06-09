@@ -45,7 +45,7 @@ See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: co
 - deterministic pattern and vulnerability detection
 - war-cabinet context protocol with deterministic specialist artifacts and judge interventions
 - provider evaluation harness for fake, NVIDIA NIM, and Ollama (offline/mock)
-- local mock-first web UI prototype under `web/`
+- full product web UI with 9 sections: Dashboard, Decision Brief, Data & Ontology, War Room, Workspaces, Connectors, Security & Governance, Observability, and Enterprise Readiness (v1.7)
 - local SQLite workspace persistence with export/import (v1.0)
 - safe connector framework with local-files real connector and stub connectors (v1.1)
 - deterministic security scanning, redaction preview, audit logging, policy checks, and approval workflow (v1.2)
@@ -283,13 +283,29 @@ The UI lives under `web/` and uses static HTML, CSS, JavaScript, and lightweight
 decision-system serve-api
 ```
 
+Then open `http://127.0.0.1:8000/` in your browser.
+
 Alternatively, you can run it with a simple static server:
 
 ```bash
 python -m http.server 8765 --directory web
 ```
 
-Then open `http://localhost:8765` or `http://localhost:8000` depending on the method. The prototype includes Ask, Reports, Insights, Ontology, War Room, Provider Evals, Data Profiles, and Graph sections.
+Then open `http://localhost:8765`.
+
+The v1.7 product UI includes 9 sections:
+
+- **Dashboard** — system readiness, provider status, quick links, overview metrics
+- **Decision Brief** — ask business questions, view claim-verified responses
+- **Data & Ontology** — tabbed view of data profiles, ontology mappings, insights, and knowledge graph
+- **War Room** — bounded multi-role analysis with judge interventions
+- **Workspaces** — artifact tracking, import/export
+- **Connectors** — local-files real connector + GitHub/Jira/Slack/Email stubs
+- **Security & Governance** — policy status, audit log, approval requests
+- **Observability** — metrics, eval history, quality reports, trace summaries
+- **Enterprise Readiness** — gap analysis distinguishing prototype vs enterprise vs production readiness
+
+The UI works with or without the API backend running. When the API is available, it fetches live data; otherwise it falls back to mock fixtures.
 
 ## Safe Connectors
 
@@ -652,5 +668,4 @@ Completed:
 - v1.4: Docker packaging, local deployment scripts, release verification
 - v1.5: enterprise readiness assessment and gap analysis
 - v1.6: final prototype readiness pass (all commands verified, 650 tests passing)
-
-No upcoming versions planned. This is the final prototype.
+- v1.7: frontend product UI with 9 sections, mock-first design, API integration

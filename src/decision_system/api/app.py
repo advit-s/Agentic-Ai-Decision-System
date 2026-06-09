@@ -46,6 +46,8 @@ def create_app() -> FastAPI:
  api.include_router(routes_evals.router)
  api.include_router(routes_security.router)
  api.include_router(routes_workspaces.router)
+ api.include_router(routes_enterprise.router)
+ api.include_router(routes_observability.router)
 
  # Mount the static files for the web UI prototype at the root.
  # We do this after registering all API routes so they take precedence.

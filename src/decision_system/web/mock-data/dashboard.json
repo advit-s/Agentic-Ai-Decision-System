@@ -1,0 +1,29 @@
+{
+  "version": "1.7.0",
+  "provider": "fake",
+  "api_status": "ok",
+  "workspace_status": "no_active_workspace",
+  "index_status": "not_indexed",
+  "connector_count": 5,
+  "insight_count": 4,
+  "ontology_concepts": 38,
+  "graph_entities": 4,
+  "graph_relationships": 3,
+  "war_room_runs": 1,
+  "data_profiles": 3,
+  "system_ready": true,
+  "last_audit": "2026-06-09T10:00:00Z",
+  "mock_mode": true,
+  "project_info": {
+    "name": "Agentic AI Decision System",
+    "description": "Company Intelligence Engine — local evidence, bounded analysis, claim verification, cited decision reports."
+  },
+  "phase_1_ready": true,
+  "phase_2_ready": true,
+  "quick_links": [
+    {"label": "Index Documents", "icon": "document", "section": "data"},
+    {"label": "Ask a Question", "icon": "question", "section": "ask"},
+    {"label": "Run War Room", "icon": "war-room", "section": "war-room"},
+    {"label": "Security Audit", "icon": "security", "section": "security"}
+  ]
+}

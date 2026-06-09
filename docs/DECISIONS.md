@@ -397,3 +397,38 @@ Key principles:
 - **All commands are verified.** All 49 CLI commands are confirmed working with the fake provider. All 650 tests pass offline.
 - **Shallow implementations are documented.** The observability module works in isolation but is never populated by the workflow. This is noted, not silently accepted.
 - **Architectural rules are preserved.** All 15 rules from CLAUDE.md are audited and confirmed intact: fake provider default, no database, no auth, no enterprise connectors, bounded agents, claim-ledger-driven reports.
+
+## ADR-037: Add Frontend Product UI as a Mock-First Vanilla Web Application
+
+Status: Accepted
+
+v1.7 adds a full local web product UI with 9 navigation sections, transforming
+the project from "CLI/backend with a prototype UI" to "usable local web app
+for the Company Intelligence Engine." The UI is built in clean vanilla
+HTML/CSS/JS with no build system, no framework, and no npm dependency.
+
+Key principles:
+
+- **Mock-first by default.** Every section works when the API backend is
+  unavailable. Mock JSON fixtures cover all 9 sections under `web/mock-data/`.
+- **API integration when available.** When the API backend is running (via
+  `decision-system serve-api`), the UI fetches live data. Failed calls fall
+  back to mock data.
+- **No build system.** The UI uses vanilla HTML, CSS, and JavaScript. No
+  bundler, no framework, no npm install step required.
+- **Existing APIs preserved.** All existing v0.8–v1.6 API endpoints work
+  unchanged. New endpoints are additive and minimal.
+- **Phase 1 + Phase 2 alignment.** The UI is organized around the two-phase
+  product model: Data & Ontology (Phase 1: company data understanding) and
+  War Room + Decision Brief (Phase 2: war cabinet analysis).
+- **Security view crash fixed.** The v0.9 `renderSecurity()` function crashed
+  because `FALLBACK_DATA` lacked a `security` key. This is fixed in v1.7 by
+  adding `FALLBACK_DATA.security`.
+- **Package assets stay synced.** Root `web/` and package
+  `src/decision_system/web/` remain byte-for-byte identical. Drift tests
+  enforce this.
+- **Offline-safe.** No API keys required. The fake provider remains the
+  default. The UI works loaded from the filesystem or the FastAPI static mount.
+- **No auth added.** The UI makes no authenticated API calls, stores no tokens,
+  and has no login screen.
+- **651 tests passing.** One new test validates the v1.7 API endpoints.

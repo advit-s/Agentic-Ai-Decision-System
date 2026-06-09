@@ -247,9 +247,10 @@ The CLI and local UI expose debug surfaces:
 - `decision-system quality-report`
 - `decision-system trace-summary`
 - `decision-system enterprise-readiness`
-- `web/index.html` via a local static server for mock-first artifact inspection
+- `web/index.html` via the FastAPI backend (`decision-system serve-api`) or
+  a local static server for the full 9-section product UI
 
-These surfaces make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable.
+These surfaces make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable. The v1.7 product UI exposes all of these through a single web interface with API-backed or mock-first data.
 
 ## FastAPI Backend (v0.8)
 
@@ -656,11 +657,67 @@ Key outcomes:
 - **All architectural rules preserved.** Fake provider default, no database, no auth, no enterprise connectors, bounded agents, claim-ledger-driven reports.
 - **Prototype is SAFE TO COMMIT.** No tracked generated state, no committed secrets, no network calls in tests, no API keys required.
 
-## Current Limits
+## Frontend Product UI (v1.7)
 
-- No production frontend or database-backed web app.
-- No FastAPI dependency in this branch; the static UI only optionally consumes
-  an API base URL when one exists.
+v1.7 builds a full local web product UI that makes the software understandable
+and usable as a Company Intelligence Engine, not just a CLI wrapper. It
+replaces the v0.9 prototype with 9 purpose-built sections:
+
+```text
+web/ (static HTML/CSS/JS + mock-data)
+  -> FastAPI mount at /
+  -> mock-first fallback for every section
+  -> 9 section navigation via sidebar
+  -> API integration when backend is running
+  -> no build system, no framework, clean vanilla code
+```
+
+The UI is organized around the two-phase product model:
+
+- **Phase 1: Company Data Understanding** — Data & Ontology section (profiles,
+  ontology, insights, knowledge graph) and Workspaces section.
+- **Phase 2: War Cabinet** — War Room section (roles, artifacts, judge
+  interventions) and Decision Brief section (ask questions, claim-verified
+  responses).
+
+Nine navigation sections:
+
+| Section | Purpose |
+|---------|---------|
+| Dashboard | System readiness, provider status, quick links, overview metrics |
+| Decision Brief | Ask business questions, view claim-grounded responses |
+| Data & Ontology | Tabbed: profiles, ontology, insights (severity-grouped), knowledge graph |
+| War Room | Roles, artifacts, judge interventions with protocol explanation |
+| Workspaces | Active workspace, artifact type counts, latest artifacts |
+| Connectors | Real local-files connector + GitHub/Jira/Slack/Email stubs |
+| Security & Governance | Policy checks, audit log, approval requests |
+| Observability | Metrics, eval history, quality reports, trace summaries |
+| Enterprise Readiness | Gap analysis with working vs missing controls |
+
+New API endpoints added in v1.7:
+
+- `GET /enterprise-readiness` — static readiness assessment
+- `GET /observability/metrics` — collected metrics
+- `GET /observability/eval-history` — evaluation run history
+- `GET /observability/quality-report` — quality reports
+- `GET /observability/traces` — trace summaries
+
+Key design decisions:
+
+- **Mock-first.** Every section works when the API backend is unavailable.
+  Mock fixtures are under `web/mock-data/` and are byte-for-byte identical
+  between root `web/` and package `src/decision_system/web/`.
+- **Existing APIs preserved.** All v0.8–v1.2 API endpoints continue working.
+  New endpoints are additive.
+- **No build system.** Clean vanilla HTML/CSS/JS — no framework, no bundler,
+  no npm dependency.
+- **Security view fixed.** The v0.9 `renderSecurity()` crash (`FALLBACK_DATA`
+  missing `security` key) is fixed.
+- **9 new mock data fixtures** covering dashboard, connectors, observability,
+  and enterprise readiness in addition to the existing 7 fixtures.
+- **651 tests passing** (1 new test for v1.7 API endpoints).
+
+## Current Limits
 - No database.
 - No auth or permission model.
 - API is local-development only.

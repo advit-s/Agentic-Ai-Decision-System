@@ -1,4 +1,35 @@
-## [1.6.0] - 2026-06-09
+## [1.7.0] - 2026-06-09
+
+### Added
+- Frontend product UI with 9 navigation sections: Dashboard, Decision Brief, Data & Ontology, War Room, Workspaces, Connectors, Security & Governance, Observability, and Enterprise Readiness.
+- Dashboard with system readiness status, provider info, document index state, workspace state, metrics (profiles, insights, graph entities/links, connectors, war-room runs), and quick links.
+- Decision Brief section with offline mode notice, Ask form, claim status summary, and API-backed or mock-first responses.
+- Data & Ontology section with tabbed sub-views for data profiles, ontology mapping, insights (severity-grouped), and knowledge graph entities/relationships.
+- War Room section with HigherContext/PersonalAgentContext/CommonWorkspace explanation, roles, judge interventions, and artifacts.
+- Connectors section showing local-files (real) and GitHub/Jira/Slack/Email (stub) connectors with clear stub labeling and no token input fields.
+- Security & Governance section with policy check status, audit log events, and approval requests.
+- Observability section with metrics, eval history, quality reports, and trace summaries (standalone scaffolding notice).
+- Enterprise Readiness section with readiness level badge, working vs gap counts, and detailed gap list with severity.
+- `GET /enterprise-readiness` API endpoint returning static readiness assessment.
+- `GET /observability/metrics`, `GET /observability/eval-history`, `GET /observability/quality-report`, `GET /observability/traces` API endpoints for observability data.
+- Mock data fixtures for all 9 sections under `web/mock-data/` and package `src/decision_system/web/mock-data/`.
+
+### Changed
+- Project version is now 1.7.0.
+- Web UI completely rebuilt: `web/index.html`, `web/app.js`, `web/styles.css` rewritten with 9-section architecture.
+- Mock data contracts expanded: dashboard, connectors, observability, enterprise-readiness mock fixtures added.
+- Navigation uses sidebar with compact dark theme and section-specific page titles.
+- All existing API endpoints preserved; new endpoints added for enterprise-readiness and observability.
+- Web UI tests expanded to cover all 9 sections and new API endpoints.
+
+### Fixed
+- Security view no longer crashes: `FALLBACK_DATA.security` added to prevent `TypeError` on undefined data.
+- Web UI tests updated to reference new section IDs and mock data contracts.
+
+### Security
+- All 651 tests pass offline with no API keys.
+- No real secrets, tokens, or credentials in mock data fixtures.
+- Security scanner continues to mask full secret values.
 ### Added
 - Final prototype hardening pass completed.
 - `clean-generated.sh` and `clean-generated.ps1` for safe generated-state cleanup (dry-run by default).

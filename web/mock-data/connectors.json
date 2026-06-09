@@ -1,0 +1,65 @@
+{
+  "connectors": [
+    {
+      "connector_id": "local-files",
+      "name": "Local Files",
+      "connector_type": "storage",
+      "status": "configured",
+      "description": "Import files from local directories. Supports dry-run and copy-based import. Protected files (.env, .gitignore, .venv, etc.) are skipped.",
+      "capabilities": ["read", "import"],
+      "requires_secrets": false,
+      "supports_dry_run": true,
+      "supports_import": true,
+      "is_stub": false
+    },
+    {
+      "connector_id": "github",
+      "name": "GitHub",
+      "connector_type": "external",
+      "status": "stub",
+      "description": "Offline stub — no network calls made. Real GitHub connector requires OAuth scoping design.",
+      "capabilities": [],
+      "requires_secrets": true,
+      "supports_dry_run": false,
+      "supports_import": false,
+      "is_stub": true
+    },
+    {
+      "connector_id": "jira",
+      "name": "Jira",
+      "connector_type": "external",
+      "status": "stub",
+      "description": "Offline stub — no network calls made. Real Jira connector requires OAuth scoping design.",
+      "capabilities": [],
+      "requires_secrets": true,
+      "supports_dry_run": false,
+      "supports_import": false,
+      "is_stub": true
+    },
+    {
+      "connector_id": "slack",
+      "name": "Slack",
+      "connector_type": "external",
+      "status": "stub",
+      "description": "Offline stub — no network calls made. Real Slack connector requires OAuth scoping design.",
+      "capabilities": [],
+      "requires_secrets": true,
+      "supports_dry_run": false,
+      "supports_import": false,
+      "is_stub": true
+    },
+    {
+      "connector_id": "email",
+      "name": "Email",
+      "connector_type": "external",
+      "status": "stub",
+      "description": "Offline stub — no network calls made. Real Email connector requires IMAP/OAuth design.",
+      "capabilities": [],
+      "requires_secrets": true,
+      "supports_dry_run": false,
+      "supports_import": false,
+      "is_stub": true
+    }
+  ],
+  "jobs": []
+}
