@@ -1,0 +1,40 @@
+# Docker build context exclusions
+# Prevent secrets, generated state, and dev files from entering the image
+
+.git/
+.github/
+.agents/
+.claude/
+.decision_system/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Secrets - never bake into images
+.env
+.env.local
+.env.*.local
+
+# Generated local state
+.decision_system/
+
+# Private data
+datasets/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Documentation and skills (not needed at runtime)
+docs/
+*.md
+!README.md
+!LICENSE

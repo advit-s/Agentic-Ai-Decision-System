@@ -1,3 +1,61 @@
+## [1.6.0] - 2026-06-09
+### Added
+- Final prototype readiness pass completed.
+- Verified all CLI commands work as defined in `CLAUDE_LONG_RUN_GOAL.md`.
+- Verified package install, tests, CLI import speed, hygiene, and integration commands.
+- Fixed secret-scan false positive in policy-check (skipped synthetic test fixtures).
+- Confirmed 650 tests pass fully offline with no API keys.
+
+### Fixed
+- CLI import remains fast (~0.2s) with lazy imports preserved.
+- Policy check now skips synthetic test secret fixtures to avoid false positives.
+- Storage paths now accept optional `root` parameter throughout observability.
+
+### Changed
+- Project version is now 1.6.0.
+- Final prototype readiness verified.
+
+## [1.5.0] - 2026-06-09
+### Added
+- Enterprise readiness checklist command (`decision-system enterprise-readiness`).
+- Honest readiness assessment distinguishing prototype-ready, enterprise-ready, production-ready.
+- `docs/ENTERPRISE_READINESS.md` with gap analysis (auth, RBAC, tenant isolation, secrets vault, compliance, etc.).
+- `docs/SECURITY_MODEL.md` describing current security posture and planned improvements.
+- `docs/HUMAN_APPROVAL_WORKFLOW.md` documenting the approval record-keeping mechanism.
+- CLI test for enterprise-readiness command (text and JSON output).
+
+### Changed
+- Project version is now 1.5.0.
+
+## [1.4.0] - 2026-06-09
+### Added
+- `Dockerfile` for containerized local development (fake/offline default, no secrets baked in).
+- `docker-compose.yml` for single-service local deployment.
+- `.dockerignore` to exclude secrets, generated state, and dev files from Docker builds.
+- `scripts/dev.sh` and `scripts/dev.ps1` local development helpers (install, test, api, smoke, hygiene).
+- `scripts/release-check.sh` and `scripts/release-check.ps1` release verification scripts.
+- `docs/DEPLOYMENT.md` with local deployment instructions and security notes.
+- Release check verifies: no pycache/pyc in tracked files, no generated DBs, no raw datasets, no secrets, package installs, tests pass, CLI import fast, hygiene passes.
+
+### Changed
+- Project version is now 1.4.0.
+
+## [1.3.0] - 2026-06-09
+### Added
+- Observability and evaluation history package (`src/decision_system/observability/`).
+- Metrics collection with JSONL persistence and summary aggregation.
+- Evaluation run history with load/save/inspect.
+- Quality report generator from evaluation run data.
+- Trace summary storage for workflow runs.
+- CLI commands: `metrics`, `eval-history`, `quality-report`, `trace-summary` (each with `--json`).
+- Observability sub-command group: `observability metrics/eval-history/quality-report/trace-summary`.
+- Deterministic persistence under `.decision_system/observability/` (metrics, eval_history, quality_reports, traces).
+- 28 observability tests with tempfile isolation.
+
+### Changed
+- Project version is now 1.3.0.
+- `.gitignore` includes `.decision_system/observability/`.
+
 ## [1.2.0] - 2026-06-09
 ### Added
 - Deterministic local secret scanning (`decision-system scan-secrets`).

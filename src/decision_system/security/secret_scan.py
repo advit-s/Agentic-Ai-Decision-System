@@ -28,7 +28,20 @@ DEFAULT_SCAN_DIRS: tuple[str, ...] = (
     "__pycache__",
 )
 DEFAULT_IGNORE_DIRS: frozenset[str] = frozenset(
-    DEFAULT_SCAN_DIRS + ("node_modules", "dist", "build", "egg-info")
+    DEFAULT_SCAN_DIRS
+    + (
+        "node_modules",
+        "dist",
+        "build",
+        "egg-info",
+        # Agent skill doc directories: contain documentation examples only,
+        # not real tracked source.  Skipping avoids false positives from
+        # API-key placeholders shown in skill documentation.
+        ".claude",
+        "claude",
+        ".agents",
+        "agents",
+    )
 )
 # Users should configure raw public-dataset directories through the data
 # catalog.  The scan explicitly skips the top-level "datasets/" folder

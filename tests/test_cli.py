@@ -405,3 +405,22 @@ def test_inspect_graph_exits_0(tmp_path, monkeypatch):
     assert "Entities grouped by type:" in result.output
     assert "Relationships grouped by relation type:" in result.output
     assert "Top connected entities:" in result.output
+
+
+def test_enterprise_readiness_exits_0():
+    runner = CliRunner()
+    result = runner.invoke(app, ["enterprise-readiness"])
+    assert result.exit_code == 0
+    assert "PROTOTYPE-READY" in result.output
+    assert "Enterprise-Ready: NO" in result.output
+
+
+def test_enterprise_readiness_json():
+    runner = CliRunner()
+    result = runner.invoke(app, ["enterprise-readiness", "--json"])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["readiness_level"] == "prototype-ready"
+    assert data["prototype_ready"] is True
+    assert data["enterprise_ready"] is False
+    assert data["missing_count"] > 0

@@ -1,0 +1,25 @@
+# Agentic Decision System - Local Development Compose
+# No cloud services. No real provider keys required.
+# Fake/offline provider is the default.
+
+services:
+  decision-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DECISION_PROVIDER=fake
+    volumes:
+      - decision_data:/app/.decision_system
+      - ./company_docs:/app/company_docs:ro
+      - ./company_data:/app/company_data:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "from decision_system import __version__; print(__version__)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  decision_data:

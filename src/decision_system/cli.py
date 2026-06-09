@@ -1831,9 +1831,454 @@ def _report_context(
             if include_orchestration
             else {}
         ),
-        judge_summary=(
-            context.judge_summary if include_orchestration else {}
-        ),
-        human_review_items=human_review_items,
-        created_at=context.created_at,
+judge_summary=(
+    context.judge_summary if include_orchestration else {}
+),
+human_review_items=human_review_items,
+created_at=context.created_at,
+)
+
+
+# Observability sub-commands (v1.3)
+# ---------------------------------------------------------------------------
+
+_observability_app = typer.Typer(
+    name="observability",
+    help="Observability, metrics, and evaluation history.",
+    no_args_is_help=True,
+)
+app.add_typer(_observability_app)
+
+
+@_observability_app.command("metrics")
+def _cmd_observability_metrics(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit JSON metrics summary.",
+    ),
+) -> None:
+    """Show collected metrics summary."""
+    from decision_system.observability import (
+        compute_metric_summary,
+        list_metric_names,
     )
+
+    names = list_metric_names()
+    if not names:
+        if json_output:
+            typer.echo(json.dumps({"metrics": [], "count": 0}, indent=2))
+        else:
+            console.print("No metrics collected yet.")
+        return
+
+    summaries = [compute_metric_summary(n) for n in names]
+    summaries = [s for s in summaries if s is not None]
+
+    if json_output:
+        payload = {
+            "count": len(summaries),
+            "metrics": [
+                {
+                    "name": s.name,
+                    "count": s.count,
+                    "sum": s.sum,
+                    "avg": s.avg,
+                    "min": s.min,
+                    "max": s.max,
+                }
+                for s in summaries
+            ],
+        }
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(f"# Metrics Summary ({len(summaries)})")
+        for s in summaries:
+            console.print(
+                f"  {s.name}: count={s.count} avg={s.avg:.2f} "
+                f"min={s.min:.2f} max={s.max:.2f}"
+            )
+
+
+@_observability_app.command("eval-history")
+def _cmd_observability_eval_history(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit JSON evaluation history.",
+    ),
+) -> None:
+    """Show evaluation run history."""
+    from decision_system.observability import load_eval_runs
+
+    runs = load_eval_runs()
+    if json_output:
+        payload = {
+            "total": len(runs),
+            "runs": [
+                {
+                    "run_id": r.run_id,
+                    "eval_type": r.eval_type,
+                    "status": r.status.value,
+                    "total_cases": r.total_cases,
+                    "passed_cases": r.passed_cases,
+                    "failed_cases": r.failed_cases,
+                    "duration_seconds": r.duration_seconds,
+                }
+                for r in runs[:20]
+            ],
+        }
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(f"# Evaluation History ({len(runs)} runs)")
+        if not runs:
+            console.print("  (no eval runs recorded)")
+        for r in runs[:20]:
+            status = "✓" if r.status.value == "passed" else "✗"
+            console.print(
+                f"  [{status}] {r.run_id} ({r.eval_type}) — "
+                f"{r.total_cases} cases, {r.passed_cases} passed, "
+                f"{r.duration_seconds:.2f}s"
+            )
+
+
+@_observability_app.command("quality-report")
+def _cmd_observability_quality_report(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit JSON quality report.",
+    ),
+) -> None:
+    """Generate and view a quality report from evaluation history."""
+    from decision_system.observability import (
+        generate_quality_report,
+        load_quality_reports,
+    )
+
+    report = generate_quality_report()
+    if json_output:
+        from decision_system.observability.quality_report import (
+            quality_report_summary_json,
+        )
+
+        typer.echo(json.dumps(quality_report_summary_json(report), indent=2))
+    else:
+        console.print(f"# Quality Report ({report.report_id})")
+        console.print(f"  Target: {report.target_type}")
+        console.print(f"  Score: {report.overall_score:.2%}")
+        console.print(f"  Status: {report.overall_status.upper()}")
+        if report.recommendations:
+            console.print("  Recommendations:")
+            for rec in report.recommendations:
+                console.print(f"    - {rec}")
+
+
+@_observability_app.command("trace-summary")
+def _cmd_observability_trace_summary(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit JSON trace summary.",
+    ),
+) -> None:
+    """Show recent trace summaries."""
+    from decision_system.observability import load_traces
+
+    traces = load_traces()[:10]
+    if json_output:
+        payload = {
+            "total": len(traces),
+            "traces": [
+                {
+                    "trace_id": t.trace_id,
+                    "workflow_type": t.workflow_type,
+                    "question": t.question,
+                    "duration_seconds": t.duration_seconds,
+                    "node_count": t.node_count,
+                    "error_count": t.error_count,
+                }
+                for t in traces
+            ],
+        }
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(f"# Recent Traces ({len(traces)})")
+        if not traces:
+            console.print("  (no traces recorded)")
+        for t in traces:
+            console.print(
+                f"  [{t.trace_id}] {t.workflow_type} - "
+                f"{t.duration_seconds:.2f}s, {t.node_count} nodes"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Top-level observability convenience aliases (v1.3)
+# ---------------------------------------------------------------------------
+
+
+@app.command("metrics")
+def _cmd_metrics(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit JSON metrics summary.",
+    ),
+) -> None:
+    """Show collected metrics summary."""
+    from decision_system.observability import (
+        compute_metric_summary,
+        list_metric_names,
+    )
+
+    names = list_metric_names()
+    if not names:
+        if json_output:
+            typer.echo(json.dumps({"metrics": [], "count": 0}, indent=2))
+        else:
+            console.print("No metrics collected yet.")
+        return
+
+    summaries = [compute_metric_summary(n) for n in names]
+    summaries = [s for s in summaries if s is not None]
+
+    if json_output:
+        payload = {
+            "count": len(summaries),
+            "metrics": [
+                {
+                    "name": s.name,
+                    "count": s.count,
+                    "sum": s.sum,
+                    "avg": s.avg,
+                    "min": s.min,
+                    "max": s.max,
+                }
+                for s in summaries
+            ],
+        }
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(f"# Metrics Summary ({len(summaries)})")
+        for s in summaries:
+            console.print(
+                f"  {s.name}: count={s.count} avg={s.avg:.2f} "
+                f"min={s.min:.2f} max={s.max:.2f}"
+            )
+
+
+@app.command("eval-history")
+def _cmd_eval_history(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit JSON evaluation history.",
+    ),
+) -> None:
+    """Show evaluation run history."""
+    from decision_system.observability import load_eval_runs
+
+    runs = load_eval_runs()
+    if json_output:
+        payload = {
+            "total": len(runs),
+            "runs": [
+                {
+                    "run_id": r.run_id,
+                    "eval_type": r.eval_type,
+                    "status": r.status.value,
+                    "total_cases": r.total_cases,
+                    "passed_cases": r.passed_cases,
+                    "failed_cases": r.failed_cases,
+                    "duration_seconds": r.duration_seconds,
+                }
+                for r in runs[:20]
+            ],
+        }
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(f"# Evaluation History ({len(runs)} runs)")
+        if not runs:
+            console.print("  (no eval runs recorded)")
+        for r in runs[:20]:
+            status = "PASS" if r.status.value == "passed" else "FAIL"
+            console.print(
+                f"  [{status}] {r.run_id} ({r.eval_type}) - "
+                f"{r.total_cases} cases, {r.passed_cases} passed, "
+                f"{r.duration_seconds:.2f}s"
+            )
+
+
+@app.command("quality-report")
+def _cmd_quality_report(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit JSON quality report.",
+    ),
+) -> None:
+    """Generate and view a quality report from evaluation history."""
+    from decision_system.observability import (
+        generate_quality_report,
+        load_quality_reports,
+    )
+
+    report = generate_quality_report()
+    if json_output:
+        from decision_system.observability.quality_report import (
+            quality_report_summary_json,
+        )
+
+        typer.echo(json.dumps(quality_report_summary_json(report), indent=2))
+    else:
+        console.print(f"# Quality Report ({report.report_id})")
+        console.print(f"  Target: {report.target_type}")
+        console.print(f"  Score: {report.overall_score:.2%}")
+        console.print(f"  Status: {report.overall_status.upper()}")
+        if report.recommendations:
+            console.print("  Recommendations:")
+            for rec in report.recommendations:
+                console.print(f"    - {rec}")
+
+
+@app.command("trace-summary")
+def _cmd_trace_summary(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit JSON trace summary.",
+    ),
+) -> None:
+    """Show recent trace summaries."""
+    from decision_system.observability import load_traces
+
+    traces = load_traces()[:10]
+    if json_output:
+        payload = {
+            "total": len(traces),
+            "traces": [
+                {
+                    "trace_id": t.trace_id,
+                    "workflow_type": t.workflow_type,
+                    "question": t.question,
+                    "duration_seconds": t.duration_seconds,
+                    "node_count": t.node_count,
+                    "error_count": t.error_count,
+                }
+                for t in traces
+            ],
+        }
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print(f"# Recent Traces ({len(traces)})")
+        if not traces:
+            console.print("  (no traces recorded)")
+        for t in traces:
+            console.print(
+                f"  [{t.trace_id}] {t.workflow_type} - "
+                f"{t.duration_seconds:.2f}s, {t.node_count} nodes"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Enterprise readiness (v1.5)
+# ---------------------------------------------------------------------------
+
+
+@app.command("enterprise-readiness")
+def _cmd_enterprise_readiness(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit JSON readiness report.",
+    ),
+) -> None:
+    """Honest assessment of enterprise/production readiness."""
+    from decision_system import __version__
+
+    readiness_level = "prototype-ready"
+    passed_items: list[str] = []
+    missing_items: list[dict[str, str]] = []
+
+    checks = [
+        ("Bounded decision workflow with claim ledger", True, "", ""),
+        ("Local document indexing and retrieval", True, "", ""),
+        ("Local data catalog, profiling, and ontology mapping", True, "", ""),
+        ("Deterministic insight and pattern detection", True, "", ""),
+        ("War-room simulation with judge/verifier", True, "", ""),
+        ("Local FastAPI backend", True, "", ""),
+        ("Provider evaluation harness", True, "", ""),
+        ("Secret scanning and redaction preview", True, "", ""),
+        ("Policy checks and audit logging", True, "", ""),
+        ("Approval request workflow (record-only)", True, "", ""),
+        ("Metrics, eval history, quality reports", True, "", ""),
+        ("Docker packaging for local deployment", True, "", ""),
+        ("All tests pass offline with no API keys", True, "", ""),
+        ("Real authentication (JWT/OAuth)", False, "critical",
+         "No auth implemented. All operations run as local-user."),
+        ("Role-based access control", False, "critical",
+         "No RBAC. All local users have full access."),
+        ("Tenant isolation", False, "critical",
+         "No multi-tenant boundaries."),
+        ("Secrets vault", False, "critical",
+         "Secrets stored in env vars or .env files only."),
+        ("Audit log retention policy", False, "high",
+         "JSONL log rotated locally, no retention policy."),
+        ("Compliance controls (SOC 2, GDPR, HIPAA)", False, "high",
+         "No compliance controls implemented."),
+        ("Production connector approvals", False, "high",
+         "Only local-files is real; others are stubs."),
+        ("Deployment hardening (TLS, rate limiting)", False, "high",
+         "No TLS or rate limiting."),
+        ("Database persistence", False, "medium",
+         "Chroma + JSON files, no RDBMS durability."),
+        ("Encrypted storage at rest", False, "medium",
+         "All data stored unencrypted locally."),
+        ("API input sanitization", False, "medium",
+         "Basic Pydantic validation only."),
+    ]
+
+    for check in checks:
+        if check[1]:
+            passed_items.append(check[0])
+        else:
+            missing_items.append({
+                "gap": check[0],
+                "severity": check[2] if len(check) > 2 else "medium",
+                "notes": check[3] if len(check) > 3 else "",
+            })
+
+    if json_output:
+        payload = {
+            "version": __version__,
+            "readiness_level": readiness_level,
+            "prototype_ready": True,
+            "enterprise_ready": False,
+            "production_ready": False,
+            "passed_count": len(passed_items),
+            "missing_count": len(missing_items),
+            "missing_items": missing_items,
+        }
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        console.print("# Enterprise Readiness Assessment")
+        console.print("")
+        console.print(f"Version: {__version__}")
+        console.print(f"Readiness Level: **{readiness_level.upper()}**")
+        console.print("")
+        console.print("Prototype-Ready: YES")
+        console.print("Enterprise-Ready: NO")
+        console.print("Production-Ready: NO")
+        console.print("")
+        console.print(f"## What Works ({len(passed_items)})")
+        for item in passed_items:
+            console.print(f"  [x] {item}")
+        console.print("")
+        console.print(f"## What Is Missing ({len(missing_items)})")
+        for item in missing_items:
+            console.print(
+                f"  [ ] {item['gap']} ({item['severity'].upper()})"
+            )
+            if item["notes"]:
+                console.print(f"      {item['notes']}")
