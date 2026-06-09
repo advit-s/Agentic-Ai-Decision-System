@@ -27,12 +27,12 @@ See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: co
 
 ## Current Features
 
-- CLI commands
+- 49 CLI commands covering all subsystems
 - local FastAPI API for development clients
 - local `.md` / `.txt` documents
 - Chroma vector store
 - deterministic fake provider
-- optional NVIDIA NIM provider
+- optional NVIDIA NIM and Ollama providers
 - local entity and relationship extraction
 - graph-like JSON knowledge store
 - local `company_data/` catalog
@@ -44,8 +44,15 @@ See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: co
 - evaluation command
 - deterministic pattern and vulnerability detection
 - war-cabinet context protocol with deterministic specialist artifacts and judge interventions
-- provider evaluation harness for fake, mocked NVIDIA NIM, and mocked Ollama behavior
+- provider evaluation harness for fake, NVIDIA NIM, and Ollama (offline/mock)
 - local mock-first web UI prototype under `web/`
+- local SQLite workspace persistence with export/import (v1.0)
+- safe connector framework with local-files real connector and stub connectors (v1.1)
+- deterministic security scanning, redaction preview, audit logging, policy checks, and approval workflow (v1.2)
+- local observability metrics, evaluation history, quality reports, and trace summaries (v1.3)
+- Docker packaging with compose, dev scripts, and release check scripts (v1.4)
+- enterprise readiness assessment with gap analysis (v1.5)
+- repository hygiene checker (v1.6)
 
 ## Pattern and Vulnerability Detection
 
@@ -136,14 +143,14 @@ Available v0.8 endpoints:
 ## Security, Governance, and Audit (v1.2)
 
 ```bash
-decision-system scan-secrets
-decision-system scan-secrets --json
-decision-system redact-preview "contact customer@example.com"
-decision-system redact-preview "contact customer@example.com" --json
-decision-system audit-log
-decision-system audit-log --json
-decision-system policy-check
-decision-system policy-check --json
+decision-system security scan-secrets
+decision-system security scan-secrets --json
+decision-system security redact-preview "contact customer@example.com"
+decision-system security redact-preview "contact customer@example.com" --json
+decision-system security audit-log
+decision-system security audit-log --json
+decision-system security policy-check
+decision-system security policy-check --json
 decision-system approval request --reason "testing"
 decision-system approval list
 decision-system approval list --json
@@ -151,6 +158,62 @@ decision-system approval inspect APPROVAL_ID
 ```
 
 v1.2 adds deterministic local security and governance checks. The secret scanner finds obvious credential patterns (API keys, tokens, private keys, AWS keys) in tracked repo files. The redaction preview shows what PII-like values would be replaced without modifying files. The audit log records security events in a local JSONL file. Policy checks validate repo hygiene (fake provider default, ignored directories, no tracked `.env` files). Approval requests create local approval records for human review workflows. All security features are deterministic, offline, and require no external services, auth server, or secret vault.
+
+## Observability and Evaluation History (v1.3)
+
+```bash
+decision-system metrics
+decision-system metrics --json
+decision-system eval-history
+decision-system eval-history --json
+decision-system quality-report
+decision-system quality-report --json
+decision-system trace-summary
+decision-system trace-summary --json
+```
+
+v1.3 adds a local observability and evaluation history package. Metrics collection supports named metrics with values and labels, persisted to JSONL files. Evaluation run history records pass/fail counts and durations. Quality reports aggregate evaluation results into scored summaries. Trace summaries store workflow run metadata (duration, node count, error count). All data is local JSONL/JSON under `.decision_system/observability/` and ignored by Git.
+
+```bash
+# Sub-group access (same commands as top-level aliases)
+decision-system observability metrics
+decision-system observability eval-history
+decision-system observability quality-report
+decision-system observability trace-summary
+```
+
+## Docker and Local Deployment (v1.4)
+
+```bash
+docker build -t decision-system .
+docker compose up
+```
+
+v1.4 adds a `Dockerfile` for containerized local development with fake/offline defaults (no secrets baked in), a `docker-compose.yml` for single-service deployment, and a `.dockerignore` to exclude secrets and generated state. Two scripts `scripts/dev.sh` and `scripts/dev.ps1` provide local development helpers (install, test, api, smoke, hygiene). Two release check scripts `scripts/release-check.sh` and `scripts/release-check.ps1` verify generated file hygiene before releases. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for details.
+
+## Final Prototype Hardening (v1.6)
+
+```bash
+decision-system check-hygiene
+decision-system check-hygiene --json
+```
+
+v1.6 is the final prototype hardening pass. Key deliverables:
+- **CLI refactoring**: monolith `cli.py` (2018 lines) broken into separate modules for security (`cli_security.py`), observability (`cli_observability.py`), and enterprise (`cli_enterprise.py`), reducing the main file to ~1574 lines
+- **Repository hygiene checker**: `decision-system check-hygiene` verifies no generated state, caches, raw datasets, private env files, or agent instruction files are tracked
+- **All 49 CLI commands verified working** with fake provider, no API keys required
+- **650 tests passing** offline with no external dependencies
+- **Full documentation audit**: README, ARCHITECTURE.md, DECISIONS.md, RELEASE_CHECKLIST.md, CHANGELOG.md updated for all v1.0–v1.6 features
+- **Clean generated state scripts**: `clean-generated.sh` and `clean-generated.ps1` for safe cleanup (dry-run by default)
+
+## Enterprise Readiness Assessment (v1.5)
+
+```bash
+decision-system enterprise-readiness
+decision-system enterprise-readiness --json
+```
+
+v1.5 adds an honest assessment distinguishing prototype-ready, enterprise-ready, and production-ready. It audits 13 working prototype capabilities and 11 gaps (auth, RBAC, tenant isolation, secrets vault, compliance, TLS, database persistence, and more). The assessment is a mostly-static checklist. See [docs/ENTERPRISE_READINESS.md](docs/ENTERPRISE_READINESS.md) for the full gap analysis.
 
 ## Local Workspaces (v1.0)
 
@@ -251,12 +314,20 @@ Stub connectors fail safely with a clear message. Dry-run should always be used 
 
 ## What Is Not Included Yet
 
+Not included in this prototype (see also `decision-system enterprise-readiness` for the full gap analysis):
+
 - production frontend or saved workspace app
-- database
-- auth
-- enterprise connectors (live scoped-network versions)
-- Slack/Jira/email/GitHub integrations
-- autonomous external actions
+- production database (uses Chroma + JSONL file stores)
+- auth (JWT/OAuth/RBAC — all operations run as local-user)
+- tenant isolation (no multi-tenant boundaries)
+- secrets vault (secrets stored in env vars or `.env` files only)
+- enterprise connectors (only `local-files` is real; GitHub/Jira/Slack/Email are stubs)
+- autonomous external actions (send emails, create tickets, call APIs)
+- audit log retention policy (JSONL rotated locally, no formal policy)
+- compliance controls (SOC 2, GDPR, HIPAA)
+- deployment hardening (TLS, rate limiting)
+- encrypted storage at rest (all data unencrypted locally)
+- API input sanitization (basic Pydantic validation only)
 
 ## Architecture
 
@@ -456,6 +527,32 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system eval-provider --provider X`: run provider experiment cases
 - `decision-system ask --provider ollama`: use Ollama for memo/claim generation only
 - `decision-system serve-api`: run the local FastAPI development API with uvicorn
+- `decision-system init-workspace <name>`: create or reuse a local SQLite workspace
+- `decision-system list-workspaces`: list all known workspaces
+- `decision-system use-workspace <name>`: switch active workspace
+- `decision-system workspace-status`: show active workspace and artifact type counts
+- `decision-system inspect-workspace [--json]`: inspect workspace metadata and artifacts
+- `decision-system export-workspace`: export workspace to JSON bundle
+- `decision-system import-workspace <path>`: import workspace from JSON export
+- `decision-system connectors list`: list all known connectors
+- `decision-system connectors inspect <id>`: show connector details
+- `decision-system connectors dry-run <id> --path <dir>`: preview what would import
+- `decision-system connectors import <id> --path <dir>`: import files from a local directory
+- `decision-system connectors inspect-jobs`: show connector job history
+- `decision-system security scan-secrets`: scan local files for credential patterns
+- `decision-system security redact-preview <text>`: preview PII/secret redaction
+- `decision-system security audit-log`: inspect the local audit log
+- `decision-system security policy-check`: run repository governance checks
+- `decision-system approval request --reason "..."`: create a local approval record
+- `decision-system approval list`: list pending approval requests
+- `decision-system approval inspect <id>`: inspect a single approval record
+- `decision-system metrics`: show collected observability metrics
+- `decision-system eval-history`: show evaluation run history
+- `decision-system quality-report`: generate and display a quality report
+- `decision-system trace-summary`: show recent workflow trace summaries
+- `decision-system enterprise-readiness`: assess enterprise/production readiness
+- `decision-system check-hygiene`: verify repository hygiene before releases
+- `decision-system check-hygiene --json`: print structured hygiene report
 
 ## Project Structure
 
@@ -472,7 +569,20 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `src/decision_system/graphing`: entity and relationship graph models, extraction, store, and inspection
 - `src/decision_system/data_catalog`: local data catalog initialization, CSV profiling, storage, and inspection
 - `src/decision_system/insights`: deterministic pattern and vulnerability detection
+- `src/decision_system/orchestration`: offline orchestration foundation, problem analysis, planning, dispatch, judge summary
+- `src/decision_system/context`: decision context building, selection, persistence, inspection
+- `src/decision_system/ontology`: ontology concepts and column mapping
+- `src/decision_system/observability`: metrics, eval history, quality reports, trace summaries
+- `src/decision_system/security`: secret scanning, redaction preview, policy checks, audit logging, approval workflow
+- `src/decision_system/workspaces`: local SQLite workspace persistence, export, import, inspection
+- `src/decision_system/connectors`: safe connector framework (local-files real; GitHub/Jira/Slack/Email stubs)
 - `src/decision_system/war_room`: war-cabinet protocol, quality gates, and eval runner
+- `src/decision_system/web`: packaged web UI files served by the FastAPI API
+- `src/decision_system/cli_security.py`: security and approval CLI sub-commands
+- `src/decision_system/cli_observability.py`: observability CLI sub-commands and top-level aliases
+- `src/decision_system/cli_enterprise.py`: enterprise readiness CLI command
+- `src/decision_system/cli_workspaces.py`: workspace CLI commands
+- `src/decision_system/cli_connectors.py`: connector CLI commands
 - `web`: local static UI prototype and mock JSON fixtures
 - `evals/war_room_cases`: offline war-room evaluation cases
 - `tests`: offline unit and CLI tests
@@ -483,11 +593,14 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 ## Testing
 
 ```bash
-python -m pytest -q
-python -m pytest tests/test_web_ui.py -q
-decision-system eval
-decision-system eval-war-room
-decision-system eval-providers
+python -m pytest -q                          # full test suite (650 tests)
+python -m pytest tests/test_security.py -q   # security/audit tests (64 tests)
+python -m pytest tests/test_observability.py -q  # observability tests (28 tests)
+python -m pytest tests/test_web_ui.py -q     # web UI tests
+decision-system eval                         # bundled evaluation cases
+decision-system eval-war-room                # war-room offline evaluation
+decision-system eval-providers               # provider evaluation cases
+decision-system check-hygiene                # verify repo hygiene
 ```
 
 ## License
@@ -533,7 +646,11 @@ Completed:
 - v0.8: local FastAPI backend
 - v0.9: local mock-first web UI prototype
 - v1.0: local SQLite workspace persistence, CLI commands, JSON export/import
+- v1.1: safe connector framework (local-files real; GitHub/Jira/Slack/Email stubs)
+- v1.2: deterministic security, governance, and audit (secret scan, redaction, policy, approval)
+- v1.3: observability, metrics, evaluation history, quality reports, trace summaries
+- v1.4: Docker packaging, local deployment scripts, release verification
+- v1.5: enterprise readiness assessment and gap analysis
+- v1.6: final prototype readiness pass (all commands verified, 650 tests passing)
 
-Upcoming:
-- v1.1+ (current): Safe connector framework with local-files as the primary real connector; external connectors remain offline stubs until explicit design approval
-- v1.1+ (future): Production frontend, auth, connectors, saved workspace app, and deeper persistence after backend discipline is proven
+No upcoming versions planned. This is the final prototype.

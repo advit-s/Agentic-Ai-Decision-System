@@ -46,9 +46,6 @@ Run these offline with no API key configured:
 - [ ] `datasets/` (raw public dataset downloads) is not tracked by Git.
 - [ ] `company_data/**/imported_*.csv` files are not tracked by Git.
 - [ ] `.decision_system/` directories (graph, profiles, ontology, insights, contexts, evals, provider_evals, orchestration, war_room, workspaces) are all in `.gitignore`.
-- [ ] `decision-system check-hygiene` passes (warnings acceptable, failures require action).
-- [ ] `decision-system check-hygiene --json` returns valid structured JSON.
-
 ## Connector Integrity (v1.1)
 
 - [ ] `.decision_system/connectors/` is in `.gitignore` and ignored by Git.
@@ -81,6 +78,50 @@ Run these offline with no API key configured:
 - [ ] No external service calls in `decision_system/security/` modules.
 - [ ] Web UI security section renders policy status, audit summary, and approvals from mock data.
 
+## Observability Integration (v1.3)
+
+- [ ] `.decision_system/observability/` is in `.gitignore` and ignored by Git.
+- [ ] `decision-system metrics` lists collected metric names or shows "No metrics collected yet."
+- [ ] `decision-system metrics --json` returns structured JSON with count and metric summaries.
+- [ ] `decision-system eval-history` shows recent evaluation runs.
+- [ ] `decision-system eval-history --json` returns structured eval run data.
+- [ ] `decision-system quality-report` generates a report with score and recommendations.
+- [ ] `decision-system quality-report --json` returns structured quality report JSON.
+- [ ] `decision-system trace-summary` shows recent workflow trace summaries.
+- [ ] `decision-system trace-summary --json` returns structured trace data.
+- [ ] All observability CLI commands work via both top-level (`decision-system metrics`) and sub-app (`decision-system observability metrics`) paths.
+- [ ] 28 observability tests pass offline.
+- [ ] Note: The observability module has working tests and CLI plumbing but is NOT populated by the core workflow. This is a known standalone foundation — data recording hooks are not yet wired into `ask`, `run-war-room`, or other workflow commands.
+
+## Docker and Deployment (v1.4)
+
+- [ ] `Dockerfile` exists at repo root and builds successfully: `docker build -t decision-system .`
+- [ ] `docker-compose.yml` exists and starts the service: `docker compose up` (exit cleanly with Ctrl+C).
+- [ ] `.dockerignore` excludes `.venv`, `__pycache__`, `.decision_system/`, `.env`, `datasets/`.
+- [ ] `scripts/dev.sh` and `scripts/dev.ps1` provide install, test, api, smoke, and hygiene commands.
+- [ ] `scripts/release-check.sh` and `scripts/release-check.ps1` verify generated file hygiene and run dry-clean by default.
+- [ ] Release check scripts require `--force` to actually clean generated state.
+- [ ] `docs/DEPLOYMENT.md` documents Docker build, compose, and volume mount instructions.
+
+## Enterprise Readiness (v1.5)
+
+- [ ] `decision-system enterprise-readiness` prints prototype-ready assessment with 13 pass + 11 gap items.
+- [ ] `decision-system enterprise-readiness --json` returns structured JSON with readiness level and missing items.
+- [ ] Assessment does not contact external services or require provider keys.
+- [ ] `docs/ENTERPRISE_READINESS.md` documents the full gap analysis.
+
+## Final Prototype Hardening (v1.6)
+
+- [ ] All 49 CLI commands verified working offline with fake provider.
+- [ ] CLI refactoring complete: `cli_security.py`, `cli_observability.py`, `cli_enterprise.py` are separate modules with registration functions.
+- [ ] CLI import speed is under 3.0 seconds (no slow imports at module level).
+- [ ] `decision-system check-hygiene` passes (warnings acceptable, failures require action).
+- [ ] `decision-system check-hygiene --json` returns valid structured JSON.
+- [ ] `clean-generated.sh` and `clean-generated.ps1` exist and are dry-run by default.
+- [ ] 650 tests pass offline with no API keys.
+- [ ] No tracked generated state in the working tree.
+- [ ] All CHANGELOG.md entries are up to date for v1.6.
+
 ## Configuration Defaults
 
 - [ ] `.env.example` has `DECISION_PROVIDER=fake`.
@@ -89,9 +130,12 @@ Run these offline with no API key configured:
 
 ## Documentation
 
-- [ ] `README.md` reflects current CLI commands.
+- [ ] `README.md` reflects current CLI commands and all v1.x sections.
 - [ ] `CHANGELOG.md` has an entry for the new version.
 - [ ] `CLAUDE.md` version history or task list reflects the milestone.
+- [ ] `docs/ARCHITECTURE.md` covers all subsystems through the current release.
+- [ ] `docs/DECISIONS.md` has ADRs for all versions through the current release.
+- [ ] `docs/RELEASE_CHECKLIST.md` itself is up to date.
 - [ ] Any new CLI commands are documented in README.md.
 - [ ] Architecture diagram or section in `docs/ARCHITECTURE.md` is current.
 

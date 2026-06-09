@@ -236,6 +236,17 @@ The CLI and local UI expose debug surfaces:
 - `decision-system check-hygiene`
 - `decision-system eval-providers`
 - `decision-system inspect-provider-evals`
+- `decision-system security scan-secrets`
+- `decision-system security redact-preview "text"`
+- `decision-system security audit-log`
+- `decision-system security policy-check`
+- `decision-system approval list`
+- `decision-system approval inspect <id>`
+- `decision-system metrics`
+- `decision-system eval-history`
+- `decision-system quality-report`
+- `decision-system trace-summary`
+- `decision-system enterprise-readiness`
 - `web/index.html` via a local static server for mock-first artifact inspection
 
 These surfaces make retrieved evidence, workflow state, claim verification, insight detection, and final report output inspectable.
@@ -550,6 +561,101 @@ All security features share these constraints:
 - **Tests use synthetic data only.** No real API keys, no Ollama daemon, no NVIDIA NIM.
 - **Generated paths are ignored.** `.decision_system/security/` is in `.gitignore`.
 
+## Observability and Evaluation History (v1.3)
+
+v1.3 adds a local observability package that records metrics, evaluation runs, quality reports, and workflow traces as JSONL/JSON files under `.decision_system/observability/`:
+
+```text
+CLI / API caller
+-> metrics recorder (named metrics with values and optional labels)
+-> eval run recorder (type, status, pass/fail counts, duration)
+-> quality report builder (per-target scoring, recommendations)
+-> trace recorder (workflow runs: type, duration, node count, error count)
+-> .decision_system/observability/ (metrics.jsonl, evals.jsonl, traces.jsonl, quality/)
+```
+
+Package layout under `src/decision_system/observability/`:
+
+| Module | Purpose |
+|--------|---------|
+| `__init__.py` | Exports: `record_metric`, `compute_metric_summary`, `list_metric_names`, `record_eval_run`, `load_eval_runs`, `generate_quality_report`, `record_trace`, `load_traces` |
+| `models.py` | Pydantic models: MetricEntry, EvalRunEntry, QualityReport, TraceEntry |
+| `store.py` | JSONL append/read helpers for metric, eval, and trace stores |
+
+Key design decisions:
+- **All data is local.** No remote telemetry, no cloud monitoring, no external observability backend.
+- **JSONL append-only.** Metrics and events are appended to JSONL files. No schema migration needed for new fields added to the tail.
+- **CLI commands mirror sub-app.** Both `decision-system metrics` (top-level) and `decision-system observability metrics` (sub-group) access the same store.
+- **No automatic integration.** The observability package has working standalone tests (28 tests) and functional CLI commands, but the core workflow (`ask`, `run-war-room`, etc.) does not yet automatically record metrics or traces. This is a standalone foundation awaiting integration.
+- **No populating the observability store.** The observability module is correctly scaffolded and tested in isolation, but nothing in the system automatically writes to it during normal operation. This is a known shallow implementation — the CLI plumbing works, the storage works, but the data source hooks are not wired in.
+
+## Docker and Local Deployment (v1.4)
+
+v1.4 adds Docker packaging for containerized local development:
+
+```text
+repo root
+-> Dockerfile (Python 3.11-slim, installs package, fake/offline defaults)
+-> docker-compose.yml (single-service app, mounts company_docs/ and .decision_system/)
+-> .dockerignore (excludes venv, __pycache__, .decision_system/, .env, datasets/)
+-> scripts/dev.sh / scripts/dev.ps1 (install, test, api, smoke, hygiene)
+-> scripts/release-check.sh / scripts/release-check.ps1 (generated-file hygiene + release gates)
+```
+
+Key design decisions:
+- **No secrets baked in.** The Dockerfile sets `DECISION_PROVIDER=fake` and does not include `.env` or real credentials.
+- **Generated state lives in a mounted volume.** `.decision_system/` is a Docker volume so generated state persists across container restarts but is never part of the image.
+- **Windows/macOS dev scripts.** Both Bash and PowerShell versions of the dev helper and release check scripts are provided.
+- **Release check scripts are dry-run by default.** `scripts/release-check.sh` and `scripts/release-check.ps1` require `--force` to clean generated state. This prevents accidental data loss during CI or local testing.
+
+## Enterprise Readiness Assessment (v1.5)
+
+v1.5 adds an honest CLI assessment of enterprise and production readiness without making external calls or requiring provider keys:
+
+```text
+decision-system enterprise-readiness
+-> hardcoded checklist: 13 prototype capabilities (pass) + 11 enterprise gaps (fail)
+-> readiness_level = "prototype-ready"
+-> enterprise_ready = false, production_ready = false
+-> optional --json output for automation
+```
+
+The assessment is a mostly-static checklist. It does not probe the live system, scan the network, or contact external services. Key findings:
+
+- **Prototype-ready items (13):** bounded workflow, document indexing, data profiling, ontology, insights, war-room, FastAPI backend, provider harness, secret scanning, policy checks, approval workflow, metrics/eval history, Docker packaging, offline tests.
+- **Enterprise gaps (11):** JWT/OAuth authentication, RBAC, tenant isolation, secrets vault, audit log retention policy, compliance controls (SOC 2/GDPR/HIPAA), production connectors, TLS/rate limiting, database persistence, encrypted storage at rest, API input sanitization.
+
+All 11 gaps are documented with severity and notes. The full gap analysis is in [ENTERPRISE_READINESS.md](ENTERPRISE_READINESS.md).
+
+## Final Prototype Hardening (v1.6)
+
+v1.6 is the final prototype hardening pass. It does not add new features — it consolidates, fixes documentation, and verifies everything works:
+
+```text
+repo root
+-> CLI refactoring: monolithic cli.py (2018 lines) split into cli_security.py,
+   cli_observability.py, cli_enterprise.py (~1574 lines remaining)
+-> README.md audit: all CLI commands documented with correct paths, v1.1–v1.6
+   sections added, roadmap completed
+-> ARCHITECTURE.md audit: v1.3–v1.6 sections added, inspectability list updated
+-> DECISIONS.md audit: v1.3–v1.6 ADRs added
+-> RELEASE_CHECKLIST.md audit: observability, enterprise readiness, hygiene
+   checks added
+-> CHANGELOG.md audit: v1.6 entries added
+-> Clean generated state scripts: clean-generated.sh / clean-generated.ps1
+   (dry-run by default, --force to execute)
+-> hygiene checker: decision-system check-hygiene (verifies no tracked generated
+   state)
+-> 650 tests passing offline with no API keys
+-> All 49 CLI commands verified working with fake provider
+```
+
+Key outcomes:
+- **No feature additions.** v1.6 only audits, consolidates, and verifies.
+- **Shallow implementations documented.** The observability module is correctly scaffolded but not populated by the workflow (standalone tests pass, CLI commands work, but no data is recorded during normal operation).
+- **All architectural rules preserved.** Fake provider default, no database, no auth, no enterprise connectors, bounded agents, claim-ledger-driven reports.
+- **Prototype is SAFE TO COMMIT.** No tracked generated state, no committed secrets, no network calls in tests, no API keys required.
+
 ## Current Limits
 
 - No production frontend or database-backed web app.
@@ -574,3 +680,10 @@ All security features share these constraints:
 - No native SQL Server `.bak` import.
 - Hash embeddings are for local testing, not production retrieval quality.
 - Provider experiments do not integrate with war-room specialist artifacts yet.
+- No automatic observability recording in the core workflow (metrics, traces, quality reports require manual CLI invocation).
+- No audit log integration with the core workflow (policy checks and secret scans record events, but `ask`, `index`, and war-room runs do not emit audit events).
+- No automatic approval enforcement (approvals are record-only; no operation is gated on approval status).
+- Only `local-files` connector is real; GitHub, Jira, Slack, and Email connectors are stubs.
+- Docker image is for local development only; no production Docker Compose with TLS, reverse proxy, or secrets injection.
+- Enterprise readiness assessment is a hardcoded checklist; it does not dynamically probe the live system.
+- No SQLite-based workspace for security stores (audit log, approvals, secret scans use separate JSONL/JSON files).

@@ -1,19 +1,30 @@
 ## [1.6.0] - 2026-06-09
 ### Added
-- Final prototype readiness pass completed.
-- Verified all CLI commands work as defined in `CLAUDE_LONG_RUN_GOAL.md`.
-- Verified package install, tests, CLI import speed, hygiene, and integration commands.
-- Fixed secret-scan false positive in policy-check (skipped synthetic test fixtures).
-- Confirmed 650 tests pass fully offline with no API keys.
-
-### Fixed
-- CLI import remains fast (~0.2s) with lazy imports preserved.
-- Policy check now skips synthetic test secret fixtures to avoid false positives.
-- Storage paths now accept optional `root` parameter throughout observability.
+- Final prototype hardening pass completed.
+- `clean-generated.sh` and `clean-generated.ps1` for safe generated-state cleanup (dry-run by default).
+- All 49 CLI commands verified working offline with fake provider.
+- CLI import verified fast (~0.2s) with lazy imports preserved.
 
 ### Changed
 - Project version is now 1.6.0.
-- Final prototype readiness verified.
+- CLI refactored: monolithic `cli.py` (2018 lines) split into `cli_security.py`, `cli_observability.py`, `cli_enterprise.py` (~1574 lines remaining).
+- README.md: security command paths corrected, v1.3–v1.6 sections added, roadmap completed, "What Is Not Included" expanded with production gaps.
+- ARCHITECTURE.md: v1.3 (observability), v1.4 (Docker), v1.5 (enterprise readiness), v1.6 (final hardening) sections added; inspectability list and current limits updated.
+- DECISIONS.md: ADR-033 (observability), ADR-034 (Docker), ADR-035 (enterprise readiness), ADR-036 (final hardening) added.
+- RELEASE_CHECKLIST.md: v1.3 (observability), v1.4 (Docker), v1.5 (enterprise readiness), v1.6 (final hardening) checklist sections added.
+- Shallow implementations documented: observability module has working tests and CLI plumbing but is not populated by the core workflow.
+
+### Fixed
+- Policy check now skips synthetic test secret fixtures to avoid false positives.
+- Storage paths now accept optional `root` parameter throughout observability.
+- CLI command duplication eliminated: observability commands were defined twice (sub-app + top-level aliases), now shared from a single implementation.
+- README documented wrong CLI paths for security commands (`scan-secrets` → `security scan-secrets`, etc.).
+
+### Security
+- All 650 tests pass offline with no API keys.
+- No tracked generated state in the repository.
+- Security scanner never prints full secret values (masked preview only).
+- Audit log and security stores under `.decision_system/` are in `.gitignore`.
 
 ## [1.5.0] - 2026-06-09
 ### Added

@@ -334,3 +334,66 @@ Key principles:
 - **Web UI shows a mock-first security section.** Policy status, audit log summary, and approval requests render from mock fixtures when no API is configured.
 
 This keeps security tooling accessible for a local prototype without forcing cloud dependencies, secret vaults, or RBAC.
+
+## ADR-033: Add Local Observability, Metrics, and Evaluation History
+
+Status: Accepted
+
+v1.3 adds a local observability package for tracking metrics, evaluation runs, quality reports, and workflow traces. All data is stored as JSONL/JSON under `.decision_system/observability/` with no remote telemetry.
+
+Key principles:
+
+- **Local-only telemetry.** Metrics, eval runs, and traces are appended to local JSONL files. No cloud monitoring, no external observability backend, no telemetry export.
+- **JSONL append-only storage.** New fields can be added to the tail without schema migrations. Each record is self-describing with timestamps and types.
+- **CLI commands mirror sub-app access pattern.** Both `decision-system metrics` (top-level alias) and `decision-system observability metrics` (sub-group) access the same underlying store.
+- **No automatic integration with core workflow.** The observability package has standalone tests and working CLI commands, but the core workflow (`ask`, `run-war-room`, `eval`, etc.) does not automatically record metrics or traces. This is a standalone foundation that requires future integration work.
+- **No remote dependencies.** The module uses only Python standard library JSON and pathlib operations.
+- **Generated paths are ignored.** `.decision_system/observability/` is in `.gitignore`.
+
+This is noted as a **shallow implementation**: the module is correctly scaffolded and tested in isolation, but nothing populates it during normal system operation.
+
+## ADR-034: Add Docker Packaging for Local Development
+
+Status: Accepted
+
+v1.4 adds Docker packaging for containerized local development. The packaging is for development and testing convenience, not production deployment.
+
+Key principles:
+
+- **Fake/offline defaults in the container.** The Dockerfile sets `DECISION_PROVIDER=fake` and does not bake in `.env` files or credentials.
+- **Generated state lives in a Docker volume.** `.decision_system/` is mounted as a volume so generated state persists across restarts but is never part of the image.
+- **Cross-platform dev scripts.** Both `scripts/dev.sh` (Bash) and `scripts/dev.ps1` (PowerShell) provide install, test, api, smoke, and hygiene commands.
+- **Release check scripts are dry-run by default.** `scripts/release-check.sh` and `scripts/release-check.ps1` require `--force` to clean generated state, preventing accidental data loss.
+- **No production Docker Compose.** The `docker-compose.yml` is single-service with no TLS, reverse proxy, secrets injection, or health checks.
+- **No expansion of architecture rules.** Docker packaging does not add auth, database, enterprise connectors, new agents, or real provider requirements.
+
+## ADR-035: Add Enterprise Readiness Assessment as an Honest Static Gap Analysis
+
+Status: Accepted
+
+v1.5 adds `decision-system enterprise-readiness` as a hardcoded CLI assessment distinguishing prototype-ready, enterprise-ready, and production-ready. It is intentionally static and does not probe the live system.
+
+Key principles:
+
+- **Honest assessment.** The command checks 13 prototype capabilities (`True`) and 11 enterprise gaps (`False`) with severity and notes. The result is always `prototype-ready`, never higher.
+- **No external calls.** The assessment is a hardcoded checklist. No network probes, no configuration scanning, no dependency version checks.
+- **JSON output for automation.** `--json` emits structured payload with version, readiness level, pass/fail counts, and missing items with severity.
+- **Not a dynamic probe.** The assessment does not verify whether the system actually has implemented each capability — it is a documentation-driven checklist. This is intentional to avoid requiring live system state for every invocation.
+- **No behavior change.** Enterprise readiness does not add auth, database, connectors, compliance controls, or deployment hardening. It only reports what is missing.
+- **Gap analysis documented separately.** See [ENTERPRISE_READINESS.md](ENTERPRISE_READINESS.md) for the full gap analysis.
+
+## ADR-036: Final Prototype Hardening Pass — Consolidate, Do Not Add
+
+Status: Accepted
+
+v1.6 is the final hardening pass before the prototype can be declared safe to commit. It does not add new features — it audits, consolidates, and verifies.
+
+Key principles:
+
+- **No new features.** v1.6 strictly audits existing code, fixes documentation, runs all commands, and verifies the architecture. No v1.7 is planned.
+- **CLI monolith is broken up.** The 2018-line `cli.py` is refactored into separate modules (`cli_security.py`, `cli_observability.py`, `cli_enterprise.py`) following the established pattern from `cli_workspaces.py` and `cli_connectors.py`.
+- **Duplicate code is eliminated.** The observability commands were defined twice — once as a sub-app and once as top-level aliases — with identical command bodies. The refactoring shares a single implementation and eliminates 340+ lines of duplication.
+- **Documentation is comprehensively updated.** README, ARCHITECTURE.md, DECISIONS.md, RELEASE_CHECKLIST.md, and CHANGELOG.md are all updated for v1.3–v1.6.
+- **All commands are verified.** All 49 CLI commands are confirmed working with the fake provider. All 650 tests pass offline.
+- **Shallow implementations are documented.** The observability module works in isolation but is never populated by the workflow. This is noted, not silently accepted.
+- **Architectural rules are preserved.** All 15 rules from CLAUDE.md are audited and confirmed intact: fake provider default, no database, no auth, no enterprise connectors, bounded agents, claim-ledger-driven reports.
