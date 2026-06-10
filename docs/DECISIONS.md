@@ -394,7 +394,7 @@ Key principles:
 - **CLI monolith is broken up.** The 2018-line `cli.py` is refactored into separate modules (`cli_security.py`, `cli_observability.py`, `cli_enterprise.py`) following the established pattern from `cli_workspaces.py` and `cli_connectors.py`.
 - **Duplicate code is eliminated.** The observability commands were defined twice — once as a sub-app and once as top-level aliases — with identical command bodies. The refactoring shares a single implementation and eliminates 340+ lines of duplication.
 - **Documentation is comprehensively updated.** README, ARCHITECTURE.md, DECISIONS.md, RELEASE_CHECKLIST.md, and CHANGELOG.md are all updated for v1.3–v1.6.
-- **All commands are verified.** All 49 CLI commands are confirmed working with the fake provider. All 650 tests pass offline.
+- **All commands are verified.** All 49 CLI commands are confirmed working with the fake provider. All 700 tests pass offline.
 - **Shallow implementations are documented.** The observability module works in isolation but is never populated by the workflow. This is noted, not silently accepted.
 - **Architectural rules are preserved.** All 15 rules from CLAUDE.md are audited and confirmed intact: fake provider default, no database, no auth, no enterprise connectors, bounded agents, claim-ledger-driven reports.
 
@@ -431,4 +431,4 @@ Key principles:
   default. The UI works loaded from the filesystem or the FastAPI static mount.
 - **No auth added.** The UI makes no authenticated API calls, stores no tokens,
   and has no login screen.
-- **651 tests passing.** One new test validates the v1.7 API endpoints.
+- **700 tests passing.** One new test validates the v1.7 API endpoints.

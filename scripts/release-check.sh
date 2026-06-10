@@ -18,25 +18,25 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_DIR"
 
-PASS=0
-FAIL=0
+SUCCESSES=0
+FAILURES=0
 
 check() {
     local name="$1"
     local result="$2"
     if [ "$result" = "0" ]; then
         echo "[PASS] $name"
-        PASS=$((PASS + 1))
+        SUCCESSES=$((SUCCESSES + 1))
     else
         echo "[FAIL] $name"
-        FAIL=$((FAIL + 1))
+        FAILURES=$((FAILURES + 1))
     fi
 }
 
 # Git detection: check if we're inside a Git repository
 # Returns 0 if yes, 1 if no
 is_git_repo() {
-    git rev-parse --is-inside-work-tree 2>/dev/null | grep -q true || true
+    git rev-parse --is-inside-work-tree >/dev/null 2>&1
 }
 
 # ---------------------------------------------------------------------------
@@ -153,8 +153,8 @@ decision-system check-hygiene >/dev/null 2>&1 || HYGIENE_RESULT=1
 check "check-hygiene passes" "$([ "$HYGIENE_RESULT" -eq 0 ] && echo 0 || echo 1)"
 
 echo ""
-echo "Release Check: $PASS passed, $FAIL failed"
-if [ "$FAIL" -gt 0 ]; then
+echo "Release Check: $SUCCESSES passed, $FAILURES failed"
+if [ "$FAILURES" -gt 0 ]; then
     echo "RESULT: NOT READY FOR RELEASE"
     exit 1
 else

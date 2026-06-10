@@ -1,9 +1,10 @@
 """Security, governance, and audit API endpoints.
 
 Exposes the minimal offline surface needed by the v1.1.2 UI and local
-clients: policy status, redaction preview, audit log, and approval
-requests.  No auth is added yet; these endpoints are development-only
-and assume callers are local."""
+clients: policy status, redaction preview, and audit log.  Approval
+requests are CLI-only for now (``decision-system approval request``).
+No auth is added yet; these endpoints are development-only and assume
+callers are local."""
 from __future__ import annotations
 
 import json

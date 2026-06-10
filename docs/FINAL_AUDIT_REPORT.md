@@ -3,7 +3,7 @@
 **Date:** 2026-06-10  
 **Project Version:** 1.8.0  
 **Auditor:** Claude Code  
-**Status:** SAFE TO COMMIT  
+**Status:** PROTOTYPE-READY  
 
 > **Note:** This report was regenerated for the v1.8 milestone, which includes all v1.6/v1.7 fixes, documentation alignment, packaging hardening, security redaction masking, overlapping-pattern deduplication, path traversal protection, and 6 new local-first features. See the CHANGELOG for the full diff.
 
@@ -62,11 +62,12 @@ This audit performed a line-by-line review of the Agentic AI Decision System / C
 | `src/decision_system/connectors/models.py` | Yes | No | None |
 | `src/decision_system/connectors/store.py` | Yes | No | None |
 | `src/decision_system/connectors/dispatcher.py` | Yes | No | None |
-| `src/decision_system/workspaces/store.py` | Yes | No | None |
-| `src/decision_system/workspaces/models.py` | Yes | No | None |
 | `src/decision_system/storage/__init__.py` | Yes | No | None |
+| `src/decision_system/storage/export_import.py` | Yes | No | None |
 | `src/decision_system/storage/migrations.py` | Yes | No | None |
-| `src/decision_system/storage/repository.py` | Yes | No | None |
+| `src/decision_system/storage/models.py` | Yes | No | None |
+| `src/decision_system/storage/repositories.py` | Yes | No | None |
+| `src/decision_system/storage/sqlite_store.py` | Yes | No | None |
 | `src/decision_system/storage/models.py` | Yes | No | None |
 | `src/decision_system/graph/workflow.py` | Yes | No | None |
 | `src/decision_system/graph/nodes.py` | Yes | No | None |
@@ -170,8 +171,8 @@ This audit performed a line-by-line review of the Agentic AI Decision System / C
 
 ## Security Review
 
-- **Path traversal:** No path traversal vulnerabilities found. All file operations now use `path_util` resolved paths and safe-write checks.
-- **Unsafe file writes:** All writes go to generated `.decision_system/` paths only; `ensure_safe_path()` guards all write destinations.
+- **Path traversal:** No path traversal vulnerabilities found. All file operations use `path_util` resolved paths and safe-write checks.
+- **Unsafe file writes:** Most writes go to generated `.decision_system/` paths only; `ensure_safe_path()` guards API document indexing, connector imports, workspace exports, and report exports. A small number of internal utility writes (test fixtures, CLI demo data) use controlled paths within the project root.
 - **Unsafe file deletes:** No arbitrary file deletion — only `clean_generated.py` with protected-dir safeguards.
 - **Secrets in logs:** Secret scanner masks all findings to first+last 4 characters. API never returns full secrets. Redaction now correctly handles overlapping patterns.
 - **Secrets committed:** No real API keys, tokens, or private keys found in tracked files.
@@ -309,7 +310,7 @@ The v1.7 milestone added a complete Frontend Product UI to the v1.6 backend foun
 - **12 mock data fixtures** (4 new: `dashboard.json`, `connectors.json`, `observability.json`, `enterprise-readiness.json`)
 - **Byte-for-byte sync** between `web/` and `src/decision_system/web/` verified by drift tests
 - **FALLBACK_DATA.security** fixed — Security & Governance section now renders correctly from mock data
-- Version updated to 1.7.0 across all stores
+- Version updated to 1.8.0 across all stores
 
 ### Files Added/Changed (v1.7)
 | File | Purpose |
@@ -318,8 +319,8 @@ The v1.7 milestone added a complete Frontend Product UI to the v1.6 backend foun
 | `src/decision_system/api/routes_observability.py` | 4 observability endpoints |
 | `web/index.html` / `web/app.js` / `web/styles.css` | 9-section UI rewrite |
 | `web/mock-data/*.json` (×12) | Lightweight JSON fixtures (371–2,117 bytes) |
-| `src/decision_system/__init__.py` | Version 1.7.0 |
-| `pyproject.toml` | Version 1.7.0 |
+| `src/decision_system/__init__.py` | Version 1.8.0 |
+| `pyproject.toml` | Version 1.8.0 |
 | `README.md`, `CHANGELOG.md`, `docs/*.md` | Documentation updated for v1.7 |
 | `tests/test_web_ui.py` | Updated for 9 sections, 12 fixtures, 5 new API endpoints |
 
@@ -426,7 +427,7 @@ The `release-check.sh` script was verified to check all 11 release gates:
 
 ## Conclusion
 
-### SAFE TO COMMIT
+& PROTOTYPE-READY
 
 The Agentic AI Decision System is in a clean, verified state:
 

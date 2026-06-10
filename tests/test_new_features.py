@@ -96,14 +96,24 @@ class TestReportExport:
         assert "<!DOCTYPE html>" in result
         assert "Q?" in result
 
-    def test_export_to_file(self, tmp_path):
+    def test_export_to_file(self):
         from decision_system.reports.exporter import build_report_payload, export_report
 
         payload = build_report_payload(question="Q?", recommendation="R.")
-        output = tmp_path / "report.md"
-        result = export_report(payload, fmt="markdown", output_path=str(output))
-        assert output.exists()
-        assert "Q?" in output.read_text()
+        out_dir = Path(".decision_system/tests/report_export")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        output = out_dir / "report.md"
+        try:
+            result = export_report(payload, fmt="markdown", output_path=str(output))
+            assert output.exists()
+            assert "Q?" in output.read_text()
+        finally:
+            if output.exists():
+                output.unlink()
+            try:
+                out_dir.rmdir()
+            except OSError:
+                pass
 
     def test_export_invalid_format(self):
         from decision_system.reports.exporter import build_report_payload, export_report

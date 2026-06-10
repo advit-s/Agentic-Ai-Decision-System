@@ -228,7 +228,7 @@ v1.6 is the final prototype hardening pass. Key deliverables:
 - **CLI refactoring**: monolith `cli.py` (2018 lines) broken into separate modules for security (`cli_security.py`), observability (`cli_observability.py`), and enterprise (`cli_enterprise.py`), reducing the main file to ~1574 lines
 - **Repository hygiene checker**: `decision-system check-hygiene` verifies no generated state, caches, raw datasets, private env files, or agent instruction files are tracked
 - **All 49 CLI commands verified working** with fake provider, no API keys required
-- **651 tests passing** offline with no external dependencies
+- **700 tests passing** offline with no external dependencies
 - **Full documentation audit**: README, ARCHITECTURE.md, DECISIONS.md, RELEASE_CHECKLIST.md, CHANGELOG.md updated for all v1.0–v1.6 features
 - **Clean generated state scripts**: `clean-generated.sh` and `clean-generated.ps1` for safe cleanup (dry-run by default)
 
@@ -505,7 +505,8 @@ decision-system eval
 
 ```env
 DECISION_PROVIDER=nvidia_nim
-NVIDIA_API_KEY=your_key_here
+# NVIDIA_API_KEY — set to your NVIDIA API key below (placeholder only)
+# NVIDIA_API_KEY=replace-with-real-key
 NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_NIM_MODEL=deepseek-ai/deepseek-v4-flash
 ```
@@ -616,7 +617,7 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `src/decision_system/ontology`: ontology concepts and column mapping
 - `src/decision_system/observability`: metrics, eval history, quality reports, trace summaries
 - `src/decision_system/security`: secret scanning, redaction preview, policy checks, audit logging, approval workflow
-- `src/decision_system/workspaces`: local SQLite workspace persistence, export, import, inspection
+- `src/decision_system/storage`: local SQLite workspace persistence, export, import, inspection (via ``WorkspaceExporter`` / ``WorkspaceImporter``)
 - `src/decision_system/connectors`: safe connector framework (local-files real; GitHub/Jira/Slack/Email stubs)
 - `src/decision_system/war_room`: war-cabinet protocol, quality gates, and eval runner
 - `src/decision_system/web`: packaged web UI files served by the FastAPI API
@@ -635,7 +636,7 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 ## Testing
 
 ```bash
-python -m pytest -q                          # full test suite (651 tests)
+python -m pytest -q                          # full test suite (700 tests)
 python -m pytest tests/test_security.py -q   # security/audit tests (64 tests)
 python -m pytest tests/test_observability.py -q  # observability tests (28 tests)
 python -m pytest tests/test_web_ui.py -q     # web UI tests
@@ -693,5 +694,5 @@ Completed:
 - v1.3: observability, metrics, evaluation history, quality reports, trace summaries
 - v1.4: Docker packaging, local deployment scripts, release verification
 - v1.5: enterprise readiness assessment and gap analysis
-- v1.6: final prototype readiness pass (all commands verified, 651 tests passing)
+- v1.6: final prototype readiness pass (all commands verified, 700 tests passing)
 - v1.7: frontend product UI with 9 sections, mock-first design, API integration

@@ -628,7 +628,7 @@ The assessment is a mostly-static checklist. It does not probe the live system, 
 
 All 11 gaps are documented with severity and notes. The full gap analysis is in [ENTERPRISE_READINESS.md](ENTERPRISE_READINESS.md).
 
-## Final Prototype Hardening (v1.6)
+## Repository Hygiene Audit (v1.6 - v1.8)
 
 v1.6 is the final prototype hardening pass. It does not add new features — it consolidates, fixes documentation, and verifies everything works:
 
@@ -647,7 +647,7 @@ repo root
    (dry-run by default, --force to execute)
 -> hygiene checker: decision-system check-hygiene (verifies no tracked generated
    state)
--> 651 tests passing offline with no API keys
+-> 700 tests passing offline with no API keys
 -> All 49 CLI commands verified working with fake provider
 ```
 
@@ -715,7 +715,7 @@ Key design decisions:
   missing `security` key) is fixed.
 - **9 new mock data fixtures** covering dashboard, connectors, observability,
   and enterprise readiness in addition to the existing 7 fixtures.
-- **651 tests passing** (1 new test for v1.7 API endpoints).
+- **700 tests passing** (1 new test for v1.7 API endpoints).
 
 ## Current Limits
 - No database.

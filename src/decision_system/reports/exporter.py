@@ -13,6 +13,7 @@ from typing import Any, Literal
 from html import escape
 
 from decision_system.models import Claim, DecisionReport, VerificationResult
+from decision_system.path_util import ensure_safe_path
 from decision_system.war_room.store import load_latest_run as load_latest_war_room
 
 ExportFormat = Literal["markdown", "json", "html"]
@@ -268,6 +269,14 @@ def export_report(
 
     if output_path:
         path = Path(output_path)
+        # Guard against unsafe write destinations
+        try:
+            path = ensure_safe_path(path)
+        except ValueError as exc:
+            raise ValueError(
+                f"Cannot export report to unsafe path: {path}. "
+                f"Writes must stay within the project root."
+            ) from exc
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(rendered, encoding="utf-8")
         return str(path.resolve())

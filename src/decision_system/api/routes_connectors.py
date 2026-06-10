@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -25,6 +26,58 @@ from decision_system.connectors.registry import (
 from decision_system.connectors.store import load_jobs
 
 router = APIRouter(prefix="/connectors", tags=["connectors"])
+
+# ---------------------------------------------------------------------------
+# Safe-path helpers
+# ---------------------------------------------------------------------------
+
+_BLOCKED_ABSOLUTE_PREFIXES: tuple[str, ...] = (
+    "/tmp",
+    "/etc",
+    "/root",
+    "/home",
+    "/var",
+    "/usr",
+    "/bin",
+    "/sbin",
+    "/proc",
+    "/sys",
+    "/dev",
+    "/boot",
+    "/opt",
+)
+
+
+def _reject_connector_path(path_str: str) -> str:
+    """Validate a connector path — reject dangerous roots and traversal."""
+    path = Path(path_str)
+
+    # Reject path-traversal components.
+    if ".." in path_str:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "unsafe_path",
+                "message": "Connector path must not contain path-traversal (..) elements",
+                "details": {"path": path_str},
+            },
+        )
+
+    # Reject blocked absolute paths.
+    if path.is_absolute():
+        resolved_str = str(path.resolve())
+        for prefix in _BLOCKED_ABSOLUTE_PREFIXES:
+            if resolved_str == prefix or resolved_str.startswith(prefix + "/"):
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "code": "unsafe_path",
+                        "message": f"Connector path must not be a system directory ({prefix}...)",
+                        "details": {"path": path_str},
+                    },
+                )
+
+    return path_str
 
 
 class DryRunRequest(BaseModel):
@@ -90,7 +143,15 @@ def dry_run_connector(connector_id: str, request: DryRunRequest) -> dict[str, An
             status_code=400,
             detail=f"Connector '{connector_id}' is a stub and does not support dry-run in v1.1.",
         )
-    result = _run_dry_run(connector_id, request.path)
+    # Validate path safety before passing to backend.
+    _reject_connector_path(request.path)
+    try:
+        result = _run_dry_run(connector_id, request.path)
+    except (OSError, PermissionError) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Connector dry-run failed: {exc}",
+        )
     return {"result": inspect_dry_run_result(result)}
 
 
@@ -105,5 +166,13 @@ def import_connector(connector_id: str, request: ImportRequest) -> dict[str, Any
             status_code=400,
             detail=f"Connector '{connector_id}' is a stub and does not support import in v1.1.",
         )
-    result = _run_import(connector_id, request.path)
+    # Validate path safety before passing to backend.
+    _reject_connector_path(request.path)
+    try:
+        result = _run_import(connector_id, request.path)
+    except (OSError, PermissionError) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Connector import failed: {exc}",
+        )
     return {"result": inspect_import_job(result.job)}

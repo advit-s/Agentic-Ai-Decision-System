@@ -71,6 +71,60 @@ def test_documents_index_inspect_and_ask_return_structured_json(client):
     assert asked["data"]["retrieved_evidence"][0]["source_filename"] == "billing.md"
 
 
+def test_documents_index_rejects_path_traversal(client):
+    """API must reject path-traversal in docs_dir and store_dir."""
+    response = client.post(
+        "/documents/index",
+        json={"docs_dir": "../../../../etc"},
+    )
+    assert response.status_code == 400, (
+        f"Expected 400 for path-traversal docs_dir, got {response.status_code}: "
+        f"{response.json()}"
+    )
+
+    response = client.post(
+        "/documents/index",
+        json={"store_dir": "/tmp/evil-store"},
+    )
+    assert response.status_code == 400, (
+        f"Expected 400 for absolute store_dir, got {response.status_code}: "
+        f"{response.json()}"
+    )
+
+    response = client.post(
+        "/documents/index",
+        json={"store_dir": ".decision_system/chroma"},  # this IS allowed
+    )
+    # Should succeed because .decision_system/chroma is under the project dir
+    assert response.status_code == 200, response.json()
+
+
+def test_connector_dry_run_rejects_dangerous_paths(client):
+    """API must reject connector dry-run on system directories."""
+    # Stub connectors cannot dry-run; only local-files is real.
+    # We verify the path validation fires even before the connector impl.
+    for dangerous_path in ("/tmp", "/etc", "/root", "../../../etc"):
+        response = client.post(
+            "/connectors/local-files/dry-run",
+            json={"path": dangerous_path},
+        )
+        assert response.status_code == 400, (
+            f"Expected 400 for dangerous path '{dangerous_path}', "
+            f"got {response.status_code}: {response.json()}"
+        )
+
+
+def test_connector_import_rejects_dangerous_paths(client):
+    """API must reject connector import on system directories."""
+    response = client.post(
+        "/connectors/local-files/import",
+        json={"path": "/tmp"},
+    )
+    assert response.status_code == 400, (
+        f"Expected 400, got {response.status_code}: {response.json()}"
+    )
+
+
 def test_context_and_orchestration_endpoints(client):
     context_response = client.post(
         "/context/build",

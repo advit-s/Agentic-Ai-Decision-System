@@ -64,7 +64,7 @@ def _mask_preview(text: str) -> str:
     """Return a safe masked preview of *text* never showing the full value.
 
     Examples:
-        "sk-abcdefghijklmnopqrstuvwxyz" -> "sk-abcdefg…stuvwxyz"
+        "sk-EXAMPLE-short-no-match" -> "sk-EX…atch"
         "a@b.com" -> "a…m"
         "1234567890" -> "1234…7890"
     """

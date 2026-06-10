@@ -207,9 +207,11 @@ def _check_secrets_in_source() -> PolicyCheck:
             # Skip the security package itself - it contains regex patterns
             # like "sk-" and "nvapi-" that are meant to DETECT secrets
             # Skip test files that use synthetic fake secret values
-            parts = file_path.relative_to(REPO_ROOT).parts
+            rel_parts = file_path.relative_to(REPO_ROOT).parts
             fname = file_path.name
-            if parts and parts[0] in {"security", ".decision_system"}:
+            # Check the whole path for "security" since the package lives under
+            # src/decision_system/security/, not at the repo root.
+            if rel_parts and ("security" in rel_parts or ".decision_system" in rel_parts):
                 continue
             if fname.startswith("test_") and "security" in fname:
                 continue

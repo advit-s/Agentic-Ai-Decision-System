@@ -85,8 +85,10 @@ if ($inGit -eq 1) {
 Check "No obvious secrets in tracked source" $(if ($secrets -eq 0) { 0 } else { 1 })
 
 # 7. Package install works
+$installResult = 0
 pip install -e ".[dev]" 2>$null | Out-Null
-Check "Package install works" 0
+if ($LASTEXITCODE -ne 0) { $installResult = 1 }
+Check "Package install works" $installResult
 
 # 8. Tests pass
 $testResult = 0
@@ -100,7 +102,13 @@ python -c "import time; t=time.time(); import decision_system.cli; e=time.time()
 if ($LASTEXITCODE -ne 0) { $importResult = 1 }
 Check "CLI import under 3s" $importResult
 
-# 10. check-hygiene
+# 10. validate-demo-data
+$demoResult = 0
+decision-system validate-demo-data 2>$null
+if ($LASTEXITCODE -ne 0) { $demoResult = 1 }
+Check "validate-demo-data passes" $demoResult
+
+# 11. check-hygiene
 $hygieneResult = 0
 decision-system check-hygiene 2>$null
 if ($LASTEXITCODE -ne 0) { $hygieneResult = 1 }

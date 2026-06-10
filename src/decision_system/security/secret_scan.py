@@ -261,6 +261,10 @@ def scan_repo(
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
                 continue
+            # Skip lines that read env vars dynamically (os.getenv, os.environ.get)
+            # — these are not hardcoded secrets.
+            if "os.getenv(" in stripped or 'os.environ.get(' in stripped:
+                continue
             for pattern_name, compiled, default_sev in _COMPILED:
                 for match in compiled.finditer(line):
                     raw = match.group(0)
