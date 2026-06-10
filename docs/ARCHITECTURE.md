@@ -387,7 +387,7 @@ v0.9.1 adds post-merge hardening for the v0.9 web UI and API:
 - The FastAPI app reports the project version (`decision_system.__version__`) at `/health` and in the app version field.
 - The provider eval API endpoint routes to the canonical `provider_eval` harness (not `provider_experiments`), surfaced as `POST /evals/providers` with `ProviderEvalRequest`.
 - Both CLI `ask` and API `POST /ask` surface `chromadb.errors.NotFoundError` as friendly "missing index" messages instead of raw tracebacks.
-- The web UI static files are now served from both the repo-root `web/` path and the package-relative `src/decision_system/web/` path for robustness.
+- The web UI static files use `importlib.resources` to resolve the package-relative `src/decision_system/web/` path (survives pip install / wheel install), with a repo-root `web/` fallback for editable installs.
 
 ## Local Web UI Prototype (v0.9)
 
@@ -647,7 +647,7 @@ repo root
    (dry-run by default, --force to execute)
 -> hygiene checker: decision-system check-hygiene (verifies no tracked generated
    state)
--> 650 tests passing offline with no API keys
+-> 651 tests passing offline with no API keys
 -> All 49 CLI commands verified working with fake provider
 ```
 

@@ -3,10 +3,10 @@
     {
       "connector_id": "local-files",
       "name": "Local Files",
-      "connector_type": "storage",
-      "status": "configured",
+      "connector_type": "local-files",
+      "status": "real",
       "description": "Import files from local directories. Supports dry-run and copy-based import. Protected files (.env, .gitignore, .venv, etc.) are skipped.",
-      "capabilities": ["read", "import"],
+      "capabilities": ["dry_run", "import", "list", "inspect"],
       "requires_secrets": false,
       "supports_dry_run": true,
       "supports_import": true,
@@ -15,11 +15,11 @@
     {
       "connector_id": "github",
       "name": "GitHub",
-      "connector_type": "external",
+      "connector_type": "github",
       "status": "stub",
       "description": "Offline stub — no network calls made. Real GitHub connector requires OAuth scoping design.",
       "capabilities": [],
-      "requires_secrets": true,
+      "requires_secrets": false,
       "supports_dry_run": false,
       "supports_import": false,
       "is_stub": true
@@ -27,11 +27,11 @@
     {
       "connector_id": "jira",
       "name": "Jira",
-      "connector_type": "external",
+      "connector_type": "jira",
       "status": "stub",
       "description": "Offline stub — no network calls made. Real Jira connector requires OAuth scoping design.",
       "capabilities": [],
-      "requires_secrets": true,
+      "requires_secrets": false,
       "supports_dry_run": false,
       "supports_import": false,
       "is_stub": true
@@ -39,11 +39,11 @@
     {
       "connector_id": "slack",
       "name": "Slack",
-      "connector_type": "external",
+      "connector_type": "slack",
       "status": "stub",
       "description": "Offline stub — no network calls made. Real Slack connector requires OAuth scoping design.",
       "capabilities": [],
-      "requires_secrets": true,
+      "requires_secrets": false,
       "supports_dry_run": false,
       "supports_import": false,
       "is_stub": true
@@ -51,11 +51,11 @@
     {
       "connector_id": "email",
       "name": "Email",
-      "connector_type": "external",
+      "connector_type": "email",
       "status": "stub",
       "description": "Offline stub — no network calls made. Real Email connector requires IMAP/OAuth design.",
       "capabilities": [],
-      "requires_secrets": true,
+      "requires_secrets": false,
       "supports_dry_run": false,
       "supports_import": false,
       "is_stub": true

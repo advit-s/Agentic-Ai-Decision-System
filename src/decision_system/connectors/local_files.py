@@ -86,12 +86,19 @@ def _walk(source_path: Path):
 def _collect_files(
     source_path: Path,
 ) -> tuple[list[tuple[Path, str]], list[tuple[Path, str]]]:
-    """Walk source_path and return (included, skipped) file lists."""
+    """Walk source_path and return (included, skipped) file lists.
+
+    Symlinks are rejected to prevent importing files from outside the source
+    root.  The resolved path of every candidate file is verified to stay
+    under *source_path* before it is included.
+    """
     included: list[tuple[Path, str]] = []
     skipped: list[tuple[Path, str]] = []
 
     if not source_path.exists():
         return included, skipped
+
+    source_root = source_path.resolve()
 
     for root, dirs, files in _walk(source_path):
         dirs[:] = [d for d in dirs if not _should_skip_directory(d)]
@@ -101,6 +108,22 @@ def _collect_files(
             if skip:
                 skipped.append((file_path, reason))
                 continue
+
+            # Reject symlinks — they can point outside the import root.
+            if file_path.is_symlink():
+                skipped.append((file_path, "Symlinked files are not importable"))
+                continue
+
+            # Reject files whose resolved path escapes the source root.
+            resolved = file_path.resolve()
+            try:
+                resolved.relative_to(source_root)
+            except ValueError:
+                skipped.append(
+                    (file_path, "Resolved path escapes source root")
+                )
+                continue
+
             extension = file_path.suffix.lower()
             if extension not in _SUPPORTED_EXTENSIONS:
                 skipped.append((file_path, f"Unsupported extension: {extension}"))
@@ -236,6 +259,17 @@ def run_local_files_import(
         category = file_info.target_category
         target = _normalize_target(dest_root, source_file, source_root, category)
         target.parent.mkdir(parents=True, exist_ok=True)
+
+        # Verify target stays under the connector output root.
+        target_resolved = target.resolve()
+        try:
+            target_resolved.relative_to(dest_root.resolve())
+        except ValueError:
+            warnings.append(
+                f"Target path {target} escapes connector root — skipped"
+            )
+            skipped_files.append(file_info.source_path)
+            continue
 
         _copy_safe(source_file, target, warnings)
         imported_files.append(file_info.source_path)

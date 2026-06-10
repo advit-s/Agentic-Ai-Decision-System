@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentic-decision-system"
-version = "1.7.0"
+version = "1.8.0"
 description = "Backend-first agentic decision brief prototype with LangGraph, Chroma, RAG, and a claim ledger."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -12,7 +12,6 @@ requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115,<1.0",
   "langgraph>=1.0,<2.0",
-  "openai>=1.0,<2.0",
   "chromadb>=0.5,<2.0",
   "pydantic>=2.8,<3.0",
   "typer>=0.12,<1.0",
@@ -23,6 +22,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+nvidia = ["openai>=1.0,<2.0"]
 dev = [
   "pytest>=8.2,<9.0"
 ]

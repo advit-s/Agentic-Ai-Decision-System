@@ -1527,6 +1527,254 @@ def evaluate_war_room(
 
 
 # ---------------------------------------------------------------------------
+# Feature A: Export Report (v1.8)
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def export_report(
+    fmt: str = typer.Option(
+        "markdown",
+        "--format",
+        help="Export format: markdown, json, or html.",
+    ),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        help="Output file path (default: print to stdout).",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured JSON payload (only for --format json).",
+    ),
+) -> None:
+    """Export the latest decision report in Markdown, JSON, or HTML format."""
+    from decision_system.reports.exporter import (  # noqa: PLC0415
+        export_report as _export_report,
+        load_latest_report_payload,
+    )
+
+    payload = load_latest_report_payload()
+    if payload is None:
+        console.print("[yellow]No report data found. Run a war-room or ask command first.[/yellow]")
+        raise typer.Exit(code=1)
+
+    if fmt not in ("markdown", "json", "html"):
+        console.print(f"[red]Unknown format '{fmt}'. Use markdown, json, or html.[/red]")
+        raise typer.Exit(code=1)
+
+    try:
+        result = _export_report(payload, fmt=fmt, output_path=output)  # type: ignore[arg-type]
+        if output:
+            console.print(f"Report exported to: {result}")
+        else:
+            typer.echo(result)
+    except Exception as exc:
+        console.print(f"[red]Export failed: {exc}[/red]")
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# Feature B: Evidence Coverage Score (v1.8)
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def coverage(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured JSON instead of text.",
+    ),
+    run_id: str | None = typer.Option(
+        None,
+        "--run-id",
+        help="Check a specific run. Defaults to the latest saved run.",
+    ),
+) -> None:
+    """Compute evidence coverage score for the latest (or given) run."""
+    from decision_system.reports.coverage import (  # noqa: PLC0415
+        CoverageScore,
+        compute_coverage,
+        coverage_to_text,
+    )
+
+    # Attempt to load claims from the latest ask run
+    claims: list[Any] = []
+    verification_results: list[Any] = []
+
+    if run_id:
+        run_path = Path(".decision_system") / "runs" / f"{run_id}.json"
+        if run_path.exists():
+            import json as _json
+            data = _json.loads(run_path.read_text(encoding="utf-8"))
+            claims = data.get("claims", [])
+            verification_results = data.get("verification_results", [])
+    else:
+        # Try latest run
+        runs_dir = Path(".decision_system") / "runs"
+        if runs_dir.exists():
+            run_files = sorted(runs_dir.iterdir(), reverse=True)
+            if run_files:
+                import json as _json
+                data = _json.loads(run_files[0].read_text(encoding="utf-8"))
+                claims = data.get("claims", [])
+                verification_results = data.get("verification_results", [])
+
+    # Convert dict claims to Claim objects if needed
+    parsed_claims: list[Any] = []
+    parsed_vrs: list[Any] = []
+    if claims and isinstance(claims[0], dict):
+        from decision_system.models import Claim, VerificationResult as VR  # noqa: PLC0415
+        for c_data in claims:
+            try:
+                parsed_claims.append(Claim(**c_data))
+            except Exception:
+                pass
+        for vr_data in verification_results:
+            try:
+                parsed_vrs.append(VR(**vr_data))
+            except Exception:
+                pass
+    else:
+        parsed_claims = claims
+        parsed_vrs = verification_results
+
+    score = compute_coverage(
+        claims=parsed_claims if parsed_claims else None,
+        verification_results=parsed_vrs if parsed_vrs else None,
+    )
+
+    if json_output:
+        typer.echo(json.dumps(score.to_dict(), indent=2))
+    else:
+        console.print(coverage_to_text(score))
+
+
+# ---------------------------------------------------------------------------
+# Feature C: Workspace Snapshot Diff (v1.8)
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def diff_workspaces(
+    old: str = typer.Argument(..., help="Path to the old workspace export JSON."),
+    new: str = typer.Argument(..., help="Path to the new workspace export JSON."),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured JSON instead of text.",
+    ),
+) -> None:
+    """Compare two workspace snapshots and show added/removed/changed items."""
+    from decision_system.reports.diff import (  # noqa: PLC0415
+        diff_workspaces as _diff_workspaces_fn,
+        diff_to_text,
+    )
+
+    old_path = Path(old)
+    new_path = Path(new)
+
+    if not old_path.exists():
+        console.print(f"[red]Old export not found: {old}[/red]")
+        raise typer.Exit(code=1)
+    if not new_path.exists():
+        console.print(f"[red]New export not found: {new}[/red]")
+        raise typer.Exit(code=1)
+
+    try:
+        diff = _diff_workspaces_fn(old_path, new_path)
+        if json_output:
+            typer.echo(json.dumps(diff.to_dict(), indent=2))
+        else:
+            console.print(diff_to_text(diff))
+    except Exception as exc:
+        console.print(f"[red]Diff failed: {exc}[/red]")
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# Feature D: Audit Timeline (v1.8)
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def audit_timeline(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured JSON instead of text.",
+    ),
+) -> None:
+    """Summarize recent local audit events from all available sources."""
+    from decision_system.reports.timeline import (  # noqa: PLC0415
+        build_timeline,
+        timeline_to_text,
+    )
+
+    timeline = build_timeline()
+    if json_output:
+        typer.echo(json.dumps(timeline.to_dict(), indent=2))
+    else:
+        console.print(timeline_to_text(timeline))
+
+
+# ---------------------------------------------------------------------------
+# Feature E: Demo Data Validator (v1.8)
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def validate_demo_data(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured JSON instead of text.",
+    ),
+) -> None:
+    """Verify demo docs and mock data contain no real secrets."""
+    from decision_system.devtools.demo_data_validator import (  # noqa: PLC0415
+        validate_demo_data as _validate_demo_data_fn,
+        validation_to_text,
+    )
+
+    result = _validate_demo_data_fn()
+    if json_output:
+        typer.echo(json.dumps(result.to_dict(), indent=2))
+    else:
+        console.print(validation_to_text(result))
+    if not result.passed:
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# Feature F: Provider Safety Status (v1.8)
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def provider_safety(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print structured JSON instead of text.",
+    ),
+) -> None:
+    """Show provider mode with safety warnings for external providers."""
+    from decision_system.reports.provider_safety import (  # noqa: PLC0415
+        get_provider_safety_status,
+        safety_to_text,
+    )
+
+    status = get_provider_safety_status()
+    if json_output:
+        typer.echo(json.dumps(status.to_dict(), indent=2))
+    else:
+        console.print(safety_to_text(status))
+
+
+# ---------------------------------------------------------------------------
 # Report context helper (used inside the ask command)
 # ---------------------------------------------------------------------------
 

@@ -49,7 +49,7 @@ The API is available at `http://localhost:8000`.
 |----------|---------|---------|
 | `DECISION_PROVIDER` | `fake` | LLM provider (fake, nvidia_nim, ollama) |
 | `NVIDIA_NIM_BASE_URL` | (none) | NVIDIA NIM OpenAI-compatible endpoint |
-| `NVIDIA_NIM_API_KEY` | (none) | NVIDIA NIM API key (optional, for real provider) |
+| `NVIDIA_API_KEY` | (none) | NVIDIA NIM API key (optional, for real provider) |
 | `OLLAMA_BASE_URL` | (none) | Ollama endpoint (optional, for local Ollama) |
 | `DECISION_DOCS_DIR` | `company_docs` | Directory for source documents |
 | `DECISION_OBSERVABILITY_ROOT` | `.decision_system/observability` | Observability data root |

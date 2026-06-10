@@ -147,3 +147,152 @@ def ask(request: AskRequest) -> ApiReportResponse:
         report=to_jsonable(report),
         data=data,
     )
+
+
+# ---------------------------------------------------------------------------
+# Latest report endpoint for the web UI
+# ---------------------------------------------------------------------------
+
+
+@router.get("/reports/latest")
+def get_latest_report() -> dict:
+    """Return the most recently saved run payload, or an empty placeholder."""
+    runs_dir = Path(".decision_system") / "runs"
+    if runs_dir.exists():
+        run_files = sorted(runs_dir.glob("*.json"), reverse=True)
+        if run_files:
+            try:
+                data = json.loads(run_files[0].read_text(encoding="utf-8"))
+                report = data.get("final_report", {})
+                if isinstance(report, dict) and report.get("markdown"):
+                    return {
+                        "run_id": data.get("run_id", ""),
+                        "question": data.get("question", ""),
+                        "generated_at": data.get("created_at") or data.get("generated_at", ""),
+                        "confidence": report.get("confidence", "unknown"),
+                        "recommendation": report.get("recommendation", ""),
+                        "citations": report.get("citations", []),
+                        "markdown": report.get("markdown", ""),
+                        "claims": data.get("claims", []),
+                    }
+            except (json.JSONDecodeError, OSError):
+                pass
+
+    return {
+        "run_id": "",
+        "question": "",
+        "generated_at": "",
+        "confidence": "unknown",
+        "recommendation": "",
+        "citations": [],
+        "markdown": "",
+        "claims": [],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Feature A: Report Export (v1.8)
+# ---------------------------------------------------------------------------
+
+
+from pydantic import BaseModel, Field
+
+
+class ReportExportRequest(BaseModel):
+    format: str = Field(default="markdown", description="Export format: markdown, json, or html.")
+
+
+@router.post("/reports/export")
+def post_report_export(body: ReportExportRequest) -> dict:
+    """Export the latest report in the requested format."""
+    from decision_system.reports.exporter import (
+        export_report as _export_report,
+        load_latest_report_payload,
+    )
+
+    payload = load_latest_report_payload()
+    if payload is None:
+        raise api_error(404, "no_report", "No report data found.")
+    if body.format not in ("markdown", "json", "html"):
+        raise api_error(400, "invalid_format", f"Unknown format '{body.format}'.")
+    try:
+        result = _export_report(payload, fmt=body.format)  # type: ignore[arg-type]
+        return {"format": body.format, "content": result}
+    except Exception as exc:
+        raise api_error(500, "export_failed", str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Feature B: Coverage Score (v1.8)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/reports/coverage")
+def get_report_coverage(run_id: str | None = None) -> dict:
+    """Compute evidence coverage score for a run (or latest if no run_id)."""
+    from decision_system.reports.coverage import compute_coverage
+
+    claims: list = []
+    verification_results: list = []
+
+    if run_id:
+        run_path = Path(".decision_system") / "runs" / f"{run_id}.json"
+        if run_path.exists():
+            data = json.loads(run_path.read_text(encoding="utf-8"))
+            claims = data.get("claims", [])
+            verification_results = data.get("verification_results", [])
+    else:
+        runs_dir = Path(".decision_system") / "runs"
+        if runs_dir.exists():
+            run_files = sorted(runs_dir.iterdir(), reverse=True)
+            if run_files:
+                data = json.loads(run_files[0].read_text(encoding="utf-8"))
+                claims = data.get("claims", [])
+                verification_results = data.get("verification_results", [])
+
+    from decision_system.models import Claim, VerificationResult
+    parsed_claims = []
+    for c in claims:
+        try:
+            parsed_claims.append(Claim(**c))
+        except Exception:
+            pass
+    parsed_vrs = []
+    for vr in verification_results:
+        try:
+            parsed_vrs.append(VerificationResult(**vr))
+        except Exception:
+            pass
+
+    score = compute_coverage(
+        claims=parsed_claims if parsed_claims else None,
+        verification_results=parsed_vrs if parsed_vrs else None,
+    )
+    return score.to_dict()
+
+
+# ---------------------------------------------------------------------------
+# Feature D: Audit Timeline (v1.8)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/reports/audit-timeline")
+def get_audit_timeline() -> dict:
+    """Summarize recent local audit events."""
+    from decision_system.reports.timeline import build_timeline
+
+    timeline = build_timeline()
+    return timeline.to_dict()
+
+
+# ---------------------------------------------------------------------------
+# Feature F: Provider Safety Status (v1.8)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/reports/provider-safety")
+def get_provider_safety() -> dict:
+    """Show provider safety status with warnings for external providers."""
+    from decision_system.reports.provider_safety import get_provider_safety_status
+
+    return get_provider_safety_status().to_dict()

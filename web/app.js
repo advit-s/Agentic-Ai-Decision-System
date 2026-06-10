@@ -36,7 +36,7 @@ const FALLBACK_DATA = {
   security: { policy: { checks: [] }, approval_requests: [], audit_events: [] },
   connector: { connectors: [], jobs: [] },
   observability: { metrics: {}, metric_count: 0, eval_runs: [], eval_count: 0, quality_reports: [], quality_count: 0, traces: [], trace_count: 0 },
-  enterprise: { version: "1.7.0", readiness_level: "prototype-ready", passed_count: 0, missing_count: 0, passed_items: [], missing_items: [] },
+  enterprise: { version: "1.8.0", readiness_level: "prototype-ready", passed_count: 0, missing_count: 0, passed_items: [], missing_items: [] },
 };
 
 /* =========================================================================

@@ -29,12 +29,8 @@ _PATTERNS: list[tuple[RedactionKind, re.Pattern, str, str]] = [
         "[EMAIL]",
         "email",
     ),
-    (
-        "phone",
-        re.compile(r"(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}"),
-        "[PHONE]",
-        "phone",
-    ),
+    # secret_token before phone: longer, more-specific patterns first so that
+    # phone-digit fragments inside a secret token are skipped as overlapping.
     (
         "secret_token",
         re.compile(
@@ -43,6 +39,12 @@ _PATTERNS: list[tuple[RedactionKind, re.Pattern, str, str]] = [
         ),
         "[SECRET]",
         "secret_token",
+    ),
+    (
+        "phone",
+        re.compile(r"(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}"),
+        "[PHONE]",
+        "phone",
     ),
     (
         "customer_id",
@@ -54,21 +56,62 @@ _PATTERNS: list[tuple[RedactionKind, re.Pattern, str, str]] = [
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _mask_preview(text: str) -> str:
+    """Return a safe masked preview of *text* never showing the full value.
+
+    Examples:
+        "sk-abcdefghijklmnopqrstuvwxyz" -> "sk-abcdefg…stuvwxyz"
+        "a@b.com" -> "a…m"
+        "1234567890" -> "1234…7890"
+    """
+    if len(text) <= 8:
+        # Very short matches: show first 2 + last 2 if possible, else fully mask
+        if len(text) <= 4:
+            return "****"
+        return f"{text[:2]}…{text[-2:]}"
+    # Show first ~1/3 and last ~1/3
+    head_len = max(4, len(text) // 3)
+    tail_len = max(4, len(text) // 3)
+    return f"{text[:head_len]}…{text[-tail_len:]}"
+
+
+# ---------------------------------------------------------------------------
 # Core logic
 # ---------------------------------------------------------------------------
 
 
+def _is_overlapping(existing: list[RedactionFinding], start: int, end: int) -> bool:
+    """Return True if a new span [start, end) overlaps any existing finding."""
+    for f in existing:
+        if start < f.end and end > f.start:
+            return True
+    return False
+
+
 def _apply(text: str) -> tuple[str, list[RedactionFinding]]:
-    """Find all sensitive spans in *text* and replace them."""
+    """Find all sensitive spans in *text* and replace them.
+
+    Overlapping findings are deduplicated: when a later pattern matches
+    inside an already-found span, the inner match is skipped to avoid
+    noisy / confusing output (e.g. a phone number inside a secret token).
+    """
     findings: list[RedactionFinding] = []
     result = list(text)
 
     for pattern, compiled, replacement, kind in _PATTERNS:
         for match in compiled.finditer(text):
             start, end = match.start(), match.end()
-            preview = text[start:end]
-            if len(preview) > 40:
-                preview = f"{preview[:17]}…{preview[-17:]}"
+            raw_preview = text[start:end]
+
+            # Skip overlapping matches (inner fragments)
+            if _is_overlapping(findings, start, end):
+                continue
+
+            preview = _mask_preview(raw_preview)
             findings.append(
                 RedactionFinding(
                     text_type=kind,
@@ -104,11 +147,18 @@ def redact(text: str) -> RedactionPreviewResult:
     """Run deterministic redaction preview on *text* and return the result.
 
     Input *text* is not modified in place.
+    The returned ``original_text`` is intentionally never the raw input when
+    findings exist — it is always the redacted version so callers (including
+    the API) never receive full raw secrets in the response.
     """
     if not isinstance(text, str):
         text = str(text)
 
     redacted, findings = _apply(text)
+
+    # Do NOT expose original_text when findings exist — use redacted text
+    # so the API response never leaks raw secrets.
+    safe_original = text if not findings else redacted
 
     # Adjust finding start/end to represent the redacted view.  Re-find
     # offset adjustments are applied incrementally from the end of the
@@ -117,7 +167,8 @@ def redact(text: str) -> RedactionPreviewResult:
     shifted: list[RedactionFinding] = []
     delta = 0
     for finding in sorted(findings, key=lambda f: f.start):
-        delta += len(finding.replacement) - (finding.end - finding.start)
+        prev_len = finding.end - finding.start
+        delta += len(finding.replacement) - prev_len
         shifted.append(
             finding.model_copy(
                 update={
@@ -128,7 +179,7 @@ def redact(text: str) -> RedactionPreviewResult:
         )
 
     return RedactionPreviewResult(
-        original_text=text,
+        original_text=safe_original,
         redacted_text=redacted,
         findings=sorted(shifted, key=lambda f: f.start),
         finding_count=len(findings),

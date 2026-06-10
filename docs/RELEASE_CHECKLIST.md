@@ -118,7 +118,7 @@ Run these offline with no API key configured:
 - [ ] `decision-system check-hygiene` passes (warnings acceptable, failures require action).
 - [ ] `decision-system check-hygiene --json` returns valid structured JSON.
 - [ ] `clean-generated.sh` and `clean-generated.ps1` exist and are dry-run by default.
-- [ ] 650 tests pass offline with no API keys.
+- [ ] 651 tests pass offline with no API keys.
 - [ ] No tracked generated state in the working tree.
 - [ ] All CHANGELOG.md entries are up to date for v1.6.
 

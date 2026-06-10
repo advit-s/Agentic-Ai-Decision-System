@@ -1,3 +1,31 @@
+## [1.8.0] - 2026-06-10
+
+### Added
+- Decision Report Export CLI + API (`decision-system export-report --format markdown|json|html`) for exporting latest decision/war-room report with claims, risks, assumptions, evidence, and audit metadata.
+- Evidence Coverage Score CLI + API (`decision-system coverage`) showing total/verified/unsupported/contradicted claims and evidence coverage percentage.
+- Workspace Snapshot Diff CLI (`decision-system diff-workspaces`) for comparing two workspace exports with added/removed/changed items across documents, ontology, insights, metrics, and security posture.
+- Audit Timeline CLI + API (`decision-system audit-timeline`) summarizing recent local audit events from war-room, security, connectors, and index sources.
+- Demo Data Validator CLI (`decision-system validate-demo-data`) verifying demo docs and mock data contain no real secrets or large raw datasets.
+- Provider Safety Status CLI + API (`decision-system provider-safety`) showing current provider mode with external provider warnings. Default is always fake/offline (`safe`).
+- Path validation utility (`decision_system.path_util`) for safe canonicalization and traversal protection.
+- API endpoints: `POST /reports/export`, `GET /reports/coverage`, `GET /reports/audit-timeline`, `GET /reports/provider-safety`.
+- 49 new tests covering all v1.8 features and path validation.
+
+### Changed
+- Project version is now 1.8.0.
+- API web asset discovery fixed: uses `importlib.resources.files()` for correct wheel-installed mode serving (previously looked at wrong directory).
+- Security redaction improved: `original_text` is masked when findings exist, `matched_preview` always shows truncated preview (never full secret), and overlapping findings are deduplicated (longer patterns take precedence over shorter fragments).
+- Release check script hardened for `set -euo pipefail` fallback mode; final summary always printed.
+- Dockerfile removed `COPY docs/` to match `.dockerignore` exclusion.
+- Release check now includes `validate-demo-data` gate (11 total checks).
+- CLI help includes 6 new commands.
+
+### Fixed
+- API web serving path: now uses `importlib.resources.files("decision_system").joinpath("web")` with repo-root fallback.
+- Security redaction: overlapping patterns fixed (secret_token patterns now take precedence over phone fragments inside them).
+- Security redaction API: `original_text` no longer exposes raw secrets when findings exist.
+- Release check final summary now reliably printed even in non-Git fallback mode.
+
 ## [1.7.0] - 2026-06-09
 
 ### Added
@@ -30,6 +58,8 @@
 - All 651 tests pass offline with no API keys.
 - No real secrets, tokens, or credentials in mock data fixtures.
 - Security scanner continues to mask full secret values.
+
+## [1.6.0] - 2026-06-09
 ### Added
 - Final prototype hardening pass completed.
 - `clean-generated.sh` and `clean-generated.ps1` for safe generated-state cleanup (dry-run by default).
@@ -52,7 +82,7 @@
 - README documented wrong CLI paths for security commands (`scan-secrets` → `security scan-secrets`, etc.).
 
 ### Security
-- All 650 tests pass offline with no API keys.
+- All 651 tests pass offline with no API keys.
 - No tracked generated state in the repository.
 - Security scanner never prints full secret values (masked preview only).
 - Audit log and security stores under `.decision_system/` are in `.gitignore`.

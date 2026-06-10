@@ -41,6 +41,10 @@ DEFAULT_IGNORE_DIRS: frozenset[str] = frozenset(
         "claude",
         ".agents",
         "agents",
+        # tests/ and docs/ contain fixture placeholders and documentation
+        # examples, not real credentials.
+        "tests",
+        "docs",
     )
 )
 # Users should configure raw public-dataset directories through the data

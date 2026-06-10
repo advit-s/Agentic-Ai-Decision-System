@@ -17,7 +17,7 @@ COPY src/ src/
 COPY company_docs/.gitkeep company_docs/
 COPY company_data/manifest.json company_data/
 COPY tests/ tests/
-COPY docs/ docs/
+# docs/ is excluded by .dockerignore to keep image size small
 COPY web/ web/
 
 # Install in dev mode (includes test deps)

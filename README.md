@@ -121,8 +121,9 @@ decision-system serve-api
 
 FastAPI endpoints expose the existing local decision-system workflow for API clients. The API is local-development only in v0.8 and has no auth or database yet.
 
-Available v0.8 endpoints:
+Available endpoints:
 
+**v0.8 foundation:**
 - `GET /health`
 - `POST /documents/index`
 - `GET /documents/index/inspect`
@@ -139,6 +140,31 @@ Available v0.8 endpoints:
 - `GET /insights`
 - `POST /evals/war-room`
 - `POST /evals/providers`
+
+**v1.0 workspaces:**
+- `POST /workspaces` — create workspace
+- `GET /workspaces` — list workspaces
+- `POST /workspaces/{name}/activate` — activate workspace
+- `GET /workspaces/status` — active workspace status
+
+**v1.1 connectors:**
+- `GET /connectors` — list connectors
+- `GET /connectors/{connector_id}` — inspect connector
+- `POST /connectors/{connector_id}/dry-run` — preview import
+- `POST /connectors/{connector_id}/import` — import files
+- `GET /connectors/jobs` — job history
+
+**v1.2 security:**
+- `GET /security/policy` — policy check
+- `POST /security/redact-preview` — PII redaction preview
+- `GET /security/audit` — audit log
+
+**v1.7 observability and enterprise:**
+- `GET /observability/metrics` — collected metrics
+- `GET /observability/eval-history` — eval run history
+- `GET /observability/quality-report` — quality report
+- `GET /observability/traces` — trace summaries
+- `GET /enterprise-readiness` — readiness assessment
 
 ## Security, Governance, and Audit (v1.2)
 
@@ -202,7 +228,7 @@ v1.6 is the final prototype hardening pass. Key deliverables:
 - **CLI refactoring**: monolith `cli.py` (2018 lines) broken into separate modules for security (`cli_security.py`), observability (`cli_observability.py`), and enterprise (`cli_enterprise.py`), reducing the main file to ~1574 lines
 - **Repository hygiene checker**: `decision-system check-hygiene` verifies no generated state, caches, raw datasets, private env files, or agent instruction files are tracked
 - **All 49 CLI commands verified working** with fake provider, no API keys required
-- **650 tests passing** offline with no external dependencies
+- **651 tests passing** offline with no external dependencies
 - **Full documentation audit**: README, ARCHITECTURE.md, DECISIONS.md, RELEASE_CHECKLIST.md, CHANGELOG.md updated for all v1.0–v1.6 features
 - **Clean generated state scripts**: `clean-generated.sh` and `clean-generated.ps1` for safe cleanup (dry-run by default)
 
@@ -609,7 +635,7 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 ## Testing
 
 ```bash
-python -m pytest -q                          # full test suite (650 tests)
+python -m pytest -q                          # full test suite (651 tests)
 python -m pytest tests/test_security.py -q   # security/audit tests (64 tests)
 python -m pytest tests/test_observability.py -q  # observability tests (28 tests)
 python -m pytest tests/test_web_ui.py -q     # web UI tests
@@ -667,5 +693,5 @@ Completed:
 - v1.3: observability, metrics, evaluation history, quality reports, trace summaries
 - v1.4: Docker packaging, local deployment scripts, release verification
 - v1.5: enterprise readiness assessment and gap analysis
-- v1.6: final prototype readiness pass (all commands verified, 650 tests passing)
+- v1.6: final prototype readiness pass (all commands verified, 651 tests passing)
 - v1.7: frontend product UI with 9 sections, mock-first design, API integration
