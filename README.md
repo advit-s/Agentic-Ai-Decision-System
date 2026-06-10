@@ -27,7 +27,7 @@ See [Product Vision](docs/PRODUCT_VISION.md) for the longer two-phase vision: co
 
 ## Current Features
 
-- 49 CLI commands covering all subsystems
+- 50+ CLI commands covering all subsystems
 - local FastAPI API for development clients
 - local `.md` / `.txt` documents
 - Chroma vector store
@@ -140,6 +140,9 @@ Available endpoints:
 - `GET /insights`
 - `POST /evals/war-room`
 - `POST /evals/providers`
+- `GET /data-profiles` — saved data profile summary
+- `GET /graph` — knowledge graph data
+- `GET /dashboard` — aggregated system status
 
 **v1.0 workspaces:**
 - `POST /workspaces` — create workspace
@@ -165,6 +168,13 @@ Available endpoints:
 - `GET /observability/quality-report` — quality report
 - `GET /observability/traces` — trace summaries
 - `GET /enterprise-readiness` — readiness assessment
+
+**v1.8 reports:**
+- `POST /reports/export` — export latest report (markdown/json/html)
+- `GET /reports/latest` — latest report payload
+- `GET /reports/coverage` — evidence coverage score
+- `GET /reports/audit-timeline` — audit event timeline
+- `GET /reports/provider-safety` — provider mode with safety warnings
 
 ## Security, Governance, and Audit (v1.2)
 
@@ -227,8 +237,8 @@ decision-system check-hygiene --json
 v1.6 is the final prototype hardening pass. Key deliverables:
 - **CLI refactoring**: monolith `cli.py` (2018 lines) broken into separate modules for security (`cli_security.py`), observability (`cli_observability.py`), and enterprise (`cli_enterprise.py`), reducing the main file to ~1574 lines
 - **Repository hygiene checker**: `decision-system check-hygiene` verifies no generated state, caches, raw datasets, private env files, or agent instruction files are tracked
-- **All 49 CLI commands verified working** with fake provider, no API keys required
-- **700 tests passing** offline with no external dependencies
+- **All 50 CLI commands verified working** with fake provider, no API keys required
+- **700+ tests passing** offline with no external dependencies
 - **Full documentation audit**: README, ARCHITECTURE.md, DECISIONS.md, RELEASE_CHECKLIST.md, CHANGELOG.md updated for all v1.0–v1.6 features
 - **Clean generated state scripts**: `clean-generated.sh` and `clean-generated.ps1` for safe cleanup (dry-run by default)
 

@@ -647,8 +647,8 @@ repo root
    (dry-run by default, --force to execute)
 -> hygiene checker: decision-system check-hygiene (verifies no tracked generated
    state)
--> 700 tests passing offline with no API keys
--> All 49 CLI commands verified working with fake provider
+-> 700+ tests passing offline with no API keys
+-> All 50 CLI commands verified working with fake provider
 ```
 
 Key outcomes:
@@ -715,7 +715,7 @@ Key design decisions:
   missing `security` key) is fixed.
 - **9 new mock data fixtures** covering dashboard, connectors, observability,
   and enterprise readiness in addition to the existing 7 fixtures.
-- **700 tests passing** (1 new test for v1.7 API endpoints).
+- **700+ tests passing** (1 new test for v1.7 API endpoints).
 
 ## Current Limits
 - No database.

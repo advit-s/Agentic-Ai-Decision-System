@@ -62,8 +62,8 @@ Run these offline with no API key configured:
 ## Security Integration (v1.2)
 
 - [ ] `.decision_system/security/` is in `.gitignore` and ignored by Git.
-- [ ] `decision-system scan-secrets` runs offline and returns a finding summary.
-- [ ] `decision-system scan-secrets --json` returns structured findings.
+- [ ] `decision-system security scan-secrets` runs offline and returns a finding summary.
+- [ ] `decision-system security scan-secrets --json` returns structured findings.
 - [ ] Secret scanner never prints full secret values (masked preview only).
 - [ ] `decision-system redact-preview "..."` returns redacted text and findings without modifying files.
 - [ ] `decision-system redact-preview "..." --json` returns structured redaction result.
@@ -112,13 +112,13 @@ Run these offline with no API key configured:
 
 ## Final Prototype Hardening (v1.6)
 
-- [ ] All 49 CLI commands verified working offline with fake provider.
+- [ ] All 50 CLI commands verified working offline with fake provider.
 - [ ] CLI refactoring complete: `cli_security.py`, `cli_observability.py`, `cli_enterprise.py` are separate modules with registration functions.
 - [ ] CLI import speed is under 3.0 seconds (no slow imports at module level).
 - [ ] `decision-system check-hygiene` passes (warnings acceptable, failures require action).
 - [ ] `decision-system check-hygiene --json` returns valid structured JSON.
 - [ ] `clean-generated.sh` and `clean-generated.ps1` exist and are dry-run by default.
-- [ ] 700 tests pass offline with no API keys.
+- [ ] 700+ tests pass offline with no API keys.
 - [ ] No tracked generated state in the working tree.
 - [ ] All CHANGELOG.md entries are up to date for v1.6.
 
@@ -142,7 +142,7 @@ Run these offline with no API key configured:
 - [ ] `GET /enterprise-readiness` API endpoint returns static readiness assessment.
 - [ ] `GET /observability/metrics`, `/eval-history`, `/quality-report`, `/traces` API endpoints exist.
 - [ ] Root `web/` and package `src/decision_system/web/` assets are byte-for-byte identical.
-- [ ] 700 tests pass offline with no API keys.
+- [ ] 700+ tests pass offline with no API keys.
 - [ ] All CHANGELOG.md entries are up to date for v1.7.
 
 ## Configuration Defaults

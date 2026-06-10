@@ -108,6 +108,39 @@ def ensure_safe_path(path: Union[str, Path], project_root: Union[str, Path, None
     return resolved
 
 
+def ensure_safe_generated_write_path(
+    path: Union[str, Path],
+    project_root: Union[str, Path, None] = None,
+) -> Path:
+    """Resolve *path* and raise ``ValueError`` if it is outside ``.decision_system/``.
+
+    Stricter than :func:`ensure_safe_path` — only paths under
+    ``.decision_system/`` (within the project root) are accepted.  Use this
+    for export / serialisation functions so that generated artefacts cannot
+    accidentally overwrite tracked source files such as ``README.md`` or
+    ``pyproject.toml``.
+    """
+    resolved = resolve_path(path)
+    root = resolve_path(project_root) if project_root else resolve_path(".")
+
+    # Fast-fail: system directories
+    for denied in _DENIED_WRITE_PATHS:
+        denied_resolved = resolve_path(denied)
+        if resolved == denied_resolved or denied_resolved in resolved.parents:
+            raise ValueError(f"Unsafe system path: {resolved}")
+
+    # Must be under <project_root>/.decision_system/
+    generated_root = resolve_path(root / ".decision_system")
+    try:
+        resolved.relative_to(generated_root)
+    except ValueError as exc:
+        raise ValueError(
+            f"Unsafe path for generated writes: {resolved}. "
+            f"Writes must stay under {generated_root}."
+        ) from exc
+    return resolved
+
+
 def safe_relative_to(path: Union[str, Path], root: Union[str, Path]) -> Path:
     """Return *path* relative to *root* after resolution, or the path's name if outside *root*.
 

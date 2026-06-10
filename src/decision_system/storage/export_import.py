@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from decision_system.path_util import ensure_safe_path
+from decision_system.path_util import ensure_safe_generated_write_path
 from decision_system.storage.models import (
     StoredArtifact,
     Workspace,
@@ -83,14 +83,12 @@ class WorkspaceExporter:
             output_path = EXPORT_DIR / f"{safe_name}.json"
 
         output_path = Path(output_path)
-        # Guard against unsafe write destinations
+        # Guard against overwriting tracked source files.
+        # Only paths under .decision_system/ are accepted for exports.
         try:
-            output_path = ensure_safe_path(output_path)
+            output_path = ensure_safe_generated_write_path(output_path)
         except ValueError as exc:
-            raise ValueError(
-                f"Cannot export workspace to unsafe path: {output_path}. "
-                f"Writes must stay within the project root."
-            ) from exc
+            raise ValueError(str(exc)) from exc
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(
             bundle.model_dump_json(indent=2) + "\n",

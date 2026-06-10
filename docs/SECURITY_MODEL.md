@@ -30,7 +30,7 @@ security controls. This document describes the current security posture honestly
 - Chroma vector store uses local SQLite.
 - No encryption at rest.
 - No encryption in transit (local API only, no TLS).
-- The `scan-secrets` and `redact-preview` tools help identify sensitive data
+- The `security scan-secrets` and `security redact-preview` tools help identify sensitive data
   but do not enforce redaction.
 
 ## Secret Management

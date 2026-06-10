@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter
 
 from decision_system import __version__
+from decision_system.config import load_settings
 
 router = APIRouter(tags=["dashboard"])
 
@@ -73,9 +74,13 @@ def get_dashboard() -> dict:
         {"label": "Security Audit", "icon": "security", "section": "security"},
     ]
 
+    settings = load_settings()
+    provider = settings.provider
+
     return {
         "version": __version__,
-        "provider": "fake",
+        "provider": provider,
+        "mock_mode": provider == "fake",
         "api_status": "ok",
         "workspace_status": workspace_status,
         "index_status": index_status,
@@ -88,7 +93,6 @@ def get_dashboard() -> dict:
         "data_profiles": profile_count,
         "system_ready": True,
         "last_audit": datetime.now(timezone.utc).isoformat(),
-        "mock_mode": False,
         "project_info": {
             "name": "Agentic AI Decision System",
             "description": "Company Intelligence Engine — local evidence, bounded analysis, claim verification, cited decision reports.",

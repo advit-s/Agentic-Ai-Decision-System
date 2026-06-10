@@ -81,7 +81,7 @@ This verifies:
 - **No database** is used. Chroma + local JSON files are sufficient for the prototype.
 - **No cloud services** are required or used by default.
 - **No secrets** should be baked into Docker images or committed to the repo.
-- The `scan-secrets` and `policy-check` commands help verify repository hygiene.
+- The `security scan-secrets` and `security policy-check` commands help verify repository hygiene.
 - Connector stubs for GitHub, Jira, Slack, and Email are offline placeholders.
 
 ## What This Is Not

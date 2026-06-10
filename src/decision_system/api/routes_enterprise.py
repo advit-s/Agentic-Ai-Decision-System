@@ -30,7 +30,6 @@ def get_enterprise_readiness() -> dict[str, Any]:
         ("Approval request workflow (record-only)", True, "", ""),
         ("Metrics, eval history, quality reports", True, "", ""),
         ("Docker packaging for local deployment", True, "", ""),
-        ("All tests pass offline with no API keys", True, "", ""),
         ("Real authentication (JWT/OAuth)", False, "critical",
          "No auth implemented. All operations run as local-user."),
         ("Role-based access control", False, "critical",

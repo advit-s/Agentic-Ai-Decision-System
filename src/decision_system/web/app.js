@@ -180,7 +180,7 @@ function renderDashboard() {
   const graph = state.data.graph || {};
   const connectors = state.connectors.connectors || [];
 
-  el("dashboardVersion").textContent = `v${d.version || "1.7.0"}`;
+  el("dashboardVersion").textContent = `v${d.version || "1.8.0"}`;
 
   // Readiness
   const ready = d.system_ready !== false;
@@ -446,7 +446,7 @@ function renderObservability() {
 /* ── 9. Enterprise Readiness ── */
 function renderEnterprise() {
   const ent = state.data.enterprise || {};
-  el("enterpriseVersion").textContent = `v${ent.version || "1.7.0"}`;
+  el("enterpriseVersion").textContent = `v${ent.version || "1.8.0"}`;
   const level = ent.readiness_level || "prototype-ready";
   el("readinessLevel").innerHTML = `<span class="level-badge ${level === 'prototype-ready' ? 'prototype' : level === 'enterprise-ready' ? 'enterprise' : 'production'}">${level === 'prototype-ready' ? 'Prototype Ready' : level === 'enterprise-ready' ? 'Enterprise Ready' : 'Production Ready'}</span>`;
   el("entPassed").textContent = ent.passed_count || 0;

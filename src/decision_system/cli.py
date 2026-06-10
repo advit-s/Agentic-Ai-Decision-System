@@ -1820,3 +1820,11 @@ human_review_items=human_review_items,
 created_at=context.created_at,
 )
 
+
+# ---------------------------------------------------------------------------
+# Allow ``python -m decision_system.cli ...`` when the installed console
+# script is unavailable (offline / partial-install environments).
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    app()
+

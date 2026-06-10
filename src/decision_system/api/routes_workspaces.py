@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from decision_system.api.models import to_jsonable
+from decision_system.api.models import ApiError, ErrorResponse, to_jsonable
 from decision_system.config import load_settings
 from decision_system.storage.export_import import (
     WorkspaceExporter,
@@ -142,10 +142,15 @@ def activate_workspace(name: str) -> dict[str, Any]:
         ws_repo = WorkspaceRepository(db)
         ws = ws_repo.get_by_name(name)
         if ws is None:
-            return {
-                "status": "error",
-                "error": f"Workspace '{name}' not found.",
-            }
+            from fastapi.responses import JSONResponse
+            error = ApiError(
+                code="workspace_not_found",
+                message=f"Workspace '{name}' not found.",
+            )
+            return JSONResponse(
+                status_code=404,
+                content=ErrorResponse(error=error).model_dump(mode="json", exclude_none=True),
+            )
         ws_repo.set_active(ws.workspace_id)
         updated = ws_repo.get_by_id(ws.workspace_id)
         return {
