@@ -1,5 +1,5 @@
 // components/ExecutionPanel.jsx
-import React from "react";
+import React, { useState } from "react";
 import "../styles/execution-panel.css";
 
 const STATUS_ICONS = {
@@ -18,13 +18,30 @@ const STATUS_COLORS = {
   skipped: "#6b7280",
 };
 
+function formatData(data) {
+  if (data === null || data === undefined) return "—";
+  try {
+    const str = typeof data === "object" ? JSON.stringify(data, null, 2) : String(data);
+    if (str.length > 2000) return str.slice(0, 2000) + "\n… (truncated)";
+    return str;
+  } catch {
+    return String(data);
+  }
+}
+
 function ExecutionPanel({ nodeStatuses, workflowStatus, elapsed, onClose }) {
+  const [expandedNode, setExpandedNode] = useState(null);
+
   const statusIcon = (s) => STATUS_ICONS[s] || "○";
   const statusColor = (s) => STATUS_COLORS[s] || "#d1d5db";
 
   const completedCount = nodeStatuses.filter(
     (n) => n.status === "completed" || n.status === "skipped"
   ).length;
+
+  const toggleExpand = (nodeId) => {
+    setExpandedNode((prev) => (prev === nodeId ? null : nodeId));
+  };
 
   return (
     <div className="execution-panel">
@@ -54,10 +71,16 @@ function ExecutionPanel({ nodeStatuses, workflowStatus, elapsed, onClose }) {
         {nodeStatuses.map((ns) => (
           <div
             key={ns.nodeId}
-            className="execution-node-item"
+            className={"execution-node-item" + (expandedNode === ns.nodeId ? " expanded" : "")}
             style={{ borderLeftColor: statusColor(ns.status) || "#d1d5db" }}
           >
-            <div className="execution-node-header">
+            <div
+              className="execution-node-header"
+              onClick={() => toggleExpand(ns.nodeId)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleExpand(ns.nodeId); }}
+            >
               <span
                 className="execution-node-icon"
                 style={{ color: statusColor(ns.status) }}
@@ -70,11 +93,32 @@ function ExecutionPanel({ nodeStatuses, workflowStatus, elapsed, onClose }) {
                   {ns.duration.toFixed(2)}s
                 </span>
               )}
+              {(ns.inputs || ns.outputs) && (
+                <span className="execution-node-expand-icon">
+                  {expandedNode === ns.nodeId ? "▾" : "▸"}
+                </span>
+              )}
             </div>
             {ns.error && <div className="execution-node-error">{ns.error}</div>}
             {ns.status === "running" && (
               <div className="execution-progress-bar">
                 <div className="execution-progress-fill" />
+              </div>
+            )}
+            {expandedNode === ns.nodeId && (ns.inputs || ns.outputs) && (
+              <div className="execution-node-data">
+                {ns.inputs && Object.keys(ns.inputs).length > 0 && (
+                  <div className="execution-data-section">
+                    <div className="execution-data-label">Inputs</div>
+                    <pre className="execution-data-json">{formatData(ns.inputs)}</pre>
+                  </div>
+                )}
+                {ns.outputs && Object.keys(ns.outputs).length > 0 && (
+                  <div className="execution-data-section">
+                    <div className="execution-data-label">Outputs</div>
+                    <pre className="execution-data-json">{formatData(ns.outputs)}</pre>
+                  </div>
+                )}
               </div>
             )}
           </div>

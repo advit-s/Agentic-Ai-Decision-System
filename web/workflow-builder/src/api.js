@@ -10,7 +10,17 @@ import {
 const API_BASE_KEY = "wfBuilderApiBaseUrl";
 
 function getBaseUrl() {
-  return localStorage.getItem(API_BASE_KEY) || "";
+  const stored = localStorage.getItem(API_BASE_KEY);
+  if (stored) return stored;
+  // Auto-detect: when SPA is served from FastAPI backend, the API is at
+  // the same origin. Only trigger for known backend ports.
+  if (typeof window !== "undefined" && window.location) {
+    const port = window.location.port;
+    if (port && ["8000", "8001", "8080"].includes(port)) {
+      return window.location.origin;
+    }
+  }
+  return "";
 }
 
 function isMockMode() {

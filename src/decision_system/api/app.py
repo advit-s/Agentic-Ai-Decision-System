@@ -107,6 +107,16 @@ def create_app() -> FastAPI:
             web_dir = repo_web.resolve()
 
     if web_dir is not None and web_dir.is_dir():
+        # Mount the workflow-builder SPA at /workflow-builder/ (before root)
+        _wf_dir = web_dir / "workflow-builder" / "dist"
+        if not _wf_dir.is_dir():
+            # Fallback: repo root (editable install, built dist)
+            _repo_wf = Path(__file__).resolve().parents[3] / "web" / "workflow-builder" / "dist"
+            if _repo_wf.is_dir():
+                _wf_dir = _repo_wf
+        if _wf_dir.is_dir():
+            api.mount("/workflow-builder", StaticFiles(directory=str(_wf_dir), html=True), name="workflow-builder")
+
         api.mount("/", StaticFiles(directory=str(web_dir), html=True), name="web")
 
     @api.exception_handler(HTTPException)

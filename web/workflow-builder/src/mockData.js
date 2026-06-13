@@ -77,6 +77,7 @@ const MOCK_NODE_TYPES = [
       type: "object",
       properties: {
         supported_types: { type: "array", title: "Supported Types", items: { type: "string" } },
+        provider: { type: "string", title: "Provider", default: "fake", enum: ["fake", "nvidia_nim", "ollama"] },
       },
     },
     input_schema: { type: "object", properties: { text: { type: "string" } } },
@@ -87,7 +88,12 @@ const MOCK_NODE_TYPES = [
     label: "Verify Claims",
     description: "Verify extracted claims against evidence",
     categories: ["ai"],
-    config_schema: { type: "object", properties: {} },
+    config_schema: {
+      type: "object",
+      properties: {
+        provider: { type: "string", title: "Provider", default: "fake", enum: ["fake", "nvidia_nim", "ollama"] },
+      },
+    },
     input_schema: { type: "object", properties: { claims: { type: "array" } } },
     output_schema: { type: "object", properties: { verified: { type: "array" } } },
   },
@@ -100,6 +106,7 @@ const MOCK_NODE_TYPES = [
       type: "object",
       properties: {
         format: { type: "string", title: "Format", default: "markdown", enum: ["markdown", "json"] },
+        provider: { type: "string", title: "Provider", default: "fake", enum: ["fake", "nvidia_nim", "ollama"] },
       },
     },
     input_schema: { type: "object", properties: { claims: { type: "array" } } },
@@ -163,6 +170,7 @@ const MOCK_NODE_TYPES = [
       type: "object",
       properties: {
         question: { type: "string", title: "Question", description: "Business question", default: "" },
+        provider: { type: "string", title: "Provider", default: "fake", enum: ["fake", "nvidia_nim", "ollama"] },
       },
     },
     input_schema: { type: "object", properties: { question: { type: "string" } } },
@@ -231,8 +239,8 @@ const MOCK_WORKFLOWS = [
       { id: "node-3", type: "decision_system.retrieve", label: "Retrieve Evidence", config: { collection: "company_docs", top_k: 5 }, error_policy: "fail_workflow" },
       { id: "node-4", type: "decision_system.technical_analyst", label: "Tech Analysis", config: { provider: "fake" }, error_policy: "fail_workflow" },
       { id: "node-5", type: "decision_system.risk_analyst", label: "Risk Analysis", config: { provider: "fake" }, error_policy: "fail_workflow" },
-      { id: "node-6", type: "decision_system.extract_claims", label: "Extract Claims", config: {}, error_policy: "fail_workflow" },
-      { id: "node-7", type: "decision_system.write_report", label: "Generate Report", config: { format: "markdown" }, error_policy: "fail_workflow" },
+      { id: "node-6", type: "decision_system.extract_claims", label: "Extract Claims", config: { provider: "fake" }, error_policy: "fail_workflow" },
+      { id: "node-7", type: "decision_system.write_report", label: "Generate Report", config: { format: "markdown", provider: "fake" }, error_policy: "fail_workflow" },
     ],
     connections: [
       { source_node: "node-1", source_output: "default", target_node: "node-2", target_input: "default" },

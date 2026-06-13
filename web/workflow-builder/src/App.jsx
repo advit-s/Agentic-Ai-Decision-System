@@ -193,8 +193,23 @@ function CanvasInner() {
     try {
       const execState = await executeWorkflow(currentWorkflowId);
 
-      // Subscribe to events (mock or WS)
+      // Subscribe to events (WebSocket in real mode, simulated in mock mode)
       const unsub = streamExecutionEvents(execState.execution_id, (event) => {
+        // Handle terminal workflow events
+        if (event.event_type === "workflow_completed") {
+          clearInterval(timerRef.current);
+          setIsExecuting(false);
+          setWorkflowStatus("completed");
+          return;
+        }
+        if (event.event_type === "workflow_failed") {
+          clearInterval(timerRef.current);
+          setIsExecuting(false);
+          setWorkflowStatus("failed");
+          return;
+        }
+
+        // Update per-node statuses
         setNodeStatuses((prev) => {
           const updated = [...prev];
           const idx = updated.findIndex((n) => n.nodeId === event.node_id);
@@ -205,13 +220,18 @@ function CanvasInner() {
               node_failed: "failed",
             };
             const newStatus = statusMap[event.event_type] || updated[idx].status;
+            // Use event duration when available, otherwise compute from start
+            const dur = event.data?.duration ?? (
+              event.event_type === "node_completed"
+                ? (Date.now() - startTime) / 1000
+                : updated[idx].duration
+            );
             updated[idx] = {
               ...updated[idx],
               status: newStatus,
-              duration:
-                event.event_type === "node_completed"
-                  ? (Date.now() - startTime) / 1000
-                  : updated[idx].duration,
+              duration: dur,
+              inputs: event.data?.inputs ?? updated[idx].inputs,
+              outputs: event.data?.outputs ?? updated[idx].outputs,
               error: event.data?.error,
             };
           }
@@ -238,7 +258,7 @@ function CanvasInner() {
         });
       });
 
-      // Fallback: stop checking after 60s
+      // Safety fallback: stop checking after 60s
       setTimeout(() => {
         if (isExecuting) {
           clearInterval(timerRef.current);
