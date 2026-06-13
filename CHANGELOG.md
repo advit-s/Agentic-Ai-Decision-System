@@ -1,3 +1,23 @@
+## [1.9.0] - 2026-06-12
+
+### Added
+- Workflow Engine (Phase 1) — node SDK, DAG runtime, CLI, and API for visual workflow automation.
+- Core models: WorkflowNode (ABC), WorkflowDefinition, ExecutionState, Connection, ErrorPolicy, RetryConfig.
+- DAG validator (cycle detection, missing connection checks) and topological sort (Kahn's algorithm).
+- DAG executor with async parallel layer dispatch via `asyncio.gather()` and 4 error policies (fail_workflow, fail_node, retry with exponential backoff, skip).
+- ExecutionEvent streaming model for real-time execution progress (Phase 2 UI).
+- NodeRegistry with type registration, lookup, entry-point hooks, and instantiation.
+- 16 built-in node types: ManualTrigger, InputText, Filter, Merge, Code, Retrieve, TechAnalyst, RiskAnalyst, ExtractClaims, VerifyClaims, WriteReport, ExtractGraph, ProfileData, MapOntology, DetectPatterns, WarRoom.
+- WorkflowStore + ExecutionStore ABCs with JSON file persistence.
+- CLI commands: `decision-system workflow create|validate|run|list|list-nodes`, `decision-system execution list|inspect`.
+- REST API: CRUD workflows, execute workflow, get execution state, list node types with JSON schemas.
+- 93 new tests covering all components with no API keys required.
+- All 16 node types accessible via `create_default_registry()`.
+
+### Changed
+- Project version is now 1.9.0.
+- All 700+ existing tests remain unchanged and passing.
+
 ## [1.8.0] - 2026-06-10
 
 ### Added
