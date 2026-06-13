@@ -76,6 +76,71 @@
   border-radius: 4px;
 }
 
+.connection-badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  background: var(--color-bg);
+  white-space: nowrap;
+  transition: filter 0.15s;
+}
+.connection-badge:hover {
+  filter: brightness(1.15);
+}
+
+.connection-badge-mock {
+  color: #b8860b;
+  border-color: #b8860b;
+  background: #fffbea;
+}
+
+.connection-badge-live {
+  color: #166534;
+  border-color: #166534;
+  background: #f0fdf4;
+}
+
+.connection-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.connection-url-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.connection-url-input {
+  width: 200px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+}
+.connection-url-input:focus {
+  border-color: var(--color-primary);
+}
+
+.connection-url-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  cursor: pointer;
+  color: var(--color-text);
+}
+.connection-url-btn:hover {
+  background: var(--color-bg);
+}
+
 .load-dropdown {
   position: relative;
 }

@@ -1,3 +1,16 @@
+## [1.15.0] - 2026-06-13 — Claim Ledger DX, Human Review Gates, Execution History
+
+### Added
+- Phase 8: Claim Ledger DX, Human Review Gates, and Execution History — three major workflow builder features.
+- **Claim Ledger Report (Phase 1)**: Claim-centric post-execution view is now the default display mode; "Export Decision Report" button generating downloadable JSON reports with full claim details, evidence, and issue trail; search/filter for claims by text content; enhanced claim card expansion with full verification trail (finding → critic issue → evidence link); claim path indicator ("Researcher → Critic → Ledger").
+- **Human Review Gates (Phase 2)**: New `decision_system.review_gate` backend node for pausing execution at review points; review queue UI with approve, reject, and request-changes actions; configurable require-notes and allow-edit parameters per gate node; review history with resolved and pending views, full audit trail; real and mock API endpoints for review management.
+- **Execution History & Comparison (Phase 3)**: Execution history browser with search, sort, and detail drill-down; side-by-side execution comparison with node and claim diffing; status pill summaries showing claim state evolution across runs; historical run persistence (mock mode) with detail expansion.
+- Rich sample workflow mock data with full Researcher → Critic → Synthesizer pipeline.
+- Frontend tests passing (35+), build clean.
+
+### Changed
+- Project version is now 1.15.0.
+
 ## [1.14.0] - 2026-06-12
 
 ### Added

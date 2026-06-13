@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -244,7 +243,7 @@ def delete_workflow(workflow_id: str) -> dict[str, str]:
 
 
 @router.post("/workflows/{workflow_id}/execute")
-def execute_workflow(
+async def execute_workflow(
     workflow_id: str,
     body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -261,7 +260,7 @@ def execute_workflow(
         })
 
     inputs = (body or {}).get("inputs", {})
-    state = asyncio.run(_engine.execute(wf, global_inputs=inputs))
+    state = await _engine.execute(wf, global_inputs=inputs)
 
     return {
         "execution_id": state.execution_id,
@@ -454,6 +453,74 @@ async def receive_webhook(
         })
 
     return {"triggered": len(results), "executions": results}
+
+
+# --- Review Gate Routes ---
+
+
+@router.get("/reviews")
+def list_reviews(status: str | None = None) -> dict[str, list[dict[str, Any]]]:
+    """List review records, optionally filtered by status.
+
+    Query params:
+        status (str, optional): Filter by status (e.g. ``pending_review``).
+    """
+    from decision_system.workflow_engine.nodes.specialist.review_gate import (
+        list_all_reviews, list_pending_reviews,
+    )
+
+    if status == "pending_review":
+        reviews = list_pending_reviews()
+    else:
+        reviews = list_all_reviews()
+
+    return {"reviews": reviews}
+
+
+class ResolveReviewRequest(BaseModel):
+    """Request body for resolving a review."""
+    action: str
+    notes: str = ""
+    modified_data: dict[str, Any] | None = None
+    reviewed_by: str | None = None
+
+
+@router.post("/reviews/{review_id}/resolve")
+def resolve_review_endpoint(review_id: str, req: ResolveReviewRequest) -> dict[str, Any]:
+    """Approve, reject, or request changes on a pending review.
+
+    Body:
+        action: "approve" | "reject" | "request_changes"
+        notes: str
+        modified_data: dict (optional)
+        reviewed_by: str (optional)
+    """
+    from decision_system.workflow_engine.nodes.specialist.review_gate import (
+        resolve_review,
+    )
+
+    valid_actions = {"approve", "reject", "request_changes"}
+    if req.action not in valid_actions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid action '{req.action}'. Must be one of: {', '.join(sorted(valid_actions))}",
+        )
+
+    try:
+        result = resolve_review(
+            review_id=review_id,
+            action=req.action,
+            notes=req.notes,
+            modified_data=req.modified_data,
+            reviewed_by=req.reviewed_by,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Review '{review_id}' not found")
+
+    return result
 
 
 # --- Provider CRUD Routes ---

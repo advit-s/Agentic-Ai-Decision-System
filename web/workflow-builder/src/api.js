@@ -7,6 +7,9 @@ import {
   MOCK_EXECUTION_EVENTS,
   MOCK_SCHEDULES,
   MOCK_PROVIDERS,
+  MOCK_REVIEWS,
+  MOCK_EXECUTION_HISTORY,
+  MOCK_EXECUTION_DETAILS,
 } from "./mockData";
 
 const API_BASE_KEY = "wfBuilderApiBaseUrl";
@@ -50,12 +53,12 @@ async function fetchNodeTypes() {
 // --- Workflows ---
 let _mockWorkflows = [...MOCK_WORKFLOWS];
 
-function listWorkflows() {
+async function listWorkflows() {
   if (isMockMode())
-    return Promise.resolve(
-      _mockWorkflows.map(({ id, name, description, updated_at }) => ({ id, name, description, updated_at }))
-    );
-  return apiFetch("/workflows");
+    return _mockWorkflows.map(({ id, name, description, updated_at }) => ({ id, name, description, updated_at }));
+  const data = await apiFetch("/workflows");
+  // Backend returns { workflows: [...] } — unwrap for consistency with mock path
+  return data.workflows || data;
 }
 
 function getWorkflow(id) {
@@ -74,7 +77,8 @@ function saveWorkflow(workflow) {
     else _mockWorkflows.push(workflow);
     return Promise.resolve(workflow);
   }
-  if (workflow.id && workflow.id.startsWith("wf-")) {
+  // "wf-" prefix means this is a locally-generated id for a new unsaved workflow — use POST
+  if (workflow.id && !workflow.id.startsWith("wf-")) {
     return apiFetch(`/workflows/${workflow.id}`, {
       method: "PUT",
       body: JSON.stringify(workflow),
@@ -95,7 +99,7 @@ function deleteWorkflow(id) {
 }
 
 // --- Execution ---
-function executeWorkflow(id) {
+function executeWorkflow(id, inputs = {}) {
   if (isMockMode()) {
     const state = {
       ...MOCK_EXECUTION_STATE,
@@ -106,7 +110,10 @@ function executeWorkflow(id) {
     };
     return Promise.resolve(state);
   }
-  return apiFetch(`/workflows/${id}/execute`, { method: "POST" });
+  return apiFetch(`/workflows/${id}/execute`, {
+    method: "POST",
+    body: JSON.stringify({ inputs }),
+  });
 }
 
 function getExecution(id) {
@@ -114,6 +121,31 @@ function getExecution(id) {
     return Promise.resolve({ ...MOCK_EXECUTION_STATE, execution_id: id, status: "completed" });
   }
   return apiFetch(`/executions/${id}`);
+}
+
+// --- Execution History ---
+let _mockHistory = [...MOCK_EXECUTION_HISTORY];
+
+function listExecutionHistory() {
+  if (isMockMode()) return Promise.resolve([..._mockHistory]);
+  return apiFetch("/executions/history");
+}
+
+function getExecutionDetail(id) {
+  if (isMockMode()) {
+    const detail = MOCK_EXECUTION_DETAILS[id];
+    if (!detail) return Promise.reject(new Error("Execution detail not found"));
+    return Promise.resolve(JSON.parse(JSON.stringify(detail)));
+  }
+  return apiFetch(`/executions/${id}/detail`);
+}
+
+function deleteExecutionHistory(id) {
+  if (isMockMode()) {
+    _mockHistory = _mockHistory.filter(h => h.id !== id);
+    return Promise.resolve({ success: true });
+  }
+  return apiFetch(`/executions/history/${id}`, { method: "DELETE" });
 }
 
 // --- WebSocket Stream ---
@@ -270,6 +302,53 @@ function updateProvider(name, updates) {
   return apiFetch(`/providers/${name}`, { method: "PUT", body: JSON.stringify(updates) });
 }
 
+// --- Reviews ---
+let _mockReviews = [...MOCK_REVIEWS];
+
+function listReviews() {
+  if (isMockMode()) {
+    return Promise.resolve({ reviews: [..._mockReviews] });
+  }
+  return apiFetch("/reviews");
+}
+
+function resolveReview(reviewId, action, notes, modifiedData, reviewedBy) {
+  if (isMockMode()) {
+    const idx = _mockReviews.findIndex((r) => (r.review_id || r.id) === reviewId);
+    if (idx < 0) return Promise.reject(new Error("Review not found"));
+
+    const review = _mockReviews[idx];
+    if (review.status !== "pending_review") {
+      return Promise.reject(new Error("Review is already resolved"));
+    }
+
+    const now = new Date().toISOString();
+    if (action === "approve") {
+      review.status = "approved";
+      review.approved = true;
+    } else if (action === "reject") {
+      review.status = "rejected";
+      review.approved = false;
+    } else {
+      review.status = "changes_requested";
+      review.approved = false;
+    }
+
+    review.action = action;
+    review.review_notes = notes || "";
+    review.modified_data = modifiedData || null;
+    review.reviewed_by = reviewedBy || "system";
+    review.resolved_at = now;
+
+    _mockReviews[idx] = { ...review };
+    return Promise.resolve({ ..._mockReviews[idx] });
+  }
+  return apiFetch(`/reviews/${reviewId}/resolve`, {
+    method: "POST",
+    body: JSON.stringify({ action, notes, modified_data: modifiedData, reviewed_by: reviewedBy }),
+  });
+}
+
 export {
   getBaseUrl,
   isMockMode,
@@ -293,4 +372,9 @@ export {
   checkProvider,
   setDefaultProvider,
   updateProvider,
+  listReviews,
+  resolveReview,
+  listExecutionHistory,
+  getExecutionDetail,
+  deleteExecutionHistory,
 };

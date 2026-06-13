@@ -1,8 +1,14 @@
 // __tests__/ExecutionPanel.test.jsx
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import ExecutionPanel from "../src/components/ExecutionPanel";
 import React from "react";
+
+/* Helper: click "Node View" to switch from ledger (default) to nodes view */
+function switchToNodeView() {
+  const btn = screen.getByText(/Node View/);
+  fireEvent.click(btn);
+}
 
 describe("ExecutionPanel", () => {
   const nodeStatuses = [
@@ -21,6 +27,7 @@ describe("ExecutionPanel", () => {
         onClose={() => {}}
       />
     );
+    switchToNodeView();
     expect(screen.getByText(/running/i)).toBeDefined();
   });
 
@@ -33,6 +40,7 @@ describe("ExecutionPanel", () => {
         onClose={() => {}}
       />
     );
+    switchToNodeView();
     expect(screen.getByText("Manual Trigger")).toBeDefined();
     expect(screen.getByText("Retrieve Evidence")).toBeDefined();
     expect(screen.getByText("Tech Analyst")).toBeDefined();
@@ -47,6 +55,7 @@ describe("ExecutionPanel", () => {
         onClose={() => {}}
       />
     );
+    switchToNodeView();
     expect(screen.getByText(/Timeout error/)).toBeDefined();
   });
 });

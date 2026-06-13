@@ -364,6 +364,41 @@ decision-system connectors inspect email
 
 Stub connectors fail safely with a clear message. Dry-run should always be used before importing. Connector jobs are generated under `.decision_system/connectors/` and are ignored by Git. No source files are deleted or modified during import.
 
+## Visual Workflow Builder (v1.15)
+
+The v1.15 release adds three major features to the web-based workflow builder:
+
+#### Claim Ledger Report
+- Claim-centric post-execution view as the default analysis surface
+- One-click export of decision reports as downloadable JSON
+- Search/filter/sort through claims by status, confidence, and text
+- Full verification trail — trace each claim from Researcher findings through Critic evaluation
+- Side-by-side status breakdown (verified, unsupported, contradicted, pending)
+
+#### Human Review Gates
+- New **Review Gate** node type that pauses workflow execution for human input
+- Review queue with approve, reject, and request-changes actions
+- Required or optional review notes based on node configuration
+- Full audit trail of all review decisions
+- Review history with resolved and pending views
+
+#### Execution History & Comparison
+- Persistent execution history across workflow runs
+- Historical run browser with search, sort, and detail views
+- Side-by-side execution comparison showing node and claim diff
+- Track how claim statuses evolve across runs
+- Visual diff of failed vs successful executions
+
+These are web UI features accessible through the workflow builder at `web/workflow-builder/`:
+
+```bash
+cd web/workflow-builder
+npm install
+npm run dev
+```
+
+Launch the builder, build a workflow with Researcher → Critic → Review Gate nodes, execute, and experience the full claim-ledger pipeline with human review.
+
 ## What Is Not Included Yet
 
 Not included in this prototype (see also `decision-system enterprise-readiness` for the full gap analysis):

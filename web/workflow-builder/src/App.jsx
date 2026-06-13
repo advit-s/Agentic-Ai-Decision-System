@@ -6,6 +6,8 @@ import WorkflowToolbar from "./components/WorkflowToolbar";
 import NodePalette from "./components/NodePalette";
 import ConfigPanel from "./components/ConfigPanel";
 import ExecutionPanel from "./components/ExecutionPanel";
+import ExecutionHistory from "./components/ExecutionHistory";
+import ExecutionCompare from "./components/ExecutionCompare";
 import ScheduleManager from "./components/ScheduleManager";
 import ProviderManager from "./components/ProviderManager";
 import NodeComponent from "./components/NodeComponent";
@@ -17,6 +19,7 @@ import {
   saveWorkflow,
   executeWorkflow,
   streamExecutionEvents,
+  listExecutionHistory,
 } from "./api";
 import { getNodeCategoryConfig } from "./nodeTypes";
 import "./App.css";
@@ -42,6 +45,8 @@ function CanvasInner() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionPanel, setExecutionPanel] = useState(false);
+  const [historyPanel, setHistoryPanel] = useState(false);
+  const [compareRuns, setCompareRuns] = useState(null);
   const [schedulePanel, setSchedulePanel] = useState(false);
   const [providerPanel, setProviderPanel] = useState(false);
   const [nodeStatuses, setNodeStatuses] = useState([]);
@@ -279,6 +284,14 @@ function CanvasInner() {
     }
   }
 
+  function handleShowHistory() {
+    setHistoryPanel(!historyPanel);
+    setExecutionPanel(false);
+    setSchedulePanel(false);
+    setProviderPanel(false);
+    setCompareRuns(null);
+  }
+
   function handleExport() {
     const data = {
       name: currentWorkflowName,
@@ -405,15 +418,19 @@ function CanvasInner() {
         onLoad={handleLoad}
         onExecute={handleExecute}
         onExport={handleExport}
+        onHistory={handleShowHistory}
+        historyPanel={historyPanel}
         onSchedules={() => {
           setSchedulePanel(!schedulePanel);
           setExecutionPanel(false);
           setProviderPanel(false);
+          setHistoryPanel(false);
         }}
         onProviders={() => {
           setProviderPanel(!providerPanel);
           setSchedulePanel(false);
           setExecutionPanel(false);
+          setHistoryPanel(false);
         }}
         schedulePanel={schedulePanel}
         providerPanel={providerPanel}
@@ -436,7 +453,21 @@ function CanvasInner() {
           onDragOver={onDragOver}
           nodeTypes={nodeTypeMap}
         />
-        {executionPanel ? (
+        {compareRuns ? (
+          <ExecutionCompare
+            runIdA={compareRuns.runIdA}
+            runIdB={compareRuns.runIdB}
+            onClose={() => setCompareRuns(null)}
+          />
+        ) : historyPanel ? (
+          <ExecutionHistory
+            onClose={() => {
+              setHistoryPanel(false);
+            }}
+            onSelectRun={(id) => {}}
+            onCompare={(idA, idB) => setCompareRuns({ runIdA: idA, runIdB: idB })}
+          />
+        ) : executionPanel ? (
           <ExecutionPanel
             nodeStatuses={nodeStatuses}
             workflowStatus={workflowStatus}

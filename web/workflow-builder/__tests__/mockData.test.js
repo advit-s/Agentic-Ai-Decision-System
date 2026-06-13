@@ -3,8 +3,8 @@ import { describe, it, expect } from "vitest";
 import { MOCK_NODE_TYPES, MOCK_WORKFLOWS, MOCK_EXECUTION_STATE, MOCK_EXECUTION_EVENTS } from "../src/mockData";
 
 describe("mockData", () => {
-  it("has 23 node types matching built-in nodes", () => {
-    expect(MOCK_NODE_TYPES.length).toBe(23);
+  it("has 24 node types matching built-in nodes", () => {
+    expect(MOCK_NODE_TYPES.length).toBe(24);
     const types = MOCK_NODE_TYPES.map((n) => n.type);
     expect(types).toContain("decision_system.trigger_manual");
     expect(types).toContain("decision_system.retrieve");

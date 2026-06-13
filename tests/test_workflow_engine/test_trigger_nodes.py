@@ -234,11 +234,11 @@ class TestTriggerNodeRegistry:
         assert "decision_system.trigger_webhook" in types
         assert "decision_system.trigger_file_watch" in types
 
-    def test_16_builtin_nodes_plus_3_trigger_plus_4_specialist_equals_23(self):
+    def test_16_builtin_nodes_plus_3_trigger_plus_4_specialist_plus_review_gate_equals_24(self):
         from decision_system.workflow_engine.nodes import create_default_registry
         registry = create_default_registry()
         types = registry.list_types()
-        assert len(types) == 23  # 16 original + 3 trigger + 4 specialist
+        assert len(types) == 24  # 16 original + 3 trigger + 4 specialist + 1 review_gate
 
     def test_new_trigger_nodes_appear_in_list_types(self):
         from decision_system.workflow_engine.nodes import create_default_registry

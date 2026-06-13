@@ -256,9 +256,28 @@ class SynthesizerNode(WorkflowNode):
     label: str = "Decision Synthesizer"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
-        question = inputs.get("question", "")
+        question = inputs.get("question", "") or inputs.get("query", "")
         evidence_streams = inputs.get("evidence_streams", [])
         criteria = inputs.get("criteria", _default_criteria())
+
+        # Auto-detect upstream outputs when connected via default DAG port
+        if not evidence_streams:
+            # Check for Researcher-style findings at the top level
+            raw_findings = inputs.get("findings")
+            if raw_findings and isinstance(raw_findings, list) and len(raw_findings) > 0:
+                evidence_streams = [
+                    {"source_label": "Research Findings", "content": {"findings": raw_findings}},
+                ]
+            # Check for another Synthesizer's options
+            elif inputs.get("options") and isinstance(inputs.get("options"), list) and len(inputs.get("options")) > 0:
+                evidence_streams = [
+                    {"source_label": "Prior Synthesis", "content": {"options": inputs["options"]}},
+                ]
+            # Check for report text
+            elif inputs.get("report") or inputs.get("text"):
+                evidence_streams = [
+                    {"source_label": "Report", "content": {"text": inputs.get("report") or inputs.get("text", "")}},
+                ]
 
         if not question:
             return {

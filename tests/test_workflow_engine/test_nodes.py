@@ -231,4 +231,5 @@ class TestDefaultRegistry:
         assert "decision_system.critic" in type_names
         assert "decision_system.synthesizer" in type_names
         assert "decision_system.data_analyst" in type_names
-        assert len(type_names) == 23
+        assert "decision_system.review_gate" in type_names
+        assert len(type_names) == 24

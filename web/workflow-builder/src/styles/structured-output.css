@@ -1,0 +1,344 @@
+/* styles/structured-output.css — Rich output views for specialist nodes */
+
+.structured-output {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Summary box */
+.so-summary-box {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+/* Section headers */
+.so-section {
+  margin-top: 8px;
+}
+.so-section-title {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+/* ── Researcher Findings ──────────────────── */
+
+.so-finding-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.so-finding-statement {
+  font-size: 12px;
+  color: var(--color-text);
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.so-finding-num {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-right: 4px;
+}
+
+.so-finding-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.so-confidence-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.so-citation {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.so-source-type {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+}
+
+/* Information gaps */
+.so-gap-list {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+.so-gap-list li {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+/* ── Critic Issues ────────────────────────── */
+
+.so-critic-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.so-critic-pass-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.so-confidence-adj {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.so-issue-row {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.so-issue-type-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.so-issue-sev-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.so-issue-type-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.so-issue-text {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.so-issue-desc {
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.so-issue-location,
+.so-issue-suggestion {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ── Synthesizer ──────────────────────────── */
+
+.so-recommendation-card {
+  background: #f0f9ff;
+  border: 2px solid #93c5fd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.so-rec-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #1d4ed8;
+  margin-bottom: 4px;
+}
+
+.so-rec-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 4px;
+}
+
+.so-rec-rationale {
+  font-size: 12px;
+  color: #1e40af;
+  margin-bottom: 4px;
+}
+
+.so-option-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.so-option-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.so-option-rank {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.so-option-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.so-option-confidence {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.so-option-desc {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.so-option-details {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.so-option-pros,
+.so-option-cons {
+  flex: 1;
+  min-width: 120px;
+}
+
+.so-option-pros strong,
+.so-option-cons strong {
+  font-size: 11px;
+}
+
+.so-option-pros ul,
+.so-option-cons ul {
+  margin: 2px 0;
+  padding-left: 16px;
+  font-size: 11px;
+}
+
+.so-option-scores {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.so-score-pill {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+/* Risks */
+.so-risks-section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border);
+}
+
+.so-risks-section strong {
+  font-size: 11px;
+}
+
+.so-risk-row {
+  font-size: 11px;
+  margin-top: 2px;
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.so-risk-likelihood {
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.so-risk-mitigation {
+  color: var(--color-text-muted);
+}
+
+/* ── Data Analyst ─────────────────────────── */
+
+.so-analysis-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: #e0e7ff;
+  color: #3730a3;
+  margin-bottom: 8px;
+}
+
+.so-analysis-json {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+/* Fallback */
+.so-fallback-note {
+  font-size: 11px;
+  color: #991b1b;
+  background: #fee2e2;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+}

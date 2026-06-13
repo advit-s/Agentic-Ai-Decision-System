@@ -14,6 +14,7 @@ from decision_system.workflow_engine.nodes.builtin import (
 )
 from decision_system.workflow_engine.nodes.specialist import (
     ResearcherNode, CriticNode, SynthesizerNode, DataAnalystNode,
+    ReviewGateNode,
 )
 
 def create_default_registry() -> NodeRegistry:
@@ -33,6 +34,7 @@ _ALL_BUILTIN_NODES = [
     ExtractGraphNode, ProfileDataNode, MapOntologyNode,
     DetectPatternsNode, WarRoomNode,
     ResearcherNode, CriticNode, SynthesizerNode, DataAnalystNode,
+    ReviewGateNode,
 ]
 
 __all__ = [
@@ -45,4 +47,5 @@ __all__ = [
     "ExtractGraphNode", "ProfileDataNode", "MapOntologyNode",
     "DetectPatternsNode", "WarRoomNode",
     "ResearcherNode", "CriticNode", "SynthesizerNode", "DataAnalystNode",
+    "ReviewGateNode",
 ]

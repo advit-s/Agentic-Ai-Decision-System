@@ -187,8 +187,25 @@ class CriticNode(WorkflowNode):
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
         target_type = inputs.get("target_type", "claims_list")
-        target_data = inputs.get("target_data", {})
+        target_data = inputs.get("target_data", None)
         context = inputs.get("context", "")
+
+        # Auto-detect input when connected via default DAG port (upstream outputs
+        # are merged into top-level inputs by the DAG engine).
+        if not target_data:
+            # Check for Researcher-style findings at the top level
+            raw_findings = inputs.get("findings")
+            if raw_findings and isinstance(raw_findings, list) and len(raw_findings) > 0:
+                target_data = {"findings": raw_findings}
+                target_type = "findings_list"
+            # Check for Extracted Claims-style claims
+            elif inputs.get("claims") and isinstance(inputs.get("claims"), list):
+                target_data = {"claims": inputs["claims"]}
+                target_type = "claims_list"
+            # Check for report text
+            elif inputs.get("report") or inputs.get("text"):
+                target_data = inputs.get("report") or inputs.get("text", "")
+                target_type = "report_text"
 
         if not target_data:
             return {

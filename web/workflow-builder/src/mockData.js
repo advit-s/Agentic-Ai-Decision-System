@@ -447,6 +447,43 @@ const MOCK_NODE_TYPES = [
       },
     },
   },
+  // --- Phase 2: Review Gate Node ---
+  {
+    type: "decision_system.review_gate",
+    label: "Review Gate",
+    description: "Pause the workflow for human review of intermediate results",
+    icon: "👁️",
+    color: "#f97316",
+    categories: ["flow"],
+    config_schema: {
+      type: "object",
+      properties: {
+        require_notes: { type: "boolean", title: "Require Notes", default: true },
+        allow_edit: { type: "boolean", title: "Allow Editing", default: true },
+        timeout_hours: {
+          type: "integer", title: "Timeout (hours)", default: 72,
+          minimum: 1, maximum: 8760,
+        },
+      },
+    },
+    input_schema: {
+      type: "object",
+      properties: {
+        data: { type: "object", description: "Data requiring review" },
+        instructions: { type: "string", description: "Review instructions/context" },
+      },
+      required: ["data"],
+    },
+    output_schema: {
+      type: "object",
+      properties: {
+        approved: { type: "boolean" },
+        review_notes: { type: "string" },
+        modified_data: { type: "object" },
+        status: { type: "string" },
+      },
+    },
+  },
   // --- Phase 7: Data Analyst Node ---
   {
     type: "decision_system.data_analyst",
@@ -514,6 +551,28 @@ const MOCK_WORKFLOWS = [
     created_at: "2026-06-12T00:00:00Z",
     updated_at: "2026-06-12T00:00:00Z",
   },
+  {
+    id: "wf-sample-2",
+    name: "Strategic Decision Demo",
+    description: "Investment expansion analysis with researcher, critic, and synthesizer",
+    nodes: [
+      { id: "node-8", type: "decision_system.trigger_manual", label: "Start", config: {}, error_policy: "fail_workflow" },
+      { id: "node-9", type: "decision_system.input_text", label: "Investment Question", config: { text: "Should we invest in expansion?" }, error_policy: "fail_workflow" },
+      { id: "node-10", type: "decision_system.researcher", label: "Researcher", config: { provider: "fake", depth: "deep" }, error_policy: "fail_workflow" },
+      { id: "node-11", type: "decision_system.critic", label: "Critic / Judge", config: { provider: "fake", criteria: ["contradictions", "unsupported_claims"], strictness: "balanced" }, error_policy: "fail_workflow" },
+      { id: "node-review-1", type: "decision_system.review_gate", label: "Review Gate", config: { require_notes: true, allow_edit: true, timeout_hours: 72 }, error_policy: "fail_workflow" },
+      { id: "node-12", type: "decision_system.synthesizer", label: "Decision Synthesizer", config: { provider: "fake", decision_framework: "weighted_matrix", max_options: 3 }, error_policy: "fail_workflow" },
+    ],
+    connections: [
+      { source_node: "node-8", source_output: "default", target_node: "node-9", target_input: "default" },
+      { source_node: "node-9", source_output: "default", target_node: "node-10", target_input: "default" },
+      { source_node: "node-10", source_output: "default", target_node: "node-11", target_input: "default" },
+      { source_node: "node-11", source_output: "default", target_node: "node-review-1", target_input: "default" },
+      { source_node: "node-review-1", source_output: "default", target_node: "node-12", target_input: "default" },
+    ],
+    created_at: "2026-06-13T00:00:00Z",
+    updated_at: "2026-06-13T00:00:00Z",
+  },
 ];
 
 const MOCK_EXECUTION_STATE = {
@@ -537,6 +596,101 @@ const MOCK_EXECUTION_EVENTS = [
   { event_type: "node_completed", node_id: "node-4", data: { outputs: { analysis: { summary: "Mock analysis" } } } },
   { event_type: "node_started", node_id: "node-5", data: { node_type: "decision_system.risk_analyst" } },
   { event_type: "node_completed", node_id: "node-5", data: { outputs: { risks: [] } } },
+  { event_type: "workflow_completed", node_id: null, data: { status: "completed" } },
+];
+
+const MOCK_EXECUTION_STATE_2 = {
+  execution_id: "exec-mock-2",
+  workflow_id: "wf-sample-2",
+  status: "completed",
+  node_states: {},
+  started_at: "2026-06-13T00:00:00Z",
+  completed_at: "2026-06-13T00:00:00Z",
+  error: null,
+};
+
+const MOCK_EXECUTION_EVENTS_2 = [
+  { event_type: "node_started", node_id: "node-8", data: { node_type: "decision_system.trigger_manual" } },
+  { event_type: "node_completed", node_id: "node-8", data: { outputs: { triggered: true } } },
+  { event_type: "node_started", node_id: "node-9", data: { node_type: "decision_system.input_text" } },
+  { event_type: "node_completed", node_id: "node-9", data: { outputs: { text: "Should we invest in expansion?" } } },
+  { event_type: "node_started", node_id: "node-10", data: { node_type: "decision_system.researcher" } },
+  {
+    event_type: "node_completed", node_id: "node-10", data: {
+      outputs: {
+        findings: [
+          {
+            statement: "Revenue growth is projected at 15% YoY",
+            confidence: 0.8,
+            citation: "Q2 Financial Report 2026",
+            evidence: ["Revenue trends show consistent growth across all segments"],
+            source_type: "financial",
+          },
+          {
+            statement: "Market expansion would require $500M initial investment",
+            confidence: 0.6,
+            citation: "Market Analysis Q1 2026",
+            evidence: ["Industry benchmarks suggest $400-600M range for similar scale"],
+            source_type: "market",
+          },
+          {
+            statement: "Current cash reserves are insufficient for aggressive expansion",
+            confidence: 0.85,
+            citation: "Balance Sheet Q2 2026",
+            evidence: ["Cash and equivalents total $120M, short-term investments $80M"],
+            source_type: "financial",
+          },
+        ],
+        summary: "Research complete on expansion viability",
+        gaps: ["Detailed competitor expansion costs not available"],
+        fallback_reason: null,
+      },
+    },
+  },
+  { event_type: "node_started", node_id: "node-11", data: { node_type: "decision_system.critic" } },
+  {
+    event_type: "node_completed", node_id: "node-11", data: {
+      outputs: {
+        passed: false,
+        issues: [
+          {
+            type: "contradiction",
+            severity: "high",
+            description: "Finding 2 claims $500M investment needed but Finding 3 shows only $200M in available capital — insufficient funds for the proposed expansion scale",
+            location: "Claim 2",
+            suggestion: "Reconcile funding requirements with available capital; consider phased approach or external financing",
+          },
+          {
+            type: "unsupported",
+            severity: "medium",
+            description: "Finding 2 relies on limited data sources; the $400-600M benchmark range comes from a single industry report",
+            location: "Claim 2",
+            suggestion: "Gather additional market analysis reports to corroborate investment estimates",
+          },
+        ],
+        summary: "Found 1 critical contradiction and 1 unsupported claim",
+        confidence_adjustment: -0.1,
+        fallback_reason: null,
+      },
+    },
+  },
+  { event_type: "node_started", node_id: "node-review-1", data: { node_type: "decision_system.review_gate" } },
+  { event_type: "node_completed", node_id: "node-review-1", data: { outputs: { status: "pending_review", review_id: "review-mock-1", data: { findings: [] }, instructions: "Review findings before synthesis", created_at: "2026-06-13T10:00:00Z" } } },
+  { event_type: "node_started", node_id: "node-12", data: { node_type: "decision_system.synthesizer" } },
+  {
+    event_type: "node_completed", node_id: "node-12", data: {
+      outputs: {
+        options: [
+          { name: "Phased Expansion", description: "Expand in stages over 24 months, using operating cash flow to fund each phase", pros: ["Lower risk", "Uses existing cash flow"], cons: ["Slower time to market"], weight: 0.85 },
+          { name: "Seek External Financing", description: "Pursue venture capital or strategic partner to fund full expansion", pros: ["Full expansion possible", "Faster timeline"], cons: ["Dilution", "Loss of control"], weight: 0.65 },
+          { name: "Delay Expansion", description: "Delay expansion for 12-18 months to build cash reserves", pros: ["No external dependency", "Preserves flexibility"], cons: ["Missed market opportunity"], weight: 0.5 },
+        ],
+        recommendation: { name: "Phased Expansion", rationale: "Best balance of risk and opportunity given current cash constraints" },
+        trade_offs_summary: "Higher risk options require external financing which introduces dilution risk",
+        fallback_reason: null,
+      },
+    },
+  },
   { event_type: "workflow_completed", node_id: null, data: { status: "completed" } },
 ];
 
@@ -568,4 +722,163 @@ const MOCK_PROVIDERS = [
   },
 ];
 
-export { MOCK_NODE_TYPES, MOCK_WORKFLOWS, MOCK_EXECUTION_STATE, MOCK_EXECUTION_EVENTS, MOCK_SCHEDULES, MOCK_PROVIDERS };
+const MOCK_REVIEWS = [
+  {
+    id: "review-mock-1",
+    review_id: "review-mock-1",
+    workflow_id: "wf-sample-2",
+    execution_id: "exec-mock-2",
+    node_id: "node-review-1",
+    status: "pending_review",
+    data: {
+      findings: [
+        {
+          statement: "Revenue growth is projected at 15% YoY",
+          confidence: 0.8,
+          citation: "Q2 Financial Report 2026",
+          source_type: "financial",
+        },
+        {
+          statement: "Market expansion would require $500M initial investment",
+          confidence: 0.6,
+          citation: "Market Analysis Q1 2026",
+          source_type: "market",
+        },
+        {
+          statement: "Current cash reserves are insufficient for aggressive expansion",
+          confidence: 0.85,
+          citation: "Balance Sheet Q2 2026",
+          source_type: "financial",
+        },
+      ],
+    },
+    instructions: "Review these research findings for accuracy and completeness before proceeding with business decision.",
+    reviewers: [],
+    created_at: "2026-06-13T10:00:00Z",
+    resolved_at: null,
+    action: null,
+    review_notes: null,
+    modified_data: null,
+    reviewed_by: null,
+  },
+];
+
+const MOCK_EXECUTION_HISTORY = [
+  {
+    id: "exec-hist-1",
+    workflow_id: "wf-sample-1",
+    workflow_name: "Quarterly Risk Review",
+    status: "completed",
+    started_at: "2026-06-12T09:00:00Z",
+    completed_at: "2026-06-12T09:00:12Z",
+    duration_ms: 12340,
+    node_count: 7,
+    completed_nodes: 7,
+    failed_nodes: 0,
+    claim_summary: { verified: 3, unsupported: 1, contradicted: 0, pending: 0, total: 4 },
+  },
+  {
+    id: "exec-hist-2",
+    workflow_id: "wf-sample-1",
+    workflow_name: "Quarterly Risk Review",
+    status: "completed",
+    started_at: "2026-06-11T14:00:00Z",
+    completed_at: "2026-06-11T14:00:08Z",
+    duration_ms: 8420,
+    node_count: 7,
+    completed_nodes: 6,
+    failed_nodes: 1,
+    claim_summary: { verified: 2, unsupported: 2, contradicted: 0, pending: 0, total: 4 },
+    error: "Node 'Risk Analysis' failed — timeout",
+  },
+  {
+    id: "exec-hist-3",
+    workflow_id: "wf-sample-2",
+    workflow_name: "Strategic Decision Demo",
+    status: "completed",
+    started_at: "2026-06-10T11:30:00Z",
+    completed_at: "2026-06-10T11:30:15Z",
+    duration_ms: 15600,
+    node_count: 5,
+    completed_nodes: 5,
+    failed_nodes: 0,
+    claim_summary: { verified: 1, unsupported: 1, contradicted: 1, pending: 0, total: 3 },
+  },
+  {
+    id: "exec-hist-4",
+    workflow_id: "wf-sample-1",
+    workflow_name: "Quarterly Risk Review",
+    status: "failed",
+    started_at: "2026-06-09T16:00:00Z",
+    completed_at: "2026-06-09T16:00:05Z",
+    duration_ms: 5300,
+    node_count: 7,
+    completed_nodes: 3,
+    failed_nodes: 1,
+    claim_summary: { verified: 0, unsupported: 0, contradicted: 0, pending: 0, total: 0 },
+    error: "Node 'Extract Claims' failed — LLM provider unreachable",
+  },
+];
+
+const MOCK_EXECUTION_DETAILS = {
+  "exec-hist-1": {
+    execution_id: "exec-hist-1",
+    workflow_id: "wf-sample-1",
+    workflow_name: "Quarterly Risk Review",
+    status: "completed",
+    started_at: "2026-06-12T09:00:00Z",
+    completed_at: "2026-06-12T09:00:12Z",
+    node_states: [
+      { nodeId: "node-1", label: "Start", status: "completed", duration: 0.5 },
+      { nodeId: "node-2", label: "Business Question", status: "completed", duration: 0.3 },
+      { nodeId: "node-3", label: "Retrieve Evidence", status: "completed", duration: 2.1 },
+      { nodeId: "node-4", label: "Tech Analysis", status: "completed", duration: 3.2 },
+      { nodeId: "node-5", label: "Risk Analysis", status: "completed", duration: 2.8 },
+      { nodeId: "node-6", label: "Extract Claims", status: "completed", duration: 1.9 },
+      { nodeId: "node-7", label: "Generate Report", status: "completed", duration: 1.5 },
+    ],
+    claims: [
+      { statement: "Revenue growth is projected at 15% YoY", status: "verified", confidence: 0.8, sourceNode: "Tech Analysis" },
+      { statement: "Cloud migration costs will be $2.5M", status: "verified", confidence: 0.75, sourceNode: "Tech Analysis" },
+      { statement: "Legacy system poses security risk", status: "verified", confidence: 0.9, sourceNode: "Risk Analysis" },
+      { statement: "Competitor is gaining market share", status: "unsupported", confidence: 0.3, sourceNode: "Risk Analysis" },
+    ],
+  },
+  "exec-hist-2": {
+    execution_id: "exec-hist-2",
+    workflow_id: "wf-sample-1",
+    workflow_name: "Quarterly Risk Review",
+    status: "completed",
+    started_at: "2026-06-11T14:00:00Z",
+    completed_at: "2026-06-11T14:00:08Z",
+    node_states: [
+      { nodeId: "node-1", label: "Start", status: "completed", duration: 0.4 },
+      { nodeId: "node-2", label: "Business Question", status: "completed", duration: 0.3 },
+      { nodeId: "node-3", label: "Retrieve Evidence", status: "completed", duration: 2.0 },
+      { nodeId: "node-4", label: "Tech Analysis", status: "completed", duration: 2.9 },
+      { nodeId: "node-5", label: "Risk Analysis", status: "failed", duration: 1.2, error: "Timeout" },
+      { nodeId: "node-6", label: "Extract Claims", status: "skipped", duration: 0 },
+      { nodeId: "node-7", label: "Generate Report", status: "skipped", duration: 0 },
+    ],
+    claims: [
+      { statement: "Revenue growth is projected at 15% YoY", status: "verified", confidence: 0.8, sourceNode: "Tech Analysis" },
+      { statement: "Cloud migration costs will be $2.5M", status: "verified", confidence: 0.75, sourceNode: "Tech Analysis" },
+      { statement: "Legacy system poses security risk", status: "unsupported", confidence: 0.35, sourceNode: "Risk Analysis" },
+      { statement: "Competitor is gaining market share", status: "unsupported", confidence: 0.3, sourceNode: "Risk Analysis" },
+    ],
+  },
+};
+
+export {
+  MOCK_NODE_TYPES,
+  MOCK_WORKFLOWS,
+  MOCK_EXECUTION_STATE,
+  MOCK_EXECUTION_EVENTS,
+  MOCK_EXECUTION_STATE_2,
+  MOCK_EXECUTION_EVENTS_2,
+  MOCK_SCHEDULES,
+  MOCK_PROVIDERS,
+  MOCK_REVIEWS,
+  MOCK_EXECUTION_HISTORY,
+  MOCK_EXECUTION_DETAILS,
+};

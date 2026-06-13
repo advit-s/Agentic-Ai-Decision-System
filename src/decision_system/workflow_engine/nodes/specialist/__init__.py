@@ -8,10 +8,12 @@ from decision_system.workflow_engine.nodes.specialist.researcher import Research
 from decision_system.workflow_engine.nodes.specialist.critic import CriticNode
 from decision_system.workflow_engine.nodes.specialist.synthesizer import SynthesizerNode
 from decision_system.workflow_engine.nodes.specialist.data_analyst import DataAnalystNode
+from decision_system.workflow_engine.nodes.specialist.review_gate import ReviewGateNode
 
 __all__ = [
     "ResearcherNode",
     "CriticNode",
     "SynthesizerNode",
     "DataAnalystNode",
+    "ReviewGateNode",
 ]

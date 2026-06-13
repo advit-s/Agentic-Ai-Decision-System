@@ -49,7 +49,7 @@ class TestWorkflowCLI:
     def test_list_nodes(self, runner):
         result = runner.invoke(workflow_app, ["list-nodes"])
         assert result.exit_code == 0
-        assert "Available Nodes (23)" in result.stdout
+        assert "Available Nodes (24)" in result.stdout
         assert "Manual Trigger" in result.stdout
 
     def test_help(self, runner):

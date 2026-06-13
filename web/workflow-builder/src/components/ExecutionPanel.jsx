@@ -1,5 +1,9 @@
 // components/ExecutionPanel.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import StructuredNodeOutput from "./StructuredNodeOutput";
+import ClaimLedgerPanel from "./ClaimLedgerPanel";
+import ReviewPanel from "./ReviewPanel";
+import { listReviews, resolveReview } from "../api";
 import "../styles/execution-panel.css";
 
 const STATUS_ICONS = {
@@ -29,8 +33,46 @@ function formatData(data) {
   }
 }
 
-function ExecutionPanel({ nodeStatuses, workflowStatus, elapsed, onClose }) {
+function ExecutionPanel({ nodeStatuses, workflowStatus, elapsed, onClose, onExportReport }) {
   const [expandedNode, setExpandedNode] = useState(null);
+  const [view, setView] = useState("ledger");
+  const [reviews, setReviews] = useState([]);
+
+  useEffect(() => {
+    listReviews()
+      .then((data) => setReviews(data.reviews || data || []))
+      .catch(() => {});
+  }, []);
+
+  const handleApprove = (reviewId, notes) => {
+    resolveReview(reviewId, "approve", notes, null, "admin")
+      .then((updated) => {
+        setReviews((prev) =>
+          prev.map((r) => ((r.review_id || r.id) === reviewId ? { ...r, ...updated } : r))
+        );
+      })
+      .catch(() => {});
+  };
+
+  const handleReject = (reviewId, notes) => {
+    resolveReview(reviewId, "reject", notes, null, "admin")
+      .then((updated) => {
+        setReviews((prev) =>
+          prev.map((r) => ((r.review_id || r.id) === reviewId ? { ...r, ...updated } : r))
+        );
+      })
+      .catch(() => {});
+  };
+
+  const handleRequestChanges = (reviewId, notes, modifiedData) => {
+    resolveReview(reviewId, "request_changes", notes, modifiedData, "admin")
+      .then((updated) => {
+        setReviews((prev) =>
+          prev.map((r) => ((r.review_id || r.id) === reviewId ? { ...r, ...updated } : r))
+        );
+      })
+      .catch(() => {});
+  };
 
   const statusIcon = (s) => STATUS_ICONS[s] || "○";
   const statusColor = (s) => STATUS_COLORS[s] || "#d1d5db";
@@ -42,6 +84,55 @@ function ExecutionPanel({ nodeStatuses, workflowStatus, elapsed, onClose }) {
   const toggleExpand = (nodeId) => {
     setExpandedNode((prev) => (prev === nodeId ? null : nodeId));
   };
+
+  const viewToggle = (
+    <div className="execution-view-toggle">
+      <button
+        className={"execution-view-btn" + (view === "nodes" ? " active" : "")}
+        onClick={() => setView("nodes")}
+      >
+        📋 Node View
+      </button>
+      <button
+        className={"execution-view-btn" + (view === "ledger" ? " active" : "")}
+        onClick={() => setView("ledger")}
+      >
+        📒 Claim Ledger
+      </button>
+      <button
+        className={"execution-view-btn" + (view === "reviews" ? " active" : "")}
+        onClick={() => setView("reviews")}
+      >
+        👁️ Reviews
+      </button>
+    </div>
+  );
+
+  // Claim Ledger view
+  if (view === "ledger") {
+    return (
+      <ClaimLedgerPanel
+        nodeStatuses={nodeStatuses}
+        onClose={onClose}
+        onExportReport={onExportReport}
+        viewToggle={viewToggle}
+      />
+    );
+  }
+
+  // Reviews view
+  if (view === "reviews") {
+    return (
+      <ReviewPanel
+        reviews={reviews}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onRequestChanges={handleRequestChanges}
+        onClose={onClose}
+        viewToggle={viewToggle}
+      />
+    );
+  }
 
   return (
     <div className="execution-panel">
@@ -66,6 +157,9 @@ function ExecutionPanel({ nodeStatuses, workflowStatus, elapsed, onClose }) {
           <span className="execution-elapsed">{elapsed.toFixed(1)}s</span>
         )}
       </div>
+
+      {/* View toggle */}
+      {viewToggle}
 
       <div className="execution-node-list">
         {nodeStatuses.map((ns) => (
@@ -116,7 +210,11 @@ function ExecutionPanel({ nodeStatuses, workflowStatus, elapsed, onClose }) {
                 {ns.outputs && Object.keys(ns.outputs).length > 0 && (
                   <div className="execution-data-section">
                     <div className="execution-data-label">Outputs</div>
-                    <pre className="execution-data-json">{formatData(ns.outputs)}</pre>
+                    <StructuredNodeOutput outputs={ns.outputs} />
+                    <details className="execution-raw-toggle">
+                      <summary className="execution-raw-toggle-label">Raw JSON</summary>
+                      <pre className="execution-data-json">{formatData(ns.outputs)}</pre>
+                    </details>
                   </div>
                 )}
               </div>
