@@ -6,8 +6,8 @@ decision options with trade-off analysis and a recommended course of action.
 
 from __future__ import annotations
 
+import copy
 import json
-import random
 from typing import Any
 
 from decision_system.workflow_engine.models import WorkflowNode, ExecutionContext
@@ -154,10 +154,10 @@ _FAKE_OPTIONS_BY_KEYWORD: dict[str, list[dict]] = {
 def _fake_options(question: str, criteria: list[dict]) -> list[dict]:
     """Generate deterministic decision options based on question keywords."""
     q_lower = question.lower()
-    for keyword, options in _FAKE_OPTIONS_BY_KEYWORD.items():
+    for keyword, option_list in _FAKE_OPTIONS_BY_KEYWORD.items():
         if keyword in q_lower:
-            return options
-    return _FAKE_OPTIONS_BY_KEYWORD["default"]
+            return copy.deepcopy(option_list)
+    return copy.deepcopy(_FAKE_OPTIONS_BY_KEYWORD["default"])
 
 
 def _default_criteria() -> list[dict]:
@@ -195,7 +195,7 @@ def _score_options(options: list[dict], criteria: list[dict]) -> tuple[list[dict
     else:
         recommendation = None
 
-    return options, recommendation
+    return [opt for _, opt in scored], recommendation
 
 
 # ── Synthesizer Prompt ───────────────────────────────────────────────
