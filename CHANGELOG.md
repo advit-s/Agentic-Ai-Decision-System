@@ -1,3 +1,22 @@
+## [1.10.0] - 2026-06-12
+
+### Added
+- Visual workflow builder (Phase 2) — React Flow drag-and-drop editor with 15 implementation tasks.
+- 16 custom node types rendered with category-colored headers, status overlays, and config schemas.
+- Drag-and-drop node palette with 5 categories: Triggers, Data, AI / Analysis, Output, Flow Control.
+- Interactive workflow canvas with snap-to-grid, MiniMap, Controls, and delete-key support.
+- Right-side config panel with auto-generated JSON Schema forms (text, number, boolean, enum, array, textarea).
+- Execution panel with real-time per-node status badges, elapsed timer, progress bar, and error display.
+- Mock-first API client with CRUD workflows, execution, and WebSocket event streaming fallback.
+- Backend WebSocket event stream (`GET /workflows/executions/{id}/stream`) bridging DAGEngine events to connected clients.
+- Toast notification system with info/success/warning/error types and auto-dismiss.
+- 10 comprehensive test files (35 tests) covering all components with localStorage, ResizeObserver, and DataTransfer polyfills.
+- Navigation integration: "⚡ Workflows" nav item in the Intelligence Console sidebar.
+
+### Changed
+- Project version is now 1.10.0.
+- WebSocket endpoint added to workflow engine API router.
+
 ## [1.9.0] - 2026-06-12
 
 ### Added

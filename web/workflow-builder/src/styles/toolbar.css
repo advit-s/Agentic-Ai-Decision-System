@@ -1,0 +1,105 @@
+/* styles/toolbar.css */
+.workflow-toolbar {
+  height: var(--toolbar-height);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.toolbar-left {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.toolbar-center {
+  flex: 1;
+  text-align: center;
+}
+.toolbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-btn {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-text);
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.toolbar-btn:hover {
+  background: var(--color-bg);
+}
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.toolbar-btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.toolbar-workflow-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.toolbar-mode {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.load-dropdown {
+  position: relative;
+}
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-text);
+}
+.dropdown-item:hover {
+  background: var(--color-bg);
+}
+.dropdown-empty {
+  padding: 12px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-align: center;
+}

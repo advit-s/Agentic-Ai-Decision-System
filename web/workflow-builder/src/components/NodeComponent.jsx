@@ -1,0 +1,72 @@
+// components/NodeComponent.jsx
+import React, { memo } from "react";
+import { Handle, Position } from "reactflow";
+import { getNodeCategoryConfig } from "../nodeTypes";
+
+const NodeComponent = memo(({ id, data, selected }) => {
+  const catConfig = getNodeCategoryConfig(data.category);
+  const status = data.status || "idle";
+
+  const statusClasses = {
+    idle: "",
+    running: "node-status-running",
+    completed: "node-status-completed",
+    failed: "node-status-failed",
+    skipped: "node-status-skipped",
+  };
+
+  const hasInputs = data.inputPorts && data.inputPorts.length > 0;
+  const hasOutputs = data.outputPorts && data.outputPorts.length > 0;
+
+  return (
+    <div
+      className={`custom-node ${selected ? "selected" : ""} ${statusClasses[status] || ""}`}
+      style={{ borderColor: catConfig.color }}
+    >
+      {/* Input handles */}
+      {hasInputs &&
+        data.inputPorts.map((port, i) => (
+          <Handle
+            key={`in-${port}`}
+            type="target"
+            position={Position.Left}
+            id={port}
+            style={{ top: `${((i + 1) / (data.inputPorts.length + 1)) * 100}%` }}
+            title={port}
+          />
+        ))}
+      {!hasInputs && (
+        <Handle type="target" position={Position.Left} id="default" style={{ top: "50%" }} />
+      )}
+
+      {/* Node body */}
+      <div className="node-header" style={{ background: catConfig.color }}>
+        <span className="node-icon">{catConfig.icon}</span>
+        <span className="node-type-label">{data.label || data.typeLabel}</span>
+      </div>
+      <div className="node-body">
+        {status === "running" && <span className="node-spinner">⟳</span>}
+      </div>
+
+      {/* Output handles */}
+      {hasOutputs &&
+        data.outputPorts.map((port, i) => (
+          <Handle
+            key={`out-${port}`}
+            type="source"
+            position={Position.Right}
+            id={port}
+            style={{ top: `${((i + 1) / (data.outputPorts.length + 1)) * 100}%` }}
+            title={port}
+          />
+        ))}
+      {!hasOutputs && (
+        <Handle type="source" position={Position.Right} id="default" style={{ top: "50%" }} />
+      )}
+    </div>
+  );
+});
+
+NodeComponent.displayName = "NodeComponent";
+
+export default NodeComponent;

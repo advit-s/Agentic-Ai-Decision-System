@@ -487,6 +487,11 @@ function navigateTo(sectionId) {
   const view = el(sectionId);
   if (view) view.classList.add("active-view");
   // Update title
+  // Workflows redirects to the standalone workflow-builder SPA
+  if (sectionId === "workflows") {
+    window.location.href = "/workflow-builder/dist/index.html";
+    return;
+  }
   const sectionNames = {
     dashboard: "Dashboard", ask: "Decision Brief", data: "Data & Ontology",
     "war-room": "War Room", workspaces: "Workspaces", connectors: "Connectors",

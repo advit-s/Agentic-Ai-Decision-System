@@ -1,0 +1,98 @@
+/* styles/palette.css */
+.node-palette {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  width: 220px;
+  max-height: calc(100% - 16px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.palette-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.palette-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.palette-close:hover {
+  background: var(--color-bg);
+}
+
+.palette-toggle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  font-size: 18px;
+}
+
+.palette-scroll {
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px;
+}
+
+.palette-category {
+  margin-bottom: 12px;
+}
+
+.palette-category-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.palette-item {
+  padding: 6px 8px;
+  margin-bottom: 3px;
+  border-left: 3px solid;
+  border-radius: 4px;
+  cursor: grab;
+  background: var(--color-surface);
+  transition: background 0.15s;
+  font-size: 12px;
+}
+.palette-item:hover {
+  background: var(--color-bg);
+}
+.palette-item:active {
+  cursor: grabbing;
+}
+
+.palette-item-label {
+  font-weight: 500;
+  display: block;
+}
+.palette-item-desc {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: block;
+}

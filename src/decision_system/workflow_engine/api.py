@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from decision_system.workflow_engine.models import (
@@ -19,6 +19,7 @@ from decision_system.workflow_engine.nodes import create_default_registry
 from decision_system.workflow_engine.stores.json_store import (
     JSONWorkflowStore, JSONExecutionStore,
 )
+from decision_system.workflow_engine.stream import emit_event
 
 # In-memory stores for API usage (persist for server lifetime)
 _api_store_dir = Path(tempfile.mkdtemp())
@@ -26,6 +27,7 @@ _registry = create_default_registry()
 _workflow_store = JSONWorkflowStore(_api_store_dir)
 _execution_store = JSONExecutionStore(_api_store_dir)
 _engine = DAGEngine(registry=_registry, workflow_store=_workflow_store, execution_store=_execution_store)
+_engine.on_event(emit_event)
 
 router = APIRouter(tags=["workflows"])
 
@@ -151,3 +153,27 @@ def get_execution_state(execution_id: str) -> dict[str, Any]:
     if state is None:
         raise HTTPException(status_code=404, detail=f"Execution '{execution_id}' not found")
     return state.model_dump()
+
+
+@router.websocket("/executions/{execution_id}/stream")
+async def execution_event_stream(
+    websocket: WebSocket, execution_id: str
+) -> None:
+    """WebSocket endpoint streaming execution events in real-time."""
+    from decision_system.workflow_engine.stream import ExecutionEventStream
+
+    await websocket.accept()
+    try:
+        stream = ExecutionEventStream(execution_id)
+        async for event in stream:
+            try:
+                await websocket.send_json(event)
+            except WebSocketDisconnect:
+                break
+    except Exception:
+        pass
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass

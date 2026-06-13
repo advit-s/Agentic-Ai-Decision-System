@@ -1,0 +1,74 @@
+/* styles/canvas.css */
+.custom-node {
+  background: var(--color-surface);
+  border: 2px solid;
+  border-radius: 8px;
+  min-width: 150px;
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  transition: box-shadow 0.15s;
+}
+.custom-node.selected {
+  box-shadow: 0 0 0 2px var(--color-primary), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.node-header {
+  padding: 6px 12px;
+  color: #fff;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.node-icon {
+  font-size: 14px;
+}
+
+.node-body {
+  padding: 8px 12px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.node-spinner {
+  animation: spin 1s linear infinite;
+  font-size: 16px;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Status overlays */
+.node-status-completed {
+  border-color: var(--color-success) !important;
+}
+.node-status-running {
+  border-color: var(--color-warning) !important;
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+.node-status-failed {
+  border-color: var(--color-danger) !important;
+}
+.node-status-skipped {
+  border-color: #9ca3af !important;
+  opacity: 0.6;
+}
+
+@keyframes pulse-border {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(234, 179, 8, 0);
+  }
+}
