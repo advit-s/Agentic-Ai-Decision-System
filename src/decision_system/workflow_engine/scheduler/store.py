@@ -33,6 +33,11 @@ class ScheduleStore:
         self._dir = Path(store_dir)
         self._dir.mkdir(parents=True, exist_ok=True)
 
+    @property
+    def store_dir(self) -> Path:
+        """The directory where schedule files are stored."""
+        return self._dir
+
     def _path(self, schedule_id: str) -> Path:
         return self._dir / f"schedule_{schedule_id}.json"
 

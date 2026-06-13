@@ -305,3 +305,148 @@ def inspect_execution(
 
 # Register the execution sub-app
 app.add_typer(exec_app, name="execution", help="Inspect workflow executions.")
+
+
+# --- Schedules sub-app ---
+
+schedule_app = typer.Typer(help="Manage workflow schedules and triggers.")
+
+
+def _get_schedule_store(store_dir: Path | None) -> "ScheduleStore":
+    """Get a ScheduleStore, defaulting to a temporary directory."""
+    from decision_system.workflow_engine.scheduler.store import ScheduleStore
+    import tempfile
+
+    if store_dir:
+        return ScheduleStore(store_dir)
+    return ScheduleStore(Path(tempfile.mkdtemp()))
+
+
+@schedule_app.command(name="list")
+def list_schedules(
+    workflow_id: str | None = typer.Option(
+        None, "--workflow-id", "-w", help="Filter by workflow ID",
+    ),
+    store_dir: Path | None = typer.Option(
+        None, "--store-dir", "-s",
+        help="Store directory (default: temporary)",
+    ),
+) -> None:
+    """List saved schedule definitions."""
+    store = _get_schedule_store(store_dir)
+    schedules = store.list(workflow_id=workflow_id)
+
+    if not schedules:
+        console.print("No schedules found.")
+        return
+
+    table = Table(title=f"Schedules ({len(schedules)})")
+    table.add_column("ID", style="cyan")
+    table.add_column("Workflow ID")
+    table.add_column("Trigger", style="green")
+    table.add_column("Enabled", style="yellow")
+    table.add_column("Last Fired")
+
+    for s in schedules:
+        sid = s.id[:12] + "..." if len(s.id) > 12 else s.id
+        wid = s.workflow_id[:12] + "..." if len(s.workflow_id) > 12 else s.workflow_id
+        last_fired = s.last_fired.isoformat() if s.last_fired else "-"
+        enabled_str = "[green]Yes[/green]" if s.enabled else "[red]No[/red]"
+        table.add_row(sid, wid, s.trigger_type.value, enabled_str, last_fired)
+    console.print(table)
+
+
+@schedule_app.command(name="create")
+def create_schedule(
+    workflow_id: str = typer.Argument(..., help="Workflow ID to schedule"),
+    trigger_type: str = typer.Option(
+        "cron", "--trigger-type", "-t", help="Trigger type (cron, webhook, file_watch)",
+    ),
+    trigger_config: str = typer.Option(
+        "{}", "--config", "-c", help="Trigger config as JSON string",
+    ),
+    store_dir: Path | None = typer.Option(
+        None, "--store-dir", "-s",
+        help="Store directory (default: temporary)",
+    ),
+) -> None:
+    """Create a new schedule for a workflow."""
+    from decision_system.workflow_engine.scheduler import ScheduleDefinition, TriggerType
+    from decision_system.workflow_engine.stores.json_store import JSONWorkflowStore
+    from uuid import uuid4
+    import tempfile
+
+    store = _get_schedule_store(store_dir)
+    effective_dir = store_dir or Path(tempfile.mkdtemp())
+    ws = JSONWorkflowStore(effective_dir)
+
+    try:
+        trigger_type_enum = TriggerType(trigger_type)
+    except ValueError:
+        console.print(f"[red]Invalid trigger type '{trigger_type}'. Must be one of: {[t.value for t in TriggerType]}[/red]")
+        raise typer.Exit(1)
+
+    try:
+        config = json.loads(trigger_config)
+    except json.JSONDecodeError as exc:
+        console.print(f"[red]Invalid JSON config: {exc}[/red]")
+        raise typer.Exit(1)
+
+    # Verify the workflow exists
+    wf = ws.load(workflow_id)
+    if wf is None:
+        console.print(f"[red]Workflow '{workflow_id}' not found[/red]")
+        raise typer.Exit(1)
+
+    schedule = ScheduleDefinition(
+        id=f"sch-{uuid4().hex[:12]}",
+        workflow_id=workflow_id,
+        trigger_type=trigger_type_enum,
+        trigger_config=config,
+    )
+    store.save(schedule)
+    console.print(f"[green]✓[/green] Created schedule {schedule.id} ({trigger_type})")
+
+
+@schedule_app.command(name="delete")
+def delete_schedule(
+    schedule_id: str = typer.Argument(..., help="Schedule ID to delete"),
+    store_dir: Path | None = typer.Option(
+        None, "--store-dir", "-s",
+        help="Store directory (default: temporary)",
+    ),
+) -> None:
+    """Delete a schedule definition."""
+    store = _get_schedule_store(store_dir)
+
+    if not store.delete(schedule_id):
+        console.print(f"[red]Schedule '{schedule_id}' not found[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[green]✓[/green] Deleted schedule {schedule_id}")
+
+
+@schedule_app.command(name="toggle")
+def toggle_schedule(
+    schedule_id: str = typer.Argument(..., help="Schedule ID to toggle"),
+    store_dir: Path | None = typer.Option(
+        None, "--store-dir", "-s",
+        help="Store directory (default: temporary)",
+    ),
+) -> None:
+    """Enable or disable a schedule."""
+    store = _get_schedule_store(store_dir)
+
+    schedule = store.load(schedule_id)
+    if schedule is None:
+        console.print(f"[red]Schedule '{schedule_id}' not found[/red]")
+        raise typer.Exit(1)
+
+    schedule.enabled = not schedule.enabled
+    store.save(schedule)
+    state = "enabled" if schedule.enabled else "disabled"
+    console.print(f"[green]✓[/green] Schedule {schedule.id} {state}")
+
+
+# Register the schedule sub-app
+app.add_typer(schedule_app, name="schedule", help="Manage workflow schedules and triggers.")
