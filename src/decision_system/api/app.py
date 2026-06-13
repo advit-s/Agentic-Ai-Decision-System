@@ -8,6 +8,9 @@ dependencies are not installed.
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -55,10 +58,20 @@ def _lazy_router(api: FastAPI, module_name: str) -> None:
 def create_app() -> FastAPI:
     """Create the local-development FastAPI app."""
 
+    @asynccontextmanager
+    async def _app_lifespan(_api: FastAPI) -> AsyncIterator[None]:
+        """Start/stop the background scheduler on app startup/shutdown."""
+        from decision_system.workflow_engine.api import _scheduler
+
+        await _scheduler.start()
+        yield
+        await _scheduler.stop()
+
     api = FastAPI(
         title="Agentic Decision System API",
         version=__version__,
         description="Local FastAPI wrapper over the offline decision-system backend.",
+        lifespan=_app_lifespan,
     )
 
     # --- Lightweight routes (always available) ---
