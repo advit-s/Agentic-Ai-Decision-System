@@ -1,3 +1,42 @@
+## [1.11.0] - 2026-06-13
+
+### Added
+- Phase 4: Scheduling & Triggers — transform workflow engine from manual-execution-only to autonomous automation engine.
+- Schedule models (`ScheduleDefinition`, `TriggerType`) with JSON file store (`ScheduleStore`).
+- Trigger evaluators: cron (5-field matching with dedup), webhook (path matching with normalization), file-watch (glob-based file diff detection).
+- Background scheduler service (`SchedulerService`) with asyncio polling loop and start/stop lifecycle.
+- 3 new trigger node types: CronTrigger, WebhookTrigger, FileWatchTrigger (16→19 built-in node types).
+- Schedule-aware execution: `schedule_id` propagated through `ExecutionContext` to every node.
+- Schedule CRUD API endpoints: POST/GET/PUT/DELETE `/schedules`, POST `/schedules/{id}/toggle`.
+- Webhook receiver endpoint: POST `/webhook/{path}` triggers matching workflow execution.
+- Scheduler auto-start/stop via FastAPI lifespan context manager.
+- CLI schedule commands: `decision-system workflow schedule {list,create,delete,toggle}`.
+- Auto-scheduling: workflows with trigger nodes automatically create/update/delete schedules on save.
+- Frontend mock API for schedule CRUD and 3 new trigger node types in the node palette.
+- ScheduleManager React component for viewing, creating, toggling, and deleting schedules.
+- 14 schedule API tests, 9 CLI schedule tests, 6 auto-schedule tests, 8 end-to-end integration tests.
+
+### Changed
+- Project version is now 1.11.0.
+- `ExecutionContext` now has `schedule_id` field.
+- `DAGEngine.execute()` accepts `schedule_id` parameter.
+- Node registry now registers 19 built-in node types (up from 16).
+- Node count assertions updated in test files.
+- FastAPI app now uses lifespan context manager for scheduler lifecycle.
+
+## [1.10.1] - 2026-06-13
+
+### Added
+- Phase 3: Real-time workflow execution and data inspection.
+- WebSocket event streaming endpoint (`/executions/{id}/stream`) for live node status updates.
+- Provider selector per node in the workflow builder UI.
+- Node output data inspection panel showing execution results per node.
+- Real mode auto-detection: frontend detects when served from FastAPI backend.
+- 10 comprehensive test files covering all Phase 3 components.
+
+### Changed
+- Phase 3 integration: WebSocket URL construction and event emission optimized.
+
 ## [1.10.0] - 2026-06-12
 
 ### Added
