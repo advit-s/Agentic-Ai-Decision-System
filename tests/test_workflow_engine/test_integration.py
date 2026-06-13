@@ -115,7 +115,7 @@ class TestEndToEnd:
         assert loaded.status == "completed"
 
     def test_cli_list_nodes(self):
-        """The CLI should list all 19 node types."""
+        """The CLI should list all 23 node types."""
         from decision_system.workflow_engine.cli import app as workflow_app
 
         runner = CliRunner()
@@ -123,4 +123,4 @@ class TestEndToEnd:
         assert result.exit_code == 0
         assert "Manual Trigger" in result.stdout
         assert "Run War Room" in result.stdout
-        assert "Available Nodes (22)" in result.stdout
+        assert "Available Nodes (23)" in result.stdout

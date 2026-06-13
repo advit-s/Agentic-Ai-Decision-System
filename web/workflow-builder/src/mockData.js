@@ -403,6 +403,43 @@ const MOCK_NODE_TYPES = [
       },
     },
   },
+  // --- Phase 7: Data Analyst Node ---
+  {
+    type: "decision_system.data_analyst",
+    label: "Data Analyst",
+    description: "Analyze structured data — profiles, trends, anomalies, and correlations",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        provider: { type: "string", title: "Provider", default: "fake" },
+        analysis_type: {
+          type: "string", title: "Analysis Type", default: "summary",
+          enum: ["profile", "summary", "trend", "anomaly", "correlation"],
+        },
+        max_rows: { type: "integer", title: "Max Rows", default: 1000, minimum: 1, maximum: 100000 },
+        include_charts: { type: "boolean", title: "Include Charts", default: false },
+      },
+    },
+    input_schema: {
+      type: "object",
+      properties: {
+        data: { type: "array", items: { type: "object" }, description: "Structured data to analyze" },
+        analysis_type: { type: "string", description: "Override analysis type" },
+        columns: { type: "array", items: { type: "string" }, description: "Focus on specific columns" },
+      },
+      required: ["data"],
+    },
+    output_schema: {
+      type: "object",
+      properties: {
+        analysis: { type: "object" },
+        summary: { type: "string" },
+        charts: { type: "object" },
+        fallback_reason: { type: "string" },
+      },
+    },
+  },
 ];
 
 const MOCK_WORKFLOWS = [

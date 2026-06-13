@@ -1,3 +1,18 @@
+## [1.14.0] - 2026-06-12
+
+### Added
+- Phase 7: Data Analyst Node — structured data analysis capabilities for the workflow builder.
+- **DataAnalystNode** (`decision_system.data_analyst`): Analyzes structured data with 5 analysis types — profile, summary, trend, anomaly, and correlation. Deterministic fake fallback for each analysis type with schema-matching mock data. LLM path samples data (50 rows max) to avoid token limits and injects analysis instructions via system prompt.
+- Config: `analysis_type` (5 enums, default "summary"), `max_rows` (1-100000, default 1000), `include_charts` (boolean, default false).
+- Input: `data` (array of objects, required), `analysis_type` (string override), `columns` (string array for column focus).
+- Output: `analysis` (object), `summary` (string), `charts` (object), `fallback_reason` (string).
+- 21 new tests: DataAnalystNode with 10 async tests covering empty data, dict normalization, all 5 analysis types, LLM path, provider error, schema compliance, input override; plus 11 helper tests.
+- Frontend mock data entry for DataAnalystNode in the AI Analysis category.
+
+### Changed
+- Project version is now 1.14.0.
+- Node registry now registers 23 built-in node types (up from 22).
+
 ## [1.13.0] - 2026-06-13
 
 ### Added

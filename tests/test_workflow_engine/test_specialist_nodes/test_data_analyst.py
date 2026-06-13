@@ -18,8 +18,6 @@ from decision_system.workflow_engine.nodes.specialist.data_analyst import (
 )
 from decision_system.workflow_engine.providers.store import ProviderConfig, ProviderStore
 
-pytestmark = pytest.mark.asyncio
-
 
 def _store_with_provider() -> ProviderStore:
     tmp = Path(tempfile.mkdtemp())
@@ -83,6 +81,7 @@ ANALYSIS_RESPONSE = {
 
 class TestDataAnalystNode:
     """DataAnalystNode — AI-powered structured data analysis."""
+    pytestmark = pytest.mark.asyncio
 
     async def test_fallback_empty_data(self):
         """Empty data returns empty analysis."""
