@@ -24,7 +24,8 @@ dependencies = [
 [project.optional-dependencies]
 nvidia = ["openai>=1.0,<2.0"]
 dev = [
-  "pytest>=8.2,<9.0"
+  "pytest>=8.2,<9.0",
+  "pytest-asyncio>=0.24,<1.0",
 ]
 
 [project.scripts]
@@ -42,3 +43,4 @@ include = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+asyncio_mode = "auto"
