@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from collections import defaultdict, deque
-from typing import Any
+from collections import defaultdict
 
 from decision_system.workflow_engine.models import WorkflowDefinition
 
@@ -40,7 +39,7 @@ class DAGValidator:
                     f"Connection target node '{conn.target_node}' not found in workflow nodes"
                 ))
 
-        # Check for cycles
+        # Check for cycles (checks exist regardless of missing-node errors)
         cycle = DAGValidator._find_cycle(wf)
         if cycle:
             errors.append(CyclicDAGError(

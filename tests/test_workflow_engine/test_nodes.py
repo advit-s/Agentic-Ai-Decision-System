@@ -12,6 +12,9 @@ from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
 from decision_system.workflow_engine.nodes.builtin.flow_nodes import (
     FilterNode, MergeNode, CodeNode,
 )
+from decision_system.workflow_engine.nodes.builtin.data_nodes import (
+    ExtractGraphNode, ProfileDataNode, WarRoomNode,
+)
 
 
 class SimpleNode(WorkflowNode):
@@ -170,3 +173,58 @@ class TestMergeNode:
         result = await node.execute({"a": 1, "b": 2}, ctx)
         assert result["a"] == 1
         assert result["b"] == 2
+
+
+class TestExtractGraphNode:
+    @pytest.mark.asyncio
+    async def test_empty_chunks(self):
+        node = ExtractGraphNode(id="n1", type="decision_system.extract_graph")
+        ctx = ExecutionContext(workflow_id="wf1", execution_id="e1")
+        result = await node.execute({"chunks": []}, ctx)
+        assert result["entity_count"] == 0
+
+
+class TestProfileDataNode:
+    @pytest.mark.asyncio
+    async def test_nonexistent_catalog(self):
+        node = ProfileDataNode(
+            id="n1", type="decision_system.profile_data",
+            config={"catalog_path": "/tmp/nonexistent_catalog_xyz"},
+        )
+        ctx = ExecutionContext(workflow_id="wf1", execution_id="e1")
+        result = await node.execute({}, ctx)
+        assert result["count"] == 0
+
+
+class TestWarRoomNode:
+    @pytest.mark.asyncio
+    async def test_empty_question(self):
+        node = WarRoomNode(id="n1", type="decision_system.war_room")
+        ctx = ExecutionContext(workflow_id="wf1", execution_id="e1")
+        result = await node.execute({}, ctx)
+        assert result["artifact_count"] >= 0
+
+
+class TestDefaultRegistry:
+    def test_create_default_registry_contains_all_builtins(self):
+        from decision_system.workflow_engine.nodes import create_default_registry
+        registry = create_default_registry()
+        types = registry.list_types()
+        type_names = {t.type for t in types}
+        assert "decision_system.trigger_manual" in type_names
+        assert "decision_system.retrieve" in type_names
+        assert "decision_system.technical_analyst" in type_names
+        assert "decision_system.risk_analyst" in type_names
+        assert "decision_system.extract_claims" in type_names
+        assert "decision_system.verify_claims" in type_names
+        assert "decision_system.write_report" in type_names
+        assert "decision_system.extract_graph" in type_names
+        assert "decision_system.profile_data" in type_names
+        assert "decision_system.map_ontology" in type_names
+        assert "decision_system.detect_patterns" in type_names
+        assert "decision_system.war_room" in type_names
+        assert "decision_system.input_text" in type_names
+        assert "decision_system.filter" in type_names
+        assert "decision_system.merge" in type_names
+        assert "decision_system.code" in type_names
+        assert len(type_names) == 16

@@ -129,6 +129,15 @@ try:
 except ImportError:
     pass
 
+# ---------------------------------------------------------------------------
+# Workflow engine sub-commands (Phase 1) -- node-based DAG workflows.
+# ---------------------------------------------------------------------------
+try:
+    from decision_system.workflow_engine.cli import app as workflow_app  # noqa: E402
+    app.add_typer(workflow_app, name="workflow", help="Create, validate, and run workflows")
+except ImportError:
+    pass
+
 console = Console()
 
 

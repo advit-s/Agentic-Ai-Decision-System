@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from decision_system.workflow_engine.models import (
-    WorkflowNode, NodeTypeInfo, NodeConfig,
+    WorkflowNode, NodeTypeInfo,
 )
 
 
@@ -20,9 +20,24 @@ class NodeRegistry:
     def __init__(self) -> None:
         self._types: dict[str, type[WorkflowNode]] = {}
 
+    @staticmethod
+    def _get_field_default(node_cls: type[WorkflowNode], field_name: str) -> Any:
+        """Get the default value of a Pydantic model field.
+
+        Pydantic v2 does not expose field defaults as class-level attributes,
+        so we use model_fields to look them up.
+        """
+        field_info = node_cls.model_fields.get(field_name)
+        if field_info is None:
+            return None
+        # For fields with a default value (not required), return the default
+        if not field_info.is_required():
+            return field_info.default
+        return None
+
     def register(self, node_cls: type[WorkflowNode]) -> None:
         """Register a node type. Raises ValueError on duplicate."""
-        node_type = self._get_node_type(node_cls)
+        node_type = self._get_field_default(node_cls, "type")
         if not node_type:
             raise ValueError(f"Node class {node_cls.__name__} must have a 'type' attribute")
         if node_type in self._types:
@@ -49,7 +64,7 @@ class NodeRegistry:
                 output_schema = {}
             result.append(NodeTypeInfo(
                 type=node_type,
-                label=self._get_label(node_cls) or node_type,
+                label=self._get_field_default(node_cls, "label") or node_type,
                 description=getattr(node_cls, "__doc__", "") or "",
                 config_schema=config_schema,
                 input_schema=input_schema,
@@ -61,27 +76,6 @@ class NodeRegistry:
         """Create a node instance from a type string and overrides."""
         node_cls = self.get(node_type)
         return node_cls(**overrides)
-
-    @staticmethod
-    def _get_node_type(node_cls: type[WorkflowNode]) -> str | None:
-        """Get the type field value from a WorkflowNode subclass.
-
-        Uses model_fields to handle Pydantic V2 ABC field storage.
-        """
-        fields = getattr(node_cls, "model_fields", {})
-        type_field = fields.get("type")
-        if type_field is not None:
-            return type_field.default
-        return getattr(node_cls, "type", None)
-
-    @staticmethod
-    def _get_label(node_cls: type[WorkflowNode]) -> str:
-        """Get the label field value from a WorkflowNode subclass."""
-        fields = getattr(node_cls, "model_fields", {})
-        label_field = fields.get("label")
-        if label_field is not None and label_field.default:
-            return label_field.default
-        return getattr(node_cls, "label", "") or ""
 
     def __contains__(self, node_type: str) -> bool:
         return node_type in self._types

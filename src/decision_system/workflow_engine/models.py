@@ -28,15 +28,6 @@ class Connection(BaseModel):
     target_input: str = "default"
 
 
-class RetryConfig(BaseModel):
-    """Retry configuration for node execution."""
-    max_attempts: int = 3
-    base_delay: float = 1.0
-    max_delay: float = 60.0
-    backoff_multiplier: float = 2.0
-    retryable_errors: list[str] = Field(default_factory=lambda: ["Timeout", "RateLimit"])
-
-
 class NodeConfig(BaseModel):
     """Reference to a node instance within a workflow definition."""
     id: str
@@ -47,6 +38,15 @@ class NodeConfig(BaseModel):
     retry_config: RetryConfig | None = None
     position_x: float = 0
     position_y: float = 0
+
+
+class RetryConfig(BaseModel):
+    """Retry configuration for node execution."""
+    max_attempts: int = 3
+    base_delay: float = 1.0
+    max_delay: float = 60.0
+    backoff_multiplier: float = 2.0
+    retryable_errors: list[str] = Field(default_factory=lambda: ["Timeout", "RateLimit"])
 
 
 class WorkflowDefinition(BaseModel):

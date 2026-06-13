@@ -30,6 +30,7 @@ from decision_system.api import routes_security
 from decision_system.api import routes_workspaces
 from decision_system.api import routes_enterprise
 from decision_system.api import routes_observability
+from decision_system.workflow_engine.api import router as routes_workflow
 
 
 def _lazy_router(api: FastAPI, module_name: str) -> None:
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     api.include_router(routes_workspaces.router)
     api.include_router(routes_enterprise.router)
     api.include_router(routes_observability.router)
+    api.include_router(routes_workflow)
 
     # --- Heavy routes (lazy-loaded — skip silently if deps absent) ---
     _lazy_router(api, "decision_system.api.routes_documents")

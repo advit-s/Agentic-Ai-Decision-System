@@ -1,1 +1,1 @@
-"""Engine — DAG validation, topological sort, and execution."""
+"""Engine — DAG validation, topological sort, executor, and events."""

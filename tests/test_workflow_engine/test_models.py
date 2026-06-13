@@ -17,6 +17,7 @@ from decision_system.workflow_engine.models import (
     RetryConfig,
     NodeTypeInfo,
 )
+from decision_system.workflow_engine.engine.events import ExecutionEvent
 
 
 class TestConnection:
@@ -151,9 +152,6 @@ class TestWorkflowNode:
 
         with pytest.raises(TypeError):
             IncompleteNode(id="n1", type="test", label="Test")  # type: ignore
-
-
-from decision_system.workflow_engine.engine.events import ExecutionEvent
 
 
 class TestExecutionEvent:
