@@ -6,6 +6,7 @@ import {
   MOCK_EXECUTION_STATE,
   MOCK_EXECUTION_EVENTS,
   MOCK_SCHEDULES,
+  MOCK_PROVIDERS,
 } from "./mockData";
 
 const API_BASE_KEY = "wfBuilderApiBaseUrl";
@@ -216,6 +217,59 @@ function toggleSchedule(id) {
   return apiFetch(`/schedules/${id}/toggle`, { method: "POST" });
 }
 
+// --- Providers ---
+let _mockProviders = [...MOCK_PROVIDERS];
+
+function listProviders() {
+  if (isMockMode()) return Promise.resolve({ providers: [..._mockProviders] });
+  return apiFetch("/providers");
+}
+
+function createProvider(provider) {
+  if (isMockMode()) {
+    const p = { ...provider, api_key_configured: false };
+    _mockProviders.push(p);
+    return Promise.resolve(p);
+  }
+  return apiFetch("/providers", { method: "POST", body: JSON.stringify(provider) });
+}
+
+function deleteProvider(name) {
+  if (isMockMode()) {
+    _mockProviders = _mockProviders.filter((p) => p.name !== name);
+    return Promise.resolve({ status: "deleted", name });
+  }
+  return apiFetch(`/providers/${name}`, { method: "DELETE" });
+}
+
+function checkProvider(name) {
+  if (isMockMode()) {
+    return Promise.resolve({ status: "ok", provider: name, model: "mock-model", response: "ok" });
+  }
+  return apiFetch(`/providers/${name}/check`, { method: "POST" });
+}
+
+function setDefaultProvider(name) {
+  if (isMockMode()) {
+    const idx = _mockProviders.findIndex((p) => p.name === name);
+    if (idx < 0) return Promise.reject(new Error("Provider not found"));
+    const [provider] = _mockProviders.splice(idx, 1);
+    _mockProviders.unshift(provider);
+    return Promise.resolve({ status: "ok", default_provider: provider });
+  }
+  return apiFetch("/providers/system/default", { method: "POST", body: JSON.stringify({ name }) });
+}
+
+function updateProvider(name, updates) {
+  if (isMockMode()) {
+    const idx = _mockProviders.findIndex((p) => p.name === name);
+    if (idx < 0) return Promise.reject(new Error("Provider not found"));
+    _mockProviders[idx] = { ..._mockProviders[idx], ...updates };
+    return Promise.resolve({ ..._mockProviders[idx] });
+  }
+  return apiFetch(`/providers/${name}`, { method: "PUT", body: JSON.stringify(updates) });
+}
+
 export {
   getBaseUrl,
   isMockMode,
@@ -233,4 +287,10 @@ export {
   updateSchedule,
   deleteSchedule,
   toggleSchedule,
+  listProviders,
+  createProvider,
+  deleteProvider,
+  checkProvider,
+  setDefaultProvider,
+  updateProvider,
 };

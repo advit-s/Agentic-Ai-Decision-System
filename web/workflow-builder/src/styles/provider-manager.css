@@ -1,0 +1,250 @@
+/* styles/provider-manager.css */
+
+.provider-manager {
+  background: #1e1e2e;
+  border-left: 1px solid #313244;
+  width: 360px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: #cdd6f4;
+  overflow-y: auto;
+}
+
+.provider-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #313244;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.provider-header-actions button {
+  background: #313244;
+  border: none;
+  color: #cdd6f4;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.provider-header-actions button:hover {
+  background: #45475a;
+}
+
+.provider-list {
+  padding: 8px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.provider-empty {
+  text-align: center;
+  color: #6c7086;
+  padding: 40px 16px;
+  font-style: italic;
+}
+
+.provider-card {
+  background: #181825;
+  border: 1px solid #313244;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.provider-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.provider-name {
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.provider-default-badge {
+  color: #f9e2af;
+  font-size: 16px;
+}
+
+.provider-card-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.provider-card-actions button {
+  background: none;
+  border: 1px solid #45475a;
+  color: #cdd6f4;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.provider-card-actions button:hover:not(:disabled) {
+  background: #45475a;
+}
+
+.provider-card-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.default-btn {
+  color: #f9e2af !important;
+}
+
+.delete-btn:hover {
+  color: #f38ba8 !important;
+  border-color: #f38ba8 !important;
+}
+
+.provider-detail {
+  font-size: 12px;
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.provider-detail strong {
+  color: #a6adc8;
+}
+
+.key-configured {
+  color: #a6e3a1;
+}
+
+.key-missing {
+  color: #f38ba8;
+}
+
+.provider-test-row {
+  margin-top: 8px;
+}
+
+.test-btn {
+  background: #313244;
+  border: none;
+  color: #cdd6f4;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background 0.15s;
+}
+
+.test-btn:hover:not(:disabled) {
+  background: #45475a;
+}
+
+.test-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.provider-test-result {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.provider-test-result.ok {
+  background: #1e3a2f;
+  color: #a6e3a1;
+}
+
+.provider-test-result.error {
+  background: #3a1e1e;
+  color: #f38ba8;
+}
+
+.provider-add-form {
+  background: #181825;
+  border: 1px solid #45475a;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.provider-add-form h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #cdd6f4;
+}
+
+.provider-add-form label {
+  display: block;
+  font-size: 11px;
+  color: #a6adc8;
+  margin-bottom: 3px;
+  margin-top: 8px;
+}
+
+.provider-add-form label:first-of-type {
+  margin-top: 0;
+}
+
+.provider-add-form input {
+  width: 100%;
+  background: #1e1e2e;
+  border: 1px solid #45475a;
+  border-radius: 4px;
+  padding: 6px 8px;
+  color: #cdd6f4;
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.provider-add-form input:focus {
+  border-color: #89b4fa;
+}
+
+.provider-add-form button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 12px;
+  background: #45475a;
+  border: none;
+  border-radius: 6px;
+  color: #cdd6f4;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.provider-add-form button:hover:not(:disabled) {
+  background: #585b70;
+}
+
+.provider-add-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.provider-form-error {
+  color: #f38ba8;
+  font-size: 12px;
+  margin-top: 8px;
+}

@@ -1,3 +1,31 @@
+## [1.12.0] - 2026-06-13
+
+### Added
+- Phase 5: Real LLM Provider Integration — transform AI analysis nodes from fake-only to real LLM-powered.
+- Provider configuration system: JSON file-backed ProviderStore with named provider instances.
+- Unified `openai_compat` API type: works with any OpenAI-compatible `/chat/completions` endpoint (opencode, OpenAI, OpenRouter, NVIDIA NIM, Groq, Cerebras, Gemini, Ollama, etc.).
+- `ProviderConfig` model with `name`, `api_base`, `api_key_env`, `default_model` and built-in validators.
+- `LLMClient` — async HTTP client using httpx with SSE streaming, token accumulation, and error mapping.
+- Exception hierarchy: `ProviderError`, `AuthenticationError`, `RateLimitError`, `ModelNotFoundError`, `TimeoutError`.
+- Provider resolution order: per-node override → system default (first in list) → None (fake fallback).
+- 5 AI nodes wired for real LLM calls: TechAnalystNode, RiskAnalystNode, ExtractClaimsNode, VerifyClaimsNode, WriteReportNode.
+- Provider CRUD API routes: GET/POST/PUT/DELETE `/providers/{name}`, POST `/providers/{name}/check`, POST `/providers/system/default`.
+- CLI provider commands: `decision-system workflow provider {list,add,remove,set-default,check}`.
+- ProviderManager React component with provider cards, add form, test connection, and set-default controls.
+- Frontend mock API + mock data for providers in mock mode.
+- 10 AI node integration tests (fake fallback + LLM path for each node).
+- 16 provider API route tests (CRUD, validation, error handling).
+- First-is-default semantics: first provider in config is the system default.
+
+### Changed
+- Project version is now 1.12.0.
+- `DAGEngine` constructor accepts optional `provider_store` parameter.
+- `ExecutionContext.resolve_provider()` for provider resolution in nodes.
+- Built-in node config schemas updated with provider/model fields.
+- httpx added as core dependency; pytest-httpx as dev dependency.
+- Cleaned up fallback paths in decision_nodes.py to correctly call legacy fake functions.
+- Removed `nvidia` optional dependency.
+
 ## [1.11.0] - 2026-06-13
 
 ### Added

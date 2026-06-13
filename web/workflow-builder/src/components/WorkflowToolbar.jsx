@@ -10,7 +10,9 @@ function WorkflowToolbar({
   onExecute,
   onExport,
   onSchedules,
+  onProviders,
   schedulePanel,
+  providerPanel,
   workflows,
   currentWorkflowName,
   isExecuting,
@@ -42,6 +44,13 @@ function WorkflowToolbar({
           title="Manage schedules"
         >
           📅 Schedules
+        </button>
+        <button
+          className={`toolbar-btn ${providerPanel ? "toolbar-btn-active" : ""}`}
+          onClick={onProviders}
+          title="Manage LLM providers"
+        >
+          🤖 Providers
         </button>
       </div>
       <div className="toolbar-center">

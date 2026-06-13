@@ -7,6 +7,7 @@ import NodePalette from "./components/NodePalette";
 import ConfigPanel from "./components/ConfigPanel";
 import ExecutionPanel from "./components/ExecutionPanel";
 import ScheduleManager from "./components/ScheduleManager";
+import ProviderManager from "./components/ProviderManager";
 import NodeComponent from "./components/NodeComponent";
 import { ToastProvider, useToast } from "./components/Toast";
 import {
@@ -42,6 +43,7 @@ function CanvasInner() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionPanel, setExecutionPanel] = useState(false);
   const [schedulePanel, setSchedulePanel] = useState(false);
+  const [providerPanel, setProviderPanel] = useState(false);
   const [nodeStatuses, setNodeStatuses] = useState([]);
   const [elapsed, setElapsed] = useState(0);
   const [workflowStatus, setWorkflowStatus] = useState(null);
@@ -403,8 +405,15 @@ function CanvasInner() {
         onSchedules={() => {
           setSchedulePanel(!schedulePanel);
           setExecutionPanel(false);
+          setProviderPanel(false);
+        }}
+        onProviders={() => {
+          setProviderPanel(!providerPanel);
+          setSchedulePanel(false);
+          setExecutionPanel(false);
         }}
         schedulePanel={schedulePanel}
+        providerPanel={providerPanel}
         workflows={workflows}
         currentWorkflowName={currentWorkflowName}
         isExecuting={isExecuting}
@@ -439,6 +448,8 @@ function CanvasInner() {
             workflowId={currentWorkflowId}
             onClose={() => setSchedulePanel(false)}
           />
+        ) : providerPanel ? (
+          <ProviderManager onClose={() => setProviderPanel(false)} />
         ) : (
           <ConfigPanel
             selectedNode={selectedNode}

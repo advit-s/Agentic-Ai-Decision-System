@@ -450,3 +450,158 @@ def toggle_schedule(
 
 # Register the schedule sub-app
 app.add_typer(schedule_app, name="schedule", help="Manage workflow schedules and triggers.")
+
+
+# --- Providers sub-app ---
+
+provider_app = typer.Typer(help="Manage LLM provider configurations.")
+
+
+@provider_app.command(name="list")
+def list_providers(
+    show_keys: bool = typer.Option(
+        False, "--show-keys", "-k", help="Show API key status",
+    ),
+) -> None:
+    """List all configured LLM providers."""
+    from decision_system.workflow_engine.providers.store import ProviderStore
+
+    store = ProviderStore()
+    providers = store.check() if show_keys else [
+        {"name": p.name, "api_base": p.api_base, "default_model": p.default_model}
+        for p in store.load()
+    ]
+
+    if not providers:
+        console.print("No providers configured.")
+        return
+
+    table = Table(title=f"Providers ({len(providers)})")
+    table.add_column("Name", style="cyan")
+    table.add_column("API Base")
+    table.add_column("Model", style="green")
+    if show_keys:
+        table.add_column("Key Configured", style="yellow")
+
+    for p in providers:
+        if show_keys:
+            key_str = "[green]Yes[/green]" if p["api_key_configured"] else "[red]No[/red]"
+            table.add_row(p["name"], p["api_base"], p["default_model"], key_str)
+        else:
+            table.add_row(p["name"], p["api_base"], p["default_model"])
+    console.print(table)
+
+
+@provider_app.command(name="add")
+def add_provider(
+    name: str = typer.Argument(..., help="Provider name"),
+    api_base: str = typer.Argument(..., help="API base URL"),
+    default_model: str = typer.Argument(..., help="Default model name"),
+    api_key_env: str | None = typer.Option(
+        None, "--api-key-env", "-e", help="Environment variable for API key",
+    ),
+) -> None:
+    """Add a new LLM provider configuration."""
+    from decision_system.workflow_engine.providers.store import (
+        ProviderConfig, ProviderStore, DuplicateProviderError,
+    )
+
+    store = ProviderStore()
+    cfg = ProviderConfig(
+        name=name,
+        api_base=api_base,
+        api_key_env=api_key_env,
+        default_model=default_model,
+    )
+    try:
+        store.add(cfg)
+    except DuplicateProviderError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1)
+
+    console.print(f"[green]✓[/green] Added provider '{name}' ({api_base})")
+
+
+@provider_app.command(name="remove")
+def remove_provider(
+    name: str = typer.Argument(..., help="Provider name to remove"),
+) -> None:
+    """Remove a provider configuration."""
+    from decision_system.workflow_engine.providers.store import (
+        ProviderStore, ProviderNotFoundError,
+    )
+
+    store = ProviderStore()
+    try:
+        store.remove(name)
+    except ProviderNotFoundError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1)
+
+    console.print(f"[green]✓[/green] Removed provider '{name}'")
+
+
+@provider_app.command(name="set-default")
+def set_default_provider(
+    name: str = typer.Argument(..., help="Provider name to set as default"),
+) -> None:
+    """Set a provider as the system default (first in list)."""
+    from decision_system.workflow_engine.providers.store import (
+        ProviderStore, ProviderNotFoundError,
+    )
+
+    store = ProviderStore()
+    try:
+        store.set_default(name)
+    except ProviderNotFoundError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1)
+
+    console.print(f"[green]✓[/green] Provider '{name}' is now the default")
+
+
+@provider_app.command(name="check")
+def check_provider(
+    name: str = typer.Argument(..., help="Provider name to test"),
+    model: str | None = typer.Option(
+        None, "--model", "-m", help="Model to use (default: provider's default)",
+    ),
+) -> None:
+    """Test a provider connection with a simple chat completion."""
+    import asyncio
+    from decision_system.workflow_engine.providers.store import ProviderStore
+    from decision_system.workflow_engine.providers.client import LLMClient
+
+    store = ProviderStore()
+    cfg = store.get(name)
+    if cfg is None:
+        console.print(f"[red]Provider '{name}' not found[/red]")
+        raise typer.Exit(1)
+
+    effective_model = model or cfg.default_model
+    key_configured = False
+    if cfg.api_key_env:
+        import os
+        key_configured = os.environ.get(cfg.api_key_env) is not None
+
+    if cfg.api_key_env and not key_configured:
+        console.print(f"[yellow]Warning:[/yellow] {cfg.api_key_env} is not set in environment")
+
+    console.print(f"Testing provider [cyan]{name}[/cyan] with model [green]{effective_model}[/green]...")
+    console.print(f"  API: {cfg.api_base}")
+
+    client = LLMClient(cfg)
+    try:
+        result = asyncio.run(client.chat_completion(
+            messages=[{"role": "user", "content": "Reply with only the word 'ok'."}],
+            model=effective_model,
+            stream=False,
+        ))
+        console.print(f"[green]✓[/green] Response: {result.strip()}")
+    except Exception as exc:
+        console.print(f"[red]✗[/red] {type(exc).__name__}: {exc}")
+        raise typer.Exit(1)
+
+
+# Register the provider sub-app
+app.add_typer(provider_app, name="provider", help="Manage LLM provider configurations.")

@@ -389,3 +389,207 @@ class TestAutoSchedule:
         # Schedule should be deleted
         sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
         assert len(sched_resp.json()["schedules"]) == 0
+
+
+class TestProviderAPI:
+    """Tests for LLM provider CRUD API routes.
+
+    Note: provider store persists to file, so state carries across test runs.
+    Each test cleans up providers it creates. The class teardown resets the
+    store to its default state.
+    """
+
+    @classmethod
+    def setup_class(cls):
+        """Clean up any test providers left from previous runs."""
+        from decision_system.workflow_engine.api import _provider_store
+        providers = _provider_store.load()
+        # Remove any providers that aren't in the defaults
+        defaults = {"opencode"}
+        for p in list(providers):
+            if p.name not in defaults:
+                providers.remove(p)
+        _provider_store.save(providers)
+
+    @classmethod
+    def teardown_class(cls):
+        """Reset provider store to defaults after all tests run."""
+        from decision_system.workflow_engine.api import _provider_store
+        from decision_system.workflow_engine.providers.store import DEFAULT_PROVIDERS
+        _provider_store.save(list(DEFAULT_PROVIDERS))
+
+    def _provider_names(self, client):
+        """Helper: get current provider names."""
+        return [p["name"] for p in client.get("/providers").json()["providers"]]
+
+    def test_list_providers(self, client):
+        """GET /providers returns the provider list with key status."""
+        resp = client.get("/providers")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "providers" in data
+        assert len(data["providers"]) >= 1
+        names = [p["name"] for p in data["providers"]]
+        assert "opencode" in names
+
+    def test_list_providers_has_key_status(self, client):
+        """Each provider entry includes api_key_configured boolean."""
+        resp = client.get("/providers")
+        assert resp.status_code == 200
+        for p in resp.json()["providers"]:
+            assert "api_key_configured" in p
+            assert isinstance(p["api_key_configured"], bool)
+
+    def test_create_provider(self, client):
+        """POST /providers adds a new provider."""
+        name = "test-create-provider"
+        client.delete(f"/providers/{name}")  # clean up any leftover
+
+        resp = client.post("/providers", json={
+            "name": name,
+            "api_base": "https://test.api/v1",
+            "api_key_env": "TEST_KEY",
+            "default_model": "test-model",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["name"] == name
+        assert data["api_base"] == "https://test.api/v1"
+
+        # Verify it appears in the list
+        assert name in self._provider_names(client)
+        client.delete(f"/providers/{name}")
+
+    def test_create_duplicate_provider(self, client):
+        """POST /providers with duplicate name returns 409."""
+        name = "test-dupe-provider"
+        client.delete(f"/providers/{name}")
+        client.post("/providers", json={
+            "name": name,
+            "api_base": "https://first.api/v1",
+            "default_model": "m1",
+        })
+
+        resp = client.post("/providers", json={
+            "name": name,
+            "api_base": "https://second.api/v1",
+            "default_model": "m1",
+        })
+        assert resp.status_code == 409
+        client.delete(f"/providers/{name}")
+
+    def test_create_provider_invalid_api_base(self, client):
+        """POST /providers with invalid api_base returns 422."""
+        resp = client.post("/providers", json={
+            "name": "bad-provider",
+            "api_base": "not-a-url",
+            "default_model": "m1",
+        })
+        assert resp.status_code == 422
+
+    def test_get_provider(self, client):
+        """GET /providers/{name} returns the provider config."""
+        resp = client.get("/providers/opencode")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["name"] == "opencode"
+        assert "api_base" in data
+
+    def test_get_nonexistent_provider(self, client):
+        """GET /providers/{name} with unknown name returns 404."""
+        resp = client.get("/providers/does-not-exist")
+        assert resp.status_code == 404
+
+    def test_update_provider(self, client):
+        """PUT /providers/{name} updates provider fields."""
+        resp = client.put("/providers/opencode", json={
+            "default_model": "claude-sonnet-4-20250514",
+            "api_key_env": "CUSTOM_KEY",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["default_model"] == "claude-sonnet-4-20250514"
+        assert data["api_key_env"] == "CUSTOM_KEY"
+
+        # Restore to avoid affecting other tests
+        client.put("/providers/opencode", json={
+            "default_model": "claude-sonnet-4-20250514",
+            "api_key_env": "OPENCODE_API_KEY",
+        })
+
+    def test_update_nonexistent_provider(self, client):
+        """PUT /providers/{name} with unknown name returns 404."""
+        resp = client.put("/providers/does-not-exist", json={
+            "default_model": "m1",
+        })
+        assert resp.status_code == 404
+
+    def test_delete_provider(self, client):
+        """DELETE /providers/{name} removes a provider."""
+        name = "test-delete-provider"
+        client.delete(f"/providers/{name}")
+        client.post("/providers", json={
+            "name": name,
+            "api_base": "https://delete.me/v1",
+            "default_model": "m1",
+        })
+
+        resp = client.delete(f"/providers/{name}")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "deleted"
+
+        # Verify gone
+        get_resp = client.get(f"/providers/{name}")
+        assert get_resp.status_code == 404
+
+    def test_delete_nonexistent_provider(self, client):
+        """DELETE /providers/{name} with unknown name returns 404."""
+        resp = client.delete("/providers/does-not-exist")
+        assert resp.status_code == 404
+
+    def test_check_provider_returns_result(self, client):
+        """POST /providers/{name}/check returns connection test result."""
+        resp = client.post("/providers/opencode/check")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "provider" in data
+        assert data["provider"] == "opencode"
+
+    def test_check_nonexistent_provider(self, client):
+        """POST /providers/{name}/check with unknown name returns 404."""
+        resp = client.post("/providers/does-not-exist/check")
+        assert resp.status_code == 404
+
+    def test_set_default_provider(self, client):
+        """POST /providers/system/default sets and reorders providers."""
+        name = "test-default-provider"
+        client.delete(f"/providers/{name}")
+        client.post("/providers", json={
+            "name": name,
+            "api_base": "https://test-default.api/v1",
+            "default_model": "m2",
+        })
+
+        resp = client.post("/providers/system/default", json={"name": name})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert data["default_provider"]["name"] == name
+
+        # Verify it's now first in the list
+        list_resp = client.get("/providers")
+        assert list_resp.json()["providers"][0]["name"] == name
+
+        # Restore opencode as default
+        client.post("/providers/system/default", json={"name": "opencode"})
+        client.delete(f"/providers/{name}")
+
+    def test_set_default_missing_name(self, client):
+        """POST /providers/system/default without name returns 400."""
+        resp = client.post("/providers/system/default", json={})
+        assert resp.status_code == 400
+
+    def test_set_default_nonexistent(self, client):
+        """POST /providers/system/default with unknown name returns 404."""
+        resp = client.post("/providers/system/default", json={"name": "no-such-provider"})
+        assert resp.status_code == 404

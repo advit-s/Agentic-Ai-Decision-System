@@ -2,15 +2,19 @@
 
 Each node wraps an existing decision-system capability. All use the
 fake provider by default and require no API keys for execution.
+When a real LLM provider is configured, the nodes call it via
+LLMClient for AI-powered analysis, claim extraction, and report writing.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from decision_system.workflow_engine.models import (
     WorkflowNode, ExecutionContext,
 )
+from decision_system.workflow_engine.providers.client import LLMClient
 
 
 class RetrieveNode(WorkflowNode):
@@ -89,13 +93,47 @@ class TechAnalystNode(WorkflowNode):
     label: str = "Technical Analyst"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
+        # Try real provider first
+        provider_cfg = ctx.resolve_provider(
+            self.config.get("provider"),
+            self.config.get("model"),
+        )
+        if provider_cfg is not None:
+            cfg, model = provider_cfg
+            question = inputs.get("question") or ""
+            chunks = inputs.get("chunks") or []
+            context = "\n".join(c.get("text", "") for c in chunks if isinstance(c, dict))
+
+            client = LLMClient(cfg)
+            result = await client.chat_completion(
+                messages=[
+                    {"role": "system", "content": (
+                        "You are a senior technical analyst examining company data. "
+                        "Analyze the provided documents and identify technical patterns, "
+                        "architecture issues, and implementation concerns. "
+                        "Return your analysis as structured JSON with 'findings' array."
+                    )},
+                    {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
+                ],
+                model=model,
+                stream=False,
+            )
+            return {"analysis": result, "memo": {"raw": result}}
+
+        # Fallback to fake provider
         from decision_system.agents.technical_analyst import run_technical_analysis
+        from decision_system.models import EvidenceChunk
 
         question = inputs.get("question") or ""
         chunks = inputs.get("chunks") or []
-        provider = self.config.get("provider", ctx.provider)
+        evidence = [
+            EvidenceChunk(**c) if isinstance(c, dict) and "text" in c
+            else EvidenceChunk(text=str(c), evidence_id="", document_id="",
+                               source_path="", source_filename="", chunk_id="")
+            for c in chunks
+        ]
 
-        memo = run_technical_analysis(question=question, chunks=chunks, provider=provider)
+        memo = run_technical_analysis(question=question, evidence=evidence, provider=None)
         return {
             "memo": memo.model_dump() if hasattr(memo, "model_dump") else memo,
             "analysis": str(memo),
@@ -140,13 +178,47 @@ class RiskAnalystNode(WorkflowNode):
     label: str = "Risk Analyst"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
+        # Try real provider first
+        provider_cfg = ctx.resolve_provider(
+            self.config.get("provider"),
+            self.config.get("model"),
+        )
+        if provider_cfg is not None:
+            cfg, model = provider_cfg
+            question = inputs.get("question") or ""
+            chunks = inputs.get("chunks") or []
+            context = "\n".join(c.get("text", "") for c in chunks if isinstance(c, dict))
+
+            client = LLMClient(cfg)
+            result = await client.chat_completion(
+                messages=[
+                    {"role": "system", "content": (
+                        "You are a risk analyst evaluating business risks. "
+                        "Analyze the provided context and identify potential risks, "
+                        "their severity, and mitigations. "
+                        "Return your analysis as structured JSON with 'risks' array."
+                    )},
+                    {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
+                ],
+                model=model,
+                stream=False,
+            )
+            return {"analysis": result, "memo": {"raw": result}}
+
+        # Fallback to fake provider
         from decision_system.agents.risk_analyst import run_risk_analysis
+        from decision_system.models import EvidenceChunk
 
         question = inputs.get("question") or ""
         chunks = inputs.get("chunks") or []
-        provider = self.config.get("provider", ctx.provider)
+        evidence = [
+            EvidenceChunk(**c) if isinstance(c, dict) and "text" in c
+            else EvidenceChunk(text=str(c), evidence_id="", document_id="",
+                               source_path="", source_filename="", chunk_id="")
+            for c in chunks
+        ]
 
-        memo = run_risk_analysis(question=question, chunks=chunks, provider=provider)
+        memo = run_risk_analysis(question=question, evidence=evidence, technical_memo=None, provider=None)
         return {
             "memo": memo.model_dump() if hasattr(memo, "model_dump") else memo,
             "analysis": str(memo),
@@ -191,18 +263,62 @@ class ExtractClaimsNode(WorkflowNode):
     label: str = "Extract Claims"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
-        from decision_system.ledger.claim_ledger import ClaimLedger
+        # Try real provider first
+        provider_cfg = ctx.resolve_provider(
+            self.config.get("provider"),
+            self.config.get("model"),
+        )
+        if provider_cfg is not None:
+            cfg, model = provider_cfg
+            memo_text = str(inputs.get("memo", inputs.get("technical_memo", inputs.get("risk_memo", ""))))
+
+            client = LLMClient(cfg)
+            result = await client.chat_completion(
+                messages=[
+                    {"role": "system", "content": (
+                        "Extract factual claims from the following text. "
+                        "Each claim must be a single, verifiable statement. "
+                        "Return the claims as a JSON array of strings."
+                    )},
+                    {"role": "user", "content": memo_text},
+                ],
+                model=model,
+                stream=False,
+            )
+            try:
+                claims = json.loads(result)
+                if isinstance(claims, list):
+                    return {"claims": claims, "count": len(claims)}
+            except (json.JSONDecodeError, TypeError):
+                pass
+            return {"claims": [result], "count": 1}
+
+        # Fallback to rule-based claim extraction
+        from decision_system.models import Claim
+        from uuid import uuid4
 
         tech_memo = inputs.get("technical_memo") or inputs.get("memo", {})
         risk_memo = inputs.get("risk_memo") or inputs.get("memo", {})
 
-        ledger = ClaimLedger()
-        if isinstance(tech_memo, dict):
-            ledger.add_claims_from_memo(tech_memo)
-        if isinstance(risk_memo, dict):
-            ledger.add_claims_from_memo(risk_memo)
-
-        claims = ledger.get_all_claims()
+        claims = []
+        for memo, agent_name, claim_type in [
+            (tech_memo, "technical_analyst", "technical"),
+            (risk_memo, "risk_analyst", "risk"),
+        ]:
+            if isinstance(memo, dict):
+                for key in ("claims", "findings"):
+                    items = memo.get(key, [])
+                    if isinstance(items, list):
+                        for item in items:
+                            text = item.get("title", "") if isinstance(item, dict) else str(item)
+                            if text:
+                                claims.append(Claim(
+                                    claim_id=str(uuid4()),
+                                    run_id="",
+                                    source_agent=agent_name,
+                                    claim_text=text,
+                                    claim_type=claim_type,
+                                ))
         return {
             "claims": [c.model_dump() if hasattr(c, "model_dump") else c for c in claims],
             "count": len(claims),
@@ -240,13 +356,59 @@ class VerifyClaimsNode(WorkflowNode):
     label: str = "Verify Claims"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
+        # Try real provider first
+        provider_cfg = ctx.resolve_provider(
+            self.config.get("provider"),
+            self.config.get("model"),
+        )
+        if provider_cfg is not None:
+            cfg, model = provider_cfg
+            claims = inputs.get("claims") or []
+            chunks = inputs.get("chunks") or []
+            claims_text = json.dumps([c if isinstance(c, dict) else {"text": str(c)} for c in claims])
+            evidence_text = "\n".join(c.get("text", "") for c in chunks if isinstance(c, dict))
+
+            client = LLMClient(cfg)
+            result = await client.chat_completion(
+                messages=[
+                    {"role": "system", "content": (
+                        "Given these claims and the supporting evidence, verify each claim. "
+                        "Classify each as: supported, unsupported, or contradicted. "
+                        "Return the result as a JSON array of objects with "
+                        "'claim', 'status', and 'evidence' fields."
+                    )},
+                    {"role": "user", "content": f"Claims:\n{claims_text}\n\nEvidence:\n{evidence_text}"},
+                ],
+                model=model,
+                stream=False,
+            )
+            try:
+                verified = json.loads(result)
+                if isinstance(verified, list):
+                    return {"verified_claims": verified, "count": len(verified)}
+            except (json.JSONDecodeError, TypeError):
+                pass
+            return {"verified_claims": [{"raw": result}], "count": 1}
+
+        # Fallback to rule-based verifier
         from decision_system.ledger.verifier import verify_claims
+        from decision_system.models import Claim, EvidenceChunk
 
         claims = inputs.get("claims") or []
-        raw_claims = [c if isinstance(c, dict) else {} for c in claims]
         chunks = inputs.get("chunks") or []
+        raw_claims = [
+            Claim(**c) if isinstance(c, dict) and "claim_text" in c
+            else Claim(claim_id="", run_id="", source_agent="", claim_text=str(c), claim_type="technical")
+            for c in claims
+        ]
+        evidence = [
+            EvidenceChunk(**c) if isinstance(c, dict) and "text" in c
+            else EvidenceChunk(text=str(c), evidence_id="", document_id="",
+                               source_path="", source_filename="", chunk_id="")
+            for c in chunks
+        ]
 
-        verified = verify_claims(claims=raw_claims, chunks=chunks)
+        verified = verify_claims(claims=raw_claims, evidence=evidence)
         return {
             "verified_claims": [
                 v.model_dump() if hasattr(v, "model_dump") else v for v in verified
@@ -285,19 +447,56 @@ class WriteReportNode(WorkflowNode):
     label: str = "Write Report"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
+        # Try real provider first
+        provider_cfg = ctx.resolve_provider(
+            self.config.get("provider"),
+            self.config.get("model"),
+        )
+        if provider_cfg is not None:
+            cfg, model = provider_cfg
+            question = inputs.get("question") or ""
+            claims = inputs.get("verified_claims") or inputs.get("claims") or []
+            claims_text = json.dumps(claims, indent=2)
+
+            client = LLMClient(cfg)
+            result = await client.chat_completion(
+                messages=[
+                    {"role": "system", "content": (
+                        "Write a structured decision report based on the following "
+                        "verified claims, findings, and analysis. Include an executive "
+                        "summary, key findings, and recommendations. "
+                        "Use Markdown formatting."
+                    )},
+                    {"role": "user", "content": f"Question: {question}\n\nClaims:\n{claims_text}"},
+                ],
+                model=model,
+                stream=False,
+            )
+            return {
+                "report": result,
+                "format": self.config.get("format", "markdown"),
+                "length": len(result),
+            }
+
+        # Fallback to rule-based report renderer
         from decision_system.reports.renderer import render_decision_report
+        from decision_system.models import Claim
+        from uuid import uuid4
 
         question = inputs.get("question") or ""
         claims = inputs.get("verified_claims") or inputs.get("claims") or []
-        raw_claims = [c if isinstance(c, dict) else {} for c in claims]
-        chunks = inputs.get("chunks") or []
+        raw_claims = [
+            Claim(**c) if isinstance(c, dict) and "claim_text" in c
+            else Claim(claim_id=str(uuid4()), run_id="", source_agent="", claim_text=str(c), claim_type="technical")
+            for c in claims
+        ]
 
-        report_lines = render_decision_report(
+        report_obj = render_decision_report(
             question=question,
-            claims=[type("obj", (object,), c)() for c in raw_claims],  # simple compat
-            chunks=chunks,
+            run_id=ctx.execution_id,
+            claims=raw_claims,
         )
-        report = "\n".join(report_lines)
+        report = report_obj.markdown if hasattr(report_obj, "markdown") else str(report_obj)
 
         return {
             "report": report,
