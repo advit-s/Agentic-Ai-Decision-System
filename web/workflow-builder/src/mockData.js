@@ -299,6 +299,110 @@ const MOCK_NODE_TYPES = [
       },
     },
   },
+  // --- Phase 6: Specialist Agent Nodes ---
+  {
+    type: "decision_system.researcher",
+    label: "Researcher",
+    description: "Retrieve and synthesize information from connected data sources",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        provider: { type: "string", title: "Provider", default: "fake" },
+        max_sources: { type: "integer", title: "Max Sources", default: 5, minimum: 1, maximum: 50 },
+        depth: { type: "string", title: "Research Depth", default: "balanced", enum: ["quick", "balanced", "deep"] },
+      },
+    },
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Research question or topic" },
+        context: { type: "string", description: "Additional context" },
+      },
+      required: ["query"],
+    },
+    output_schema: {
+      type: "object",
+      properties: {
+        findings: { type: "array" },
+        summary: { type: "string" },
+        gaps: { type: "array" },
+        fallback_reason: { type: "string" },
+      },
+    },
+  },
+  {
+    type: "decision_system.critic",
+    label: "Critic / Judge",
+    description: "Review outputs for contradictions, unsupported claims, and logical fallacies",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        provider: { type: "string", title: "Provider", default: "fake" },
+        criteria: {
+          type: "array", title: "Review Criteria",
+          items: { type: "string", enum: ["contradictions", "unsupported_claims", "logical_fallacies", "confidence_calibration"] },
+          default: ["contradictions", "unsupported_claims"],
+        },
+        strictness: { type: "string", title: "Strictness", default: "balanced", enum: ["lenient", "balanced", "strict"] },
+      },
+    },
+    input_schema: {
+      type: "object",
+      properties: {
+        target_type: { type: "string", enum: ["claims_list", "report_text", "findings_list"] },
+        target_data: { type: "object", description: "Data to review" },
+      },
+      required: ["target_data"],
+    },
+    output_schema: {
+      type: "object",
+      properties: {
+        passed: { type: "boolean" },
+        issues: { type: "array" },
+        summary: { type: "string" },
+        confidence_adjustment: { type: "number" },
+        fallback_reason: { type: "string" },
+      },
+    },
+  },
+  {
+    type: "decision_system.synthesizer",
+    label: "Decision Synthesizer",
+    description: "Synthesize multiple evidence streams into weighted decisions",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        provider: { type: "string", title: "Provider", default: "fake" },
+        decision_framework: {
+          type: "string", title: "Decision Framework", default: "weighted_matrix",
+          enum: ["pros_cons", "weighted_matrix", "tiered_recommendation"],
+        },
+        max_options: { type: "integer", title: "Max Options", default: 5, minimum: 2, maximum: 10 },
+        include_risks: { type: "boolean", title: "Include Risk Assessments", default: true },
+      },
+    },
+    input_schema: {
+      type: "object",
+      properties: {
+        question: { type: "string", description: "Decision question" },
+        evidence_streams: { type: "array", description: "Evidence sources to synthesize" },
+        criteria: { type: "array", description: "Decision criteria with weights" },
+      },
+      required: ["question"],
+    },
+    output_schema: {
+      type: "object",
+      properties: {
+        options: { type: "array" },
+        recommendation: { type: "object" },
+        trade_offs_summary: { type: "string" },
+        fallback_reason: { type: "string" },
+      },
+    },
+  },
 ];
 
 const MOCK_WORKFLOWS = [
