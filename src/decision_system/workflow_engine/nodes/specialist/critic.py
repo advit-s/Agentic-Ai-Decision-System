@@ -230,6 +230,7 @@ class CriticNode(WorkflowNode):
                 self.config.get("model"),
             )
 
+            fallback_reason = ""
             if provider_cfg:
                 provider_config, _ = provider_cfg
                 try:
@@ -237,12 +238,17 @@ class CriticNode(WorkflowNode):
                     # Merge: use LLM issues when available, supplement with deterministic
                     if llm_issues:
                         issues = llm_issues
-                except Exception:
-                    pass  # Keep deterministic issues on LLM failure
+                except Exception as exc:
+                    fallback_reason = f"{type(exc).__name__}: {exc}"
+                    # Keep deterministic issues on LLM failure
 
             # Apply max_issues
-            if len(issues) > max_issues:
+            total_issues = len(issues)
+            if total_issues > max_issues:
                 issues = issues[:max_issues]
+                truncated_note = f" (showing first {max_issues})"
+            else:
+                truncated_note = ""
 
             passed = not any(i["severity"] in ("medium", "high") for i in issues)
             conf_adj = -min(len(issues) * 0.1, 0.5) if issues else 0.0
@@ -250,9 +256,9 @@ class CriticNode(WorkflowNode):
             return {
                 "passed": passed,
                 "issues": issues,
-                "summary": f"Found {len(issues)} issue(s). {'All clean.' if passed else 'Review recommended.'}",
+                "summary": f"Found {total_issues} issue(s){truncated_note}. {'All clean.' if passed else 'Review recommended.'}",
                 "confidence_adjustment": conf_adj,
-                "fallback_reason": "",
+                "fallback_reason": fallback_reason,
             }
 
         # Report text or findings (non-claims path) — try LLM
