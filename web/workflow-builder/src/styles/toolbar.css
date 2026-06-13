@@ -43,6 +43,16 @@
   cursor: not-allowed;
 }
 
+.toolbar-btn-active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.toolbar-btn-active:hover {
+  filter: brightness(1.1);
+}
+
 .toolbar-btn-primary {
   background: var(--color-primary);
   color: #fff;

@@ -6,6 +6,7 @@ import WorkflowToolbar from "./components/WorkflowToolbar";
 import NodePalette from "./components/NodePalette";
 import ConfigPanel from "./components/ConfigPanel";
 import ExecutionPanel from "./components/ExecutionPanel";
+import ScheduleManager from "./components/ScheduleManager";
 import NodeComponent from "./components/NodeComponent";
 import { ToastProvider, useToast } from "./components/Toast";
 import {
@@ -40,6 +41,7 @@ function CanvasInner() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionPanel, setExecutionPanel] = useState(false);
+  const [schedulePanel, setSchedulePanel] = useState(false);
   const [nodeStatuses, setNodeStatuses] = useState([]);
   const [elapsed, setElapsed] = useState(0);
   const [workflowStatus, setWorkflowStatus] = useState(null);
@@ -398,6 +400,11 @@ function CanvasInner() {
         onLoad={handleLoad}
         onExecute={handleExecute}
         onExport={handleExport}
+        onSchedules={() => {
+          setSchedulePanel(!schedulePanel);
+          setExecutionPanel(false);
+        }}
+        schedulePanel={schedulePanel}
         workflows={workflows}
         currentWorkflowName={currentWorkflowName}
         isExecuting={isExecuting}
@@ -426,6 +433,11 @@ function CanvasInner() {
               setExecutionPanel(false);
               setWorkflowStatus(null);
             }}
+          />
+        ) : schedulePanel ? (
+          <ScheduleManager
+            workflowId={currentWorkflowId}
+            onClose={() => setSchedulePanel(false)}
           />
         ) : (
           <ConfigPanel

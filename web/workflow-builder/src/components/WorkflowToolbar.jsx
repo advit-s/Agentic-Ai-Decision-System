@@ -9,6 +9,8 @@ function WorkflowToolbar({
   onLoad,
   onExecute,
   onExport,
+  onSchedules,
+  schedulePanel,
   workflows,
   currentWorkflowName,
   isExecuting,
@@ -33,6 +35,13 @@ function WorkflowToolbar({
         </button>
         <button className="toolbar-btn" onClick={onExport} title="Export as JSON">
           📋 Export
+        </button>
+        <button
+          className={`toolbar-btn ${schedulePanel ? "toolbar-btn-active" : ""}`}
+          onClick={onSchedules}
+          title="Manage schedules"
+        >
+          📅 Schedules
         </button>
       </div>
       <div className="toolbar-center">
