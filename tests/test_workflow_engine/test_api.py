@@ -254,3 +254,138 @@ class TestScheduleAPI:
         """POST /webhook/{path} returns 404 when no webhook matches."""
         resp = client.post("/webhook/unknown-path", json={})
         assert resp.status_code == 404
+
+
+class TestAutoSchedule:
+    """Tests for auto-scheduling when workflows with trigger nodes are saved."""
+
+    @pytest.fixture
+    def client(self):
+        app = create_app()
+        return TestClient(app)
+
+    def test_create_workflow_auto_schedules_cron(self, client):
+        """Creating a workflow with a cron trigger node auto-creates a schedule."""
+        resp = client.post("/workflows", json={
+            "name": "Auto Cron WF",
+            "nodes": [{
+                "id": "n1",
+                "type": "decision_system.trigger_cron",
+                "config": {"expression": "0 9 * * 1"},
+            }],
+        })
+        assert resp.status_code == 200
+        wf_id = resp.json()["id"]
+
+        # Check a schedule was auto-created
+        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        assert sched_resp.status_code == 200
+        data = sched_resp.json()
+        assert len(data["schedules"]) == 1
+        assert data["schedules"][0]["trigger_type"] == "cron"
+        assert data["schedules"][0]["trigger_config"]["expression"] == "0 9 * * 1"
+
+    def test_create_workflow_auto_schedules_webhook(self, client):
+        """Creating a workflow with a webhook trigger node auto-creates a schedule."""
+        resp = client.post("/workflows", json={
+            "name": "Auto Webhook WF",
+            "nodes": [{
+                "id": "n1",
+                "type": "decision_system.trigger_webhook",
+                "config": {"webhook_path": "test-hook"},
+            }],
+        })
+        assert resp.status_code == 200
+        wf_id = resp.json()["id"]
+
+        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        assert sched_resp.status_code == 200
+        data = sched_resp.json()
+        assert len(data["schedules"]) == 1
+        assert data["schedules"][0]["trigger_type"] == "webhook"
+
+    def test_create_workflow_auto_schedules_file_watch(self, client):
+        """Creating a workflow with a file_watch trigger node auto-creates a schedule."""
+        resp = client.post("/workflows", json={
+            "name": "Auto FileWatch WF",
+            "nodes": [{
+                "id": "n1",
+                "type": "decision_system.trigger_file_watch",
+                "config": {"directory": "/tmp", "pattern": "*.csv"},
+            }],
+        })
+        assert resp.status_code == 200
+        wf_id = resp.json()["id"]
+
+        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        assert sched_resp.status_code == 200
+        data = sched_resp.json()
+        assert len(data["schedules"]) == 1
+        assert data["schedules"][0]["trigger_type"] == "file_watch"
+
+    def test_non_trigger_nodes_do_not_create_schedules(self, client):
+        """Creating a workflow without trigger nodes does not create schedules."""
+        resp = client.post("/workflows", json={
+            "name": "No Trigger WF",
+            "nodes": [{
+                "id": "n1",
+                "type": "decision_system.trigger_manual",
+            }],
+        })
+        assert resp.status_code == 200
+        wf_id = resp.json()["id"]
+
+        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        assert sched_resp.status_code == 200
+        assert len(sched_resp.json()["schedules"]) == 0
+
+    def test_update_workflow_creates_new_schedule(self, client):
+        """Adding a trigger node to an existing workflow creates a schedule."""
+        resp = client.post("/workflows", json={
+            "name": "Update Test WF",
+            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+        })
+        wf_id = resp.json()["id"]
+
+        # Update: add a cron trigger node
+        resp = client.put(f"/workflows/{wf_id}", json={
+            "name": "Update Test WF",
+            "nodes": [
+                {"id": "n1", "type": "decision_system.trigger_manual"},
+                {"id": "n2", "type": "decision_system.trigger_cron", "config": {"expression": "*/5 * * * *"}},
+            ],
+            "connections": [],
+        })
+        assert resp.status_code == 200
+
+        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        assert sched_resp.status_code == 200
+        assert len(sched_resp.json()["schedules"]) == 1
+
+    def test_update_workflow_removes_orphan_schedule(self, client):
+        """Removing a trigger node from a workflow deletes its schedule."""
+        resp = client.post("/workflows", json={
+            "name": "Remove Trigger WF",
+            "nodes": [{
+                "id": "n1",
+                "type": "decision_system.trigger_cron",
+                "config": {"expression": "0 9 * * 1"},
+            }],
+        })
+        wf_id = resp.json()["id"]
+
+        # Verify schedule was created
+        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        assert len(sched_resp.json()["schedules"]) == 1
+
+        # Update: remove the trigger node
+        resp = client.put(f"/workflows/{wf_id}", json={
+            "name": "Remove Trigger WF",
+            "nodes": [{"id": "n2", "type": "decision_system.trigger_manual"}],
+            "connections": [],
+        })
+        assert resp.status_code == 200
+
+        # Schedule should be deleted
+        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        assert len(sched_resp.json()["schedules"]) == 0

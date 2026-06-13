@@ -74,6 +74,75 @@ class UpdateScheduleRequest(BaseModel):
     enabled: bool | None = None
 
 
+# --- Route helpers ---
+
+_TRIGGER_TYPE_MAP: dict[str, TriggerType] = {
+    "decision_system.trigger_cron": TriggerType.CRON,
+    "decision_system.trigger_webhook": TriggerType.WEBHOOK,
+    "decision_system.trigger_file_watch": TriggerType.FILE_WATCH,
+}
+
+
+def _node_to_trigger_config(node: NodeConfig) -> dict[str, Any] | None:
+    """Extract trigger config from a trigger node, or None if not a trigger type."""
+    trigger_type = _TRIGGER_TYPE_MAP.get(node.type)
+    if trigger_type is None:
+        return None
+
+    cfg: dict[str, Any] = {"_node_id": node.id}
+    if trigger_type == TriggerType.CRON:
+        cfg["expression"] = node.config.get("expression", "")
+    elif trigger_type == TriggerType.WEBHOOK:
+        cfg["webhook_path"] = node.config.get("webhook_path", "")
+    elif trigger_type == TriggerType.FILE_WATCH:
+        cfg["directory"] = node.config.get("directory", "")
+        cfg["pattern"] = node.config.get("pattern", "*")
+    return cfg
+
+
+def _sync_workflow_schedules(workflow_id: str, nodes: list[NodeConfig]) -> None:
+    """Auto-create/update/delete schedules to match trigger nodes in a workflow.
+
+    Called after a workflow is saved or updated.
+    """
+    existing = _schedule_store.list(workflow_id=workflow_id)
+    existing_by_node: dict[str, ScheduleDefinition] = {}
+    for s in existing:
+        node_id = s.trigger_config.get("_node_id", "")
+        if node_id:
+            existing_by_node[node_id] = s
+
+    # Process each node
+    seen_node_ids: set[str] = set()
+    for node in nodes:
+        trigger_config = _node_to_trigger_config(node)
+        if trigger_config is None:
+            continue
+
+        seen_node_ids.add(node.id)
+        trigger_type = _TRIGGER_TYPE_MAP[node.type]
+
+        if node.id in existing_by_node:
+            # Update existing schedule
+            s = existing_by_node[node.id]
+            s.trigger_config = trigger_config
+            s.trigger_type = trigger_type
+            _schedule_store.save(s)
+        else:
+            # Create new schedule
+            schedule = ScheduleDefinition(
+                workflow_id=workflow_id,
+                trigger_type=trigger_type,
+                trigger_config=trigger_config,
+            )
+            _schedule_store.save(schedule)
+
+    # Delete orphaned schedules (node removed from workflow)
+    for node_id, s in existing_by_node.items():
+        if node_id not in seen_node_ids:
+            _schedule_store.delete(s.id)
+
+
 # --- Routes ---
 
 @router.get("/workflows/nodes")
@@ -97,6 +166,8 @@ def create_workflow(req: CreateWorkflowRequest) -> dict[str, Any]:
         connections=connections,
     )
     _workflow_store.save(wf)
+    # Auto-create schedules for trigger nodes
+    _sync_workflow_schedules(wf.id, nodes)
     return wf.model_dump()
 
 
@@ -134,6 +205,8 @@ def update_workflow(workflow_id: str, req: CreateWorkflowRequest) -> dict[str, A
         version=1,
     )
     _workflow_store.save(wf)
+    # Sync schedules for trigger nodes (creates/updates/deletes as needed)
+    _sync_workflow_schedules(workflow_id, nodes)
     return wf.model_dump()
 
 
