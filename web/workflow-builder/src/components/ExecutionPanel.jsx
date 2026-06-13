@@ -325,6 +325,22 @@ function ExecutionPanel({
   const showReplay =
     workflowStatus === "completed" && typeof onReplayFrom === "function";
 
+  // Skeleton loading when no nodes have been executed yet
+  const showSkeletons =
+    nodeStatuses.length === 0 ||
+    (workflowStatus === "idle" &&
+      nodeStatuses.every((n) => n.status === "pending" || n.status === "idle"));
+
+  function renderSkeletons(count = 4) {
+    return Array.from({ length: count }, (_, i) => (
+      <div key={`skeleton-${i}`} className="execution-skeleton-row">
+        <div className="execution-skeleton-dot" />
+        <div className="execution-skeleton-bar" style={{ maxWidth: `${60 + Math.random() * 30}%` }} />
+        <div className="execution-skeleton-short" />
+      </div>
+    ));
+  }
+
   return (
     <div className="execution-panel">
       <div className="execution-panel-header">
@@ -363,7 +379,9 @@ function ExecutionPanel({
       {viewToggle}
 
       <div className="execution-node-list execution-auto-scroll" ref={nodeListRef}>
-        {nodeStatuses.map((ns) => {
+        {showSkeletons
+          ? renderSkeletons()
+          : nodeStatuses.map((ns) => {
           const badge = ns.status === "completed" || ns.status === "failed"
             ? getOutputBadge(ns.outputs)
             : null;

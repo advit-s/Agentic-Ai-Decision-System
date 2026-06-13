@@ -46,12 +46,13 @@
 }
 
 .execution-status-badge {
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 3px 10px;
+  border-radius: 12px;
   color: #fff;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 .execution-progress {
@@ -72,8 +73,13 @@
   padding: 8px 10px;
   margin-bottom: 4px;
   border-left: 3px solid;
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--color-bg);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.execution-node-item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .execution-node-header {
@@ -179,19 +185,21 @@
 .execution-replay-btn {
   background: none;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 20px;
   cursor: pointer;
   font-size: 10px;
-  padding: 2px 6px;
+  padding: 2px 8px;
   color: var(--color-text-muted);
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
   margin-left: auto;
+  font-family: inherit;
 }
 .execution-replay-btn:hover {
   background: var(--color-primary, #3b82f6);
   color: #fff;
   border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
 }
 
 /* ── Auto-expand toggle ─────────────────────── */
@@ -260,18 +268,19 @@
 
 .execution-progress-bar {
   margin-top: 6px;
-  height: 3px;
+  height: 4px;
   background: #e5e7eb;
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .execution-progress-fill {
   height: 100%;
   width: 60%;
-  background: var(--color-warning);
-  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-warning), #f59e0b);
+  border-radius: 3px;
   animation: progress-indeterminate 1.5s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.3);
 }
 
 @keyframes progress-indeterminate {
@@ -288,31 +297,34 @@
 .execution-view-toggle {
   display: flex;
   padding: 0 12px 8px;
-  gap: 4px;
+  gap: 3px;
 }
 
 .execution-view-btn {
   flex: 1;
-  padding: 5px 8px;
+  padding: 5px 12px;
   border: 1px solid var(--color-border);
   background: var(--color-bg);
-  border-radius: 4px;
+  border-radius: 20px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   color: var(--color-text-muted);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: all 0.15s ease;
+  font-family: inherit;
 }
 
 .execution-view-btn:hover {
   background: var(--color-surface);
   color: var(--color-text);
+  border-color: var(--color-primary, #3b82f6);
 }
 
 .execution-view-btn.active {
   background: var(--color-primary, #3b82f6);
   color: #fff;
   border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
 }
 
 /* ── Claim Ledger ────────────────────────── */
@@ -350,10 +362,11 @@
 
 .cl-status-pill {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 2px 10px;
+  border-radius: 12px;
   font-size: 10px;
   font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .cl-progress-bar {
@@ -369,10 +382,7 @@
   transition: width 0.3s ease;
 }
 
-.cl-progress-verified { background: #22c55e; }
-.cl-progress-unsupported { background: #eab308; }
-.cl-progress-contradicted { background: #ef4444; }
-.cl-progress-pending { background: #9ca3af; }
+/* Defined in App.css with gradient accents */
 
 /* ── Toolbar ──────────────────────────────── */
 
@@ -392,36 +402,46 @@
 }
 
 .cl-filter-btn {
-  padding: 3px 8px;
+  padding: 4px 10px;
   border: 1px solid var(--color-border);
   background: var(--color-bg);
-  border-radius: 4px;
+  border-radius: 20px;
   font-size: 10px;
   cursor: pointer;
   color: var(--color-text-muted);
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition: all 0.15s ease;
+  font-family: inherit;
 }
 
 .cl-filter-btn:hover {
   background: var(--color-surface);
   color: var(--color-text);
+  border-color: var(--color-primary, #3b82f6);
 }
 
 .cl-filter-btn.active {
   background: var(--color-primary, #3b82f6);
   color: #fff;
   border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
 }
 
 .cl-sort-select {
-  padding: 3px 6px;
+  padding: 4px 8px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 10px;
   background: var(--color-bg);
   color: var(--color-text);
   cursor: pointer;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+}
+.cl-sort-select:focus {
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  outline: none;
 }
 
 /* ── Claim list ──────────────────────────── */
@@ -435,16 +455,19 @@
 .cl-claim-card {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 10px;
   margin-bottom: 6px;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
 }
 
 .cl-claim-card:hover {
   border-color: var(--color-primary, #3b82f6);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border-left-color: var(--color-primary, #3b82f6);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .cl-claim-header {
@@ -684,18 +707,21 @@
 /* ── Search input ──────────────────────── */
 
 .cl-search-input {
-  padding: 4px 8px;
+  padding: 5px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 20px;
   font-size: 11px;
   background: var(--color-bg);
   color: var(--color-text);
   width: 140px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: all 0.15s ease;
+  font-family: inherit;
 }
 .cl-search-input:focus {
   border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  width: 180px;
 }
 .cl-search-input::placeholder {
   color: var(--color-text-muted);
@@ -742,6 +768,7 @@
 .cl-contradiction-highlight {
   border-left: 3px solid #ef4444 !important;
   background: #fef2f2 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.15);
 }
 
 /* ── Evidence link ─────────────────────── */
@@ -953,11 +980,12 @@
 
 .rp-status-badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 3px 10px;
+  border-radius: 12px;
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .rp-badge-pending {
@@ -1503,11 +1531,12 @@
 
 .eh-run-status-badge {
   display: inline-block;
-  padding: 1px 7px;
-  border-radius: 10px;
+  padding: 2px 9px;
+  border-radius: 12px;
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .eh-status-completed {
@@ -1728,4 +1757,82 @@
   font-size: 11px;
   color: var(--color-text);
   line-height: 1.4;
+}
+
+/* ── Loading Skeleton ──────────────────── */
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.execution-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  height: 48px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.execution-skeleton-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-surface) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.execution-skeleton-bar {
+  height: 10px;
+  border-radius: 4px;
+  flex: 1;
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-surface) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.execution-skeleton-short {
+  width: 40px;
+  height: 10px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-surface) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── View fade-in animation ───────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.execution-node-list,
+.cl-claim-list,
+.rp-panel,
+.et-panel {
+  animation: fadeIn 0.2s ease;
 }

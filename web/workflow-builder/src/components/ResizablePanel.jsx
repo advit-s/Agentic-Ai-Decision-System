@@ -8,14 +8,14 @@ export default function ResizablePanel({
   maxWidth = 900,
 }) {
   const [width, setWidth] = useState(initialWidth);
-  const dragging = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
   const panelRef = useRef(null);
 
   const handleMouseDown = useCallback(
     (e) => {
-      dragging.current = true;
+      setIsDragging(true);
       startX.current = e.clientX;
       startWidth.current = width;
       document.body.style.cursor = "col-resize";
@@ -27,15 +27,15 @@ export default function ResizablePanel({
 
   useEffect(() => {
     function handleMouseMove(e) {
-      if (!dragging.current) return;
+      if (!isDragging) return;
       const delta = startX.current - e.clientX; // negative = wider (drag left)
       const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta));
       setWidth(newWidth);
     }
 
     function handleMouseUp() {
-      if (!dragging.current) return;
-      dragging.current = false;
+      if (!isDragging) return;
+      setIsDragging(false);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     }
@@ -46,12 +46,12 @@ export default function ResizablePanel({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [minWidth, maxWidth]);
+  }, [isDragging, minWidth, maxWidth]);
 
   return (
     <div
       ref={panelRef}
-      className="resizable-panel"
+      className={`resizable-panel${isDragging ? " resizable-panel-dragging" : ""}`}
       style={{ width: `${width}px` }}
     >
       <div className="resizable-handle" onMouseDown={handleMouseDown} />

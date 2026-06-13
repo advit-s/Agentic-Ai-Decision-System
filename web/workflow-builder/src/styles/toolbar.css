@@ -25,28 +25,52 @@
 }
 
 .toolbar-btn {
-  padding: 6px 12px;
+  padding: 6px 14px;
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   color: var(--color-text);
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
 }
 .toolbar-btn:hover {
   background: var(--color-bg);
+  transform: scale(1.03);
+  box-shadow: var(--shadow-sm);
+}
+.toolbar-btn:active {
+  transform: scale(0.97);
+}
+.toolbar-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 .toolbar-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+}
+
+/* Subtle toolbar divider */
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--color-border);
+  margin: 0 6px;
+  flex-shrink: 0;
 }
 
 .toolbar-btn-active {
   background: var(--color-primary);
   color: #fff;
   border-color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
 }
 
 .toolbar-btn-active:hover {
@@ -57,9 +81,11 @@
   background: var(--color-primary);
   color: #fff;
   border-color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
 }
 .toolbar-btn-primary:hover {
   filter: brightness(1.1);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
 .toolbar-workflow-name {
@@ -78,28 +104,32 @@
 
 .connection-badge {
   font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
   border: 1px solid var(--color-border);
   cursor: pointer;
   background: var(--color-bg);
   white-space: nowrap;
-  transition: filter 0.15s;
+  transition: all 0.15s ease;
+  font-weight: 500;
 }
 .connection-badge:hover {
   filter: brightness(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .connection-badge-mock {
   color: #b8860b;
   border-color: #b8860b;
   background: #fffbea;
+  box-shadow: 0 0 8px rgba(184, 134, 11, 0.12);
 }
 
 .connection-badge-live {
   color: #166534;
   border-color: #166534;
   background: #f0fdf4;
+  box-shadow: 0 0 8px rgba(22, 101, 52, 0.12);
 }
 
 .connection-edit {
@@ -116,29 +146,33 @@
 
 .connection-url-input {
   width: 200px;
-  padding: 4px 8px;
+  padding: 5px 10px;
   font-size: 12px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--color-surface);
   color: var(--color-text);
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .connection-url-input:focus {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
 .connection-url-btn {
-  padding: 4px 8px;
+  padding: 5px 10px;
   font-size: 12px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--color-surface);
   cursor: pointer;
   color: var(--color-text);
+  transition: all 0.15s ease;
 }
 .connection-url-btn:hover {
   background: var(--color-bg);
+  border-color: var(--color-primary);
 }
 
 .load-dropdown {
@@ -152,28 +186,47 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-md);
   min-width: 200px;
   max-height: 300px;
   overflow-y: auto;
-  margin-top: 2px;
+  margin-top: 4px;
+  animation: dropdownFadeIn 0.15s ease-out;
+  transform-origin: top center;
 }
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .dropdown-item {
   display: block;
   width: 100%;
-  padding: 8px 12px;
+  padding: 8px 14px;
   text-align: left;
   background: none;
   border: none;
   cursor: pointer;
   font-size: 13px;
   color: var(--color-text);
+  transition: background 0.1s ease;
 }
 .dropdown-item:hover {
   background: var(--color-bg);
 }
+.dropdown-item:active {
+  background: var(--color-primary);
+  color: #fff;
+}
 .dropdown-empty {
-  padding: 12px;
+  padding: 14px;
   color: var(--color-text-muted);
   font-size: 12px;
   text-align: center;

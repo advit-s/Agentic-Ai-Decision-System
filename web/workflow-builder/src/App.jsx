@@ -572,6 +572,21 @@ function CanvasInner() {
     ? nodeTypes.find((nt) => nt.label === selectedNode.data.typeLabel) || null
     : null;
 
+  // Derive execution-aware edge IDs for animated canvas edges
+  const executingEdgeIds = useMemo(() => {
+    if (!nodeStatuses || nodeStatuses.length === 0) return new Set();
+    const activeNodeIds = new Set(
+      nodeStatuses
+        .filter((ns) => ns.status === "running" || ns.status === "completed")
+        .map((ns) => ns.nodeId)
+    );
+    return new Set(
+      edges
+        .filter((e) => activeNodeIds.has(e.source) || activeNodeIds.has(e.target))
+        .map((e) => e.id)
+    );
+  }, [nodeStatuses, edges]);
+
   // Connection handler
   const onConnect = useCallback(
     (params) => {
@@ -660,6 +675,7 @@ function CanvasInner() {
           onDragOver={onDragOver}
           nodeTypes={nodeTypeMap}
           onZoomToFit={handleZoomToFit}
+          executingEdgeIds={executingEdgeIds}
         />
         <ResizablePanel initialWidth={380} minWidth={280} maxWidth={900}>
           {diffView ? (

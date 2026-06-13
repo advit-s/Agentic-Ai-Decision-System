@@ -86,6 +86,7 @@ function WorkflowToolbar({
         <button className="toolbar-btn" onClick={onExport} title="Export as JSON">
           📋 Export
         </button>
+        <div className="toolbar-divider" />
         <button
           className={`toolbar-btn ${historyPanel ? "toolbar-btn-active" : ""}`}
           onClick={onHistory}

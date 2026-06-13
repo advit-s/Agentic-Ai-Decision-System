@@ -55,6 +55,12 @@
       "skillPath": "config/skills/framework-selection/SKILL.md",
       "computedHash": "70355c49d4ea25553a67306ce07ad2b808b85d917bb310fe12a76abf1d7b880b"
     },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "4eabc66183767153e404b39d1b839b1c37f2d82d86f0a0d7e880a579d8d62336"
+    },
     "langchain-dependencies": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",

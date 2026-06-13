@@ -19,6 +19,7 @@ function applyTheme(theme) {
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState(getInitialTheme);
+  const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
     applyTheme(theme);
@@ -30,17 +31,28 @@ export default function ThemeToggle() {
   }, [theme]);
 
   function handleToggle() {
+    setAnimating(true);
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
+    setTimeout(() => setAnimating(false), 300);
   }
+
+  const isLight = theme === "light";
 
   return (
     <button
-      className="toolbar-btn"
+      className={`toolbar-btn theme-toggle-btn ${animating ? "theme-toggle-animating" : ""}`}
       onClick={handleToggle}
-      title={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-      style={{ fontSize: "16px", padding: "4px 10px" }}
+      title={`Current theme: ${theme}. Click to switch to ${isLight ? "dark" : "light"}`}
+      aria-label={`Toggle theme (currently ${theme})`}
+      role="button"
+      style={{ fontSize: "16px", padding: "4px 10px", position: "relative" }}
     >
-      {theme === "light" ? "\u{1F31E}" : "\u{1F319}"}
+      <span className="theme-toggle-icon" aria-hidden="true">
+        {isLight ? "☀️" : "\u{1F319}"}
+      </span>
+      <span className="theme-toggle-tooltip" role="tooltip">
+        {isLight ? "Dark mode" : "Light mode"}
+      </span>
     </button>
   );
 }

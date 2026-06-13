@@ -1,3 +1,29 @@
+## [1.16.1] - 2026-06-13 — Frontend Modernization & Design System
+
+### Added
+- **Signal-Intelligence Design System**: Refined color palette with richer primary (#2563eb), ember accent (#d97706), emerald success (#059669); deeper dark theme background (#0a0f1c); increased border-radius from 6px to 8px throughout.
+- **Animation System**: Shared CSS animation tokens with consistent easing/timing variables; loading skeleton shimmer keyframes with reusable `.skeleton` classes; view fade-in animations for panel transitions.
+- **Animated Execution Edges**: Traveling dot effect on connection edges during active workflow runs — communicates "evidence flowing through this path."
+- **Node Status Glyphs**: Visual ✓ / ✕ / — indicators for completed/failed/skipped node states.
+- **Canvas Polish**: Enhanced node card hover/selected effects with `color-mix()` shadows; improved React Flow handle, minimap, and controls styling.
+- **Toolbar Dividers**: Subtle dividers between primary and secondary button groups.
+- **Card Hover Lift**: Consistent translateY(-1px) + shadow on claim cards, execution items, and review cards.
+- **Unified Status Badges**: Reusable `.status-badge` component classes with subtle backgrounds for verified/unsupported/contradicted/pending states.
+- **Gradient Progress Bars**: Updated to match refined palette.
+
+### Changed
+- Glass-morphism backdrop blur increased from 12px to 16px in dark mode.
+- Card hover effects consistently use `var(--color-primary)` for border highlighting.
+- Font rendering with `-webkit-font-smoothing: antialiased` for sharper text.
+
+## [1.16.0] - 2026-06-13 — Backend Connection, 4 New Nodes, Execution UX, Visual Polish
+
+### Added
+- **Backend Connection**: Async execute endpoint (removed asyncio.run wrapper); fix saveWorkflow POST/PUT routing for new vs existing workflows; fix execute payload format for real backend mode; list workflows response format handling.
+- **4 New Specialist Nodes**: Planner (step-by-step plans), Auditor (quality/completeness audits), Compliance Checker (rule/policy checks), Code Runner (simulated code execution with I/O).
+- **Execution UX Depth**: Inline execution preview badges; live streaming indicator with pulse animation; auto-expand completed nodes; execution timeline view with horizontal bar chart; edit-and-replay (modify configs post-execution); WorkflowDiff component for side-by-side definition comparison.
+- **Visual Polish**: Dark/light theme toggle; minimap; keyboard shortcuts (Ctrl+S, Delete, Escape, Space, Ctrl+Shift+E, Ctrl+D, Ctrl+C/V); shortcuts help dialog; resizable panels (280-900px); zoom-to-fit; themed React Flow Controls + MiniMap.
+
 ## [1.15.0] - 2026-06-13 — Claim Ledger DX, Human Review Gates, Execution History
 
 ### Added

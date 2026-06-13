@@ -1,5 +1,5 @@
 // components/WorkflowCanvas.jsx
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -25,14 +25,32 @@ function WorkflowCanvas({
   nodeTypes: customNodeTypes,
   onZoomToFit,
   showMinimap: initialShowMinimap = true,
+  executingEdgeIds = new Set(),
 }) {
   const [showMinimap, setShowMinimap] = useState(initialShowMinimap);
+
+  // Apply execution-edge class to running edges
+  const enhancedEdges = useMemo(
+    () =>
+      edges.map((e) => {
+        const isExecuting = executingEdgeIds.has(e.id) || executingEdgeIds.has(e.source);
+        if (isExecuting) {
+          return {
+            ...e,
+            animated: true,
+            className: `execution-edge ${e.className || ""}`,
+          };
+        }
+        return e;
+      }),
+    [edges, executingEdgeIds]
+  );
 
   return (
     <div className="canvas-wrapper">
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={enhancedEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -60,7 +78,7 @@ function WorkflowCanvas({
             maskColor="rgba(0,0,0,0.1)"
             style={{
               border: "1px solid var(--color-border)",
-              borderRadius: "6px",
+              borderRadius: "8px",
             }}
           />
         )}
