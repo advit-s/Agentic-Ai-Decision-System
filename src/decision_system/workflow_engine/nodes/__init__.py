@@ -12,6 +12,9 @@ from decision_system.workflow_engine.nodes.builtin import (
     ExtractGraphNode, ProfileDataNode, MapOntologyNode,
     DetectPatternsNode, WarRoomNode,
 )
+from decision_system.workflow_engine.nodes.specialist import (
+    ResearcherNode, CriticNode, SynthesizerNode,
+)
 
 def create_default_registry() -> NodeRegistry:
     """Create a registry pre-populated with all built-in node types."""
@@ -29,6 +32,7 @@ _ALL_BUILTIN_NODES = [
     ExtractClaimsNode, VerifyClaimsNode, WriteReportNode,
     ExtractGraphNode, ProfileDataNode, MapOntologyNode,
     DetectPatternsNode, WarRoomNode,
+    ResearcherNode, CriticNode, SynthesizerNode,
 ]
 
 __all__ = [
@@ -40,4 +44,5 @@ __all__ = [
     "ExtractClaimsNode", "VerifyClaimsNode", "WriteReportNode",
     "ExtractGraphNode", "ProfileDataNode", "MapOntologyNode",
     "DetectPatternsNode", "WarRoomNode",
+    "ResearcherNode", "CriticNode", "SynthesizerNode",
 ]
