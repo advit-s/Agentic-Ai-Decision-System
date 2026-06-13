@@ -5,6 +5,7 @@ from decision_system.workflow_engine.nodes.registry import NodeRegistry
 # Built-in imports
 from decision_system.workflow_engine.nodes.builtin import (
     ManualTriggerNode, InputTextNode,
+    CronTriggerNode, WebhookTriggerNode, FileWatchTriggerNode,
     FilterNode, MergeNode, CodeNode,
     RetrieveNode, TechAnalystNode, RiskAnalystNode,
     ExtractClaimsNode, VerifyClaimsNode, WriteReportNode,
@@ -22,6 +23,7 @@ def create_default_registry() -> NodeRegistry:
 
 _ALL_BUILTIN_NODES = [
     ManualTriggerNode, InputTextNode,
+    CronTriggerNode, WebhookTriggerNode, FileWatchTriggerNode,
     FilterNode, MergeNode, CodeNode,
     RetrieveNode, TechAnalystNode, RiskAnalystNode,
     ExtractClaimsNode, VerifyClaimsNode, WriteReportNode,
@@ -32,6 +34,7 @@ _ALL_BUILTIN_NODES = [
 __all__ = [
     "NodeRegistry", "create_default_registry",
     "ManualTriggerNode", "InputTextNode",
+    "CronTriggerNode", "WebhookTriggerNode", "FileWatchTriggerNode",
     "FilterNode", "MergeNode", "CodeNode",
     "RetrieveNode", "TechAnalystNode", "RiskAnalystNode",
     "ExtractClaimsNode", "VerifyClaimsNode", "WriteReportNode",

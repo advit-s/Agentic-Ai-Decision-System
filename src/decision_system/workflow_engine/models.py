@@ -89,6 +89,7 @@ class ExecutionContext(BaseModel):
     """Shared context passed to every node during execution."""
     workflow_id: str
     execution_id: str
+    schedule_id: str | None = None
     provider: str = "fake"
     global_config: dict[str, Any] = Field(default_factory=dict)
     log: list[str] = Field(default_factory=list)

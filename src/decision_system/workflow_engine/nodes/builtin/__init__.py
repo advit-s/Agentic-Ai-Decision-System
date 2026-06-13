@@ -2,6 +2,7 @@
 
 from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
     ManualTriggerNode, InputTextNode,
+    CronTriggerNode, WebhookTriggerNode, FileWatchTriggerNode,
 )
 from decision_system.workflow_engine.nodes.builtin.flow_nodes import (
     FilterNode, MergeNode, CodeNode,
@@ -17,6 +18,7 @@ from decision_system.workflow_engine.nodes.builtin.data_nodes import (
 
 __all__ = [
     "ManualTriggerNode", "InputTextNode",
+    "CronTriggerNode", "WebhookTriggerNode", "FileWatchTriggerNode",
     "FilterNode", "MergeNode", "CodeNode",
     "RetrieveNode", "TechAnalystNode", "RiskAnalystNode",
     "ExtractClaimsNode", "VerifyClaimsNode", "WriteReportNode",

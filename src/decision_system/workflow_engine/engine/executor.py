@@ -54,6 +54,7 @@ class DAGEngine:
         self,
         workflow: WorkflowDefinition,
         global_inputs: dict[str, Any] | None = None,
+        schedule_id: str | None = None,
     ) -> ExecutionState:
         """Execute a workflow definition. Returns the final ExecutionState."""
         state = ExecutionState(
@@ -99,7 +100,7 @@ class DAGEngine:
                 for node_id in layer:
                     tasks.append(self._execute_node(
                         state, node_id, node_configs[node_id],
-                        deps[node_id], global_inputs,
+                        deps[node_id], global_inputs, schedule_id,
                     ))
                 # Wait for all nodes in this layer
                 await asyncio.gather(*tasks)
@@ -138,6 +139,7 @@ class DAGEngine:
         config: NodeConfig,
         dependencies: list[tuple[str, str, str]],
         global_inputs: dict[str, Any] | None,
+        schedule_id: str | None = None,
     ) -> None:
         """Execute a single node: resolve inputs, dispatch, handle errors."""
         ns = state.node_states[node_id]
@@ -175,6 +177,7 @@ class DAGEngine:
             ctx = ExecutionContext(
                 workflow_id=state.workflow_id,
                 execution_id=state.execution_id,
+                schedule_id=schedule_id,
             )
             node = node_cls(id=node_id, type=config.type, config=config.config)
             outputs = await node.execute(inputs, ctx)
@@ -215,7 +218,7 @@ class DAGEngine:
                     )
                     await asyncio.sleep(delay)
                     # Recursive retry
-                    await self._execute_node(state, node_id, config, dependencies, global_inputs)
+                    await self._execute_node(state, node_id, config, dependencies, global_inputs, schedule_id)
                 else:
                     ns.status = "failed"
                     state.status = "failed"

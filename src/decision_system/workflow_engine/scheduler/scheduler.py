@@ -158,7 +158,7 @@ class SchedulerService:
         if "_changed_files" in schedule.trigger_config:
             inputs["_changed_files"] = schedule.trigger_config.pop("_changed_files")
 
-        state = await self._engine.execute(wf, global_inputs=inputs)
+        state = await self._engine.execute(wf, global_inputs=inputs, schedule_id=schedule.id)
 
         self._store.update_last_fired(schedule.id, datetime.now(timezone.utc))
 

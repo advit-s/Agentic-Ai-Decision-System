@@ -194,3 +194,92 @@ class TestDAGEngine:
         loaded = engine.execution_store.load(state.execution_id)
         assert loaded is not None
         assert loaded.status == "completed"
+
+
+# ─── Schedule-Aware Execution Tests ──────────────────────────────────────────
+
+class TestScheduleAwareExecution:
+    """DAGEngine passes schedule_id through to node ExecutionContext."""
+
+    @pytest.fixture
+    def registry(self):
+        r = NodeRegistry()
+        r.register(AddOneNode)
+        r.register(MultiplyNode)
+        r.register(FailingNode)
+        return r
+
+    @pytest.fixture
+    def stores(self):
+        with tempfile.TemporaryDirectory() as td:
+            yield (
+                JSONWorkflowStore(Path(td)),
+                JSONExecutionStore(Path(td)),
+            )
+
+    @pytest.fixture
+    def engine(self, registry, stores):
+        ws, es = stores
+        return DAGEngine(registry=registry, workflow_store=ws, execution_store=es)
+
+    def test_execute_with_schedule_id(self, engine):
+        """schedule_id appears in the node's ExecutionContext."""
+        received_schedule_ids: list[str | None] = []
+
+        class CaptureScheduleNode(WorkflowNode):
+            type: str = "test.capture_schedule"
+            label: str = "Capture"
+
+            async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
+                received_schedule_ids.append(ctx.schedule_id)
+                return {"captured": True}
+
+            @classmethod
+            def get_config_schema(cls) -> dict:
+                return {"type": "object", "properties": {}}
+            @classmethod
+            def get_input_schema(cls) -> dict:
+                return {"type": "object", "properties": {}}
+            @classmethod
+            def get_output_schema(cls) -> dict:
+                return {"type": "object", "properties": {"captured": {"type": "boolean"}}}
+
+        engine.registry.register(CaptureScheduleNode)
+
+        wf = WorkflowDefinition(
+            name="schedule-test",
+            nodes=[NodeConfig(id="n1", type="test.capture_schedule")],
+        )
+        asyncio.run(engine.execute(wf, schedule_id="sch-test-123"))
+        assert received_schedule_ids == ["sch-test-123"]
+
+    def test_execute_without_schedule_id(self, engine):
+        """schedule_id is None for manual execution."""
+        received_schedule_ids: list[str | None] = []
+
+        class CaptureScheduleNode(WorkflowNode):
+            type: str = "test.capture_schedule2"
+            label: str = "Capture2"
+
+            async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
+                received_schedule_ids.append(ctx.schedule_id)
+                return {"captured": True}
+
+            @classmethod
+            def get_config_schema(cls) -> dict:
+                return {"type": "object", "properties": {}}
+            @classmethod
+            def get_input_schema(cls) -> dict:
+                return {"type": "object", "properties": {}}
+            @classmethod
+            def get_output_schema(cls) -> dict:
+                return {"type": "object", "properties": {"captured": {"type": "boolean"}}}
+
+        engine.registry.register(CaptureScheduleNode)
+
+        wf = WorkflowDefinition(
+            name="manual-test",
+            nodes=[NodeConfig(id="n1", type="test.capture_schedule2")],
+        )
+        asyncio.run(engine.execute(wf))
+        assert received_schedule_ids == [None]

@@ -227,4 +227,4 @@ class TestDefaultRegistry:
         assert "decision_system.filter" in type_names
         assert "decision_system.merge" in type_names
         assert "decision_system.code" in type_names
-        assert len(type_names) == 16
+        assert len(type_names) == 19
