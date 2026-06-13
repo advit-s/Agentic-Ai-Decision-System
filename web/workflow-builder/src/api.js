@@ -10,6 +10,7 @@ import {
   MOCK_REVIEWS,
   MOCK_EXECUTION_HISTORY,
   MOCK_EXECUTION_DETAILS,
+  MOCK_WORKFLOW_VERSIONS,
 } from "./mockData";
 
 const API_BASE_KEY = "wfBuilderApiBaseUrl";
@@ -349,6 +350,51 @@ function resolveReview(reviewId, action, notes, modifiedData, reviewedBy) {
   });
 }
 
+// --- Workflow Versions ---
+let _mockWorkflowVersions = [...MOCK_WORKFLOW_VERSIONS];
+
+function listWorkflowVersions(workflowId) {
+  if (isMockMode()) {
+    return Promise.resolve(_mockWorkflowVersions.filter(v => v.workflow_id === workflowId || !workflowId));
+  }
+  return apiFetch(`/workflows/${workflowId}/versions`);
+}
+
+function getWorkflowVersion(workflowId, versionId) {
+  if (isMockMode()) {
+    const v = _mockWorkflowVersions.find(v => v.id === versionId);
+    if (!v) return Promise.reject(new Error("Version not found"));
+    return Promise.resolve(JSON.parse(JSON.stringify(v)));
+  }
+  return apiFetch(`/workflows/${workflowId}/versions/${versionId}`);
+}
+
+// --- Replay execution ---
+function streamReplayEvents(executionId, nodeIds, onEvent) {
+  if (isMockMode()) {
+    const targetSet = new Set(nodeIds);
+    let idx = 0;
+    const filteredEvents = MOCK_EXECUTION_EVENTS.filter(
+      e => !e.node_id || targetSet.has(e.node_id)
+    );
+    const interval = setInterval(() => {
+      if (idx >= filteredEvents.length) {
+        clearInterval(interval);
+        return;
+      }
+      onEvent({
+        ...filteredEvents[idx],
+        execution_id: executionId,
+        timestamp: new Date().toISOString(),
+      });
+      idx++;
+    }, 500);
+    return () => clearInterval(interval);
+  }
+  // Real mode: same WebSocket subscription
+  return streamExecutionEvents(executionId, onEvent);
+}
+
 export {
   getBaseUrl,
   isMockMode,
@@ -377,4 +423,7 @@ export {
   listExecutionHistory,
   getExecutionDetail,
   deleteExecutionHistory,
+  listWorkflowVersions,
+  getWorkflowVersion,
+  streamReplayEvents,
 };

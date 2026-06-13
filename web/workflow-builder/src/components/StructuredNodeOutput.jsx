@@ -290,6 +290,288 @@ function DataAnalystOutput({ outputs }) {
   );
 }
 
+/* ── Planner Output ────────────────────────────────────────────────── */
+
+function PlannerOutput({ outputs }) {
+  const plan = outputs.plan || [];
+  const summary = outputs.summary || "";
+  const totalSteps = outputs.total_steps || 0;
+  const estDuration = outputs.estimated_duration || "";
+
+  return (
+    <div className="structured-output">
+      {summary && (
+        <div className="so-summary-box">
+          <strong>Plan:</strong> {summary}
+        </div>
+      )}
+      {totalSteps > 0 && (
+        <div className="so-plan-meta">
+          <span className="so-plan-meta-badge">{totalSteps} step{totalSteps !== 1 ? "s" : ""}</span>
+          {estDuration && <span className="so-plan-meta-badge">{estDuration}</span>}
+        </div>
+      )}
+      {plan.length > 0 && (
+        <div className="so-section">
+          <div className="so-section-title">Steps</div>
+          {plan.map((step, i) => (
+            <div key={i} className="so-plan-step-card">
+              <div className="so-plan-step-header">
+                <span className="so-plan-step-num">Step {step.step_number || i + 1}</span>
+                <span className="so-plan-step-title">{step.title}</span>
+                {step.estimated_effort && (
+                  <span className="so-plan-effort-badge">{step.estimated_effort}</span>
+                )}
+              </div>
+              {step.description && (
+                <div className="so-plan-step-desc">{step.description}</div>
+              )}
+              {step.dependencies && step.dependencies.length > 0 && (
+                <div className="so-plan-step-deps">
+                  Depends on: step(s) {step.dependencies.join(", ")}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {outputs.fallback_reason && (
+        <div className="so-fallback-note">⚠️ Fallback: {outputs.fallback_reason}</div>
+      )}
+    </div>
+  );
+}
+
+/* ── Auditor Output ───────────────────────────────────────────────── */
+
+const AUDIT_SEVERITY_CONFIG = {
+  high: { bg: "#fee2e2", color: "#991b1b", label: "High" },
+  medium: { bg: "#fef9c3", color: "#854d0e", label: "Medium" },
+  low: { bg: "#f3f4f6", color: "#4b5563", label: "Low" },
+};
+
+function AuditorOutput({ outputs }) {
+  const findings = outputs.findings || [];
+  const summary = outputs.summary || "";
+  const passed = outputs.passed;
+  const score = outputs.score;
+  const issuesFound = outputs.issues_found || 0;
+  const recommendations = outputs.recommendations || [];
+
+  return (
+    <div className="structured-output">
+      <div className="so-audit-header">
+        <span
+          className="so-audit-pass-badge"
+          style={{
+            background: passed ? "#dcfce7" : "#fee2e2",
+            color: passed ? "#166534" : "#991b1b",
+          }}
+        >
+          {passed ? "✅ Passed" : "❌ Failed"}
+        </span>
+        {score !== undefined && (
+          <div className="so-audit-score-bar">
+            <div className="so-audit-score-label">Score: {Math.round(score * 100)}%</div>
+            <div className="so-audit-score-track">
+              <div
+                className="so-audit-score-fill"
+                style={{
+                  width: `${Math.round(score * 100)}%`,
+                  background: score >= 0.7 ? "#22c55e" : score >= 0.4 ? "#eab308" : "#ef4444",
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {summary && <div className="so-summary-box">{summary}</div>}
+
+      {issuesFound > 0 && (
+        <div className="so-section">
+          <div className="so-section-title">Findings ({issuesFound})</div>
+          {findings.map((f, i) => {
+            const sev = AUDIT_SEVERITY_CONFIG[f.severity] || AUDIT_SEVERITY_CONFIG.low;
+            return (
+              <div key={i} className="so-audit-finding-row">
+                <span className="so-audit-finding-cat">{f.category}</span>
+                <span className="so-issue-sev-badge" style={{ background: sev.bg, color: sev.color }}>
+                  {sev.label}
+                </span>
+                <div className="so-audit-finding-desc">{f.description}</div>
+                {f.recommendation && (
+                  <div className="so-audit-finding-rec">💡 {f.recommendation}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {recommendations.length > 0 && (
+        <div className="so-section">
+          <div className="so-section-title">Recommendations</div>
+          <ul className="so-audit-rec-list">
+            {recommendations.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {outputs.fallback_reason && (
+        <div className="so-fallback-note">⚠️ Fallback: {outputs.fallback_reason}</div>
+      )}
+    </div>
+  );
+}
+
+/* ── Compliance Checker Output ────────────────────────────────────── */
+
+const RISK_COLORS = {
+  critical: { bg: "#7f1d1d", color: "#fca5a5", label: "Critical" },
+  high: { bg: "#991b1b", color: "#fecaca", label: "High" },
+  medium: { bg: "#854d0e", color: "#fef9c3", label: "Medium" },
+  low: { bg: "#166534", color: "#dcfce7", label: "Low" },
+};
+
+const COMPLIANCE_SEVERITY_COLORS = {
+  critical: { bg: "#fee2e2", color: "#7f1d1d" },
+  high: { bg: "#fee2e2", color: "#991b1b" },
+  medium: { bg: "#fef9c3", color: "#854d0e" },
+  low: { bg: "#f3f4f6", color: "#4b5563" },
+};
+
+function ComplianceCheckerOutput({ outputs }) {
+  const violations = outputs.violations || [];
+  const summary = outputs.summary || "";
+  const compliant = outputs.compliant;
+  const riskLevel = outputs.risk_level || "low";
+  const score = outputs.score;
+  const passedChecks = outputs.passed_checks || 0;
+  const failedChecks = outputs.failed_checks || 0;
+
+  const riskColor = RISK_COLORS[riskLevel] || RISK_COLORS.low;
+
+  return (
+    <div className="structured-output">
+      <div className="so-compliance-header">
+        <span
+          className="so-compliance-badge"
+          style={{
+            background: compliant ? "#dcfce7" : "#fee2e2",
+            color: compliant ? "#166534" : "#991b1b",
+          }}
+        >
+          {compliant ? "✅ Compliant" : "❌ Non-Compliant"}
+        </span>
+        <span className="so-risk-badge" style={{ background: riskColor.bg, color: riskColor.color }}>
+          {riskColor.label} Risk
+        </span>
+      </div>
+
+      {summary && <div className="so-summary-box">{summary}</div>}
+
+      {score !== undefined && (
+        <div className="so-audit-score-bar">
+          <div className="so-audit-score-label">Score: {Math.round(score * 100)}% ({passedChecks} passed / {failedChecks} failed)</div>
+          <div className="so-audit-score-track">
+            <div
+              className="so-audit-score-fill"
+              style={{
+                width: `${Math.round(score * 100)}%`,
+                background: score >= 0.7 ? "#22c55e" : score >= 0.4 ? "#eab308" : "#ef4444",
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {violations.length > 0 && (
+        <div className="so-section">
+          <div className="so-section-title">Violations ({violations.length})</div>
+          {violations.map((v, i) => {
+            const sevColor = COMPLIANCE_SEVERITY_COLORS[v.severity] || COMPLIANCE_SEVERITY_COLORS.low;
+            return (
+              <div key={i} className="so-violation-row">
+                <div className="so-violation-header">
+                  <span className="so-violation-rule">{v.rule}</span>
+                  <span className="so-issue-sev-badge" style={{ background: sevColor.bg, color: sevColor.color }}>
+                    {v.severity}
+                  </span>
+                </div>
+                <div className="so-violation-desc">{v.description}</div>
+                {v.remediation && (
+                  <div className="so-violation-remediation">🔧 {v.remediation}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {outputs.fallback_reason && (
+        <div className="so-fallback-note">⚠️ Fallback: {outputs.fallback_reason}</div>
+      )}
+    </div>
+  );
+}
+
+/* ── Code Runner Output ───────────────────────────────────────────── */
+
+function CodeRunnerOutput({ outputs }) {
+  const success = outputs.success;
+  const result = outputs.result;
+  const stdout = outputs.stdout || "";
+  const error = outputs.error;
+  const execTime = outputs.execution_time_ms;
+
+  return (
+    <div className="structured-output">
+      <div className="so-coderunner-header">
+        <span
+          className="so-coderunner-badge"
+          style={{
+            background: success ? "#dcfce7" : "#fee2e2",
+            color: success ? "#166534" : "#991b1b",
+          }}
+        >
+          {success ? "✅ Success" : "❌ Failed"}
+        </span>
+        {execTime !== undefined && (
+          <span className="so-coderunner-time">{execTime.toFixed(1)}ms</span>
+        )}
+      </div>
+
+      {stdout && (
+        <div className="so-section">
+          <div className="so-section-title">Standard Output</div>
+          <pre className="so-coderunner-stdout">{stdout}</pre>
+        </div>
+      )}
+
+      {error && (
+        <div className="so-section">
+          <div className="so-section-title">Error</div>
+          <pre className="so-coderunner-error">{error}</pre>
+        </div>
+      )}
+
+      {result !== null && result !== undefined && (
+        <div className="so-section">
+          <div className="so-section-title">Result</div>
+          <pre className="so-coderunner-result">{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+
+      {outputs.fallback_reason && (
+        <div className="so-fallback-note">⚠️ Fallback: {outputs.fallback_reason}</div>
+      )}
+    </div>
+  );
+}
+
 /* ── Auto-detect and route ─────────────────────────────────────────── */
 
 function isResearcherOutput(out) {
@@ -324,9 +606,48 @@ function isDataAnalystOutput(out) {
   );
 }
 
+function isPlannerOutput(out) {
+  return (
+    out &&
+    Array.isArray(out.plan) &&
+    typeof out.summary === "string" &&
+    typeof out.total_steps === "number"
+  );
+}
+
+function isAuditorOutput(out) {
+  return (
+    out &&
+    typeof out.passed === "boolean" &&
+    typeof out.score === "number" &&
+    Array.isArray(out.findings)
+  );
+}
+
+function isComplianceCheckerOutput(out) {
+  return (
+    out &&
+    typeof out.compliant === "boolean" &&
+    Array.isArray(out.violations) &&
+    typeof out.risk_level === "string"
+  );
+}
+
+function isCodeRunnerOutput(out) {
+  return (
+    out &&
+    typeof out.success === "boolean" &&
+    (out.stdout !== undefined || out.result !== undefined || out.error !== undefined)
+  );
+}
+
 export default function StructuredNodeOutput({ outputs }) {
   if (!outputs || Object.keys(outputs).length === 0) return null;
 
+  if (isPlannerOutput(outputs)) return <PlannerOutput outputs={outputs} />;
+  if (isAuditorOutput(outputs)) return <AuditorOutput outputs={outputs} />;
+  if (isComplianceCheckerOutput(outputs)) return <ComplianceCheckerOutput outputs={outputs} />;
+  if (isCodeRunnerOutput(outputs)) return <CodeRunnerOutput outputs={outputs} />;
   if (isResearcherOutput(outputs)) return <ResearcherOutput outputs={outputs} />;
   if (isCriticOutput(outputs)) return <CriticOutput outputs={outputs} />;
   if (isSynthesizerOutput(outputs)) return <SynthesizerOutput outputs={outputs} />;

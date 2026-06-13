@@ -9,6 +9,10 @@ from decision_system.workflow_engine.nodes.specialist.critic import CriticNode
 from decision_system.workflow_engine.nodes.specialist.synthesizer import SynthesizerNode
 from decision_system.workflow_engine.nodes.specialist.data_analyst import DataAnalystNode
 from decision_system.workflow_engine.nodes.specialist.review_gate import ReviewGateNode
+from decision_system.workflow_engine.nodes.specialist.planner import PlannerNode
+from decision_system.workflow_engine.nodes.specialist.auditor import AuditorNode
+from decision_system.workflow_engine.nodes.specialist.compliance_checker import ComplianceCheckerNode
+from decision_system.workflow_engine.nodes.specialist.code_runner import CodeRunnerNode
 
 __all__ = [
     "ResearcherNode",
@@ -16,4 +20,8 @@ __all__ = [
     "SynthesizerNode",
     "DataAnalystNode",
     "ReviewGateNode",
+    "PlannerNode",
+    "AuditorNode",
+    "ComplianceCheckerNode",
+    "CodeRunnerNode",
 ]

@@ -36,7 +36,7 @@ function claimPills(summary) {
   return <span className="eh-claim-pills">{parts}</span>;
 }
 
-function ExecutionHistory({ onClose, onSelectRun, onCompare }) {
+function ExecutionHistory({ onClose, onSelectRun, onCompare, onCompareVersions }) {
   const [runs, setRuns] = useState([]);
   const [selectedRuns, setSelectedRuns] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
@@ -256,6 +256,11 @@ function ExecutionHistory({ onClose, onSelectRun, onCompare }) {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
+        {onCompareVersions && (
+          <button className="eh-compare-btn" onClick={onCompareVersions} title="Compare workflow versions">
+            {"📋"} Compare Versions
+          </button>
+        )}
         <select className="eh-sort-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           <option value="date_desc">Newest</option>
           <option value="date_asc">Oldest</option>

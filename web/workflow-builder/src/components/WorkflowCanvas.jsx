@@ -1,5 +1,5 @@
 // components/WorkflowCanvas.jsx
-import React from "react";
+import React, { useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -23,7 +23,11 @@ function WorkflowCanvas({
   onDrop,
   onDragOver,
   nodeTypes: customNodeTypes,
+  onZoomToFit,
+  showMinimap: initialShowMinimap = true,
 }) {
+  const [showMinimap, setShowMinimap] = useState(initialShowMinimap);
+
   return (
     <div className="canvas-wrapper">
       <ReactFlow
@@ -42,15 +46,43 @@ function WorkflowCanvas({
         snapToGrid
         snapGrid={[20, 20]}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e5e7eb" />
-        <Controls />
-        <MiniMap
-          nodeStrokeColor="#6b7280"
-          nodeColor="#f3f4f6"
-          maskColor="rgba(0,0,0,0.1)"
-          style={{ border: "1px solid #e5e7eb", borderRadius: "6px" }}
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={20}
+          size={1}
+          color="var(--color-border)"
         />
+        <Controls showInteractive={false} />
+        {showMinimap && (
+          <MiniMap
+            nodeStrokeColor="var(--color-text-muted)"
+            nodeColor="var(--color-surface)"
+            maskColor="rgba(0,0,0,0.1)"
+            style={{
+              border: "1px solid var(--color-border)",
+              borderRadius: "6px",
+            }}
+          />
+        )}
       </ReactFlow>
+      <div className="canvas-controls-overlay">
+        <button
+          className="canvas-control-btn"
+          onClick={() => setShowMinimap((v) => !v)}
+          title={showMinimap ? "Hide minimap" : "Show minimap"}
+        >
+          {showMinimap ? "⊟ Map" : "⊞ Map"}
+        </button>
+        {onZoomToFit && (
+          <button
+            className="canvas-control-btn"
+            onClick={onZoomToFit}
+            title="Zoom to fit"
+          >
+            ⊞ Fit
+          </button>
+        )}
+      </div>
     </div>
   );
 }

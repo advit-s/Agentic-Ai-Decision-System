@@ -118,6 +118,106 @@
   opacity: 0.8;
 }
 
+/* ── Output preview badge ───────────────────── */
+
+.execution-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 600;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  margin-left: auto;
+  border: 1px solid var(--color-border);
+}
+
+/* ── Streaming indicator ────────────────────── */
+
+.execution-streaming {
+  animation: ep-pulse-border 1.5s ease-in-out infinite;
+}
+
+@keyframes ep-pulse-border {
+  0%, 100% { border-left-color: #eab308; }
+  50% { border-left-color: #fef08a; }
+}
+
+.execution-streaming-text {
+  font-size: 10px;
+  color: #eab308;
+  font-weight: 600;
+  animation: ep-pulse-text 1.5s ease-in-out infinite;
+  margin-left: 2px;
+  white-space: nowrap;
+}
+
+@keyframes ep-pulse-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Partial output during streaming ────────── */
+
+.execution-partial {
+  margin-top: 4px;
+  padding: 4px 6px;
+  background: #1a1a2e;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 10px;
+  color: #eab308;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+/* ── Replay button ──────────────────────────── */
+
+.execution-replay-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 2px 6px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+.execution-replay-btn:hover {
+  background: var(--color-primary, #3b82f6);
+  color: #fff;
+  border-color: var(--color-primary, #3b82f6);
+}
+
+/* ── Auto-expand toggle ─────────────────────── */
+
+.execution-auto-expand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 6px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.execution-auto-expand-toggle input {
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ── Auto-scroll container ──────────────────── */
+
+.execution-auto-scroll {
+  /* marker class for scroll-into-view behavior, no visual changes needed */
+}
+
 .execution-node-expand-icon {
   font-size: 10px;
   color: var(--color-text-muted);

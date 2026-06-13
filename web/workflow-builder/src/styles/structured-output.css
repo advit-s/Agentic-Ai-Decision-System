@@ -342,3 +342,279 @@
   border-radius: 4px;
   margin-top: 6px;
 }
+
+/* ── Planner ────────────────────────────── */
+
+.so-plan-meta {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.so-plan-meta-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.so-plan-step-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.so-plan-step-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.so-plan-step-num {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.so-plan-step-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.so-plan-effort-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #075985;
+  background: #e0f2fe;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.so-plan-step-desc {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.so-plan-step-deps {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ── Auditor ────────────────────────────── */
+
+.so-audit-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.so-audit-pass-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.so-audit-score-bar {
+  flex: 1;
+  min-width: 120px;
+}
+
+.so-audit-score-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.so-audit-score-track {
+  height: 6px;
+  background: var(--color-surface);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.so-audit-score-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.so-audit-finding-row {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.so-audit-finding-cat {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: capitalize;
+}
+
+.so-audit-finding-desc {
+  width: 100%;
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.so-audit-finding-rec {
+  width: 100%;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.so-audit-rec-list {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.so-audit-rec-list li {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+/* ── Compliance Checker ──────────────────── */
+
+.so-compliance-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.so-compliance-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.so-risk-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.so-violation-row {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+}
+
+.so-violation-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.so-violation-rule {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text);
+  font-family: monospace;
+}
+
+.so-violation-desc {
+  font-size: 12px;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.so-violation-remediation {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* ── Code Runner ─────────────────────────── */
+
+.so-coderunner-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.so-coderunner-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.so-coderunner-time {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+
+.so-coderunner-stdout {
+  background: #1e1e2e;
+  color: #a6e3a1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-family: monospace;
+}
+
+.so-coderunner-error {
+  background: #1e1e2e;
+  color: #f38ba8;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-family: monospace;
+}
+
+.so-coderunner-result {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}

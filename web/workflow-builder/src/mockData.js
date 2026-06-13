@@ -523,6 +523,170 @@ const MOCK_NODE_TYPES = [
       },
     },
   },
+  // --- Feature Set B: New Specialist Nodes ---
+  {
+    type: "decision_system.planner",
+    label: "Planner",
+    description: "Generate structured step-by-step execution plans from goals",
+    icon: "📋",
+    color: "#0ea5e9",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        detail_level: {
+          type: "string", title: "Detail Level", default: "detailed",
+          enum: ["high_level", "detailed", "very_detailed"],
+        },
+        include_timeline: { type: "boolean", title: "Include Timeline", default: true },
+        max_steps: { type: "integer", title: "Max Steps", default: 8, minimum: 2, maximum: 20 },
+      },
+    },
+    input_schema: {
+      type: "object",
+      properties: {
+        goal: { type: "string", description: "The objective to plan for" },
+        constraints: { type: "string", description: "Constraints or requirements" },
+        context: { type: "string", description: "Additional context" },
+      },
+      required: ["goal"],
+    },
+    output_schema: {
+      type: "object",
+      properties: {
+        plan: { type: "array", items: { type: "object" } },
+        summary: { type: "string" },
+        total_steps: { type: "integer" },
+        estimated_duration: { type: "string" },
+      },
+    },
+  },
+  {
+    type: "decision_system.auditor",
+    label: "Auditor",
+    description: "Review data for quality, completeness, and consistency",
+    icon: "🔎",
+    color: "#84cc16",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        audit_depth: {
+          type: "string", title: "Audit Depth", default: "standard",
+          enum: ["quick", "standard", "thorough"],
+        },
+        severity_threshold: {
+          type: "string", title: "Severity Threshold", default: "medium",
+          enum: ["low", "medium", "high"],
+        },
+        fail_on_issues: { type: "boolean", title: "Fail on Issues", default: false },
+      },
+    },
+    input_schema: {
+      type: "object",
+      properties: {
+        data: { type: "object", description: "The data to audit" },
+        audit_scope: {
+          type: "array", items: { type: "string" },
+          description: "Aspects to check (completeness, consistency, accuracy, timeliness)",
+        },
+        criteria: { type: "object", description: "Custom audit criteria" },
+      },
+      required: ["data"],
+    },
+    output_schema: {
+      type: "object",
+      properties: {
+        passed: { type: "boolean" },
+        score: { type: "number" },
+        findings: { type: "array" },
+        summary: { type: "string" },
+        issues_found: { type: "integer" },
+        recommendations: { type: "array" },
+      },
+    },
+  },
+  {
+    type: "decision_system.compliance_checker",
+    label: "Compliance Checker",
+    description: "Check data against compliance rules and policies",
+    icon: "🛡️",
+    color: "#dc2626",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        framework: {
+          type: "string", title: "Framework", default: "internal",
+          enum: ["internal", "gdpr", "soc2", "hipaa", "custom"],
+        },
+        strict_mode: { type: "boolean", title: "Strict Mode", default: false },
+        auto_remediate: { type: "boolean", title: "Auto Remediate", default: false },
+      },
+    },
+    input_schema: {
+      type: "object",
+      properties: {
+        data: { type: "object", description: "Data to check for compliance" },
+        rules: {
+          type: "array", items: { type: "string" },
+          description: "Compliance rules to check against",
+        },
+        framework: { type: "string", description: "Compliance framework override" },
+      },
+      required: ["data"],
+    },
+    output_schema: {
+      type: "object",
+      properties: {
+        compliant: { type: "boolean" },
+        violations: { type: "array" },
+        risk_level: { type: "string" },
+        summary: { type: "string" },
+        score: { type: "number" },
+        passed_checks: { type: "integer" },
+        failed_checks: { type: "integer" },
+      },
+    },
+  },
+  {
+    type: "decision_system.code_runner",
+    label: "Code Runner",
+    description: "Execute Python snippets with I/O variables and timeout (simulated)",
+    icon: "⚙️",
+    color: "#64748b",
+    categories: ["flow"],
+    config_schema: {
+      type: "object",
+      properties: {
+        timeout_seconds: { type: "integer", title: "Timeout (s)", default: 10, minimum: 1, maximum: 60 },
+        capture_stdout: { type: "boolean", title: "Capture Stdout", default: true },
+        allow_file_access: { type: "boolean", title: "Allow File Access", default: false },
+      },
+    },
+    input_schema: {
+      type: "object",
+      properties: {
+        source_code: { type: "string", description: "Python code to execute" },
+        inputs: { type: "object", description: "Input variables accessible to the code" },
+        libraries: {
+          type: "array", items: { type: "string" },
+          description: "Additional libraries to import",
+        },
+      },
+      required: ["source_code"],
+    },
+    output_schema: {
+      type: "object",
+      properties: {
+        result: { type: "object" },
+        stdout: { type: "string" },
+        error: { type: "string" },
+        execution_time_ms: { type: "number" },
+        success: { type: "boolean" },
+      },
+    },
+  },
 ];
 
 const MOCK_WORKFLOWS = [
@@ -869,6 +1033,63 @@ const MOCK_EXECUTION_DETAILS = {
   },
 };
 
+const MOCK_WORKFLOW_VERSIONS = [
+  {
+    id: "wf-ver-1",
+    workflow_id: "wf-sample-1",
+    version: 1,
+    name: "Quarterly Risk Review v1",
+    created_at: "2026-06-10T00:00:00Z",
+    description: "Initial version with standard analysis pipeline",
+    nodes: [
+      { id: "node-1", type: "decision_system.trigger_manual", label: "Start", config: {} },
+      { id: "node-2", type: "decision_system.input_text", label: "Business Question", config: { text: "Where are we losing money?" } },
+      { id: "node-3", type: "decision_system.retrieve", label: "Retrieve Evidence", config: { collection: "company_docs", top_k: 5 } },
+      { id: "node-4", type: "decision_system.technical_analyst", label: "Tech Analysis", config: { provider: "fake" } },
+      { id: "node-5", type: "decision_system.risk_analyst", label: "Risk Analysis", config: { provider: "fake" } },
+      { id: "node-6", type: "decision_system.extract_claims", label: "Extract Claims", config: { provider: "fake" } },
+      { id: "node-7", type: "decision_system.write_report", label: "Generate Report", config: { format: "markdown", provider: "fake" } },
+    ],
+    connections: [
+      { source_node: "node-1", source_output: "default", target_node: "node-2", target_input: "default" },
+      { source_node: "node-2", source_output: "default", target_node: "node-3", target_input: "default" },
+      { source_node: "node-3", source_output: "default", target_node: "node-4", target_input: "default" },
+      { source_node: "node-3", source_output: "default", target_node: "node-5", target_input: "default" },
+      { source_node: "node-4", source_output: "default", target_node: "node-6", target_input: "default" },
+      { source_node: "node-5", source_output: "default", target_node: "node-6", target_input: "default" },
+      { source_node: "node-6", source_output: "default", target_node: "node-7", target_input: "default" },
+    ],
+  },
+  {
+    id: "wf-ver-2",
+    workflow_id: "wf-sample-1",
+    version: 2,
+    name: "Quarterly Risk Review v2",
+    created_at: "2026-06-12T00:00:00Z",
+    description: "Added confidence filter, increased top_k to 10",
+    nodes: [
+      { id: "node-1", type: "decision_system.trigger_manual", label: "Start", config: {} },
+      { id: "node-2", type: "decision_system.input_text", label: "Business Question", config: { text: "Where are we losing money?" } },
+      { id: "node-3", type: "decision_system.retrieve", label: "Retrieve Evidence", config: { collection: "company_docs", top_k: 10 } },
+      { id: "node-4", type: "decision_system.technical_analyst", label: "Tech Analysis", config: { provider: "fake" } },
+      { id: "node-5", type: "decision_system.risk_analyst", label: "Risk Analysis", config: { provider: "fake" } },
+      { id: "node-6", type: "decision_system.extract_claims", label: "Extract Claims", config: { provider: "fake" } },
+      { id: "node-7", type: "decision_system.filter", label: "Filter Results", config: { field: "confidence", operator: "greater_than", value: "0.5" } },
+      { id: "node-8", type: "decision_system.write_report", label: "Generate Report", config: { format: "markdown", provider: "fake" } },
+    ],
+    connections: [
+      { source_node: "node-1", source_output: "default", target_node: "node-2", target_input: "default" },
+      { source_node: "node-2", source_output: "default", target_node: "node-3", target_input: "default" },
+      { source_node: "node-3", source_output: "default", target_node: "node-4", target_input: "default" },
+      { source_node: "node-3", source_output: "default", target_node: "node-5", target_input: "default" },
+      { source_node: "node-4", source_output: "default", target_node: "node-6", target_input: "default" },
+      { source_node: "node-5", source_output: "default", target_node: "node-6", target_input: "default" },
+      { source_node: "node-6", source_output: "default", target_node: "node-7", target_input: "default" },
+      { source_node: "node-7", source_output: "default", target_node: "node-8", target_input: "default" },
+    ],
+  },
+];
+
 export {
   MOCK_NODE_TYPES,
   MOCK_WORKFLOWS,
@@ -881,4 +1102,5 @@ export {
   MOCK_REVIEWS,
   MOCK_EXECUTION_HISTORY,
   MOCK_EXECUTION_DETAILS,
+  MOCK_WORKFLOW_VERSIONS,
 };

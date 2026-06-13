@@ -1,6 +1,7 @@
 // components/WorkflowToolbar.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import LoadDropdown from "./LoadDropdown";
+import ThemeToggle from "./ThemeToggle";
 import { getBaseUrl, isMockMode } from "../api";
 import "../styles/toolbar.css";
 
@@ -20,6 +21,7 @@ function WorkflowToolbar({
   currentWorkflowName,
   isExecuting,
   hasUnsavedChanges,
+  onShortcuts,
 }) {
   const [editingUrl, setEditingUrl] = useState(false);
   const [urlInput, setUrlInput] = useState("");
@@ -112,6 +114,15 @@ function WorkflowToolbar({
         </span>
       </div>
       <div className="toolbar-right">
+        <ThemeToggle />
+        <button
+          className="toolbar-btn"
+          onClick={onShortcuts}
+          title="Keyboard shortcuts"
+          style={{ fontSize: "15px", padding: "4px 10px", marginRight: "4px" }}
+        >
+          {"⌨︎"}
+        </button>
         {editingUrl ? (
           <div className="connection-edit">
             <span className="connection-url-label">API URL:</span>

@@ -1,0 +1,104 @@
+/* styles/execution-timeline.css — Execution Timeline View */
+
+.et-panel {
+  padding: 8px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.et-header {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding: 0 4px;
+  color: var(--color-text);
+}
+
+.et-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.et-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.et-bar-label {
+  width: 120px;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: var(--color-text);
+}
+
+.et-bar-track {
+  flex: 1;
+  height: 24px;
+  background: var(--color-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.et-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  min-width: 4px;
+}
+
+.et-bar-fill.et-status-completed {
+  background: #22c55e;
+}
+
+.et-bar-fill.et-status-failed {
+  background: #ef4444;
+}
+
+.et-bar-fill.et-status-running {
+  background: #eab308;
+  animation: et-pulse 1.5s ease-in-out infinite;
+}
+
+.et-bar-fill.et-status-pending {
+  background: #9ca3af;
+}
+
+.et-bar-fill.et-status-skipped {
+  background: #6b7280;
+  opacity: 0.5;
+}
+
+@keyframes et-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.et-bar-duration {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-family: monospace;
+  min-width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.et-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.et-empty-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 6px;
+}

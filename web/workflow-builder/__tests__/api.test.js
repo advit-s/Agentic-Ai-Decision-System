@@ -22,7 +22,12 @@ describe("api client (mock mode)", () => {
 
   it("fetches node types", async () => {
     const types = await fetchNodeTypes();
-    expect(types.length).toBe(24);
+    expect(types.length).toBe(28);
+    const typeNames = types.map((t) => t.type);
+    expect(typeNames).toContain("decision_system.planner");
+    expect(typeNames).toContain("decision_system.auditor");
+    expect(typeNames).toContain("decision_system.compliance_checker");
+    expect(typeNames).toContain("decision_system.code_runner");
   });
 
   it("lists workflows", async () => {

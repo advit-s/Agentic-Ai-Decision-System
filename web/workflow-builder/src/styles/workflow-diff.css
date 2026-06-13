@@ -1,0 +1,413 @@
+/* styles/workflow-diff.css — Workflow Version Diff component */
+
+.wd-panel {
+  width: var(--panel-width);
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.wd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wd-header-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.wd-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.wd-close:hover {
+  background: var(--color-bg);
+}
+
+/* ── Summary bar ────────────────────────────── */
+
+.wd-summary-bar {
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px 12px;
+}
+
+.wd-summary-columns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.wd-summary-col {
+  flex: 1;
+}
+
+.wd-summary-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.wd-summary-meta {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.wd-summary-vs {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.wd-summary-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wd-count-item {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.wd-count-changed {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.wd-count-added {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.wd-count-removed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ── Section tabs ──────────────────────────── */
+
+.wd-section-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wd-section-tab {
+  flex: 1;
+  padding: 6px 12px;
+  background: var(--color-bg);
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.wd-section-tab:hover {
+  color: var(--color-text);
+}
+
+.wd-section-tab.active {
+  color: var(--color-primary, #3b82f6);
+  border-bottom-color: var(--color-primary, #3b82f6);
+  background: var(--color-surface);
+}
+
+/* ── Content ────────────────────────────────── */
+
+.wd-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.wd-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+  padding: 8px 0 4px;
+}
+
+/* ── Side-by-side layout ──────────────────── */
+
+.wd-layout {
+  display: flex;
+  gap: 8px;
+}
+
+.wd-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.wd-column-header {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ── Node rows ─────────────────────────────── */
+
+.wd-node-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
+  margin-bottom: 2px;
+  border-radius: 4px;
+  font-size: 11px;
+  background: var(--color-bg);
+}
+
+.wd-node-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.wd-node-changed {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.wd-node-added {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.wd-node-removed {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  opacity: 0.7;
+}
+
+.wd-node-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wd-badge-changed {
+  background: #fde68a;
+  color: #92400e;
+}
+
+.wd-badge-added {
+  background: #bbf7d0;
+  color: #065f46;
+}
+
+.wd-badge-removed {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.wd-diff-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 9px;
+  padding: 1px 5px;
+  color: var(--color-primary, #3b82f6);
+  white-space: nowrap;
+}
+.wd-diff-btn:hover {
+  background: var(--color-primary, #3b82f6);
+  color: #fff;
+  border-color: var(--color-primary, #3b82f6);
+}
+
+/* ── Config diff ────────────────────────────── */
+
+.wd-config-diff {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.wd-diff-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  margin-bottom: 3px;
+  background: var(--color-surface);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.wd-diff-key {
+  font-family: monospace;
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 80px;
+}
+
+.wd-diff-values {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.wd-diff-old {
+  font-family: monospace;
+  color: #dc2626;
+  background: #fef2f2;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-decoration: line-through;
+}
+
+.wd-diff-arrow {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.wd-diff-new {
+  font-family: monospace;
+  color: #16a34a;
+  background: #f0fdf4;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.wd-close-diff {
+  margin-top: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+.wd-close-diff:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* ── Connection diff ───────────────────────── */
+
+.wd-connection-diff {
+  margin-top: 12px;
+}
+
+.wd-conn-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.wd-conn-nochange {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 6px;
+}
+
+.wd-conn-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  margin-bottom: 2px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: monospace;
+}
+
+.wd-conn-added {
+  background: #f0fdf4;
+}
+
+.wd-conn-removed {
+  background: #fef2f2;
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+.wd-conn-text {
+  flex: 1;
+  color: var(--color-text);
+}
+
+/* ── Empty state ────────────────────────────── */
+
+.wd-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  flex: 1;
+}
+
+.wd-empty-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.wd-empty-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.wd-empty-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Error state ────────────────────────────── */
+
+.wd-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  justify-content: center;
+}
+
+.wd-error-icon {
+  font-size: 18px;
+}

@@ -8,10 +8,16 @@ export default defineConfig({
     proxy: {
       '/workflows': 'http://localhost:8000',
       '/executions': 'http://localhost:8000',
+      '/reviews': 'http://localhost:8000',
     },
   },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
+    globals: true,
   },
 })
