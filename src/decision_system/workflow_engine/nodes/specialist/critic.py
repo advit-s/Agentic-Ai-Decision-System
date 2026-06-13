@@ -244,13 +244,12 @@ class CriticNode(WorkflowNode):
 
             # Apply max_issues
             total_issues = len(issues)
+            passed = not any(i["severity"] in ("medium", "high") for i in issues)
             if total_issues > max_issues:
                 issues = issues[:max_issues]
                 truncated_note = f" (showing first {max_issues})"
             else:
                 truncated_note = ""
-
-            passed = not any(i["severity"] in ("medium", "high") for i in issues)
             conf_adj = -min(len(issues) * 0.1, 0.5) if issues else 0.0
 
             return {
@@ -266,12 +265,14 @@ class CriticNode(WorkflowNode):
             self.config.get("provider"),
             self.config.get("model"),
         )
+        fallback_reason = ""
         if provider_cfg:
             provider_config, _ = provider_cfg
             try:
                 return await self._llm_review_report(target_data, context, enabled_criteria, provider_config)
-            except Exception:
-                pass
+            except Exception as exc:
+                fallback_reason = f"{type(exc).__name__}: {exc}"
+                # fall through to basic text-level check below
 
         # Fallback for non-claims input — do basic text-level check
         text = str(target_data)
@@ -282,7 +283,7 @@ class CriticNode(WorkflowNode):
             "issues": issues,
             "summary": f"Reviewed text: found {len(issues)} potential issue(s).",
             "confidence_adjustment": -0.1 if issues else 0.0,
-            "fallback_reason": "",
+            "fallback_reason": fallback_reason,
         }
 
     async def _llm_review(
