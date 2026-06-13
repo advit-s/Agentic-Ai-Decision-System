@@ -15,6 +15,7 @@ from decision_system.workflow_engine.models import (
 from decision_system.workflow_engine.engine.dag import DAGValidator, TopologicalSort
 from decision_system.workflow_engine.engine.events import ExecutionEvent
 from decision_system.workflow_engine.nodes.registry import NodeRegistry
+from decision_system.workflow_engine.providers.store import ProviderStore
 from decision_system.workflow_engine.stores.base import (
     WorkflowStore, ExecutionStore,
 )
@@ -32,10 +33,12 @@ class DAGEngine:
         registry: NodeRegistry,
         workflow_store: WorkflowStore,
         execution_store: ExecutionStore,
+        provider_store: ProviderStore | None = None,
     ) -> None:
         self.registry = registry
         self.workflow_store = workflow_store
         self.execution_store = execution_store
+        self._provider_store = provider_store or ProviderStore()
         self._event_handlers: list[Callable[[ExecutionEvent], None]] = []
 
     def on_event(self, handler: Callable[[ExecutionEvent], None]) -> None:
@@ -179,6 +182,7 @@ class DAGEngine:
                 execution_id=state.execution_id,
                 schedule_id=schedule_id,
             )
+            ctx._provider_store = self._provider_store
             node = node_cls(id=node_id, type=config.type, config=config.config)
             outputs = await node.execute(inputs, ctx)
 

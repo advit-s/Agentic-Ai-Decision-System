@@ -9,7 +9,9 @@ from enum import Enum
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 
 class ErrorPolicy(str, Enum):
@@ -87,12 +89,48 @@ class ExecutionState(BaseModel):
 
 class ExecutionContext(BaseModel):
     """Shared context passed to every node during execution."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     workflow_id: str
     execution_id: str
     schedule_id: str | None = None
     provider: str = "fake"
     global_config: dict[str, Any] = Field(default_factory=dict)
     log: list[str] = Field(default_factory=list)
+
+    _provider_store: Any = PrivateAttr(default=None)
+
+    def resolve_provider(
+        self,
+        provider_name: str | None = None,
+        model: str | None = None,
+    ) -> tuple[Any, str] | None:
+        """Resolve a provider config + model pair.
+
+        Resolution order:
+        1. Per-node override (provider_name + model)
+        2. System default (first provider in the list)
+        3. None → caller falls back to fake provider
+
+        Returns ``(ProviderConfig, resolved_model)`` or ``None``.
+        """
+        store = self._provider_store
+        if store is None:
+            return None
+
+        # 1. Try named provider override
+        if provider_name:
+            cfg = store.get(provider_name)
+            if cfg is not None:
+                return (cfg, model or cfg.default_model)
+
+        # 2. Fall back to system default
+        default = store.get_default()
+        if default is not None:
+            return (default, model or default.default_model)
+
+        # 3. No providers configured at all
+        return None
 
 
 class NodeTypeInfo(BaseModel):
