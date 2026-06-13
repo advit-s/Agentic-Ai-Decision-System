@@ -22,11 +22,16 @@
   font-size: 14px;
 }
 
+.provider-header-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .provider-header-actions button {
   background: #313244;
   border: none;
   color: #cdd6f4;
-  width: 28px;
   height: 28px;
   border-radius: 6px;
   cursor: pointer;
@@ -39,6 +44,13 @@
 
 .provider-header-actions button:hover {
   background: #45475a;
+}
+
+.check-all-btn {
+  font-size: 11px !important;
+  padding: 0 10px !important;
+  white-space: nowrap;
+  gap: 4px;
 }
 
 .provider-list {
@@ -247,4 +259,28 @@
   color: #f38ba8;
   font-size: 12px;
   margin-top: 8px;
+}
+
+/* Health indicator dots */
+.provider-health-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.provider-health-dot.health-ok {
+  background: #a6e3a1;
+  box-shadow: 0 0 4px rgba(166, 227, 161, 0.5);
+}
+
+.provider-health-dot.health-err {
+  background: #f38ba8;
+  box-shadow: 0 0 4px rgba(243, 139, 168, 0.5);
+}
+
+.provider-health-dot.health-unknown {
+  background: #585b70;
 }

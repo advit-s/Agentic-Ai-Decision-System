@@ -155,8 +155,7 @@ class WorkflowNode(ABC, BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
     inputs: dict[str, Any] = Field(default_factory=dict)
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @abstractmethod
     async def execute(self, inputs: dict[str, Any], ctx: ExecutionContext) -> dict[str, Any]:

@@ -238,7 +238,7 @@ v1.6 is the final prototype hardening pass. Key deliverables:
 - **CLI refactoring**: monolith `cli.py` (2018 lines) broken into separate modules for security (`cli_security.py`), observability (`cli_observability.py`), and enterprise (`cli_enterprise.py`), reducing the main file to ~1574 lines
 - **Repository hygiene checker**: `decision-system check-hygiene` verifies no generated state, caches, raw datasets, private env files, or agent instruction files are tracked
 - **All 50 CLI commands verified working** with fake provider, no API keys required
-- **700+ tests passing** offline with no external dependencies
+- **1061 tests passing** offline with no external dependencies
 - **Full documentation audit**: README, ARCHITECTURE.md, DECISIONS.md, RELEASE_CHECKLIST.md, CHANGELOG.md updated for all v1.0–v1.6 features
 - **Clean generated state scripts**: `clean-generated.sh` and `clean-generated.ps1` for safe cleanup (dry-run by default)
 
@@ -364,32 +364,24 @@ decision-system connectors inspect email
 
 Stub connectors fail safely with a clear message. Dry-run should always be used before importing. Connector jobs are generated under `.decision_system/connectors/` and are ignored by Git. No source files are deleted or modified during import.
 
-## Visual Workflow Builder (v1.15)
+## Visual Workflow Builder (v1.16)
 
-The v1.15 release adds three major features to the web-based workflow builder:
+The project includes a **React + React Flow** visual workflow builder at `web/workflow-builder/` with 28 node types across 5 categories (Triggers, Data, AI/Analysis, Output, Flow Control). It connects to the real backend or runs entirely in mock mode.
 
-#### Claim Ledger Report
-- Claim-centric post-execution view as the default analysis surface
-- One-click export of decision reports as downloadable JSON
-- Search/filter/sort through claims by status, confidence, and text
-- Full verification trail — trace each claim from Researcher findings through Critic evaluation
-- Side-by-side status breakdown (verified, unsupported, contradicted, pending)
+#### Features (v1.15–v1.16)
+- **28 node types**: Manual/Cron/Webhook triggers, Retrieve, Researcher, Critic, Synthesizer, Data Analyst, Technical/Risk Analyst, Extract/Verify Claims, Write Report, War Room, Review Gate, Filter, Merge, Code, and more
+- **Drag-and-drop canvas** with custom node cards, per-type icons and colors
+- **DAG execution engine** — connect nodes, execute end-to-end, watch live execution events stream via WebSocket
+- **Claim Ledger Report** — claim-centric post-execution view with search/filter/sort and one-click JSON export
+- **Human Review Gates** — pause execution at review points, approve/reject/request-changes with full audit trail
+- **Execution History & Comparison** — persistent history, side-by-side run comparison, claim status evolution
+- **Edit-and-Replay** — modify node configs post-execution and replay downstream nodes
+- **Workflow Templates** — 5 pre-built starter workflows (Blank, Research Pipeline, Data Analysis, Compliance Audit, Full Decision Pipeline)
+- **Provider Management** — manage LLM providers with per-node overrides, test connection health indicators
+- **Schedule Management** — cron-triggered automated execution
+- **Resizable panels**, dark/light theme, minimap, keyboard shortcuts, animated execution edges
 
-#### Human Review Gates
-- New **Review Gate** node type that pauses workflow execution for human input
-- Review queue with approve, reject, and request-changes actions
-- Required or optional review notes based on node configuration
-- Full audit trail of all review decisions
-- Review history with resolved and pending views
-
-#### Execution History & Comparison
-- Persistent execution history across workflow runs
-- Historical run browser with search, sort, and detail views
-- Side-by-side execution comparison showing node and claim diff
-- Track how claim statuses evolve across runs
-- Visual diff of failed vs successful executions
-
-These are web UI features accessible through the workflow builder at `web/workflow-builder/`:
+#### Start the Workflow Builder
 
 ```bash
 cd web/workflow-builder
@@ -397,7 +389,10 @@ npm install
 npm run dev
 ```
 
-Launch the builder, build a workflow with Researcher → Critic → Review Gate nodes, execute, and experience the full claim-ledger pipeline with human review.
+The builder runs at **`http://localhost:5173`** by default. In mock mode it works without the backend; set the API URL in the toolbar to connect to the FastAPI backend.
+
+#### Architecture
+See [docs/WORKFLOW_BUILDER.md](docs/WORKFLOW_BUILDER.md) for the full architecture, component tree, data flow, and API reference.
 
 ## What Is Not Included Yet
 
@@ -681,10 +676,11 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 ## Testing
 
 ```bash
-python -m pytest -q                          # full test suite (700 tests)
+python -m pytest -q                          # full test suite (1061 tests)
 python -m pytest tests/test_security.py -q   # security/audit tests (64 tests)
 python -m pytest tests/test_observability.py -q  # observability tests (28 tests)
 python -m pytest tests/test_web_ui.py -q     # web UI tests
+cd web/workflow-builder && npx vitest run    # frontend tests (35 tests)
 decision-system eval                         # bundled evaluation cases
 decision-system eval-war-room                # war-room offline evaluation
 decision-system eval-providers               # provider evaluation cases
@@ -739,5 +735,9 @@ Completed:
 - v1.3: observability, metrics, evaluation history, quality reports, trace summaries
 - v1.4: Docker packaging, local deployment scripts, release verification
 - v1.5: enterprise readiness assessment and gap analysis
-- v1.6: final prototype readiness pass (all commands verified, 700 tests passing)
+- v1.6: final prototype readiness pass (all commands verified, 1061 tests passing)
 - v1.7: frontend product UI with 9 sections, mock-first design, API integration
+- v1.13: Phase 6 — Bounded Specialist Agent Nodes (Researcher, Critic, Synthesizer)
+- v1.14: Phase 7 — Data Analyst Node
+- v1.15: Claim Ledger DX, Human Review Gates, Execution History
+- v1.16: Backend Connection, 4 New Specialists, Execution UX, Visual Polish

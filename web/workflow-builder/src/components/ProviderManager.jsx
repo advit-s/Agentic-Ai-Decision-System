@@ -7,6 +7,7 @@ import {
   deleteProvider,
   checkProvider,
   setDefaultProvider,
+  updateProvider,
 } from "../api";
 import "../styles/provider-manager.css";
 
@@ -23,6 +24,7 @@ function ProviderManager({ onClose }) {
   const [error, setError] = useState(null);
   const [testing, setTesting] = useState(null);
   const [testResult, setTestResult] = useState(null);
+  const [healthStatuses, setHealthStatuses] = useState({});
 
   const loadProviders = useCallback(async () => {
     try {
@@ -77,15 +79,22 @@ function ProviderManager({ onClose }) {
 
   async function handleCheck(name) {
     setTesting(name);
-    setTestResult(null);
     try {
       const result = await checkProvider(name);
-      setTestResult(result);
+      setHealthStatuses((prev) => ({ ...prev, [name]: result }));
     } catch (err) {
-      setTestResult({ status: "error", error: err.message });
+      setHealthStatuses((prev) => ({
+        ...prev,
+        [name]: { status: "error", error: err.message },
+      }));
     } finally {
       setTesting(null);
     }
+  }
+
+  async function handleCheckAll() {
+    const names = providers.map((p) => p.name);
+    await Promise.all(names.map((name) => handleCheck(name)));
   }
 
   async function handleSetDefault(name) {
@@ -102,6 +111,15 @@ function ProviderManager({ onClose }) {
       <div className="provider-manager-header">
         <span>🤖 LLM Providers</span>
         <div className="provider-header-actions">
+          {providers.length > 0 && (
+            <button
+              onClick={handleCheckAll}
+              className="check-all-btn"
+              title="Check all provider connections"
+            >
+              🔄 Check All
+            </button>
+          )}
           <button
             onClick={() => {
               setShowAdd(!showAdd);
@@ -119,64 +137,78 @@ function ProviderManager({ onClose }) {
           <div className="provider-empty">No providers configured</div>
         )}
 
-        {providers.map((p, i) => (
-          <div key={p.name} className="provider-card">
-            <div className="provider-card-header">
-              <span className="provider-name">
-                {i === 0 && <span title="Default provider" className="provider-default-badge">★</span>}
-                {p.name}
-              </span>
-              <div className="provider-card-actions">
+        {providers.map((p, i) => {
+          const health = healthStatuses[p.name];
+          const healthOk = health?.status === "ok";
+          return (
+            <div key={p.name} className="provider-card">
+              <div className="provider-card-header">
+                <span className="provider-name">
+                  {i === 0 && <span title="Default provider" className="provider-default-badge">★</span>}
+                  <span
+                    className={`provider-health-dot ${health ? (healthOk ? "health-ok" : "health-err") : "health-unknown"}`}
+                    title={
+                      health
+                        ? healthOk
+                          ? `Connected (${health.model})`
+                          : `Error: ${health.error}`
+                        : "Not checked yet"
+                    }
+                  />
+                  {p.name}
+                </span>
+                <div className="provider-card-actions">
+                  <button
+                    onClick={() => handleSetDefault(p.name)}
+                    className="default-btn"
+                    title="Set as default"
+                    disabled={i === 0}
+                  >
+                    ◎
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p.name)}
+                    className="delete-btn"
+                    title="Delete provider"
+                  >
+                    🗑
+                  </button>
+                </div>
+              </div>
+
+              <div className="provider-detail">
+                <strong>API:</strong> {p.api_base}
+              </div>
+              <div className="provider-detail">
+                <strong>Model:</strong> {p.default_model}
+              </div>
+              <div className="provider-detail">
+                <strong>Key:</strong>{" "}
+                <span className={p.api_key_configured ? "key-configured" : "key-missing"}>
+                  {p.api_key_configured ? "✓ Configured" : "✗ Not set"}
+                </span>
+              </div>
+
+              <div className="provider-test-row">
                 <button
-                  onClick={() => handleSetDefault(p.name)}
-                  className="default-btn"
-                  title="Set as default"
-                  disabled={i === 0}
+                  onClick={() => handleCheck(p.name)}
+                  disabled={testing === p.name}
+                  className="test-btn"
                 >
-                  ◎
-                </button>
-                <button
-                  onClick={() => handleDelete(p.name)}
-                  className="delete-btn"
-                  title="Delete provider"
-                >
-                  🗑
+                  {testing === p.name ? "⏳ Testing..." : "🔌 Test Connection"}
                 </button>
               </div>
-            </div>
 
-            <div className="provider-detail">
-              <strong>API:</strong> {p.api_base}
+              {health && (
+                <div className={`provider-test-result ${health.status}`}>
+                  {health.status === "ok"
+                    ? `✓ ${health.response}`
+                    : `✗ ${health.error}`}
+                </div>
+              )}
             </div>
-            <div className="provider-detail">
-              <strong>Model:</strong> {p.default_model}
-            </div>
-            <div className="provider-detail">
-              <strong>Key:</strong>{" "}
-              <span className={p.api_key_configured ? "key-configured" : "key-missing"}>
-                {p.api_key_configured ? "✓ Configured" : "✗ Not set"}
-              </span>
-            </div>
-
-            <div className="provider-test-row">
-              <button
-                onClick={() => handleCheck(p.name)}
-                disabled={testing === p.name}
-                className="test-btn"
-              >
-                {testing === p.name ? "Testing..." : "Test Connection"}
-              </button>
-            </div>
-
-            {testResult && testResult.provider === p.name && (
-              <div className={`provider-test-result ${testResult.status}`}>
-                {testResult.status === "ok"
-                  ? `✓ ${testResult.response}`
-                  : `✗ ${testResult.error}`}
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
 
         {showAdd && (
           <div className="provider-add-form">

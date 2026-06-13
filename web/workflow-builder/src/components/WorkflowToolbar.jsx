@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import LoadDropdown from "./LoadDropdown";
 import ThemeToggle from "./ThemeToggle";
-import { getBaseUrl, isMockMode } from "../api";
+import { getBaseUrl, isMockMode, listProviders, checkProvider } from "../api";
 import "../styles/toolbar.css";
 
 function WorkflowToolbar({
@@ -15,6 +15,7 @@ function WorkflowToolbar({
   historyPanel,
   onSchedules,
   onProviders,
+  onTemplates,
   schedulePanel,
   providerPanel,
   workflows,
@@ -25,6 +26,24 @@ function WorkflowToolbar({
 }) {
   const [editingUrl, setEditingUrl] = useState(false);
   const [urlInput, setUrlInput] = useState("");
+  const [providerHealth, setProviderHealth] = useState("unknown"); // "ok" | "warn" | "unknown"
+
+  // Check provider health on mount
+  useEffect(() => {
+    listProviders()
+      .then((data) => {
+        const providers = data.providers || data || [];
+        if (providers.length === 0) {
+          setProviderHealth("unknown");
+          return;
+        }
+        // Check the default (first) provider
+        return checkProvider(providers[0].name).then((result) => {
+          setProviderHealth(result.status === "ok" ? "ok" : "warn");
+        });
+      })
+      .catch(() => setProviderHealth("unknown"));
+  }, []);
 
   const mock = isMockMode();
   const baseUrl = getBaseUrl();
@@ -86,6 +105,9 @@ function WorkflowToolbar({
         <button className="toolbar-btn" onClick={onExport} title="Export as JSON">
           📋 Export
         </button>
+        <button className="toolbar-btn" onClick={onTemplates} title="New from template">
+          📋 Templates
+        </button>
         <div className="toolbar-divider" />
         <button
           className={`toolbar-btn ${historyPanel ? "toolbar-btn-active" : ""}`}
@@ -106,6 +128,11 @@ function WorkflowToolbar({
           onClick={onProviders}
           title="Manage LLM providers"
         >
+          <span className="provider-toolbar-indicator">
+            <span
+              className={`provider-indicator-dot provider-indicator-${providerHealth}`}
+            />
+          </span>
           🤖 Providers
         </button>
       </div>

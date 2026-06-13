@@ -1,3 +1,13 @@
+## [1.16.2] - 2026-06-13 — Backend Hardening & Deprecation Cleanup
+
+### Fixed
+- **Pydantic V2 deprecation**: Replaced class-based `Config` with `model_config = ConfigDict(...)` in workflow engine models.
+- **Starlette/httpx deprecation**: Installed `httpx2` to resolve `StarletteDeprecationWarning` about httpx TestClient.
+- **Version sync**: `pyproject.toml` bumped from 1.14.0 to 1.16.1 to match feature progress in CHANGELOG.
+
+### Removed
+- **Skill artifacts**: Cleaned up skills-lock.json and related skill-generated files from the project root.
+
 ## [1.16.1] - 2026-06-13 — Frontend Modernization & Design System
 
 ### Added

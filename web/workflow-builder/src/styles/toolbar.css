@@ -175,6 +175,35 @@
   border-color: var(--color-primary);
 }
 
+/* Provider health indicator in toolbar */
+.provider-toolbar-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 2px;
+}
+
+.provider-indicator-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.provider-indicator-ok {
+  background: var(--color-success);
+  box-shadow: 0 0 4px rgba(5, 150, 105, 0.5);
+}
+
+.provider-indicator-warn {
+  background: var(--color-ember);
+  box-shadow: 0 0 4px rgba(217, 119, 6, 0.5);
+}
+
+.provider-indicator-unknown {
+  background: var(--color-text-muted);
+}
+
 .load-dropdown {
   position: relative;
 }

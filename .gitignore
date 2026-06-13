@@ -43,6 +43,9 @@ evals/results/*.json
 !evals/results/.gitkeep
 _smoke_run/
 
+# Generated skill artifacts
+skills-lock.json
+
 # Local/private documents
 company_docs/*
 !company_docs/.gitkeep

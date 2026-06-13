@@ -17,9 +17,12 @@ function ConfigPanel({
   if (!selectedNode || !nodeType) return null;
 
   const catConfig = getNodeCategoryConfig(nodeType.categories?.[0]);
+  const currentConfig = selectedNode.data.config || {};
+  const hasProviderField = nodeType.config_schema?.properties?.provider !== undefined;
+  const currentProvider = currentConfig.provider || "fake";
 
   function handleConfigChange(changes) {
-    onUpdateConfig(selectedNode.id, { ...selectedNode.data.config, ...changes });
+    onUpdateConfig(selectedNode.id, { ...currentConfig, ...changes });
   }
 
   function handleLabelChange(e) {
@@ -28,10 +31,16 @@ function ConfigPanel({
 
   function handleErrorPolicyChange(e) {
     onUpdateConfig(selectedNode.id, {
-      ...selectedNode.data.config,
+      ...currentConfig,
       error_policy: e.target.value,
     });
   }
+
+  const PROVIDER_LABELS = {
+    fake: { label: "Fake (offline)", icon: "🖥️", color: "#6b7280" },
+    nvidia_nim: { label: "NVIDIA NIM", icon: "🔵", color: "#3b82f6" },
+    ollama: { label: "Ollama (local)", icon: "🦙", color: "#8b5cf6" },
+  };
 
   return (
     <div className="config-panel">
@@ -58,11 +67,31 @@ function ConfigPanel({
           <p className="config-desc">{nodeType.description}</p>
         </div>
 
+        {hasProviderField && (
+          <div className="config-section">
+            <div className="config-section-title">Provider</div>
+            <div className="config-provider-info">
+              <span
+                className="config-provider-badge"
+                style={{
+                  borderColor: (PROVIDER_LABELS[currentProvider] || PROVIDER_LABELS.fake).color,
+                }}
+              >
+                <span>{(PROVIDER_LABELS[currentProvider] || PROVIDER_LABELS.fake).icon}</span>
+                <span>{(PROVIDER_LABELS[currentProvider] || PROVIDER_LABELS.fake).label}</span>
+              </span>
+              <span className="config-provider-hint">
+                Configured in settings below. Change the provider per-node from the dropdown.
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="config-section">
           <div className="config-section-title">Configuration</div>
           <SchemaForm
             schema={nodeType.config_schema}
-            values={selectedNode.data.config || {}}
+            values={currentConfig}
             onChange={handleConfigChange}
           />
         </div>
@@ -72,7 +101,7 @@ function ConfigPanel({
             <label className="config-label">Error Policy</label>
             <select
               className="config-input"
-              value={selectedNode.data.config?.error_policy || "fail_workflow"}
+              value={currentConfig.error_policy || "fail_workflow"}
               onChange={handleErrorPolicyChange}
             >
               {errorPolicies.map((ep) => (

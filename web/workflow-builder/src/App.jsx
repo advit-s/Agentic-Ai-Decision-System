@@ -11,6 +11,7 @@ import ExecutionCompare from "./components/ExecutionCompare";
 import WorkflowDiff from "./components/WorkflowDiff";
 import ScheduleManager from "./components/ScheduleManager";
 import ProviderManager from "./components/ProviderManager";
+import TemplateDialog from "./components/TemplateDialog";
 import NodeComponent from "./components/NodeComponent";
 import ResizablePanel from "./components/ResizablePanel";
 import ShortcutsHelp from "./components/ShortcutsHelp";
@@ -65,6 +66,7 @@ function CanvasInner() {
   const [dirtyAfterExecution, setDirtyAfterExecution] = useState(false);
   const [diffView, setDiffView] = useState(null);
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const { showToast } = useToast();
   const timerRef = useRef(null);
 
@@ -491,6 +493,56 @@ function CanvasInner() {
     URL.revokeObjectURL(url);
   }
 
+  function handleApplyTemplate(template) {
+    const idMap = {};
+    const freshNodes = template.nodes.map((n) => {
+      const newId = idGen();
+      idMap[n.id] = newId;
+      const nt = getNodeTypeInfo(n.type);
+      const cat = nt?.categories?.[0] || "flow";
+      const inputPorts = nt
+        ? Object.keys(nt.input_schema?.properties || {})
+        : [];
+      const outputPorts = nt
+        ? Object.keys(nt.output_schema?.properties || {})
+        : [];
+      return {
+        id: newId,
+        type: "custom",
+        position: { x: n.position_x || 100, y: n.position_y || 100 },
+        data: {
+          label: n.label || nt?.label || n.type,
+          typeLabel: nt?.label || n.type,
+          category: cat,
+          icon: nt?.icon,
+          color: nt?.color,
+          description: nt?.description,
+          config: n.config || {},
+          inputPorts,
+          outputPorts,
+          status: "idle",
+        },
+      };
+    });
+
+    const freshEdges = template.connections.map((c) => ({
+      id: `${idMap[c.source_node]}-${idMap[c.target_node]}`,
+      source: idMap[c.source_node],
+      target: idMap[c.target_node],
+      sourceHandle: c.source_output || "default",
+      targetHandle: c.target_input || "default",
+    }));
+
+    setNodes(freshNodes);
+    setEdges(freshEdges);
+    setCurrentWorkflowId(null);
+    setCurrentWorkflowName(template.name);
+    setHasUnsavedChanges(true);
+    setSelectedNode(null);
+    setTemplateDialogOpen(false);
+    showToast(`Loaded template: ${template.name}`, "info");
+  }
+
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
@@ -653,6 +705,7 @@ function CanvasInner() {
           setExecutionPanel(false);
           setHistoryPanel(false);
         }}
+        onTemplates={() => setTemplateDialogOpen(true)}
         schedulePanel={schedulePanel}
         providerPanel={providerPanel}
         workflows={workflows}
@@ -751,6 +804,11 @@ function CanvasInner() {
       <ShortcutsHelp
         isOpen={shortcutsHelpOpen}
         onClose={() => setShortcutsHelpOpen(false)}
+      />
+      <TemplateDialog
+        isOpen={templateDialogOpen}
+        onSelect={handleApplyTemplate}
+        onClose={() => setTemplateDialogOpen(false)}
       />
     </div>
   );
