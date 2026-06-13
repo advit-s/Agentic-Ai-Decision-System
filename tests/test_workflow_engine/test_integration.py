@@ -123,4 +123,4 @@ class TestEndToEnd:
         assert result.exit_code == 0
         assert "Manual Trigger" in result.stdout
         assert "Run War Room" in result.stdout
-        assert "Available Nodes (19)" in result.stdout
+        assert "Available Nodes (22)" in result.stdout

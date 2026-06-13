@@ -21,7 +21,6 @@ from decision_system.workflow_engine.nodes.specialist.critic import (
 )
 from decision_system.workflow_engine.providers.store import ProviderConfig, ProviderStore
 
-pytestmark = pytest.mark.asyncio
 
 
 def _store_with_provider() -> ProviderStore:
@@ -82,6 +81,7 @@ ISSUES_RESPONSE = {
 
 class TestCriticNode:
     """CriticNode — AI-powered review and quality checking."""
+    pytestmark = pytest.mark.asyncio
 
     async def test_fallback_empty_input(self):
         """Empty input → returns passed=True with no issues."""
