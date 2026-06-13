@@ -3,7 +3,7 @@
   background: var(--color-surface);
   border: 2px solid;
   border-radius: 8px;
-  min-width: 150px;
+  min-width: 180px;
   box-shadow: var(--shadow);
   font-size: 12px;
   transition: box-shadow 0.15s;
@@ -28,10 +28,20 @@
 
 .node-body {
   padding: 8px 12px;
-  min-height: 24px;
+  min-height: 32px;
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.node-description {
+  color: #9ca3af;
+  font-size: 10px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
 }
 
 .node-spinner {

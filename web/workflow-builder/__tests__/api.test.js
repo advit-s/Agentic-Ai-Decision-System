@@ -22,7 +22,7 @@ describe("api client (mock mode)", () => {
 
   it("fetches node types", async () => {
     const types = await fetchNodeTypes();
-    expect(types.length).toBe(16);
+    expect(types.length).toBe(23);
   });
 
   it("lists workflows", async () => {

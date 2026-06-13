@@ -5,6 +5,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.trigger_manual",
     label: "Manual Trigger",
     description: "Start a workflow manually",
+    icon: "⚡",
+    color: "#3b82f6",
     categories: ["trigger"],
     config_schema: { type: "object", properties: {} },
     input_schema: { type: "object", properties: {} },
@@ -14,6 +16,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.input_text",
     label: "Input Text",
     description: "Provide text input for the workflow",
+    icon: "✏️",
+    color: "#14b8a6",
     categories: ["trigger"],
     config_schema: {
       type: "object",
@@ -29,6 +33,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.retrieve",
     label: "Retrieve Evidence",
     description: "Retrieve documents from the vector store",
+    icon: "🔍",
+    color: "#f59e0b",
     categories: ["data"],
     config_schema: {
       type: "object",
@@ -44,6 +50,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.technical_analyst",
     label: "Technical Analyst",
     description: "Analyze technical data and system information",
+    icon: "🔧",
+    color: "#8b5cf6",
     categories: ["ai"],
     config_schema: {
       type: "object",
@@ -58,6 +66,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.risk_analyst",
     label: "Risk Analyst",
     description: "Analyze risks and vulnerabilities",
+    icon: "🛡️",
+    color: "#a855f7",
     categories: ["ai"],
     config_schema: {
       type: "object",
@@ -72,6 +82,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.extract_claims",
     label: "Extract Claims",
     description: "Extract claims from analysis output",
+    icon: "📌",
+    color: "#7c3aed",
     categories: ["ai"],
     config_schema: {
       type: "object",
@@ -87,6 +99,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.verify_claims",
     label: "Verify Claims",
     description: "Verify extracted claims against evidence",
+    icon: "✅",
+    color: "#9333ea",
     categories: ["ai"],
     config_schema: {
       type: "object",
@@ -101,6 +115,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.write_report",
     label: "Write Report",
     description: "Generate a decision report from verified claims",
+    icon: "📝",
+    color: "#6d28d9",
     categories: ["output"],
     config_schema: {
       type: "object",
@@ -116,6 +132,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.extract_graph",
     label: "Extract Graph",
     description: "Extract entities and relationships from documents",
+    icon: "🕸️",
+    color: "#d97706",
     categories: ["data"],
     config_schema: { type: "object", properties: {} },
     input_schema: { type: "object", properties: { chunks: { type: "array" } } },
@@ -125,6 +143,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.profile_data",
     label: "Profile Data",
     description: "Profile local CSV data files",
+    icon: "📋",
+    color: "#ea580c",
     categories: ["data"],
     config_schema: {
       type: "object",
@@ -139,6 +159,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.map_ontology",
     label: "Map Ontology",
     description: "Map data profiles to ontology concepts",
+    icon: "🧩",
+    color: "#7e22ce",
     categories: ["output"],
     config_schema: { type: "object", properties: {} },
     input_schema: { type: "object", properties: { profiles: { type: "array" } } },
@@ -148,6 +170,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.detect_patterns",
     label: "Detect Patterns",
     description: "Run pattern and vulnerability detection",
+    icon: "🔮",
+    color: "#a21caf",
     categories: ["ai"],
     config_schema: {
       type: "object",
@@ -165,6 +189,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.war_room",
     label: "Run War Room",
     description: "Run the multi-role analysis protocol",
+    icon: "🏛️",
+    color: "#6b21a8",
     categories: ["ai"],
     config_schema: {
       type: "object",
@@ -180,6 +206,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.filter",
     label: "Filter",
     description: "Filter data based on conditions",
+    icon: "🧪",
+    color: "#6b7280",
     categories: ["flow"],
     config_schema: {
       type: "object",
@@ -199,6 +227,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.merge",
     label: "Merge",
     description: "Merge multiple data sources",
+    icon: "🔀",
+    color: "#4b5563",
     categories: ["flow"],
     config_schema: {
       type: "object",
@@ -216,6 +246,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.code",
     label: "Code",
     description: "Execute a Python snippet",
+    icon: "💻",
+    color: "#374151",
     categories: ["flow"],
     config_schema: {
       type: "object",
@@ -231,6 +263,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.trigger_cron",
     label: "Cron Trigger",
     description: "Trigger a workflow on a cron schedule",
+    icon: "🕐",
+    color: "#6366f1",
     categories: ["trigger"],
     config_schema: {
       type: "object",
@@ -256,6 +290,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.trigger_webhook",
     label: "Webhook Trigger",
     description: "Trigger a workflow via an HTTP webhook",
+    icon: "🔗",
+    color: "#4f46e5",
     categories: ["trigger"],
     config_schema: {
       type: "object",
@@ -280,6 +316,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.trigger_file_watch",
     label: "File Watch Trigger",
     description: "Trigger a workflow when new files appear in a directory",
+    icon: "👁️",
+    color: "#8b5cf6",
     categories: ["trigger"],
     config_schema: {
       type: "object",
@@ -304,6 +342,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.researcher",
     label: "Researcher",
     description: "Retrieve and synthesize information from connected data sources",
+    icon: "📚",
+    color: "#8b5cf6",
     categories: ["ai"],
     config_schema: {
       type: "object",
@@ -335,6 +375,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.critic",
     label: "Critic / Judge",
     description: "Review outputs for contradictions, unsupported claims, and logical fallacies",
+    icon: "⚖️",
+    color: "#c026d3",
     categories: ["ai"],
     config_schema: {
       type: "object",
@@ -371,6 +413,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.synthesizer",
     label: "Decision Synthesizer",
     description: "Synthesize multiple evidence streams into weighted decisions",
+    icon: "🎯",
+    color: "#a855f7",
     categories: ["ai"],
     config_schema: {
       type: "object",
@@ -408,6 +452,8 @@ const MOCK_NODE_TYPES = [
     type: "decision_system.data_analyst",
     label: "Data Analyst",
     description: "Analyze structured data — profiles, trends, anomalies, and correlations",
+    icon: "📊",
+    color: "#7c3aed",
     categories: ["ai"],
     config_schema: {
       type: "object",

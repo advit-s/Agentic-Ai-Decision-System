@@ -7,6 +7,10 @@ const NodeComponent = memo(({ id, data, selected }) => {
   const catConfig = getNodeCategoryConfig(data.category);
   const status = data.status || "idle";
 
+  // Use per-type icon/color from node data, fall back to category config
+  const nodeIcon = data.icon || catConfig.icon;
+  const nodeColor = data.color || catConfig.color;
+
   const statusClasses = {
     idle: "",
     running: "node-status-running",
@@ -21,7 +25,7 @@ const NodeComponent = memo(({ id, data, selected }) => {
   return (
     <div
       className={`custom-node ${selected ? "selected" : ""} ${statusClasses[status] || ""}`}
-      style={{ borderColor: catConfig.color }}
+      style={{ borderColor: nodeColor }}
     >
       {/* Input handles */}
       {hasInputs &&
@@ -40,12 +44,16 @@ const NodeComponent = memo(({ id, data, selected }) => {
       )}
 
       {/* Node body */}
-      <div className="node-header" style={{ background: catConfig.color }}>
-        <span className="node-icon">{catConfig.icon}</span>
+      <div className="node-header" style={{ background: nodeColor }}>
+        <span className="node-icon">{nodeIcon}</span>
         <span className="node-type-label">{data.label || data.typeLabel}</span>
       </div>
       <div className="node-body">
-        {status === "running" && <span className="node-spinner">⟳</span>}
+        {status === "running" ? (
+          <span className="node-spinner">⟳</span>
+        ) : data.description ? (
+          <span className="node-description">{data.description}</span>
+        ) : null}
       </div>
 
       {/* Output handles */}

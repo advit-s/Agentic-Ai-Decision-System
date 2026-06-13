@@ -58,6 +58,7 @@ function NodePalette({ nodeTypes, onDragStart }) {
                     if (onDragStart) onDragStart(nt);
                   }}
                 >
+                  <span className="palette-item-icon">{nt.icon || cat.icon}</span>
                   <span className="palette-item-label">{nt.label}</span>
                   <span className="palette-item-desc">{nt.description}</span>
                 </div>
