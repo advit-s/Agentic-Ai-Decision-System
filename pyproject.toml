@@ -18,14 +18,15 @@ dependencies = [
   "python-dotenv>=1.0,<2.0",
   "rich>=13.7,<15.0",
   "uvicorn>=0.30,<1.0",
-  "xlrd>=2.0,<3.0"
+  "xlrd>=2.0,<3.0",
+  "httpx>=0.27,<1.0",
 ]
 
 [project.optional-dependencies]
-nvidia = ["openai>=1.0,<2.0"]
 dev = [
   "pytest>=8.2,<9.0",
   "pytest-asyncio>=0.24,<1.0",
+  "pytest-httpx>=0.30,<1.0",
 ]
 
 [project.scripts]
