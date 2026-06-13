@@ -43,6 +43,7 @@ web/workflow-builder/
 │       ├── execution-panel.css
 │       └── toast.css
 ├── __tests__/
+│   ├── setup.js                # Test polyfills (localStorage, ResizeObserver, DataTransfer)
 │   ├── api.test.js             # API client tests
 │   ├── mockData.test.js        # Mock data structure validation
 │   ├── NodePalette.test.jsx    # Palette rendering + drag
@@ -50,6 +51,7 @@ web/workflow-builder/
 │   ├── ConfigPanel.test.jsx    # Config panel + schema form
 │   ├── SchemaForm.test.jsx     # Schema field rendering
 │   ├── ExecutionPanel.test.jsx # Execution status rendering
+│   ├── WorkflowToolbar.test.jsx # Toolbar buttons + state
 │   └── integration.test.jsx    # Full create → configure → execute flow
 └── public/                     # Static assets (favicon etc., empty for now)
 ```
@@ -144,7 +146,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: [],
+    setupFiles: ['./__tests__/setup.js'],
     include: ['__tests__/**/*.test.{js,jsx}'],
   },
 })
@@ -2691,7 +2693,7 @@ function CanvasInner() {
     }
 
     setIsExecuting(true);
-    setExecutionPanel('active');
+    setExecutionPanel(true);
     setWorkflowStatus('running');
     setElapsed(0);
 
@@ -3217,20 +3219,16 @@ The modified nav section should look like:
 
 - [ ] **Step 2: Add navigation handler in app.js**
 
-In the `navigateTo` function's `sectionNames` map (around line 490 in app.js), add:
-```js
-"workflows": "Workflow Builder",
-```
-
-And in the navigation handler, redirect to the workflow builder app:
+In the `navigateTo` function, add a redirect for the workflows section BEFORE the `sectionNames` lookup, so it jumps to the SPA instead of trying to render inline:
 ```js
 if (sectionId === "workflows") {
-  // Open workflow builder — either by redirect or in-place iframe
-  // For standalone mode, redirect:
-  window.location.href = '/workflow-builder/';
+  // Redirect to the standalone workflow-builder SPA
+  window.location.href = "/workflow-builder/dist/index.html";
   return;
 }
 ```
+
+No `sectionNames` entry needed — the redirect fires before the section name lookup.
 
 - [ ] **Step 3: Verify the nav item renders**
 
