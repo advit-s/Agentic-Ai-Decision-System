@@ -1,3 +1,19 @@
+## [1.13.0] - 2026-06-13
+
+### Added
+- Phase 6: Bounded Specialist Agent Nodes — 3 new AI-powered drag-and-drop workflow node types for composable war-cabinet architecture.
+- **ResearcherNode** (`decision_system.researcher`): Retrieves and synthesizes information from connected data sources. Produces structured findings with citations and confidence scores. Keyword-matched fake fallback (`revenue`, `risk`, `growth` keyword sets).
+- **CriticNode** (`decision_system.critic`): Reviews outputs from other nodes for contradictions, unsupported claims, logical fallacies, and confidence calibration. Deterministic rule-based checks as fake fallback with negation-pair matching, trigger-phrase detection, and strictness levels (lenient/balanced/strict).
+- **SynthesizerNode** (`decision_system.synthesizer`): Takes multiple evidence/analysis streams and synthesizes them into weighted decision options with trade-off analysis and a recommended course of action. Deterministic keyword-matched fake option generation (`invest`, `expand`, `default` option sets).
+- All 3 nodes registered in `create_default_registry()` alongside existing 19 node types (22 total).
+- Frontend mock data entries for all 3 node types in the AI Analysis category.
+- Integration tests for node chaining: Researcher→Critic, multi-stream→Synthesizer, Synthesizer→Critic validation gate.
+- 60 new tests: 6 researcher, 21 critic, 14 synthesizer, 11 helper unit tests, 4 integration tests, 4 chaining integration tests.
+
+### Changed
+- Project version is now 1.13.0.
+- Node registry now registers 22 built-in node types (up from 19).
+
 ## [1.12.0] - 2026-06-13
 
 ### Added
