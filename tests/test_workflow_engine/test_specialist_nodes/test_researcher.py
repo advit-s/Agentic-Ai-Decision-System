@@ -102,9 +102,12 @@ class TestResearcherNode:
         risk_result = await node.execute({"query": "market risk analysis"}, ctx)
         assert any("risk" in f["statement"].lower() for f in risk_result["findings"])
 
-        # "default" query → default findings
+        # "default" query → default findings (no keyword-matched category)
         default_result = await node.execute({"query": "something unrelated"}, ctx)
-        assert any("Default" not in f for f in default_result["findings"]) or True  # no crash
+        # Default findings should NOT contain revenue, risk, or growth keywords
+        for f in default_result["findings"]:
+            stmt = f["statement"].lower()
+            assert not any(kw in stmt for kw in ["revenue", "risk", "growth"]), f"Default finding matched keyword: {stmt}"
 
     async def test_empty_query(self):
         """Empty query → returns error-shaped output."""

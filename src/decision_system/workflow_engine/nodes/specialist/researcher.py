@@ -83,7 +83,6 @@ class ResearcherNode(WorkflowNode):
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
         query = inputs.get("query", "")
         context = inputs.get("context", "")
-        source_references = inputs.get("source_references", [])
 
         if not query:
             return {
