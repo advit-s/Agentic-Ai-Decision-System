@@ -226,6 +226,79 @@ const MOCK_NODE_TYPES = [
     input_schema: { type: "object", properties: { data: { type: "object" } } },
     output_schema: { type: "object", properties: { result: { type: "object" } } },
   },
+  // --- Phase 4: Schedule Trigger Nodes ---
+  {
+    type: "decision_system.trigger_cron",
+    label: "Cron Trigger",
+    description: "Trigger a workflow on a cron schedule",
+    categories: ["trigger"],
+    config_schema: {
+      type: "object",
+      properties: {
+        expression: {
+          type: "string", title: "Cron Expression",
+          default: "0 9 * * 1",
+          description: "Five-field cron expression (minute hour day-of-month month day-of-week)",
+        },
+      },
+    },
+    input_schema: { type: "object", properties: {} },
+    output_schema: {
+      type: "object",
+      properties: {
+        triggered: { type: "boolean" },
+        expression: { type: "string" },
+        trigger_type: { type: "string" },
+      },
+    },
+  },
+  {
+    type: "decision_system.trigger_webhook",
+    label: "Webhook Trigger",
+    description: "Trigger a workflow via an HTTP webhook",
+    categories: ["trigger"],
+    config_schema: {
+      type: "object",
+      properties: {
+        webhook_path: {
+          type: "string", title: "Webhook Path",
+          default: "my-webhook",
+          description: "Unique path for the webhook endpoint",
+        },
+      },
+    },
+    input_schema: { type: "object", properties: { payload: { type: "object" } } },
+    output_schema: {
+      type: "object",
+      properties: {
+        triggered: { type: "boolean" },
+        webhook_path: { type: "string" },
+      },
+    },
+  },
+  {
+    type: "decision_system.trigger_file_watch",
+    label: "File Watch Trigger",
+    description: "Trigger a workflow when new files appear in a directory",
+    categories: ["trigger"],
+    config_schema: {
+      type: "object",
+      properties: {
+        directory: { type: "string", title: "Directory", default: "/tmp/watch", description: "Directory to watch" },
+        pattern: { type: "string", title: "File Pattern", default: "*.csv", description: "Glob pattern to match" },
+      },
+    },
+    input_schema: { type: "object", properties: {} },
+    output_schema: {
+      type: "object",
+      properties: {
+        triggered: { type: "boolean" },
+        directory: { type: "string" },
+        pattern: { type: "string" },
+        _changed_files: { type: "array" },
+      },
+    },
+  },
 ];
 
 const MOCK_WORKFLOWS = [
@@ -280,4 +353,17 @@ const MOCK_EXECUTION_EVENTS = [
   { event_type: "workflow_completed", node_id: null, data: { status: "completed" } },
 ];
 
-export { MOCK_NODE_TYPES, MOCK_WORKFLOWS, MOCK_EXECUTION_STATE, MOCK_EXECUTION_EVENTS };
+const MOCK_SCHEDULES = [
+  {
+    id: "sch-mock-001",
+    workflow_id: "wf-sample-1",
+    trigger_type: "cron",
+    trigger_config: { expression: "0 9 * * 1", _node_id: "cron-1" },
+    enabled: true,
+    last_fired: null,
+    created_at: "2026-06-12T00:00:00Z",
+    updated_at: "2026-06-12T00:00:00Z",
+  },
+];
+
+export { MOCK_NODE_TYPES, MOCK_WORKFLOWS, MOCK_EXECUTION_STATE, MOCK_EXECUTION_EVENTS, MOCK_SCHEDULES };

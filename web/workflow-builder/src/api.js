@@ -5,6 +5,7 @@ import {
   MOCK_WORKFLOWS,
   MOCK_EXECUTION_STATE,
   MOCK_EXECUTION_EVENTS,
+  MOCK_SCHEDULES,
 } from "./mockData";
 
 const API_BASE_KEY = "wfBuilderApiBaseUrl";
@@ -149,6 +150,72 @@ function streamExecutionEvents(executionId, onEvent) {
   return () => ws.close();
 }
 
+// --- Schedules ---
+let _mockSchedules = [...MOCK_SCHEDULES];
+
+function createSchedule(schedule) {
+  if (isMockMode()) {
+    const s = {
+      ...schedule,
+      id: `sch-mock-${Date.now()}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_fired: null,
+    };
+    _mockSchedules.push(s);
+    return Promise.resolve(s);
+  }
+  return apiFetch("/schedules", { method: "POST", body: JSON.stringify(schedule) });
+}
+
+function listSchedules(workflowId) {
+  if (isMockMode()) {
+    let list = _mockSchedules;
+    if (workflowId) list = list.filter((s) => s.workflow_id === workflowId);
+    return Promise.resolve({ schedules: list });
+  }
+  const query = workflowId ? `?workflow_id=${workflowId}` : "";
+  return apiFetch(`/schedules${query}`);
+}
+
+function getSchedule(id) {
+  if (isMockMode()) {
+    const s = _mockSchedules.find((s) => s.id === id);
+    if (!s) return Promise.reject(new Error("Schedule not found"));
+    return Promise.resolve({ ...s });
+  }
+  return apiFetch(`/schedules/${id}`);
+}
+
+function updateSchedule(id, updates) {
+  if (isMockMode()) {
+    const idx = _mockSchedules.findIndex((s) => s.id === id);
+    if (idx < 0) return Promise.reject(new Error("Schedule not found"));
+    _mockSchedules[idx] = { ..._mockSchedules[idx], ...updates, updated_at: new Date().toISOString() };
+    return Promise.resolve({ ..._mockSchedules[idx] });
+  }
+  return apiFetch(`/schedules/${id}`, { method: "PUT", body: JSON.stringify(updates) });
+}
+
+function deleteSchedule(id) {
+  if (isMockMode()) {
+    _mockSchedules = _mockSchedules.filter((s) => s.id !== id);
+    return Promise.resolve({ status: "deleted", id });
+  }
+  return apiFetch(`/schedules/${id}`, { method: "DELETE" });
+}
+
+function toggleSchedule(id) {
+  if (isMockMode()) {
+    const idx = _mockSchedules.findIndex((s) => s.id === id);
+    if (idx < 0) return Promise.reject(new Error("Schedule not found"));
+    _mockSchedules[idx].enabled = !_mockSchedules[idx].enabled;
+    _mockSchedules[idx].updated_at = new Date().toISOString();
+    return Promise.resolve({ ..._mockSchedules[idx] });
+  }
+  return apiFetch(`/schedules/${id}/toggle`, { method: "POST" });
+}
+
 export {
   getBaseUrl,
   isMockMode,
@@ -160,4 +227,10 @@ export {
   executeWorkflow,
   getExecution,
   streamExecutionEvents,
+  createSchedule,
+  listSchedules,
+  getSchedule,
+  updateSchedule,
+  deleteSchedule,
+  toggleSchedule,
 };
