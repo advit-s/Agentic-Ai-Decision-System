@@ -262,4 +262,4 @@ class TestDefaultRegistry:
         assert "decision_system.auditor" in type_names
         assert "decision_system.compliance_checker" in type_names
         assert "decision_system.code_runner" in type_names
-        assert len(type_names) == 28
+        assert len(type_names) == 32

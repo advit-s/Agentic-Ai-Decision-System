@@ -11,7 +11,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-ClaimStatus = Literal["pending", "verified", "unsupported", "contradicted"]
+ClaimStatus = Literal["pending", "supported", "verified", "unsupported", "contradicted", "uncertain", "needs_review", "approved", "rejected"]
 ConfidenceLevel = Literal["low", "medium", "high"]
 
 
@@ -65,7 +65,7 @@ class Claim(BaseModel):
     node_id: str | None = None
     source_agent: str
     claim_text: str
-    claim_type: Literal["technical", "risk", "option", "recommendation", "assumption"]
+    claim_type: Literal["technical", "risk", "option", "recommendation", "assumption", "fact", "metric", "prediction", "decision", "unknown"]
     status: ClaimStatus = "pending"
     evidence_ids: list[str] = Field(default_factory=list)
     source_ids: list[str] = Field(default_factory=list)
@@ -76,9 +76,58 @@ class Claim(BaseModel):
     verification_notes: str = ""
     review_required: bool = False
     review_status: str | None = None
+    evidence_quality: str | None = None
+    verification_method: str | None = None
     metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class EvidenceQuality(BaseModel):
+    """Evidence quality assessment for a verified claim."""
+    evidence_count: int = 0
+    resolved_evidence_count: int = 0
+    missing_evidence_count: int = 0
+    source_count: int = 0
+    has_direct_reference: bool = False
+    has_cross_source_support: bool = False
+    has_contradiction: bool = False
+    recency_score: float | None = None
+    coverage_score: float = 0.0
+    quality_label: Literal["strong", "moderate", "weak", "missing", "contradicted"] = "missing"
+
+
+class ContradictionRecord(BaseModel):
+    """A contradiction detected between two evidence sources or between a claim and evidence."""
+    contradiction_id: str
+    workspace_id: str | None = None
+    claim_id: str | None = None
+    source_id_a: str
+    chunk_id_a: str
+    source_id_b: str
+    chunk_id_b: str
+    type: Literal["metric_conflict", "opposite_status", "date_conflict", "risk_conflict", "claim_contradicted", "statement_conflict"] = "statement_conflict"
+    description: str
+    severity: Literal["low", "medium", "high"] = "medium"
+    confidence: Literal["low", "medium", "high"] = "medium"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class VerificationSummary(BaseModel):
+    """Summary of verification results for a workspace or execution."""
+    total_claims: int = 0
+    supported_claims: int = 0
+    contradicted_claims: int = 0
+    unsupported_claims: int = 0
+    uncertain_claims: int = 0
+    needs_review_claims: int = 0
+    average_confidence: float = 0.0
+    evidence_coverage_score: float = 0.0
+    strong_evidence_count: int = 0
+    moderate_evidence_count: int = 0
+    weak_evidence_count: int = 0
+    missing_evidence_count: int = 0
+    contradiction_count: int = 0
 
 
 class VerificationResult(BaseModel):
@@ -89,7 +138,7 @@ class VerificationResult(BaseModel):
     """
 
     claim_id: str
-    status: Literal["verified", "unsupported", "contradicted"]
+    status: Literal["supported", "verified", "unsupported", "contradicted", "uncertain", "needs_review"]
     evidence_ids: list[str] = Field(default_factory=list)
     source_ids: list[str] = Field(default_factory=list)
     chunk_ids: list[str] = Field(default_factory=list)
@@ -97,6 +146,31 @@ class VerificationResult(BaseModel):
     contradicting_evidence_ids: list[str] = Field(default_factory=list)
     confidence: ConfidenceLevel
     verification_notes: str
+    verification_method: str | None = None
+
+
+class ReportClaimEntry(BaseModel):
+    """A single claim as it appears in a trust report."""
+    claim_id: str
+    claim_text: str
+    status: ClaimStatus = "pending"
+    confidence: ConfidenceLevel = "low"
+    evidence_quality: str | None = None
+    verification_method: str | None = None
+    verification_reason: str = ""
+    evidence_ids: list[str] = Field(default_factory=list)
+    evidence_snippets: list[str] = Field(default_factory=list)
+    contradicting_evidence_ids: list[str] = Field(default_factory=list)
+    review_required: bool = False
+
+
+class EvidenceTableEntry(BaseModel):
+    """Evidence entry in the report evidence table."""
+    evidence_id: str
+    source_name: str
+    snippet: str
+    supports_claim_ids: list[str] = Field(default_factory=list)
+    contradicts_claim_ids: list[str] = Field(default_factory=list)
 
 
 class DecisionReport(BaseModel):
@@ -115,5 +189,13 @@ class DecisionReport(BaseModel):
     contradictions: list[Claim] = Field(default_factory=list)
     unsupported_assumptions: list[Claim] = Field(default_factory=list)
     confidence_level: ConfidenceLevel
+    verification_summary: VerificationSummary | None = None
+    supported_claims: list[ReportClaimEntry] = Field(default_factory=list)
+    contradicted_claims: list[ReportClaimEntry] = Field(default_factory=list)
+    unsupported_claims: list[ReportClaimEntry] = Field(default_factory=list)
+    uncertain_claims: list[ReportClaimEntry] = Field(default_factory=list)
+    needs_review_claims: list[ReportClaimEntry] = Field(default_factory=list)
+    evidence_table: list[EvidenceTableEntry] = Field(default_factory=list)
+    contradiction_records: list[ContradictionRecord] = Field(default_factory=list)
     human_review_required: list[str] = Field(default_factory=list)
     markdown: str

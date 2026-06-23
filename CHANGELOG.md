@@ -1,3 +1,27 @@
+## [1.20.0] - 2026-06-23 — Intelligence Quality + Claim Verification v2
+
+### Added
+- **Version identity**: Updated to 1.20.0-dev for the v1.20 milestone.
+- **Claim verification v2**: Deterministic local claim verifier with supported/contradicted/unsupported/uncertain/needs_review statuses.
+- **Evidence resolver**: Resolves evidence references to local snippets with workspace isolation.
+- **Contradiction detection**: Local pattern-based contradiction detection for metrics, status, dates, and risk claims.
+- **Evidence quality scoring**: Each verified claim gets strong/moderate/weak/missing/contradicted quality labels.
+- **Verification APIs**: Claim-level, execution-level, and workspace-level verification with persistent results.
+- **Verification workflow nodes**: ClaimVerifierNode, ContradictionScanNode, VerificationSummaryNode.
+- **Trust report format**: Reports include verification summary, evidence table, contradictions, and trust scoring.
+- **Verification UI**: Frontend panels show claim status, evidence quality, contradictions, and verification summaries.
+- **Local trust evaluation suite**: Deterministic eval scenarios for claim verification quality.
+- **Audit events**: Verification actions and contradiction scans create audit records.
+
+### Changed
+- Claim model expanded with new statuses and evidence quality fields.
+- Report renderer upgraded to produce trust-aware reports with full verification sections.
+- Documentation updated to explain verification capabilities and limitations.
+- Node registry test count updated (28→29) to match new evidence_search node.
+
+### Fixed
+- WorkflowToolbar.jsx JSX syntax issue (let declarations inside JSX expressions).
+- Pre-existing test count assertion (28→29).
 ## [1.19.0] - 2026-06-23 — Local Data Sources + Evidence Intelligence Layer
 
 ### Added

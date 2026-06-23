@@ -86,6 +86,22 @@ function WorkflowToolbar({
     }
   }, [editingUrl]);
 
+  // Compute connection badge label/class
+  let badgeLabel, badgeClass;
+  if (mock) {
+    badgeLabel = "🟡 Mock mode";
+    badgeClass = "connection-badge-mock";
+  } else if (backendMode === "live" && window.location.port === "3000") {
+    badgeLabel = "🟢 Local live backend";
+    badgeClass = "connection-badge-live";
+  } else if (backendMode === "live") {
+    badgeLabel = `🟢 ${baseUrl.replace(/^https?:\/\//, "")}`;
+    badgeClass = "connection-badge-live";
+  } else {
+    badgeLabel = "🔴 Backend unavailable";
+    badgeClass = "connection-badge-mock";
+  }
+
   return (
     <div className="workflow-toolbar">
       <div className="toolbar-left">
@@ -172,20 +188,6 @@ function WorkflowToolbar({
           </div>
         ) : (
           <button
-          let badgeLabel, badgeClass;
-          if (mock) {
-            badgeLabel = "🟡 Mock mode";
-            badgeClass = "connection-badge-mock";
-          } else if (backendMode === "live" && window.location.port === "3000") {
-            badgeLabel = "🟢 Local live backend";
-            badgeClass = "connection-badge-live";
-          } else if (backendMode === "live") {
-            badgeLabel = `🟢 ${baseUrl.replace(/^https?:\/\//, "")}`;
-            badgeClass = "connection-badge-live";
-          } else {
-            badgeLabel = "🔴 Backend unavailable";
-            badgeClass = "connection-badge-mock";
-          }
             className={`connection-badge ${badgeClass}`}
             onClick={handleStartEdit}
             title="Click to change API URL"

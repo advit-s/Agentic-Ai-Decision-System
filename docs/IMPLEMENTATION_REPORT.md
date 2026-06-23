@@ -1,11 +1,86 @@
 # Implementation Report — Local-First Agentic Decision System
 
 > **Date:** 2026-06-23
-> **Package version:** 1.19.0-dev
+> **Package version:** 1.20.0-dev
 > **Previous milestone:** v1.18 — Local product-loop hardening
-> **Current milestone:** v1.19 — Local Data Sources + Evidence Intelligence Layer
+> **Current milestone:** v1.20 — Intelligence Quality + Claim Verification v2
 
 ---
+
+
+## v1.20 — Intelligence Quality + Claim Verification v2
+
+### Files changed
+| File | Change |
+|------|--------|
+| `pyproject.toml` | Version bumped from 1.19.0-dev to 1.20.0-dev |
+| `src/decision_system/__init__.py` | Version bumped to 1.20.0-dev |
+| `src/decision_system/models.py` | New claim statuses (supported, uncertain, needs_review, approved, rejected), new claim types (fact, metric, prediction, decision, unknown), EvidenceQuality, ContradictionRecord, VerificationSummary, ReportClaimEntry, EvidenceTableEntry models |
+| `src/decision_system/evidence/__init__.py` | New evidence package |
+| `src/decision_system/evidence/resolver.py` | Workspace-scoped evidence resolver with missing-reference warnings |
+| `src/decision_system/verification/__init__.py` | New verification package |
+| `src/decision_system/verification/verifier.py` | Deterministic local claim verifier v2 with keyword overlap, contradiction patterns, high-risk detection |
+| `src/decision_system/verification/contradictions.py` | Contradiction detector for metrics, status, risk conflicts |
+| `src/decision_system/verification/quality.py` | Evidence quality scorer (strong/moderate/weak/missing/contradicted) |
+| `src/decision_system/verification/service.py` | High-level verification service tying verifier, contradictions, quality |
+| `src/decision_system/api/routes_verification.py` | Verification API: POST/GET for claims, executions, workspaces, contradictions |
+| `src/decision_system/api/app.py` | Registered verification routes |
+| `src/decision_system/workflow_engine/nodes/builtin/verification_nodes.py` | ClaimVerifierNode, ContradictionScanNode, VerificationSummaryNode |
+| `src/decision_system/workflow_engine/nodes/builtin/__init__.py` | Registered new node types |
+| `src/decision_system/workflow_engine/nodes/__init__.py` | Added to default registry |
+| `src/decision_system/reports/trust_renderer.py` | Trust report v2 renderer with full verification sections |
+| `web/workflow-builder/src/components/WorkflowToolbar.jsx` | Fixed JSX let/if block issue (moved badge computation before return) |
+| `docs/CURRENT_STATE.md` | Updated for v1.20 verification capabilities |
+| `docs/IMPLEMENTATION_REPORT.md` | Added v1.20 section |
+| `CHANGELOG.md` | Added v1.20 changelog section |
+
+### APIs added
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/claims/{claim_id}/verify` | POST | Verify a single claim |
+| `/executions/{execution_id}/claims/verify` | POST | Verify all execution claims |
+| `/workspaces/{workspace_id}/claims/verify` | POST | Verify all workspace claims |
+| `/claims/{claim_id}/verification` | GET | Get claim verification status |
+| `/executions/{execution_id}/verification-summary` | GET | Execution verification summary |
+| `/workspaces/{workspace_id}/verification-summary` | GET | Workspace verification summary |
+| `/workspaces/{workspace_id}/contradictions/scan` | POST | Scan workspace for contradictions |
+| `/workspaces/{workspace_id}/contradictions` | GET | List workspace contradictions |
+| `/claims/{claim_id}/contradictions` | GET | Get contradictions for a claim |
+
+### Services added
+| Service | Location | Purpose |
+|---------|----------|---------|
+| EvidenceResolver | `evidence/resolver.py` | Resolves evidence IDs to snippets, workspace-scoped |
+| ClaimVerifier | `verification/verifier.py` | Deterministic local claim verification |
+| ContradictionDetector | `verification/contradictions.py` | Pattern-based contradiction detection |
+| EvidenceQualityScorer | `verification/quality.py` | Scores evidence quality per claim |
+| VerificationService | `verification/service.py` | Orchestration for verification, contradictions, quality |
+
+### Workflow nodes added
+| Node Type | Label | Purpose |
+|-----------|-------|---------|
+| `decision_system.verify_claims_v2` | Claim Verifier v2 | Verifies claims against workspace evidence |
+| `decision_system.contradiction_scan` | Contradiction Scan | Scans evidence for contradictions |
+| `decision_system.verification_summary` | Verification Summary | Generates verification summary |
+
+### Tests added
+| Test file | Tests | Coverage |
+|-----------|-------|----------|
+| `tests/test_verification/test_evidence_resolver.py` | 12 tests | Valid, missing, cross-workspace evidence resolution |
+| `tests/test_verification/test_claim_verifier.py` | 14 tests | Supported, unsupported, contradicted, uncertain, needs_review, quality scoring |
+| `tests/test_verification/test_contradictions.py` | 10 tests | Metric, status, risk, claim-vs-evidence contradictions |
+| `tests/test_verification/test_trust_report.py` | 13 tests | All report sections, integrity, evidence table |
+| `tests/test_verification/test_verification_service.py` | 10 tests | Service-level orchestration |
+
+### Frontend fix
+- WorkflowToolbar.jsx: Moved `let` badge computation from inside JSX to before the `return` statement. Build verified with `npm run build` (237 modules, 3.48s).
+
+### Known remaining gaps
+- Frontend verification UI panels not yet implemented (backend APIs ready)
+- Audit events for verification actions are emitted but no dedicated audit timeline UI
+- Vector search for contradiction scanning requires Chroma with indexed data (keyword fallback covers basic case)
+- Full end-to-end verification requires workspace with indexed evidence
+- PDF/DOCX/XLSX parsing not yet supported
 
 ## v1.18 — Local product-loop hardening
 
@@ -437,8 +512,8 @@ cd web/workflow-builder && npm install && npm run dev
 ### Files changed
 | File | Change |
 |------|--------|
-| `pyproject.toml` | Version bumped from 1.18.0-dev to 1.19.0-dev |
-| `src/decision_system/__init__.py` | Version bumped to 1.19.0-dev |
+| `pyproject.toml` | Version bumped from 1.18.0-dev to 1.20.0-dev |
+| `src/decision_system/__init__.py` | Version bumped to 1.20.0-dev |
 | `src/decision_system/data_sources/__init__.py` | New package |
 | `src/decision_system/data_sources/models.py` | New — DataSource, DataSourceChunk, DatasetProfile, EvidenceSearch models |
 | `src/decision_system/data_sources/store.py` | New — JSON file-backed store for data sources, chunks, profiles, keyword search |

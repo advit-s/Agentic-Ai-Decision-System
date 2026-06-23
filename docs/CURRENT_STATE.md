@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
 > **Last updated:** 2026-06-23
-> **Package version:** 1.19.0-dev
+> **Package version:** 1.20.0-dev
 > **Previous milestone:** v1.18 — Local product-loop hardening
-> **Current milestone:** v1.19 — Local Data Sources + Evidence Intelligence Layer
+> **Current milestone:** v1.20 — Intelligence Quality + Claim Verification v2
 > **Python:** >=3.11
 
 ---
@@ -37,9 +37,17 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 |------|--------|-------|
 | CLI framework | ✅ **Production** | Typer-based CLI; all documented commands work offline |
 | Document indexing | ✅ **Production** | Chroma-based chunking, loading, and retrieval |
-| Claim ledger | ✅ **Production** | Create/store/query claims; statuses (supported, contradicted, unsupported, uncertain) |
-| Verifier | ✅ **Production** | Check claims against evidence; deterministic fake-LLM mode by default |
-| Decision report generation | ✅ **Production** | Renders from ledger state; Markdown output with citations |
+| Claim ledger | ✅ **Production** | Create/store/query claims; statuses (supported, contradicted, unsupported, uncertain, needs_review) |
+| Verifier | ✅ **Production** | Check claims against evidence; deterministic local verifier with keyword/contradiction detection |
+| Decision report generation | ✅ **Production** | Trust report format with verification summary, evidence quality, contradictions, and clear status separation |
+| Claim verification v2 | ✅ **Production** | Deterministic local verifier; supported/contradicted/unsupported/uncertain/needs_review statuses |
+| Evidence resolver | ✅ **Production** | Workspace-scoped evidence reference resolution with isolation |
+| Contradiction detection | ✅ **Production** | Pattern-based detection for metrics, status, risk conflicts |
+| Evidence quality scoring | ✅ **Production** | Strong/moderate/weak/missing/contradicted labels per claim |
+| Verification API | ✅ **Production** | Claim, execution, and workspace-level verification endpoints |
+| Verification workflow nodes | ✅ **Production** | ClaimVerifierNode, ContradictionScanNode, VerificationSummaryNode |
+| Trust report format | ✅ **Production** | Verification summary, evidence table, contradictions, recommended next actions |
+| Local trust evaluation | ✅ **Production** | 53+ tests covering verification scenarios |
 | Knowledge graph extraction | ✅ **Production** | Deterministic extraction from sentence patterns; JSON store |
 | Ontology mapping | ✅ **Production** | Maps CSV columns to ontology concepts |
 | CSV data profiling | ✅ **Production** | Profile company datasets with quality/detection stats |
@@ -187,7 +195,7 @@ npm run dev
 
 ## Next milestone
 
-Continuing from v1.19, the next areas of focus are:
+Continuing from v1.20
 
 1. **PDF/DOCX/XLSX parsing support** — Broader file type coverage
 2. **Frontend Data Sources page polish** — Rich data source management UI

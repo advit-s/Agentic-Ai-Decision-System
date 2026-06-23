@@ -15,6 +15,14 @@ from decision_system.workflow_engine.nodes.builtin.data_nodes import (
     ExtractGraphNode, ProfileDataNode, MapOntologyNode,
     DetectPatternsNode, WarRoomNode,
 )
+from decision_system.workflow_engine.nodes.builtin.evidence_nodes import (
+    EvidenceSearchNode,
+)
+from decision_system.workflow_engine.nodes.builtin.verification_nodes import (
+    ClaimVerifierNode,
+    ContradictionScanNode,
+    VerificationSummaryNode,
+)
 
 __all__ = [
     "ManualTriggerNode", "InputTextNode",
@@ -25,7 +33,8 @@ __all__ = [
     "ExtractGraphNode", "ProfileDataNode", "MapOntologyNode",
     "DetectPatternsNode", "WarRoomNode",
     "EvidenceSearchNode",
+    "ClaimVerifierNode",
+    "ContradictionScanNode",
+    "VerificationSummaryNode",
 ]
-from decision_system.workflow_engine.nodes.builtin.evidence_nodes import (
-    EvidenceSearchNode,
-)
+
