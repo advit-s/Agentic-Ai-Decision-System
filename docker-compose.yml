@@ -1,9 +1,17 @@
 # Agentic Decision System - Local Development Compose
 # No cloud services. No real provider keys required.
 # Fake/offline provider is the default.
+#
+# Usage:
+#   docker compose up          # Start backend + frontend
+#   docker compose down        # Stop services (data persists)
+#   docker compose up --build  # Rebuild after changes
+#
+# Data stored in ./.decision_system/ (survives restarts)
 
 services:
-  decision-api:
+  # FastAPI backend
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -11,6 +19,8 @@ services:
       - "8000:8000"
     environment:
       - DECISION_PROVIDER=fake
+      - DECISION_SYSTEM_DATA_DIR=/app/.decision_system
+      - PYTHONUNBUFFERED=1
     volumes:
       - decision_data:/app/.decision_system
       - ./company_docs:/app/company_docs:ro
@@ -20,6 +30,18 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    restart: unless-stopped
+
+  # React workflow builder frontend (served via nginx)
+  frontend:
+    build:
+      context: web/workflow-builder
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   decision_data:

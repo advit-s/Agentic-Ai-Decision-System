@@ -21,7 +21,10 @@ _REJECTED = "rejected"
 _PENDING_REVIEW = "pending_review"
 _SKIPPED = "skipped"
 
-_REVIEWS_DIR = Path(".decision_system") / "reviews"
+import os as _os
+_REVIEWS_DIR = Path(
+    _os.environ.get("DECISION_SYSTEM_DATA_DIR", ".decision_system")
+) / "reviews"
 
 
 def _ensure_reviews_dir() -> Path:

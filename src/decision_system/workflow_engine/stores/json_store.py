@@ -114,3 +114,9 @@ class JSONExecutionStore(ExecutionStore):
                 if workflow_id is None or state.workflow_id == workflow_id:
                     states.append(state)
         return states
+
+    def delete(self, execution_id: str) -> None:
+        """Delete an execution state by ID."""
+        path = self._path(execution_id)
+        if path.exists():
+            path.unlink()

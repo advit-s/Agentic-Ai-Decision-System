@@ -153,11 +153,25 @@ class CodeNode(WorkflowNode):
     """Executes a user-provided Python code snippet.
     The code receives `inputs` dict and `ctx` (ExecutionContext) as locals.
     Must set `output` variable with the result dict.
+
+    SAFETY: This node is DISABLED by default. To enable it, set the
+    environment variable DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true.
+    When enabled, the node uses Python's exec() with builtins available,
+    which can execute arbitrary code. Use with extreme caution.
     """
     type: str = "decision_system.code"
     label: str = "Code"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
+        import os
+        enabled = os.environ.get("DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE", "false").lower() in ("1", "true", "yes")
+        if not enabled:
+            raise RuntimeError(
+                "CodeNode is disabled by default for safety. "
+                "Set DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true to enable. "
+                "See docs/SECURITY_MODEL.md for details."
+            )
+
         source = self.config.get("source", "")
         if not source.strip():
             return inputs

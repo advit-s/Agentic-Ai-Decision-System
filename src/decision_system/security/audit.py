@@ -138,3 +138,32 @@ def render_audit_log(
             lines.append(f"  _({meta_str})_")
     lines.append("")
     return "\n".join(lines)
+
+
+def log_audit_event(
+    event: dict[str, Any],
+    actor: str = "local-user",
+) -> AuditEvent:
+    """Log an audit event from a dict.
+
+    This is a convenience wrapper around ``append_event`` that accepts
+    a single dict. The dict must contain at minimum an ``event_type`` key.
+    Additional dict keys are included as metadata.
+
+    Example::
+
+        log_audit_event({
+            "event_type": "workflow_executed",
+            "workflow_id": "abc-123",
+            "execution_id": "xyz-456",
+        })
+    """
+    event_type = event.pop("event_type", "unknown")
+    message = event.pop("message", f"Event: {event_type}")
+    metadata = event  # Remaining keys become metadata
+    return append_event(
+        event_type=str(event_type),
+        message=str(message),
+        actor=actor,
+        metadata=metadata,
+    )

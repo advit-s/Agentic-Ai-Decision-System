@@ -35,6 +35,21 @@ from decision_system.api import routes_enterprise
 from decision_system.api import routes_observability
 from decision_system.workflow_engine.api import router as routes_workflow
 
+# ---------------------------------------------------------------------------
+# Scheduler control — tests can disable the background scheduler loop to
+# avoid asyncio lifecycle conflicts with pytest-asyncio.
+# ---------------------------------------------------------------------------
+_SCHEDULER_ENABLED: bool = True
+
+
+def set_scheduler_enabled(enabled: bool) -> None:
+    """Enable or disable the background scheduler for testing.
+
+    Must be called before ``create_app()`` to take effect.
+    """
+    global _SCHEDULER_ENABLED
+    _SCHEDULER_ENABLED = enabled
+
 
 def _lazy_router(api: FastAPI, module_name: str) -> None:
     """Import and register a route module, swallowing ImportError.
@@ -55,17 +70,24 @@ def _lazy_router(api: FastAPI, module_name: str) -> None:
         )
 
 
+def _get_scheduler() -> object:
+    """Return the shared scheduler instance from the workflow engine module."""
+    from decision_system.workflow_engine.api import _scheduler
+    return _scheduler
+
+
 def create_app() -> FastAPI:
     """Create the local-development FastAPI app."""
 
     @asynccontextmanager
     async def _app_lifespan(_api: FastAPI) -> AsyncIterator[None]:
         """Start/stop the background scheduler on app startup/shutdown."""
-        from decision_system.workflow_engine.api import _scheduler
-
-        await _scheduler.start()
+        sched = _get_scheduler()
+        if _SCHEDULER_ENABLED:
+            await sched.start()
         yield
-        await _scheduler.stop()
+        if _SCHEDULER_ENABLED and getattr(sched, 'is_running', False):
+            await sched.stop()
 
     api = FastAPI(
         title="Agentic Decision System API",
@@ -96,12 +118,8 @@ def create_app() -> FastAPI:
     _lazy_router(api, "decision_system.api.routes_evals")
 
     # Mount the static files for the web UI prototype at the root.
-    # We do this after registering all API routes so they take precedence.
     from pathlib import Path
     from fastapi.staticfiles import StaticFiles
-
-    # Prefer package-relative web assets via importlib.resources
-    # (survives pip install / wheel install correctly).
     import importlib.resources as _res
 
     web_dir: Path | None = None
@@ -113,17 +131,14 @@ def create_app() -> FastAPI:
     except (ModuleNotFoundError, TypeError, ValueError, Exception):
         pass
 
-    # Fallback to repo-root for editable installs and existing tests.
     if web_dir is None:
         repo_web = Path(__file__).resolve().parents[3] / "web"
         if repo_web.exists():
             web_dir = repo_web.resolve()
 
     if web_dir is not None and web_dir.is_dir():
-        # Mount the workflow-builder SPA at /workflow-builder/ (before root)
         _wf_dir = web_dir / "workflow-builder" / "dist"
         if not _wf_dir.is_dir():
-            # Fallback: repo root (editable install, built dist)
             _repo_wf = Path(__file__).resolve().parents[3] / "web" / "workflow-builder" / "dist"
             if _repo_wf.is_dir():
                 _wf_dir = _repo_wf

@@ -2,23 +2,28 @@
 
 from __future__ import annotations
 
-import tempfile
+import hashlib
+import logging
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
+from pydantic_core import ValidationError as PydanticValidationError
 
 from decision_system.workflow_engine.models import (
-    WorkflowDefinition, NodeConfig, Connection,
+    WorkflowDefinition,
+    NodeConfig,
+    Connection,
+    ExecutionState,
+    NodeExecutionState,
 )
 from decision_system.workflow_engine.engine.dag import DAGValidator
 from decision_system.workflow_engine.engine.executor import DAGEngine
 from decision_system.workflow_engine.nodes import create_default_registry
-from pydantic import BaseModel
-from pydantic_core import ValidationError
-
 from decision_system.workflow_engine.providers.store import (
     ProviderConfig as StoreProviderConfig,
     ProviderStore,
@@ -32,21 +37,55 @@ from decision_system.workflow_engine.scheduler import (
     TriggerType,
 )
 from decision_system.workflow_engine.stores.json_store import (
-    JSONWorkflowStore, JSONExecutionStore,
+    JSONWorkflowStore,
+    JSONExecutionStore,
 )
+from decision_system.workflow_engine.stores.version_store import JSONVersionStore
+from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
 from decision_system.workflow_engine.stream import emit_event
 
-# In-memory stores for API usage (persist for server lifetime)
-_api_store_dir = Path(tempfile.mkdtemp())
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Persistent data directory — replaces tempfile.mkdtemp()
+# ---------------------------------------------------------------------------
+
+def _get_data_dir() -> Path:
+    """Return the configured data directory for workflow engine state.
+
+    Uses the ``DECISION_SYSTEM_DATA_DIR`` environment variable when set,
+    otherwise falls back to ``.decision_system/`` in the current working
+    directory.
+    """
+    raw = os.environ.get("DECISION_SYSTEM_DATA_DIR", "")
+    if raw:
+        d = Path(raw).expanduser().resolve()
+    else:
+        d = Path.cwd() / ".decision_system"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+_data_dir = _get_data_dir()
+_api_store_dir = _data_dir / "workflow_engine"
+_api_store_dir.mkdir(parents=True, exist_ok=True)
+
 _registry = create_default_registry()
 _workflow_store = JSONWorkflowStore(_api_store_dir)
 _execution_store = JSONExecutionStore(_api_store_dir)
+_version_store = JSONVersionStore(_api_store_dir)
+_claim_store = JSONClaimStore(_api_store_dir)
 _provider_store = ProviderStore()
-_engine = DAGEngine(registry=_registry, workflow_store=_workflow_store, execution_store=_execution_store, provider_store=_provider_store)
+_engine = DAGEngine(
+    registry=_registry,
+    workflow_store=_workflow_store,
+    execution_store=_execution_store,
+    provider_store=_provider_store,
+)
 _engine.on_event(emit_event)
 
 # Schedule store and background scheduler (started via app lifespan)
-_schedule_store = ScheduleStore(_api_store_dir)
+_schedule_store = ScheduleStore(_api_store_dir / "schedules")
 _scheduler = SchedulerService(
     schedule_store=_schedule_store,
     dag_engine=_engine,
@@ -61,6 +100,7 @@ router = APIRouter(tags=["workflows"])
 class CreateWorkflowRequest(BaseModel):
     name: str
     description: str = ""
+    workspace_id: str | None = None
     nodes: list[dict[str, Any]] = []
     connections: list[dict[str, str]] = []
 
@@ -71,6 +111,7 @@ class NodeTypesResponse(BaseModel):
 
 class CreateScheduleRequest(BaseModel):
     workflow_id: str
+    workspace_id: str | None = None
     trigger_type: str = "cron"
     trigger_config: dict[str, Any] = {}
     enabled: bool = True
@@ -96,6 +137,14 @@ class UpdateProviderRequest(BaseModel):
     default_model: str | None = None
 
 
+class ResolveReviewRequest(BaseModel):
+    """Request body for resolving a review."""
+    action: str
+    notes: str = ""
+    modified_data: dict[str, Any] | None = None
+    reviewed_by: str | None = None
+
+
 # --- Route helpers ---
 
 _TRIGGER_TYPE_MAP: dict[str, TriggerType] = {
@@ -103,6 +152,31 @@ _TRIGGER_TYPE_MAP: dict[str, TriggerType] = {
     "decision_system.trigger_webhook": TriggerType.WEBHOOK,
     "decision_system.trigger_file_watch": TriggerType.FILE_WATCH,
 }
+
+
+def _compute_content_hash(wf: WorkflowDefinition) -> str:
+    """Compute a content hash for change detection."""
+    content = wf.model_dump_json(exclude={"id", "version", "created_at", "updated_at"}, sort_keys=True)
+    return hashlib.sha256(content.encode()).hexdigest()[:16]
+
+
+def _enrich_execution(state: ExecutionState) -> dict[str, Any]:
+    """Compute derived fields on an execution state before returning."""
+    data = state.model_dump(mode="json")
+    data["node_count"] = len(state.node_states)
+    data["completed_node_count"] = sum(
+        1 for ns in state.node_states.values() if ns.status == "completed"
+    )
+    data["failed_node_count"] = sum(
+        1 for ns in state.node_states.values() if ns.status == "failed"
+    )
+    # Compute duration
+    if state.started_at:
+        end = state.completed_at or datetime.now(timezone.utc)
+        data["duration_ms"] = (end - state.started_at).total_seconds() * 1000
+    else:
+        data["duration_ms"] = None
+    return data
 
 
 def _node_to_trigger_config(node: NodeConfig) -> dict[str, Any] | None:
@@ -123,10 +197,7 @@ def _node_to_trigger_config(node: NodeConfig) -> dict[str, Any] | None:
 
 
 def _sync_workflow_schedules(workflow_id: str, nodes: list[NodeConfig]) -> None:
-    """Auto-create/update/delete schedules to match trigger nodes in a workflow.
-
-    Called after a workflow is saved or updated.
-    """
+    """Auto-create/update/delete schedules to match trigger nodes in a workflow."""
     existing = _schedule_store.list(workflow_id=workflow_id)
     existing_by_node: dict[str, ScheduleDefinition] = {}
     for s in existing:
@@ -134,7 +205,6 @@ def _sync_workflow_schedules(workflow_id: str, nodes: list[NodeConfig]) -> None:
         if node_id:
             existing_by_node[node_id] = s
 
-    # Process each node
     seen_node_ids: set[str] = set()
     for node in nodes:
         trigger_config = _node_to_trigger_config(node)
@@ -145,13 +215,11 @@ def _sync_workflow_schedules(workflow_id: str, nodes: list[NodeConfig]) -> None:
         trigger_type = _TRIGGER_TYPE_MAP[node.type]
 
         if node.id in existing_by_node:
-            # Update existing schedule
             s = existing_by_node[node.id]
             s.trigger_config = trigger_config
             s.trigger_type = trigger_type
             _schedule_store.save(s)
         else:
-            # Create new schedule
             schedule = ScheduleDefinition(
                 workflow_id=workflow_id,
                 trigger_type=trigger_type,
@@ -159,13 +227,13 @@ def _sync_workflow_schedules(workflow_id: str, nodes: list[NodeConfig]) -> None:
             )
             _schedule_store.save(schedule)
 
-    # Delete orphaned schedules (node removed from workflow)
     for node_id, s in existing_by_node.items():
         if node_id not in seen_node_ids:
             _schedule_store.delete(s.id)
 
 
-# --- Routes ---
+# --- Workflow CRUD Routes ---
+
 
 @router.get("/workflows/nodes")
 def list_node_types() -> NodeTypesResponse:
@@ -178,7 +246,7 @@ def list_node_types() -> NodeTypesResponse:
 
 @router.post("/workflows")
 def create_workflow(req: CreateWorkflowRequest) -> dict[str, Any]:
-    """Create a new workflow definition."""
+    """Create a new workflow definition and snapshot version 1."""
     nodes = [NodeConfig(**n) for n in req.nodes]
     connections = [Connection(**c) for c in req.connections]
     wf = WorkflowDefinition(
@@ -188,9 +256,30 @@ def create_workflow(req: CreateWorkflowRequest) -> dict[str, Any]:
         connections=connections,
     )
     _workflow_store.save(wf)
-    # Auto-create schedules for trigger nodes
+
+    # Create version 1
+    _version_store.create_version(
+        workflow_id=wf.id,
+        definition=wf.model_dump(mode="json"),
+        change_summary="Initial creation",
+    )
+
     _sync_workflow_schedules(wf.id, nodes)
-    return wf.model_dump()
+    
+    # Audit event for workflow creation
+    try:
+        from decision_system.security.audit import log_audit_event
+        log_audit_event({
+            "event_type": "workflow_created",
+            "workflow_id": wf.id,
+            "workflow_name": wf.name,
+        })
+    except Exception:
+        pass
+    
+    result = wf.model_dump()
+    result["version_count"] = 1
+    return result
 
 
 @router.get("/workflows")
@@ -211,7 +300,7 @@ def get_workflow(workflow_id: str) -> dict[str, Any]:
 
 @router.put("/workflows/{workflow_id}")
 def update_workflow(workflow_id: str, req: CreateWorkflowRequest) -> dict[str, Any]:
-    """Update an existing workflow definition."""
+    """Update an existing workflow definition and create a new version."""
     existing = _workflow_store.load(workflow_id)
     if existing is None:
         raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found")
@@ -224,12 +313,20 @@ def update_workflow(workflow_id: str, req: CreateWorkflowRequest) -> dict[str, A
         description=req.description,
         nodes=nodes,
         connections=connections,
-        version=1,
+        version=existing.version + 1,
     )
     _workflow_store.save(wf)
-    # Sync schedules for trigger nodes (creates/updates/deletes as needed)
+
+    # Create a new version snapshot
+    _version_store.create_version(
+        workflow_id=workflow_id,
+        definition=wf.model_dump(mode="json"),
+        change_summary="Updated via API",
+    )
+
     _sync_workflow_schedules(workflow_id, nodes)
-    return wf.model_dump()
+    result = wf.model_dump()
+    return result
 
 
 @router.delete("/workflows/{workflow_id}")
@@ -239,6 +336,17 @@ def delete_workflow(workflow_id: str) -> dict[str, str]:
     if wf is None:
         raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found")
     _workflow_store.delete(workflow_id)
+    
+    # Audit event for workflow deletion
+    try:
+        from decision_system.security.audit import log_audit_event
+        log_audit_event({
+            "event_type": "workflow_deleted",
+            "workflow_id": workflow_id,
+        })
+    except Exception:
+        pass
+    
     return {"status": "deleted", "id": workflow_id}
 
 
@@ -259,15 +367,142 @@ async def execute_workflow(
             "errors": [str(e) for e in errors],
         })
 
+    # Determine the latest version ID for this execution
+    latest_version = _version_store.get_latest_version_number(workflow_id)
+    version_id = None
+    if latest_version > 0:
+        v = _version_store.load_version(workflow_id, latest_version)
+        if v is not None:
+            version_id = v.version_id
+
     inputs = (body or {}).get("inputs", {})
     state = await _engine.execute(wf, global_inputs=inputs)
+
+    # Link workflow version to execution
+    if version_id:
+        state.workflow_version_id = version_id
+        _execution_store.save(state)
+
+    # Basic audit event
+    try:
+        from decision_system.security.audit import log_audit_event
+        log_audit_event({
+            "event_type": "workflow_executed",
+            "workflow_id": workflow_id,
+            "execution_id": state.execution_id,
+            "status": state.status,
+            "version_id": version_id,
+        })
+    except Exception:
+        pass
 
     return {
         "execution_id": state.execution_id,
         "status": state.status,
         "workflow_id": state.workflow_id,
+        "workflow_version_id": version_id,
         "error": state.error,
+        "review_id": state.review_id,
     }
+
+
+# --- Workflow Version Routes ---
+
+
+@router.get("/workflows/{workflow_id}/versions")
+def list_workflow_versions(workflow_id: str) -> dict[str, list[dict[str, Any]]]:
+    """List all versions of a workflow definition."""
+    wf = _workflow_store.load(workflow_id)
+    if wf is None:
+        raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found")
+    versions = _version_store.list_versions(workflow_id)
+    return {"versions": [v.model_dump(mode="json", exclude_none=True) for v in versions]}
+
+
+@router.get("/workflows/{workflow_id}/versions/{version_id}")
+def get_workflow_version(workflow_id: str, version_id: str) -> dict[str, Any]:
+    """Get a specific workflow version by its version ID."""
+    wf = _workflow_store.load(workflow_id)
+    if wf is None:
+        raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found")
+
+    # version_id could be a version UUID or a version number string
+    versions = _version_store.list_versions(workflow_id)
+    for v in versions:
+        if v.version_id == version_id:
+            return v.model_dump(mode="json", exclude_none=True)
+
+    # Try as numeric version number
+    try:
+        num = int(version_id)
+        v = _version_store.load_version(workflow_id, num)
+        if v is not None:
+            return v.model_dump(mode="json", exclude_none=True)
+    except ValueError:
+        pass
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"Version '{version_id}' not found for workflow '{workflow_id}'",
+    )
+
+
+# --- Execution Routes ---
+
+
+@router.get("/executions/history")
+def list_execution_history(
+    workflow_id: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, list[dict[str, Any]]]:
+    """List execution history with summary info.
+
+    Query params:
+        workflow_id (str, optional): Filter by workflow.
+        limit (int): Max results (default 50).
+        offset (int): Pagination offset (default 0).
+    """
+    all_states = _execution_store.list(workflow_id=workflow_id)
+    # Sort by started_at descending, newest first
+    all_states.sort(
+        key=lambda s: s.started_at or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
+
+    # Paginate
+    paged = all_states[offset:offset + limit]
+
+    history = []
+    for state in paged:
+        entry = _enrich_execution(state)
+        # Add workflow name if available
+        wf = _workflow_store.load(state.workflow_id)
+        entry["workflow_name"] = wf.name if wf else None
+        entry["workflow_version_id"] = state.workflow_version_id
+        # Claim count placeholder
+        entry["claim_count"] = state.claim_count
+        history.append(entry)
+
+    return {"executions": history}
+
+
+
+@router.delete("/executions/history/{execution_id}")
+def delete_execution_history(execution_id: str) -> dict[str, str]:
+    """Delete an execution history entry."""
+    state = _execution_store.load(execution_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail=f"Execution '{execution_id}' not found")
+
+    # Delete execution events file if exists
+    events_path = _api_store_dir / "events" / f"{execution_id}.json"
+    if events_path.exists():
+        events_path.unlink()
+
+    _execution_store.delete(execution_id)
+    return {"status": "deleted", "id": execution_id}
+
 
 
 @router.get("/executions/{execution_id}")
@@ -276,7 +511,63 @@ def get_execution_state(execution_id: str) -> dict[str, Any]:
     state = _execution_store.load(execution_id)
     if state is None:
         raise HTTPException(status_code=404, detail=f"Execution '{execution_id}' not found")
-    return state.model_dump()
+    return _enrich_execution(state)
+
+
+@router.get("/executions/{execution_id}/detail")
+def get_execution_detail(execution_id: str) -> dict[str, Any]:
+    """Get detailed information about a workflow execution.
+
+    Includes execution state, node states, event timeline, review requests,
+    metrics summary, and linked workflow definition.
+    """
+    state = _execution_store.load(execution_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail=f"Execution '{execution_id}' not found")
+
+    # Build detail response
+    enriched = _enrich_execution(state)
+    enriched["execution_state"] = enriched.copy()
+
+    # Include workflow definition snapshot
+    wf = _workflow_store.load(state.workflow_id)
+    enriched["workflow_definition"] = wf.model_dump(mode="json") if wf else None
+
+    # Include workflow version if linked
+    if state.workflow_version_id:
+        enriched["workflow_version"] = _version_store.load_version_by_id(
+            state.workflow_version_id
+        )
+        if enriched["workflow_version"] is not None:
+            enriched["workflow_version"] = enriched["workflow_version"].model_dump(
+                mode="json", exclude_none=True
+            )
+
+    # Node states detail
+    enriched["node_states"] = {
+        nid: ns.model_dump(mode="json") for nid, ns in state.node_states.items()
+    }
+
+    # Event timeline (from execution events store if available)
+    enriched["event_timeline"] = _load_execution_events(execution_id)
+
+    # Review requests for this execution
+    enriched["review_requests"] = _load_execution_reviews(execution_id)
+
+    # Metrics summary
+    enriched["metrics_summary"] = state.metrics_summary
+
+    # Real claim refs from claim store
+    claims = _claim_store.list(execution_id=execution_id)
+    enriched["claim_refs"] = [c.model_dump(mode="json") for c in claims]
+    enriched["claim_summary"] = _claim_store.summary(execution_id=execution_id)
+
+    # Audit refs (placeholder for Phase 6)
+    enriched["audit_refs"] = []
+
+    return enriched
+
+
 
 
 @router.websocket("/executions/{execution_id}/stream")
@@ -303,6 +594,49 @@ async def execution_event_stream(
             pass
 
 
+# --- Helper functions for execution detail ---
+
+
+def _load_execution_events(execution_id: str) -> list[dict[str, Any]]:
+    """Load persisted execution events for a given execution."""
+    events_path = _api_store_dir / "events" / f"{execution_id}.json"
+    if not events_path.exists():
+        return []
+    try:
+        import json
+        data = json.loads(events_path.read_text())
+        return data if isinstance(data, list) else []
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _save_execution_event(execution_id: str, event: dict[str, Any]) -> None:
+    """Persist a single execution event to the events store."""
+    events_path = _api_store_dir / "events"
+    events_path.mkdir(parents=True, exist_ok=True)
+    filepath = events_path / f"{execution_id}.json"
+
+    import json
+    try:
+        if filepath.exists():
+            events = json.loads(filepath.read_text())
+        else:
+            events = []
+        events.append(event)
+        filepath.write_text(json.dumps(events, indent=2, default=str))
+    except (json.JSONDecodeError, OSError):
+        filepath.write_text(json.dumps([event], indent=2, default=str))
+
+
+def _load_execution_reviews(execution_id: str) -> list[dict[str, Any]]:
+    """Load reviews associated with an execution."""
+    from decision_system.workflow_engine.nodes.specialist.review_gate import (
+        list_all_reviews,
+    )
+    all_reviews = list_all_reviews()
+    return [r for r in all_reviews if r.get("execution_id") == execution_id]
+
+
 # --- Schedule CRUD Routes ---
 
 
@@ -317,7 +651,6 @@ def create_schedule(req: CreateScheduleRequest) -> dict[str, Any]:
             detail=f"Invalid trigger_type '{req.trigger_type}'. Must be one of: {[t.value for t in TriggerType]}",
         )
 
-    # Validate the referenced workflow exists
     wf = _workflow_store.load(req.workflow_id)
     if wf is None:
         raise HTTPException(
@@ -413,14 +746,9 @@ async def receive_webhook(
     webhook_path: str,
     body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Receive a webhook trigger and execute the matching schedule's workflow.
-
-    Looks up a schedule with ``trigger_type='webhook'`` whose
-    ``trigger_config['webhook_path']`` matches the received path.
-    """
+    """Receive a webhook trigger and execute the matching schedule's workflow."""
     from decision_system.workflow_engine.scheduler.triggers import validate_webhook_path
 
-    # Find matching webhook schedule
     schedules = _schedule_store.list(trigger_type=TriggerType.WEBHOOK)
     matched: list[ScheduleDefinition] = []
     for s in schedules:
@@ -442,7 +770,6 @@ async def receive_webhook(
 
         inputs = body or {}
         state = await _engine.execute(wf, global_inputs=inputs, schedule_id=schedule.id)
-
         _schedule_store.update_last_fired(schedule.id)
 
         results.append({
@@ -466,7 +793,8 @@ def list_reviews(status: str | None = None) -> dict[str, list[dict[str, Any]]]:
         status (str, optional): Filter by status (e.g. ``pending_review``).
     """
     from decision_system.workflow_engine.nodes.specialist.review_gate import (
-        list_all_reviews, list_pending_reviews,
+        list_all_reviews,
+        list_pending_reviews,
     )
 
     if status == "pending_review":
@@ -475,14 +803,6 @@ def list_reviews(status: str | None = None) -> dict[str, list[dict[str, Any]]]:
         reviews = list_all_reviews()
 
     return {"reviews": reviews}
-
-
-class ResolveReviewRequest(BaseModel):
-    """Request body for resolving a review."""
-    action: str
-    notes: str = ""
-    modified_data: dict[str, Any] | None = None
-    reviewed_by: str | None = None
 
 
 @router.post("/reviews/{review_id}/resolve")
@@ -520,7 +840,80 @@ def resolve_review_endpoint(review_id: str, req: ResolveReviewRequest) -> dict[s
     if result is None:
         raise HTTPException(status_code=404, detail=f"Review '{review_id}' not found")
 
+    # Audit event for review resolution
+    try:
+        from decision_system.security.audit import log_audit_event
+        log_audit_event({
+            "event_type": "review_resolved",
+            "review_id": review_id,
+            "action": req.action,
+            "reviewed_by": req.reviewed_by or "api",
+            "notes": req.notes,
+        })
+    except Exception:
+        pass
+
     return result
+
+
+# --- Execution Resume Route ---
+
+
+class ResumeExecutionRequest(BaseModel):
+    action: str = "resume"
+    modified_data: dict[str, Any] | None = None
+
+
+@router.post("/executions/{execution_id}/resume")
+async def resume_execution_endpoint(
+    execution_id: str,
+    req: ResumeExecutionRequest,
+) -> dict[str, Any]:
+    """Resume a paused execution after a review gate.
+
+    When a workflow is paused at a ReviewGateNode, this endpoint
+    allows it to continue. Supports:
+    - ``resume``: Continue execution; optional ``modified_data`` is passed downstream.
+    - ``reject``: End the execution without running downstream nodes.
+
+    Requires the execution to be in ``awaiting_review`` status.
+    """
+    state = _execution_store.load(execution_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail=f"Execution '{execution_id}' not found")
+
+    if state.status != "awaiting_review":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Execution '{execution_id}' is not paused for review (status={state.status})",
+        )
+
+    action = req.action
+    if action not in ("resume", "reject"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid action '{action}'. Must be 'resume' or 'reject'.",
+        )
+
+    try:
+        result = await _engine.resume(
+            execution_id=execution_id,
+            action="reject" if action == "reject" else "resume",
+            modified_data=req.modified_data,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to resume execution: {type(exc).__name__}: {exc}",
+        )
+
+    if result is None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Execution '{execution_id}' could not be resumed",
+        )
+
+    return _enrich_execution(result)
 
 
 # --- Provider CRUD Routes ---
@@ -543,7 +936,7 @@ def create_provider(req: CreateProviderRequest) -> dict[str, Any]:
             api_key_env=req.api_key_env,
             default_model=req.default_model,
         )
-    except (ValidationError, ValueError) as exc:
+    except (PydanticValidationError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
     try:
@@ -577,7 +970,6 @@ def update_provider(name: str, req: UpdateProviderRequest) -> dict[str, Any]:
     if req.default_model is not None:
         provider.default_model = req.default_model
 
-    # Re-save the full list with updated entry
     all_providers = _provider_store.load()
     for i, p in enumerate(all_providers):
         if p.name == name:
@@ -648,3 +1040,179 @@ def set_default_provider(body: dict[str, str]) -> dict[str, Any]:
         "status": "ok",
         "default_provider": provider.model_dump(mode="json") if provider else None,
     }
+
+
+# ============================================================================
+# Workspace-scoped routes (Phase 5)
+# ============================================================================
+
+
+@router.get("/workspaces/{workspace_id}/workflows")
+def list_workspace_workflows(workspace_id: str) -> dict[str, list[dict[str, Any]]]:
+    """List all workflows belonging to a workspace."""
+    all_workflows = _workflow_store.list()
+    filtered = [w.model_dump() for w in all_workflows
+                if (w.model_dump().get("workspace_id") or None) == workspace_id
+                or workspace_id == "_all_"]
+    return {"workflows": filtered}
+
+
+@router.get("/workspaces/{workspace_id}/executions")
+def list_workspace_executions(
+    workspace_id: str,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, list[dict[str, Any]]]:
+    """List executions belonging to a workspace."""
+    all_states = _execution_store.list()
+    filtered = [s for s in all_states
+                if (s.workspace_id or None) == workspace_id
+                or workspace_id == "_all_"]
+    filtered.sort(
+        key=lambda s: s.started_at or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
+    paged = filtered[offset:offset + limit]
+    return {"executions": [_enrich_execution(s) for s in paged]}
+
+
+@router.get("/workspaces/{workspace_id}/reviews")
+def list_workspace_reviews(
+    workspace_id: str,
+    status: str | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    """List review records for a workspace.
+
+    Query params:
+        status (str, optional): Filter by review status.
+    """
+    from decision_system.workflow_engine.nodes.specialist.review_gate import (
+        list_all_reviews,
+        list_pending_reviews,
+    )
+
+    if status == "pending_review":
+        reviews = list_pending_reviews()
+    else:
+        reviews = list_all_reviews()
+
+    # Filter by workspace
+    if workspace_id != "_all_":
+        reviews = [r for r in reviews if r.get("workspace_id") == workspace_id]
+
+    return {"reviews": reviews}
+
+
+@router.get("/workspaces/{workspace_id}/overview")
+def workspace_overview(workspace_id: str) -> dict[str, Any]:
+    """Get a summary overview of a workspace."""
+    # Workflow count
+    all_wf = _workflow_store.list()
+    wf_count = sum(1 for w in all_wf
+                   if (w.model_dump().get("workspace_id") or None) == workspace_id
+                   or workspace_id == "_all_")
+
+    # Execution count
+    all_execs = _execution_store.list()
+    ws_execs = [s for s in all_execs
+                if (s.workspace_id or None) == workspace_id
+                or workspace_id == "_all_"]
+    exec_count = len(ws_execs)
+    completed_count = sum(1 for s in ws_execs if s.status == "completed")
+    failed_count = sum(1 for s in ws_execs if s.status == "failed")
+    paused_count = sum(1 for s in ws_execs if s.status == "awaiting_review")
+
+    # Review count
+    from decision_system.workflow_engine.nodes.specialist.review_gate import (
+        list_all_reviews,
+    )
+    all_reviews = list_all_reviews()
+    if workspace_id != "_all_":
+        all_reviews = [r for r in all_reviews if r.get("workspace_id") == workspace_id]
+    pending_reviews = sum(1 for r in all_reviews if r.get("status") == "pending_review")
+
+    # Schedule count
+    schedules = _schedule_store.list()
+    sched_count = len(schedules)
+
+    return {
+        "workspace_id": workspace_id,
+        "workflow_count": wf_count,
+        "execution_count": exec_count,
+        "completed_executions": completed_count,
+        "failed_executions": failed_count,
+        "paused_executions": paused_count,
+        "pending_reviews": pending_reviews,
+        "schedule_count": sched_count,
+        "review_count": len(all_reviews),
+    }
+
+
+# ============================================================================
+# Claim API routes (Phase 7 — durable claim store)
+# ============================================================================
+
+
+@router.get("/workspaces/{workspace_id}/claims")
+def list_workspace_claims(workspace_id: str) -> dict[str, list[dict[str, Any]]]:
+    """List all claims belonging to a workspace."""
+    if workspace_id == "_all_":
+        claims = _claim_store.list()
+    else:
+        claims = _claim_store.list(workspace_id=workspace_id)
+    return {"claims": [c.model_dump(mode="json", exclude_none=True) for c in claims]}
+
+
+@router.get("/executions/{execution_id}/claims")
+def list_execution_claims(execution_id: str) -> dict[str, list[dict[str, Any]]]:
+    """List all claims for a specific execution."""
+    claims = _claim_store.list(execution_id=execution_id)
+    return {"claims": [c.model_dump(mode="json", exclude_none=True) for c in claims]}
+
+
+@router.get("/claims/{claim_id}")
+def get_claim(claim_id: str) -> dict[str, Any]:
+    """Get a single claim by ID."""
+    claim = _claim_store.load(claim_id)
+    if claim is None:
+        raise HTTPException(status_code=404, detail=f"Claim '{claim_id}' not found")
+    return claim.model_dump(mode="json", exclude_none=True)
+
+
+@router.post("/claims")
+def create_claim(body: dict[str, Any]) -> dict[str, Any]:
+    """Create a new claim.
+
+    Body fields:
+        claim_text (required): The claim statement.
+        source_agent: Agent or node that produced the claim.
+        claim_type: "technical", "risk", "option", "recommendation", "assumption"
+        workspace_id, execution_id, workflow_id, node_id: Linkage fields.
+    """
+    claim = _claim_store.add_claim(
+        claim_text=body.get("claim_text", ""),
+        source_agent=body.get("source_agent", "api"),
+        claim_type=body.get("claim_type", "assumption"),
+        workspace_id=body.get("workspace_id"),
+        execution_id=body.get("execution_id"),
+        workflow_id=body.get("workflow_id"),
+        node_id=body.get("node_id"),
+        run_id=body.get("run_id"),
+    )
+    return claim.model_dump(mode="json", exclude_none=True)
+
+
+@router.delete("/claims/{claim_id}")
+def delete_claim(claim_id: str) -> dict[str, str]:
+    """Delete a claim by ID."""
+    claim = _claim_store.load(claim_id)
+    if claim is None:
+        raise HTTPException(status_code=404, detail=f"Claim '{claim_id}' not found")
+    _claim_store.delete(claim_id)
+    return {"status": "deleted", "id": claim_id}
+
+
+@router.get("/executions/{execution_id}/claim-summary")
+def execution_claim_summary(execution_id: str) -> dict[str, Any]:
+    """Get a summary of claim statuses for an execution."""
+    return _claim_store.summary(execution_id=execution_id)

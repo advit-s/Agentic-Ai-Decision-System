@@ -36,3 +36,9 @@ class ExecutionStore(ABC):
 
     @abstractmethod
     def list(self, workflow_id: str | None = None) -> list[ExecutionState]: ...
+
+    @abstractmethod
+    def delete(self, execution_id: str) -> None: ...
+
+    @abstractmethod
+    def delete(self, execution_id: str) -> None: ...

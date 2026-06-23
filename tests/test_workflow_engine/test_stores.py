@@ -118,3 +118,85 @@ class TestJSONExecutionStore:
         store.save(state2)
         all_states = store.list()
         assert len(all_states) == 2
+
+
+class TestJSONVersionStore:
+    """Tests for JSONVersionStore."""
+
+    @pytest.fixture
+    def store(self, tmp_path):
+        from decision_system.workflow_engine.stores.version_store import JSONVersionStore
+        return JSONVersionStore(tmp_path)
+
+    def test_create_and_load_version(self, store):
+        """Creating a version returns it and it can be loaded."""
+        definition = {"name": "test", "nodes": []}
+        v = store.create_version("wf-1", definition, change_summary="Initial")
+        assert v.workflow_id == "wf-1"
+        assert v.version_number == 1
+        assert v.change_summary == "Initial"
+
+        loaded = store.load_version("wf-1", 1)
+        assert loaded is not None
+        assert loaded.version_id == v.version_id
+        assert loaded.definition == definition
+
+    def test_auto_increment_version_number(self, store):
+        """Creating multiple versions auto-increments the version number."""
+        store.create_version("wf-2", {"v": 1})
+        store.create_version("wf-2", {"v": 2})
+        store.create_version("wf-2", {"v": 3})
+
+        v3 = store.load_version("wf-2", 3)
+        assert v3 is not None
+        assert v3.version_number == 3
+        assert v3.definition == {"v": 3}
+
+    def test_list_versions_newest_first(self, store):
+        """list_versions returns versions sorted newest first."""
+        store.create_version("wf-3", {"v": 1})
+        store.create_version("wf-3", {"v": 2})
+        store.create_version("wf-3", {"v": 3})
+
+        versions = store.list_versions("wf-3")
+        assert len(versions) == 3
+        assert versions[0].version_number == 3
+        assert versions[1].version_number == 2
+        assert versions[2].version_number == 1
+
+    def test_load_nonexistent_version(self, store):
+        """Loading a nonexistent version returns None."""
+        v = store.load_version("nonexistent", 99)
+        assert v is None
+
+    def test_load_version_by_id(self, store):
+        """Loading a version by its UUID works across workflows."""
+        v1 = store.create_version("wf-a", {"data": "a"})
+        v2 = store.create_version("wf-b", {"data": "b"})
+
+        loaded = store.load_version_by_id(v1.version_id)
+        assert loaded is not None
+        assert loaded.workflow_id == "wf-a"
+
+        loaded = store.load_version_by_id(v2.version_id)
+        assert loaded is not None
+        assert loaded.workflow_id == "wf-b"
+
+    def test_load_version_by_id_nonexistent(self, store):
+        """Loading a nonexistent version UUID returns None."""
+        loaded = store.load_version_by_id("nonexistent-id")
+        assert loaded is None
+
+    def test_get_latest_version_number(self, store):
+        """get_latest_version_number returns the highest version number."""
+        assert store.get_latest_version_number("wf-x") == 0
+        store.create_version("wf-x", {"v": 1})
+        assert store.get_latest_version_number("wf-x") == 1
+        store.create_version("wf-x", {"v": 2})
+        assert store.get_latest_version_number("wf-x") == 2
+
+    def test_version_has_content_hash(self, store):
+        """Each version has a content hash based on the definition."""
+        v = store.create_version("wf-hash", {"name": "test"})
+        assert v.content_hash
+        assert len(v.content_hash) == 16

@@ -30,6 +30,18 @@ class Connection(BaseModel):
     target_input: str = "default"
 
 
+class WorkflowVersion(BaseModel):
+    """An immutable snapshot of a workflow definition at a point in time."""
+    version_id: str
+    workflow_id: str
+    version_number: int
+    definition: dict[str, Any]
+    content_hash: str = ""
+    change_summary: str = ""
+    created_at: datetime | None = None
+    created_by: str = "api"
+
+
 class NodeConfig(BaseModel):
     """Reference to a node instance within a workflow definition."""
     id: str
@@ -67,7 +79,7 @@ class WorkflowDefinition(BaseModel):
 class NodeExecutionState(BaseModel):
     """Execution state for a single node."""
     node_id: str
-    status: Literal["pending", "running", "completed", "failed", "skipped"] = "pending"
+    status: Literal["pending", "running", "completed", "failed", "skipped", "awaiting_review"] = "pending"
     inputs: dict[str, Any] | None = None
     outputs: dict[str, Any] | None = None
     error: str | None = None
@@ -80,11 +92,27 @@ class ExecutionState(BaseModel):
     """Execution state for an entire workflow run."""
     execution_id: str
     workflow_id: str
-    status: Literal["pending", "running", "completed", "failed", "cancelled"] = "pending"
+    workflow_version_id: str | None = None
+    workspace_id: str | None = None
+    status: Literal["pending", "running", "completed", "failed", "cancelled", "awaiting_review", "rejected"] = "pending"
     node_states: dict[str, NodeExecutionState] = Field(default_factory=dict)
     started_at: datetime | None = None
     completed_at: datetime | None = None
     error: str | None = None
+    review_count: int = 0
+    claim_count: int = 0
+    node_count: int = 0
+    completed_node_count: int = 0
+    failed_node_count: int = 0
+    duration_ms: float | None = None
+    metrics_summary: dict[str, Any] = Field(default_factory=dict)
+    # Review-gate pause/resume fields
+    review_id: str | None = None
+    paused_node_id: str | None = None
+    pending_inputs: dict[str, Any] = Field(default_factory=dict)
+    downstream_nodes_not_started: list[str] = Field(default_factory=list)
+    review_instructions: str = ""
+    review_created_at: datetime | None = None
 
 
 class ExecutionContext(BaseModel):

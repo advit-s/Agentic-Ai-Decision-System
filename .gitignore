@@ -63,3 +63,24 @@ company_data/**
 # Local/public raw datasets and Claude local settings
 datasets/
 .claude/settings.local.json
+
+# Supplementary patterns
+*.pyo
+*.tsbuildinfo
+Thumbs.db
+!.env.example
+
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Test/temp artifacts
+.tox/
+tmp/
+_build/
+*.tmp

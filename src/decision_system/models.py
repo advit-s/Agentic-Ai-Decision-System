@@ -54,10 +54,15 @@ class Claim(BaseModel):
 
     Claims preserve their source agent, evidence links, status, confidence, and
     verification notes. Contradicted claims remain in the ledger for auditability.
+    Claims are linked to workspace, execution, workflow, and node for traceability.
     """
 
     claim_id: str
     run_id: str
+    workspace_id: str | None = None
+    execution_id: str | None = None
+    workflow_id: str | None = None
+    node_id: str | None = None
     source_agent: str
     claim_text: str
     claim_type: Literal["technical", "risk", "option", "recommendation", "assumption"]
@@ -66,6 +71,9 @@ class Claim(BaseModel):
     contradicting_evidence_ids: list[str] = Field(default_factory=list)
     confidence: ConfidenceLevel = "low"
     verification_notes: str = ""
+    review_required: bool = False
+    review_status: str | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

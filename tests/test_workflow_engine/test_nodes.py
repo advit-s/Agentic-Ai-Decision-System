@@ -113,7 +113,25 @@ class TestInputTextNode:
 
 class TestCodeNode:
     @pytest.mark.asyncio
+    async def test_disabled_by_default(self):
+        """CodeNode must raise RuntimeError when env var is not set."""
+        import os
+        os.environ.pop("DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE", None)
+
+        node = CodeNode(
+            id="n1", type="decision_system.code",
+            config={"source": "output = {'result': 42}"},
+        )
+        ctx = ExecutionContext(workflow_id="wf1", execution_id="e1")
+        with pytest.raises(RuntimeError, match="disabled"):
+            await node.execute({}, ctx)
+
+    @pytest.mark.asyncio
     async def test_basic_code_execution(self):
+        """CodeNode must work when env var enables it."""
+        import os
+        os.environ["DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE"] = "true"
+
         node = CodeNode(
             id="n1", type="decision_system.code",
             config={"source": "output = {'result': inputs['value'] * 2}"},
@@ -124,6 +142,10 @@ class TestCodeNode:
 
     @pytest.mark.asyncio
     async def test_empty_code_passthrough(self):
+        """CodeNode must passthrough inputs when enabled and no source."""
+        import os
+        os.environ["DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE"] = "true"
+
         node = CodeNode(id="n1", type="decision_system.code")
         ctx = ExecutionContext(workflow_id="wf1", execution_id="e1")
         result = await node.execute({"key": "val"}, ctx)
@@ -131,6 +153,10 @@ class TestCodeNode:
 
     @pytest.mark.asyncio
     async def test_code_syntax_error(self):
+        """CodeNode must raise on syntax errors when enabled."""
+        import os
+        os.environ["DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE"] = "true"
+
         node = CodeNode(
             id="n1", type="decision_system.code",
             config={"source": "this is not valid python"},
