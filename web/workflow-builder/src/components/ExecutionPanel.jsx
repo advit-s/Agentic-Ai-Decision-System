@@ -4,6 +4,13 @@ import StructuredNodeOutput from "./StructuredNodeOutput";
 import ClaimLedgerPanel from "./ClaimLedgerPanel";
 import ReviewPanel from "./ReviewPanel";
 import { listReviews, resolveReview } from "../api";
+import {
+  verifyExecutionClaims,
+  getExecutionVerificationSummary,
+  scanWorkspaceContradictions,
+  listWorkspaceContradictions,
+  generateTrustReport,
+} from "../api";
 import "../styles/execution-panel.css";
 import "../styles/execution-timeline.css";
 
@@ -108,6 +115,146 @@ function ExecutionTimeline({ nodeStatuses }) {
   );
 }
 
+/* ── Verification summary view ──────────────────── */
+
+function VerificationSummaryView({ summary, contradictions, onVerify, onScanContradictions, onGenerateReport, verifying, scanning, generatingReport, reportResult, nodeStatuses }) {
+  const hasData = summary && summary.total_claims > 0;
+  const hasClaims = nodeStatuses.some(ns => {
+    const outs = ns.outputs || {};
+    return (Array.isArray(outs.findings) && outs.findings.length > 0) || (Array.isArray(outs.issues) && outs.issues.length > 0);
+  });
+
+  const metrics = [
+    { key: "total_claims", label: "Total Claims", color: "#6b7280" },
+    { key: "supported", label: "Supported", color: "#166534" },
+    { key: "contradicted", label: "Contradicted", color: "#991b1b" },
+    { key: "unsupported", label: "Unsupported", color: "#854d0e" },
+    { key: "uncertain", label: "Uncertain", color: "#6b7280" },
+    { key: "needs_review", label: "Needs Review", color: "#7c3aed" },
+  ];
+
+  return (
+    <div style={{ padding: "12px", overflow: "auto", flex: 1 }}>
+      {/* Action buttons */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+        <button
+          className="execution-replay-btn"
+          style={{ background: "#059669", color: "#fff", borderColor: "#059669" }}
+          onClick={onVerify}
+          disabled={verifying || !hasClaims}
+          title="Verify all claims in this execution"
+        >
+          {verifying ? "Verifying..." : "✓ Verify Execution"}
+        </button>
+        <button
+          className="execution-replay-btn"
+          style={{ background: "#d97706", color: "#fff", borderColor: "#d97706" }}
+          onClick={onScanContradictions}
+          disabled={scanning || !hasClaims}
+          title="Scan for contradictions in this execution"
+        >
+          {scanning ? "Scanning..." : "⚡ Scan Contradictions"}
+        </button>
+        <button
+          className="execution-replay-btn"
+          style={{ background: "#7c3aed", color: "#fff", borderColor: "#7c3aed" }}
+          onClick={onGenerateReport}
+          disabled={generatingReport || !hasData}
+          title="Generate trust report from verification results"
+        >
+          {generatingReport ? "Generating..." : "📄 Generate Trust Report"}
+        </button>
+      </div>
+
+      {/* No claims state */}
+      {!hasClaims && !hasData && (
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "#6b7280" }}>
+          <div style={{ fontSize: "2rem", marginBottom: "8px" }}>🔍</div>
+          <div style={{ fontWeight: 500 }}>Verification has not been run for this execution yet.</div>
+          <div style={{ fontSize: "0.85rem", marginTop: "4px" }}>Execute a workflow with Researcher nodes to generate claims, then verify them.</div>
+        </div>
+      )}
+
+      {/* Verification summary */}
+      {hasData && (
+        <div style={{ background: "#f9fafb", borderRadius: "8px", padding: "12px", marginBottom: "12px" }}>
+          <div style={{ fontWeight: 600, fontSize: "0.85rem", marginBottom: "8px" }}>Verification Summary</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: "8px" }}>
+            {metrics.map(m => (
+              <div key={m.key} style={{ background: "#fff", borderRadius: "6px", padding: "8px", textAlign: "center", border: "1px solid #e5e7eb" }}>
+                <div style={{ fontSize: "1.2rem", fontWeight: 700, color: m.color }}>{summary[m.key] ?? 0}</div>
+                <div style={{ fontSize: "0.7rem", color: "#6b7280", marginTop: "2px" }}>{m.label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: "16px", marginTop: "8px", fontSize: "0.85rem", color: "#374151" }}>
+            {summary.average_confidence != null && (
+              <span><strong>Avg Confidence:</strong> {(summary.average_confidence * 100).toFixed(0)}%</span>
+            )}
+            {summary.evidence_coverage_score != null && (
+              <span><strong>Evidence Coverage:</strong> {(summary.evidence_coverage_score * 100).toFixed(0)}%</span>
+            )}
+            {summary.contradiction_count != null && (
+              <span><strong>Contradictions:</strong> {summary.contradiction_count}</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Evidence breakdown */}
+      {hasData && summary.evidence_breakdown && (
+        <div style={{ background: "#f9fafb", borderRadius: "8px", padding: "12px", marginBottom: "12px" }}>
+          <div style={{ fontWeight: 600, fontSize: "0.85rem", marginBottom: "8px" }}>Evidence Quality Breakdown</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: "8px" }}>
+            {Object.entries(summary.evidence_breakdown).map(([key, val]) => (
+              <div key={key} style={{ background: "#fff", borderRadius: "6px", padding: "8px", textAlign: "center", border: "1px solid #e5e7eb" }}>
+                <div style={{ fontSize: "1.1rem", fontWeight: 600, color: "#374151" }}>{val}</div>
+                <div style={{ fontSize: "0.7rem", color: "#6b7280", marginTop: "2px", textTransform: "capitalize" }}>{key}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Contradictions */}
+      {contradictions.length > 0 && (
+        <div style={{ background: "#fef2f2", borderRadius: "8px", padding: "12px", marginBottom: "12px" }}>
+          <div style={{ fontWeight: 600, fontSize: "0.85rem", marginBottom: "8px", color: "#991b1b" }}>
+            ⚡ Contradictions ({contradictions.length})
+          </div>
+          {contradictions.map((con, i) => (
+            <div key={con.id || i} style={{ padding: "8px", borderBottom: i < contradictions.length - 1 ? "1px solid #fecaca" : "none", fontSize: "0.85rem" }}>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "4px" }}>
+                <span style={{
+                  background: con.severity === "high" ? "#fee2e2" : con.severity === "medium" ? "#fef9c3" : "#f3f4f6",
+                  color: con.severity === "high" ? "#991b1b" : con.severity === "medium" ? "#854d0e" : "#4b5563",
+                  padding: "0 6px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 600
+                }}>{con.severity}</span>
+                <span style={{ fontWeight: 500 }}>{con.type?.replace(/_/g, ' ')}</span>
+              </div>
+              <div style={{ color: "#4b5563" }}>{con.description}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Report result */}
+      {reportResult && (
+        <div style={{ background: "#ecfdf5", borderRadius: "8px", padding: "12px", marginBottom: "12px" }}>
+          <div style={{ fontWeight: 600, fontSize: "0.85rem", marginBottom: "4px", color: "#065f46" }}>
+            ✅ Trust Report Generated
+          </div>
+          <div style={{ fontSize: "0.85rem", color: "#374151" }}>
+            Report ID: {reportResult.report_id}<br />
+            Title: {reportResult.title || "Trust Report"}<br />
+            Generated: {new Date(reportResult.generated_at).toLocaleString()}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Format data helper ────────────────────────── */
 
 function formatData(data) {
@@ -137,6 +284,12 @@ function ExecutionPanel({
   const [view, setView] = useState("ledger");
   const [reviews, setReviews] = useState([]);
   const [autoExpand, setAutoExpand] = useState(false);
+  const [verificationSummary, setVerificationSummary] = useState(null);
+  const [verificationContradictions, setVerificationContradictions] = useState([]);
+  const [verifying, setVerifying] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [reportResult, setReportResult] = useState(null);
   const nodeListRef = useRef(null);
   const autoExpandTimerRef = useRef(null);
 
@@ -205,6 +358,55 @@ function ExecutionPanel({
       .catch(() => {});
   };
 
+  // Load verification summary when switching to verification view
+  useEffect(() => {
+    if (view !== "verification") return;
+    const executionId = nodeStatuses.length > 0 ? nodeStatuses[0].execution_id || "exec-1" : "exec-1";
+    getExecutionVerificationSummary(executionId)
+      .then((data) => {
+        if (data) setVerificationSummary(data);
+      })
+      .catch(() => {
+        // No verification data yet
+      });
+  }, [view, nodeStatuses]);
+
+  const handleVerifyExecution = useCallback(async () => {
+    setVerifying(true);
+    try {
+      const executionId = nodeStatuses.length > 0 ? nodeStatuses[0].execution_id || "exec-1" : "exec-1";
+      const result = await verifyExecutionClaims(executionId);
+      if (result && result.summary) setVerificationSummary(result.summary);
+    } catch (err) {
+      console.error("Execution verification failed", err);
+    }
+    setVerifying(false);
+  }, [nodeStatuses]);
+
+  const handleScanContradictions = useCallback(async () => {
+    setScanning(true);
+    try {
+      const workspaceId = "ws-1";
+      const result = await scanWorkspaceContradictions(workspaceId);
+      if (result && result.contradictions) setVerificationContradictions(result.contradictions);
+    } catch (err) {
+      console.error("Contradiction scan failed", err);
+    }
+    setScanning(false);
+  }, []);
+
+  const handleGenerateReport = useCallback(async () => {
+    setGeneratingReport(true);
+    try {
+      const executionId = nodeStatuses.length > 0 ? nodeStatuses[0].execution_id || "exec-1" : "exec-1";
+      const result = await generateTrustReport(executionId);
+      setReportResult(result);
+    } catch (err) {
+      console.error("Report generation failed", err);
+    }
+    setGeneratingReport(false);
+  }, [nodeStatuses]);
+
   const statusIcon = (s) => STATUS_ICONS[s] || "○";
   const statusColor = (s) => STATUS_COLORS[s] || "#d1d5db";
 
@@ -262,6 +464,12 @@ function ExecutionPanel({
       >
         {"📊"} Timeline
       </button>
+      <button
+        className={"execution-view-btn" + (view === "verification" ? " active" : "")}
+        onClick={() => setView("verification")}
+      >
+        {"🔍"} Verification
+      </button>
     </div>
   );
 
@@ -317,6 +525,47 @@ function ExecutionPanel({
         </div>
         {viewToggle}
         <ExecutionTimeline nodeStatuses={nodeStatuses} />
+      </div>
+    );
+  }
+
+  // Verification view
+  if (view === "verification") {
+    return (
+      <div className="execution-panel">
+        <div className="execution-panel-header">
+          <div className="execution-panel-title">Execution Verification</div>
+          <button className="execution-close" onClick={onClose}>
+            {"✕"}
+          </button>
+        </div>
+        <div className="execution-summary">
+          <span
+            className="execution-status-badge"
+            style={{ background: statusColor(workflowStatus) || "#6b7280" }}
+          >
+            {workflowStatus}
+          </span>
+          <span className="execution-progress">
+            {completedCount}/{nodeStatuses.length} nodes
+          </span>
+          {elapsed > 0 && (
+            <span className="execution-elapsed">{elapsed.toFixed(1)}s</span>
+          )}
+        </div>
+        {viewToggle}
+        <VerificationSummaryView
+          summary={verificationSummary}
+          contradictions={verificationContradictions}
+          onVerify={handleVerifyExecution}
+          onScanContradictions={handleScanContradictions}
+          onGenerateReport={handleGenerateReport}
+          verifying={verifying}
+          scanning={scanning}
+          generatingReport={generatingReport}
+          reportResult={reportResult}
+          nodeStatuses={nodeStatuses}
+        />
       </div>
     );
   }

@@ -11,6 +11,10 @@ import {
   MOCK_EXECUTION_HISTORY,
   MOCK_EXECUTION_DETAILS,
   MOCK_WORKFLOW_VERSIONS,
+  MOCK_CLAIM_VERIFICATION,
+  MOCK_VERIFICATION_SUMMARY,
+  MOCK_CONTRADICTIONS,
+  MOCK_TRUST_REPORT,
 } from "./mockData";
 
 const API_BASE_KEY = "wfBuilderApiBaseUrl";
@@ -412,7 +416,158 @@ function streamReplayEvents(executionId, nodeIds, onEvent) {
   return streamExecutionEvents(executionId, onEvent);
 }
 
+// --- Verification & Trust Report ---
+
+function verifyClaim(claimId, workspaceId) {
+  if (isMockMode()) {
+    const result = MOCK_CLAIM_VERIFICATION[claimId];
+    if (!result) return Promise.reject(new Error("Claim not found"));
+    return Promise.resolve({ ...result, status: result.status, verified_at: new Date().toISOString() });
+  }
+  return apiFetch(`/claims/${claimId}/verify`, {
+    method: "POST",
+    body: JSON.stringify({ workspace_id: workspaceId || null }),
+  });
+}
+
+function verifyExecutionClaims(executionId, workspaceId) {
+  if (isMockMode()) {
+    return Promise.resolve({
+      execution_id: executionId,
+      verified: true,
+      summary: { ...MOCK_VERIFICATION_SUMMARY, verified_at: new Date().toISOString() },
+    });
+  }
+  return apiFetch(`/executions/${executionId}/claims/verify`, {
+    method: "POST",
+    body: JSON.stringify({ workspace_id: workspaceId || null }),
+  });
+}
+
+function verifyWorkspaceClaims(workspaceId) {
+  if (isMockMode()) {
+    return Promise.resolve({
+      workspace_id: workspaceId,
+      verified: true,
+      summary: { ...MOCK_VERIFICATION_SUMMARY, verified_at: new Date().toISOString() },
+    });
+  }
+  return apiFetch(`/workspaces/${workspaceId}/claims/verify`, {
+    method: "POST",
+  });
+}
+
+function getClaimVerification(claimId) {
+  if (isMockMode()) {
+    const result = MOCK_CLAIM_VERIFICATION[claimId];
+    if (!result) return Promise.resolve(null);
+    return Promise.resolve({ ...result });
+  }
+  return apiFetch(`/claims/${claimId}/verification`);
+}
+
+function getExecutionVerificationSummary(executionId) {
+  if (isMockMode()) {
+    return Promise.resolve({ ...MOCK_VERIFICATION_SUMMARY });
+  }
+  return apiFetch(`/executions/${executionId}/verification-summary`);
+}
+
+function getWorkspaceVerificationSummary(workspaceId) {
+  if (isMockMode()) {
+    return Promise.resolve({ ...MOCK_VERIFICATION_SUMMARY });
+  }
+  return apiFetch(`/workspaces/${workspaceId}/verification-summary`);
+}
+
+function scanWorkspaceContradictions(workspaceId) {
+  if (isMockMode()) {
+    return Promise.resolve({
+      contradictions: [...MOCK_CONTRADICTIONS],
+      count: MOCK_CONTRADICTIONS.length,
+    });
+  }
+  return apiFetch(`/workspaces/${workspaceId}/contradictions/scan`, {
+    method: "POST",
+  });
+}
+
+function listWorkspaceContradictions(workspaceId) {
+  if (isMockMode()) {
+    return Promise.resolve({
+      contradictions: [...MOCK_CONTRADICTIONS],
+      count: MOCK_CONTRADICTIONS.length,
+    });
+  }
+  return apiFetch(`/workspaces/${workspaceId}/contradictions`);
+}
+
+function listClaimContradictions(claimId) {
+  if (isMockMode()) {
+    const claimCons = MOCK_CONTRADICTIONS.filter(c => c.claim_id === claimId);
+    return Promise.resolve({
+      contradictions: [...claimCons],
+      count: claimCons.length,
+    });
+  }
+  return apiFetch(`/claims/${claimId}/contradictions`);
+}
+
+function generateTrustReport(executionId, workspaceId) {
+  if (isMockMode()) {
+    return Promise.resolve({
+      ...MOCK_TRUST_REPORT,
+      report_id: `rpt-mock-${Date.now()}`,
+      execution_id: executionId,
+      workspace_id: workspaceId || "ws-1",
+      generated_at: new Date().toISOString(),
+    });
+  }
+  return apiFetch(`/executions/${executionId}/report`, {
+    method: "POST",
+    body: JSON.stringify({ workspace_id: workspaceId || null }),
+  });
+}
+
+function getReport(reportId) {
+  if (isMockMode()) {
+    return Promise.resolve({ ...MOCK_TRUST_REPORT, report_id: reportId });
+  }
+  return apiFetch(`/reports/${reportId}`);
+}
+
+function exportReport(reportId, format = "md") {
+  if (isMockMode()) {
+    const md = `# Trust Report — Revenue Analysis Q2\n\n## Verification Summary\n\nTotal claims: 5\nSupported: 1\nContradicted: 1\nUnsupported: 1\nUncertain: 1\nNeeds review: 1\n\n## Warnings and Limitations\n\nThis verification is deterministic and conservative.`;
+    return Promise.resolve({
+      report_id: reportId,
+      format,
+      content: md,
+      filename: `trust-report-${reportId}.${format}`,
+    });
+  }
+  return apiFetch(`/reports/${reportId}/export?format=${format}`);
+}
+
+function getReportMarkdown(reportId) {
+  return exportReport(reportId, "md").then(r => r.content || r);
+}
+
 export {
+  // Verification
+  verifyClaim,
+  verifyExecutionClaims,
+  verifyWorkspaceClaims,
+  getClaimVerification,
+  getExecutionVerificationSummary,
+  getWorkspaceVerificationSummary,
+  scanWorkspaceContradictions,
+  listWorkspaceContradictions,
+  listClaimContradictions,
+  generateTrustReport,
+  getReport,
+  exportReport,
+  getReportMarkdown,
   getBaseUrl,
   isMockMode,
   fetchNodeTypes,

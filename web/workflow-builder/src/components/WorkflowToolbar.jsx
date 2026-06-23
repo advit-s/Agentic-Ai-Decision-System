@@ -16,8 +16,10 @@ function WorkflowToolbar({
   onSchedules,
   onProviders,
   onTemplates,
+  onTrust,
   schedulePanel,
   providerPanel,
+  trustPanel,
   workflows,
   currentWorkflowName,
   isExecuting,
@@ -151,6 +153,13 @@ function WorkflowToolbar({
             />
           </span>
           🤖 Providers
+        </button>
+        <button
+          className={`toolbar-btn ${trustPanel ? "toolbar-btn-active" : ""}`}
+          onClick={onTrust}
+          title="Open trust dashboard"
+        >
+          🛡️ Trust
         </button>
       </div>
       <div className="toolbar-center">

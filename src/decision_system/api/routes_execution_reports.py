@@ -12,6 +12,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from decision_system.api.models import api_error
+from decision_system.security.audit import append_event
+from decision_system.observability.metrics import MetricsCollector, MetricType
 
 router = APIRouter(tags=["execution-reports"])
 
@@ -228,11 +230,35 @@ def generate_execution_report(execution_id: str) -> dict[str, Any]:
 
     # Emit audit event
     try:
+        append_event("trust_report_generated", f"Trust report {report_data['report_id']} generated for execution {execution_id}", metadata={
+            "execution_id": execution_id,
+            "workspace_id": workspace_id,
+            "report_id": report_data["report_id"],
+            "claim_count": len(claims),
+        })
+    except Exception:
+        pass
+    try:
         _emit_audit_event("report_generated", {
             "execution_id": execution_id,
             "workspace_id": workspace_id,
             "report_id": report_data["report_id"],
             "claim_count": len(claims),
+        })
+    except Exception:
+        pass
+
+    try:
+        collector = MetricsCollector()
+        collector.record("trust_report_generation_duration_ms", 0, MetricType.TIMER, {
+            "execution_id": execution_id,
+            "workspace_id": workspace_id,
+            "report_id": report_data["report_id"],
+            "claim_count": str(len(claims)),
+        })
+        collector.record("claims_verified_count", len(claims), MetricType.COUNTER, {
+            "action": "report_generated",
+            "execution_id": execution_id,
         })
     except Exception:
         pass
@@ -313,6 +339,14 @@ def export_report(
         raise api_error(400, "invalid_format", f"Unsupported format: {format}")
 
     # Emit audit event
+    try:
+        append_event("trust_report_exported", f"Trust report {report_id} exported as {format}", metadata={
+            "report_id": report_id,
+            "workspace_id": report_data.get("workspace_id", ""),
+            "format": format,
+        })
+    except Exception:
+        pass
     try:
         _emit_audit_event("report_exported", {
             "report_id": report_id,

@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
 > **Last updated:** 2026-06-23
-> **Package version:** 1.20.0-dev
-> **Previous milestone:** v1.18 — Local product-loop hardening
-> **Current milestone:** v1.20 — Intelligence Quality + Claim Verification v2
+> **Package version:** 1.20.1-dev
+> **Previous milestone:** v1.20 — Intelligence Quality + Claim Verification v2
+> **Current milestone:** v1.20.1 — Trust UI + Audit Wiring + Release Hardening
 > **Python:** >=3.11
 
 ---
@@ -48,6 +48,14 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 | Verification workflow nodes | ✅ **Production** | ClaimVerifierNode, ContradictionScanNode, VerificationSummaryNode |
 | Trust report format | ✅ **Production** | Verification summary, evidence table, contradictions, recommended next actions |
 | Local trust evaluation | ✅ **Production** | 53+ tests covering verification scenarios |
+| Verification API client | ✅ **Production** | Frontend JS client methods for all verification and trust report endpoints |
+| Claim Ledger verification UI | ✅ **Production** | Status badges, evidence quality, verify button, filter-by-status |
+| Execution verification UI | ✅ **Production** | Verification summary panel with metrics and trigger actions |
+| Workspace trust dashboard | ✅ **Production** | Trust health labels, metrics, recommended next actions |
+| Trust report viewer | ✅ **Production** | Sectioned report display with Markdown and JSON export |
+| Contradiction UI | ✅ **Production** | Contradiction scanning, listing, and detail views |
+| Audit event wiring | ✅ **Production** | Verification/report actions emit scoped audit events |
+| Observability metrics | ✅ **Production** | Verification and report duration/count/confidence metrics |
 | Knowledge graph extraction | ✅ **Production** | Deterministic extraction from sentence patterns; JSON store |
 | Ontology mapping | ✅ **Production** | Maps CSV columns to ontology concepts |
 | CSV data profiling | ✅ **Production** | Profile company datasets with quality/detection stats |
@@ -70,11 +78,10 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Audit logging | 🟡 **Prototype** | Basic audit for workflow execution; more events needed |
-| Observability metrics | 🟡 **Prototype** | Modules exist; not consistently wired to normal flows |
-| Claim ledger APIs | 🟡 **Prototype** | Claims exist in-memory per run; no persistent claim store yet |
- | Claim ledger APIs | ✅ **Live** | JSON-backed durable claim store for workflow executions |
-| Report export API | 🟡 **Prototype** | Reports can be generated; local file export not finalized |
+| Audit logging | ✅ **Production** | Verification/report actions emit audit events with workspace/execution/claim scope |
+| Observability metrics | ✅ **Production** | Verification and report actions emit metrics for duration, counts, confidence |
+| Claim ledger APIs | ✅ **Production** | JSON-backed durable claim store for workflow executions |
+| Report export API | ✅ **Production** | Trust reports can be viewed in UI and exported as Markdown or JSON |
 | Workspace export/import | 🟡 **Prototype** | Basic export exists; not fully tested |
 | Connectors | 🟡 **Prototype** | Local file import works; stubs for remote exist |
 | Provider experiments | 🟡 **Prototype** | Modules exist; not wired into main flow |

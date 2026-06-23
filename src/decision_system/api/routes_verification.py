@@ -17,6 +17,8 @@ from decision_system.models import (
 )
 from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
 from decision_system.verification.service import VerificationService
+from decision_system.security.audit import append_event
+from decision_system.observability.metrics import MetricsCollector, MetricType
 
 router = APIRouter(tags=["verification"])
 
@@ -36,6 +38,45 @@ def _get_verification_service() -> VerificationService:
     """Get a verification service instance."""
     store = _get_claim_store()
     return VerificationService(claim_store=store)
+
+
+def _record_verification_metrics(metrics_collector, claim_results, duration_ms=0):
+    """Record observability metrics for verification actions."""
+    try:
+        collector = metrics_collector or MetricsCollector()
+        total = len(claim_results)
+        contradicted = sum(1 for r in claim_results if r.get("status") == "contradicted")
+        unsupported = sum(1 for r in claim_results if r.get("status") == "unsupported")
+        uncertain = sum(1 for r in claim_results if r.get("status") == "uncertain")
+        needs_review = sum(1 for r in claim_results if r.get("status") == "needs_review")
+
+        collector.record("verification_duration_ms", duration_ms, MetricType.TIMER)
+        collector.record("claims_verified_count", total, MetricType.COUNTER, {"action": "verify"})
+        collector.record("contradictions_found_count", contradicted, MetricType.COUNTER)
+        collector.record("unsupported_claims_count", unsupported, MetricType.COUNTER)
+        collector.record("uncertain_claims_count", uncertain, MetricType.COUNTER)
+        collector.record("needs_review_claims_count", needs_review, MetricType.COUNTER)
+
+        confidences = [r.get("confidence") for r in claim_results if r.get("confidence")]
+        numeric_confidences = []
+        for c in confidences:
+            try:
+                numeric_confidences.append(float(c))
+            except (ValueError, TypeError):
+                pass
+        if numeric_confidences:
+            avg_conf = sum(numeric_confidences) / len(numeric_confidences)
+            collector.record("average_confidence", avg_conf, MetricType.GAUGE)
+    except Exception:
+        pass
+
+
+_metrics_collector = None
+def _get_metrics_collector():
+    global _metrics_collector
+    if _metrics_collector is None:
+        _metrics_collector = MetricsCollector()
+    return _metrics_collector
 
 
 # ------------------------------------------------------------------
@@ -86,6 +127,20 @@ async def verify_claim(claim_id: str, req: VerifyClaimRequest) -> dict:
         raise HTTPException(status_code=404, detail=f"Claim '{claim_id}' not found")
 
     verification, quality = result
+    try:
+        append_event("claim_verified", f"Claim {claim_id} verified as {verification.status}", metadata={
+            "claim_id": claim_id,
+            "status": verification.status,
+            "confidence": verification.confidence,
+            "workspace_id": req.workspace_id or "",
+        })
+    except Exception:
+        pass
+    try:
+        claim_result = [{"status": verification.status, "confidence": verification.confidence}]
+        _record_verification_metrics(_get_metrics_collector(), claim_result)
+    except Exception:
+        pass
     return {
         "claim_id": claim_id,
         "status": verification.status,
@@ -120,8 +175,22 @@ async def verify_execution_claims(
             "evidence_ids": verification.evidence_ids,
             "evidence_snippets": verification.evidence_snippets,
             "contradicting_evidence_ids": verification.contradicting_evidence_ids,
-            "evidence_quality": quality.quality_label,
+        "evidence_quality": quality.quality_label,
         })
+
+    try:
+        append_event("execution_claims_verified", f"Verified {len(claim_results)} claims for execution {execution_id}", metadata={
+            "execution_id": execution_id,
+            "total": len(claim_results),
+            "workspace_id": req.workspace_id or "",
+        })
+    except Exception:
+        pass
+
+    try:
+        _record_verification_metrics(_get_metrics_collector(), claim_results)
+    except Exception:
+        pass
 
     return {
         "execution_id": execution_id,
@@ -146,8 +215,21 @@ async def verify_workspace_claims(workspace_id: str) -> dict:
             "evidence_ids": verification.evidence_ids,
             "evidence_snippets": verification.evidence_snippets,
             "contradicting_evidence_ids": verification.contradicting_evidence_ids,
-            "evidence_quality": quality.quality_label,
+        "evidence_quality": quality.quality_label,
         })
+
+    try:
+        append_event("workspace_claims_verified", f"Verified {len(claim_results)} claims for workspace {workspace_id}", metadata={
+            "workspace_id": workspace_id,
+            "total": len(claim_results),
+        })
+    except Exception:
+        pass
+
+    try:
+        _record_verification_metrics(_get_metrics_collector(), claim_results)
+    except Exception:
+        pass
 
     return {
         "workspace_id": workspace_id,
@@ -206,6 +288,17 @@ async def scan_workspace_contradictions(workspace_id: str) -> ContradictionScanR
     """Scan workspace evidence for contradictions."""
     service = _get_verification_service()
     contradictions = service.scan_workspace_contradictions(workspace_id)
+    try:
+        append_event("contradiction_scan_run", f"Scanned contradictions for workspace {workspace_id}: found {len(contradictions)}", metadata={
+            "workspace_id": workspace_id,
+            "count": len(contradictions),
+        })
+    except Exception:
+        pass
+    try:
+        _get_metrics_collector().record("contradictions_found_count", len(contradictions), MetricType.COUNTER, {"workspace_id": workspace_id})
+    except Exception:
+        pass
     return ContradictionScanResponse(
         contradictions=[c.model_dump(mode="json") for c in contradictions],
         count=len(contradictions),

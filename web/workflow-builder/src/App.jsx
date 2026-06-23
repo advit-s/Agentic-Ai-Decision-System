@@ -6,6 +6,7 @@ import WorkflowToolbar from "./components/WorkflowToolbar";
 import NodePalette from "./components/NodePalette";
 import ConfigPanel from "./components/ConfigPanel";
 import ExecutionPanel from "./components/ExecutionPanel";
+import TrustDashboard from "./components/TrustDashboard";
 import ExecutionHistory from "./components/ExecutionHistory";
 import ExecutionCompare from "./components/ExecutionCompare";
 import WorkflowDiff from "./components/WorkflowDiff";
@@ -57,6 +58,7 @@ function CanvasInner() {
   const [compareRuns, setCompareRuns] = useState(null);
   const [schedulePanel, setSchedulePanel] = useState(false);
   const [providerPanel, setProviderPanel] = useState(false);
+  const [trustPanel, setTrustPanel] = useState(false);
   const [nodeStatuses, setNodeStatuses] = useState([]);
   const [elapsed, setElapsed] = useState(0);
   const [workflowStatus, setWorkflowStatus] = useState(null);
@@ -706,8 +708,16 @@ function CanvasInner() {
           setHistoryPanel(false);
         }}
         onTemplates={() => setTemplateDialogOpen(true)}
+        onTrust={() => {
+          setTrustPanel(!trustPanel);
+          setSchedulePanel(false);
+          setExecutionPanel(false);
+          setProviderPanel(false);
+          setHistoryPanel(false);
+        }}
         schedulePanel={schedulePanel}
         providerPanel={providerPanel}
+        trustPanel={trustPanel}
         workflows={workflows}
         currentWorkflowName={currentWorkflowName}
         isExecuting={isExecuting}
@@ -789,6 +799,8 @@ function CanvasInner() {
             />
           ) : providerPanel ? (
             <ProviderManager onClose={() => setProviderPanel(false)} />
+          ) : trustPanel ? (
+            <TrustDashboard workspaceId="ws-1" onClose={() => setTrustPanel(false)} />
           ) : (
             <ConfigPanel
               selectedNode={selectedNode}

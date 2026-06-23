@@ -1,4 +1,29 @@
-## [1.20.0] - 2026-06-23 — Intelligence Quality + Claim Verification v2
+ ## [1.20.0] - 2026-06-23 — Intelligence Quality + Claim Verification v2
+## [1.20.1] - 2026-06-23 — Trust UI + Audit Wiring + Release Hardening
+
+### Added
+- **Version identity**: Updated to 1.20.1-dev for the v1.20.1 milestone.
+- **Verification API client**: Frontend API client methods for all verification and trust report endpoints.
+- **Claim Ledger verification UI**: Claim status badges (supported/contradicted/unsupported/uncertain/needs_review), evidence quality indicators, verify button, filter-by-status.
+- **Execution verification UI**: Verification summary panel with total/supported/contradicted/unsupported claims, average confidence, evidence coverage.
+- **Workspace trust dashboard**: Trust health metrics, recommended next actions, workspace-wide verification triggers.
+- **Trust report viewer**: Sectioned trust report display with export to Markdown and JSON.
+- **Contradiction UI**: Contradiction scanning from UI, contradiction list with severity/type/description, linked claims.
+- **Audit event wiring**: Dedicated audit events for claim_verified, execution_claims_verified, workspace_claims_verified, contradiction_scan_run, trust_report_generated, trust_report_exported.
+- **Observability metrics**: verification_duration_ms, claims_verified_count, contradictions_found_count, unsupported_claims_count, average_confidence, and more.
+- **Backend audit tests**: Tests cover audit event creation for verification and report actions.
+- **Documentation**: Updated CURRENT_STATE.md, CHANGELOG.md, and IMPLEMENTATION_REPORT.md.
+
+### Changed
+- Version bumped from 1.20.0-dev to 1.20.1-dev.
+- Frontend components enhanced with verification/trust/report sections.
+- docs/CURRENT_STATE.md updated to reflect v1.20.1 completion.
+
+### Fixed
+- No backend logic changes; all changes are UI/audit/observability additions.
+
+---
+
 
 ### Added
 - **Version identity**: Updated to 1.20.0-dev for the v1.20 milestone.

@@ -1,12 +1,91 @@
 # Implementation Report — Local-First Agentic Decision System
 
 > **Date:** 2026-06-23
-> **Package version:** 1.20.0-dev
-> **Previous milestone:** v1.18 — Local product-loop hardening
-> **Current milestone:** v1.20 — Intelligence Quality + Claim Verification v2
+> **Package version:** 1.20.1-dev
+> **Previous milestone:** v1.20 — Intelligence Quality + Claim Verification v2
+> **Current milestone:** v1.20.1 — Trust UI + Audit Wiring + Release Hardening
 
 ---
 
+## v1.20.1 — Trust UI + Audit Wiring + Release Hardening
+
+v1.20 built the backend trust layer. v1.20.1 completes the user-facing experience by adding verification UI, contradiction visibility, audit wiring, observability metrics, and final release hardening.
+
+### Files changed
+| File | Change |
+|------|--------|
+| `pyproject.toml` | Version bumped from 1.20.0-dev to 1.20.1-dev |
+| `src/decision_system/__init__.py` | Version bumped to 1.20.1-dev |
+| `src/decision_system/api/routes_verification.py` | Added audit events (`append_event`) for claim_verified, execution_claims_verified, workspace_claims_verified, contradiction_scan_run; added observability metrics (verification_duration_ms, claims_verified_count, contradictions_found_count, unsupported_claims_count, uncertain_claims_count, needs_review_claims_count, average_confidence) |
+| `src/decision_system/api/routes_execution_reports.py` | Added audit events (trust_report_generated, trust_report_exported); added metrics (trust_report_generation_duration_ms, claims_verified_count) |
+| `web/workflow-builder/src/mockData.js` | Added mock verification data: MOCK_CLAIM_VERIFICATION, MOCK_VERIFICATION_SUMMARY, MOCK_CONTRADICTIONS, MOCK_TRUST_REPORT |
+| `web/workflow-builder/src/api.js` | Added verification API client methods: verifyClaim, verifyExecutionClaims, verifyWorkspaceClaims, getClaimVerification, getExecutionVerificationSummary, getWorkspaceVerificationSummary, scanWorkspaceContradictions, listWorkspaceContradictions, listClaimContradictions, generateTrustReport, getReport, exportReport, getReportMarkdown |
+| `web/workflow-builder/src/components/ClaimLedgerPanel.jsx` | Upgraded with verification data: status badges (supported/contradicted/unsupported/uncertain/needs_review), evidence quality indicators, verify buttons, contradiction display, filter-by-verification-status |
+| `web/workflow-builder/src/components/ExecutionPanel.jsx` | Added Verification view tab with execution-level verify/scan/report buttons, verification summary, evidence breakdown, contradiction list, trust report result display |
+| `web/workflow-builder/src/components/TrustDashboard.jsx` | **New** — Workspace trust dashboard with trust health badge, verification metrics, evidence quality breakdown, contradiction list, recent reports |
+| `web/workflow-builder/src/components/WorkflowToolbar.jsx` | Added "Trust" button to open the trust dashboard |
+| `web/workflow-builder/src/App.jsx` | Added TrustDashboard panel to sidebar; wired trustPanel state |
+| `docs/CURRENT_STATE.md` | Updated version, milestone, production status tables |
+| `docs/IMPLEMENTATION_REPORT.md` | This file — full v1.20.1 report |
+| `CHANGELOG.md` | Added v1.20.1 changelog section |
+
+### API client methods added
+- `verifyClaim(claimId, workspaceId)` — Verify a single claim
+- `verifyExecutionClaims(executionId, workspaceId)` — Verify all claims for an execution
+- `verifyWorkspaceClaims(workspaceId)` — Verify all claims in a workspace
+- `getClaimVerification(claimId)` — Get existing verification for a claim
+- `getExecutionVerificationSummary(executionId)` — Get execution-level verification summary
+- `getWorkspaceVerificationSummary(workspaceId)` — Get workspace-level verification summary
+- `scanWorkspaceContradictions(workspaceId)` — Scan workspace for contradictions
+- `listWorkspaceContradictions(workspaceId)` — List workspace contradictions
+- `listClaimContradictions(claimId)` — List contradictions for a claim
+- `generateTrustReport(executionId, workspaceId)` — Generate a trust report
+- `getReport(reportId)` — Get report details
+- `exportReport(reportId, format)` — Export report as markdown or json
+
+### Audit events added
+| Event | Triggered by |
+|-------|-------------|
+| `claim_verified` | Single claim verification |
+| `execution_claims_verified` | Execution-level claim verification |
+| `workspace_claims_verified` | Workspace-level claim verification |
+| `contradiction_scan_run` | Workspace contradiction scan |
+| `trust_report_generated` | Trust report generation |
+| `trust_report_exported` | Trust report export |
+
+### Observability metrics added
+| Metric | Type | Description |
+|--------|------|-------------|
+| `verification_duration_ms` | timer | Duration of verification actions |
+| `claims_verified_count` | counter | Number of claims verified |
+| `contradictions_found_count` | counter | Number of contradictions found |
+| `unsupported_claims_count` | counter | Number of unsupported claims |
+| `uncertain_claims_count` | counter | Number of uncertain claims |
+| `needs_review_claims_count` | counter | Number of claims needing review |
+| `average_confidence` | gauge | Average confidence across verified claims |
+| `trust_report_generation_duration_ms` | timer | Duration of report generation |
+
+### Tests added
+| Test file | Tests |
+|-----------|-------|
+| `tests/test_verification/test_audit_observability.py` | 15 tests — audit events (claim_verified, execution_verified, workspace_verified, contradiction_scan, trust_report_generated, trust_report_exported, multiple events); observability metrics (claims_verified_count, contradictions_found_count, unsupported_claims_count, uncertain_claims_count, needs_review_claims_count, average_confidence, trust_report_generation_duration, verification_duration) |
+
+### Commands run
+| Command | Result |
+|---------|--------|
+| `python -m pytest tests/test_verification -q` | 68 passed (53 original + 15 new) |
+| `cd web/workflow-builder && npm run build` | 238 modules, 461 KB, build passes |
+| `python -m pytest tests/test_workflow_engine -q` | Pre-existing collection errors (missing typer, async) — no regression |
+| `python -m pytest tests/test_data_sources -q` | Pre-existing async failures — no regression |
+
+### Known remaining gaps
+- Frontend tests for new verification UI components (test setup not configured)
+- Docker Compose smoke test (environment-dependent)
+- Workspace export/import for trust data
+- Verification UI for multi-workspace switching
+- Contradiction detail view with full evidence comparison
+
+---
 
 ## v1.20 — Intelligence Quality + Claim Verification v2
 
