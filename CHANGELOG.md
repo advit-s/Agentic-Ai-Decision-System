@@ -1,3 +1,21 @@
+## [1.22.1] - 2026-06-23 — Provider API Route Fix + Release Stabilization
+### Fixed
+- **Provider API route conflict**: Removed duplicate old provider CRUD routes from workflow_engine/api.py
+- **Route ordering**: Moved static `/providers/default` routes before dynamic `/{provider_id}` routes
+- **Name uniqueness**: Added check in store creating HTTP 409 for duplicate provider names
+- **Backward compat**: Added model_validator converting api_base to base_url; added backward-compat routes
+- **Frontend compat**: Updated mockData.js and ProviderManager.jsx from api_base to base_url
+- **20 TestProviderAPI tests**: Rewrote test class with deterministic setup/cleanup, route ordering coverage
+- **3 syntax/assertion bugs**: Fixed indentation error, undefined variable, incorrect field check in tests
+### Changed
+- Version bumped from 1.22.0-dev to 1.22.1-dev
+- Docs updated to reflect v1.22.1 stabilization
+### Removed
+- Duplicate provider CRUD routes from workflow_engine/api.py (150 lines)
+- v1.22 known-failure note about 7 provider API test failures
+
+---
+
 ## [1.22.0] - 2026-06-23 — Visual Workflow Builder Productization
 ### Added
 - **Version identity**: Updated to 1.22.0-dev for the v1.22 milestone.

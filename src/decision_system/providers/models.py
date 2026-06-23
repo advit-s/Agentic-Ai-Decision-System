@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 ProviderType = Literal["fake", "ollama", "openai_compatible", "openai", "anthropic"]
@@ -69,7 +69,10 @@ class ProviderConfig(BaseModel):
 
 
 class ProviderCreateRequest(BaseModel):
-    """Request body for creating a new provider."""
+    """Request body for creating a new provider.
+
+    Accepts both ``base_url`` (new) and ``api_base`` (legacy) field names.
+    """
 
     name: str = Field(description="Human-readable provider name")
     provider_type: ProviderType = Field(description="Provider type/backend")
@@ -77,6 +80,17 @@ class ProviderCreateRequest(BaseModel):
     api_key_env: str | None = Field(default=None)
     default_model: str | None = Field(default=None)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_api_base(cls, data: Any) -> Any:
+        """Support legacy api_base field name."""
+        if isinstance(data, dict):
+            if "api_base" in data and data.get("base_url") is None:
+                data["base_url"] = data.pop("api_base")
+            elif "api_base" in data and "base_url" not in data:
+                data["base_url"] = data.pop("api_base")
+        return data
 
 
 class ProviderUpdateRequest(BaseModel):

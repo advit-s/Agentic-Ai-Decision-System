@@ -16,7 +16,7 @@ function ProviderManager({ onClose }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    api_base: "",
+    base_url: "",
     api_key_env: "",
     default_model: "",
   });
@@ -44,13 +44,13 @@ function ProviderManager({ onClose }) {
   }
 
   function resetForm() {
-    setForm({ name: "", api_base: "", api_key_env: "", default_model: "" });
+    setForm({ name: "", base_url: "", api_key_env: "", default_model: "" });
     setError(null);
     setTestResult(null);
   }
 
   async function handleAdd() {
-    if (!form.name || !form.api_base || !form.default_model) {
+    if (!form.name || !form.base_url || !form.default_model) {
       setError("Name, API Base, and Default Model are required");
       return;
     }
@@ -177,7 +177,7 @@ function ProviderManager({ onClose }) {
               </div>
 
               <div className="provider-detail">
-                <strong>API:</strong> {p.api_base}
+                <strong>API:</strong> {p.base_url}
               </div>
               <div className="provider-detail">
                 <strong>Model:</strong> {p.default_model}
@@ -226,8 +226,8 @@ function ProviderManager({ onClose }) {
             <input
               type="text"
               placeholder="https://api.openai.com/v1"
-              value={form.api_base}
-              onChange={(e) => handleFormChange("api_base", e.target.value)}
+              value={form.base_url}
+              onChange={(e) => handleFormChange("base_url", e.target.value)}
             />
 
             <label>Default Model *</label>

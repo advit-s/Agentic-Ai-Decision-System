@@ -962,13 +962,13 @@ const MOCK_SCHEDULES = [
 const MOCK_PROVIDERS = [
   {
     name: "opencode",
-    api_base: "https://opencode.ai/zen/v1",
+    base_url: "https://opencode.ai/zen/v1",
     api_key_configured: false,
     default_model: "claude-sonnet-4-20250514",
   },
   {
     name: "openai",
-    api_base: "https://api.openai.com/v1",
+    base_url: "https://api.openai.com/v1",
     api_key_configured: false,
     default_model: "gpt-4o",
   },

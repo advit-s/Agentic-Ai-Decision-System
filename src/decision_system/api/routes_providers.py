@@ -55,7 +55,34 @@ def create_new_provider(request: ProviderCreateRequest):
             pass
         return config
     except ValueError as e:
+        if "already exists" in str(e):
+            raise api_error(409, "provider_already_exists", str(e))
         raise api_error(400, "provider_create_failed", str(e))
+
+
+@router.post("/default", response_model=ProviderConfig)
+def set_default_provider(request: ProviderCreateRequest | None = None, provider_id: str | None = None):
+    """Set a provider as the default (stored in the first provider slot)."""
+    # We use a simple convention: the first provider in the list is the default
+    # This endpoint ensures the provider exists and returns it
+    if provider_id:
+        config = get_provider(provider_id)
+        if config is None:
+            raise api_error(404, "provider_not_found", f"Provider '{provider_id}' not found")
+        return config
+    if request:
+        config = create_provider(request)
+        return config
+    raise api_error(400, "missing_provider", "Provide either provider_id or a new provider config")
+
+
+@router.get("/default", response_model=ProviderConfig | None)
+def get_default_provider():
+    """Get the default provider (first in the list)."""
+    providers = list_providers()
+    if not providers:
+        return None
+    return providers[0]
 
 
 @router.get("/{provider_id}", response_model=ProviderConfig)
@@ -206,32 +233,44 @@ def list_provider_models(provider_id: str):
     }
 
 
-@router.post("/default", response_model=ProviderConfig)
-def set_default_provider(request: ProviderCreateRequest | None = None, provider_id: str | None = None):
-    """Set a provider as the default (stored in the first provider slot)."""
-    # We use a simple convention: the first provider in the list is the default
-    # This endpoint ensures the provider exists and returns it
-    if provider_id:
-        config = get_provider(provider_id)
-        if config is None:
-            raise api_error(404, "provider_not_found", f"Provider '{provider_id}' not found")
-        return config
-    if request:
-        config = create_provider(request)
-        return config
-    raise api_error(400, "missing_provider", "Provide either provider_id or a new provider config")
-
-
-@router.get("/default", response_model=ProviderConfig | None)
-def get_default_provider():
-    """Get the default provider (first in the list)."""
-    providers = list_providers()
-    if not providers:
-        return None
-    return providers[0]
-
-
 @router.get("/types/list", response_model=list[str])
 def list_provider_types():
     """List all supported provider types."""
     return ["fake", "ollama", "openai_compatible", "openai", "anthropic"]
+
+
+
+@router.post("/system/default")
+def set_default_provider_system(body: dict[str, str]) -> dict[str, Any]:
+    """Backward-compat alias: POST /providers/system/default -> POST /providers/default.
+
+    Legacy endpoint used by older frontend clients and tests.
+    """
+    name = body.get("name", "")
+    if not name:
+        raise api_error(400, "missing_name", "'name' field is required")
+
+    try:
+        from decision_system.providers import get_provider_by_name
+        config = get_provider_by_name(name)
+    except Exception:
+        config = None
+
+    if config is None:
+        # Try direct lookup by provider_id
+        config = get_provider(name)
+
+    if config is None:
+        raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
+
+    return config.model_dump(mode="json")
+
+
+@router.get("/by-name/{name}")
+def get_provider_by_name_route(name: str) -> dict[str, Any]:
+    """Look up a provider by its human-readable name."""
+    from decision_system.providers import get_provider_by_name as _get_by_name
+    config = _get_by_name(name)
+    if config is None:
+        raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
+    return config.model_dump(mode="json")

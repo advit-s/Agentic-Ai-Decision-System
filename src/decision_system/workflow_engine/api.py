@@ -12,7 +12,6 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
-from pydantic_core import ValidationError as PydanticValidationError
 
 from decision_system.workflow_engine.models import (
     WorkflowDefinition,
@@ -21,15 +20,10 @@ from decision_system.workflow_engine.models import (
     ExecutionState,
     NodeExecutionState,
 )
+from decision_system.workflow_engine.providers.store import ProviderStore
 from decision_system.workflow_engine.engine.dag import DAGValidator
 from decision_system.workflow_engine.engine.executor import DAGEngine
 from decision_system.workflow_engine.nodes import create_default_registry
-from decision_system.workflow_engine.providers.store import (
-    ProviderConfig as StoreProviderConfig,
-    ProviderStore,
-    DuplicateProviderError,
-    ProviderNotFoundError,
-)
 from decision_system.workflow_engine.scheduler import (
     ScheduleDefinition,
     ScheduleStore,
@@ -144,19 +138,6 @@ class UpdateScheduleRequest(BaseModel):
     trigger_type: str | None = None
     trigger_config: dict[str, Any] | None = None
     enabled: bool | None = None
-
-
-class CreateProviderRequest(BaseModel):
-    name: str
-    api_base: str
-    api_key_env: str | None = None
-    default_model: str
-
-
-class UpdateProviderRequest(BaseModel):
-    api_base: str | None = None
-    api_key_env: str | None = None
-    default_model: str | None = None
 
 
 class ResolveReviewRequest(BaseModel):
@@ -952,135 +933,6 @@ async def resume_execution_endpoint(
     return _enrich_execution(result)
 
 
-# --- Provider CRUD Routes ---
-
-
-@router.get("/providers")
-def list_providers() -> dict[str, list[dict[str, Any]]]:
-    """List all configured LLM providers with API key status."""
-    providers = _provider_store.check()
-    return {"providers": providers}
-
-
-@router.post("/providers")
-def create_provider(req: CreateProviderRequest) -> dict[str, Any]:
-    """Add a new LLM provider configuration."""
-    try:
-        cfg = StoreProviderConfig(
-            name=req.name,
-            api_base=req.api_base,
-            api_key_env=req.api_key_env,
-            default_model=req.default_model,
-        )
-    except (PydanticValidationError, ValueError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-
-    try:
-        _provider_store.add(cfg)
-    except DuplicateProviderError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
-
-    return _provider_store.get(req.name).model_dump(mode="json")  # type: ignore[union-attr]
-
-
-@router.get("/providers/{name}")
-def get_provider(name: str) -> dict[str, Any]:
-    """Get a single provider configuration."""
-    provider = _provider_store.get(name)
-    if provider is None:
-        raise HTTPException(status_code=404, detail=f"Provider '{name}' not found")
-    return provider.model_dump(mode="json")
-
-
-@router.put("/providers/{name}")
-def update_provider(name: str, req: UpdateProviderRequest) -> dict[str, Any]:
-    """Update an existing provider configuration."""
-    provider = _provider_store.get(name)
-    if provider is None:
-        raise HTTPException(status_code=404, detail=f"Provider '{name}' not found")
-
-    if req.api_base is not None:
-        provider.api_base = req.api_base
-    if req.api_key_env is not None:
-        provider.api_key_env = req.api_key_env
-    if req.default_model is not None:
-        provider.default_model = req.default_model
-
-    all_providers = _provider_store.load()
-    for i, p in enumerate(all_providers):
-        if p.name == name:
-            all_providers[i] = provider
-            break
-    _provider_store.save(all_providers)
-    return provider.model_dump(mode="json")
-
-
-@router.delete("/providers/{name}")
-def delete_provider(name: str) -> dict[str, str]:
-    """Delete a provider configuration."""
-    try:
-        _provider_store.remove(name)
-    except ProviderNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    return {"status": "deleted", "name": name}
-
-
-@router.post("/providers/{name}/check")
-async def check_provider(name: str) -> dict[str, Any]:
-    """Test a provider connection with a simple chat completion."""
-    from decision_system.workflow_engine.providers.client import LLMClient
-
-    provider = _provider_store.get(name)
-    if provider is None:
-        raise HTTPException(status_code=404, detail=f"Provider '{name}' not found")
-
-    cfg = _provider_store.get(name)
-    client = LLMClient(cfg)  # type: ignore[arg-type]
-
-    try:
-        result = await client.chat_completion(
-            messages=[
-                {"role": "user", "content": "Reply with only the word 'ok'."}
-            ],
-            model=cfg.default_model,  # type: ignore[union-attr]
-            stream=False,
-        )
-        return {
-            "status": "ok",
-            "provider": name,
-            "model": cfg.default_model,  # type: ignore[union-attr]
-            "response": result.strip(),
-        }
-    except Exception as exc:
-        return {
-            "status": "error",
-            "provider": name,
-            "error": f"{type(exc).__name__}: {exc}",
-        }
-
-
-@router.post("/providers/system/default")
-def set_default_provider(body: dict[str, str]) -> dict[str, Any]:
-    """Set a provider as the system default (moves to first position)."""
-    name = body.get("name", "")
-    if not name:
-        raise HTTPException(status_code=400, detail="'name' field is required")
-
-    try:
-        _provider_store.set_default(name)
-    except ProviderNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-
-    provider = _provider_store.get_default()
-    return {
-        "status": "ok",
-        "default_provider": provider.model_dump(mode="json") if provider else None,
-    }
-
-
-# ============================================================================
-# Workspace-scoped routes (Phase 5)
-# ============================================================================
 
 
 @router.get("/workspaces/{workspace_id}/workflows")

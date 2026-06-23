@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
  > **Last updated:** 2026-06-23
- > **Package version:** 1.22.0-dev
+ > **Package version:** 1.22.1-dev
  > **Previous milestone:** v1.20.1 — Trust UI + Audit Wiring + Release Hardening
- > **Current milestone:** v1.22 — Visual Workflow Builder Productization
+ > **Current milestone:** v1.22.1 — Provider API Route Fix + Release Stabilization
 > **Python:** >=3.11
 
 ---

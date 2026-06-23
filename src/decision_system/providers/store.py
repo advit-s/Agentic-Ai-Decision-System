@@ -122,8 +122,11 @@ def create_provider(request: ProviderCreateRequest) -> ProviderConfig:
             )
         ),
     )
-    # Generate provider_id from name
     config.provider_id = f"prov-{request.name.lower().replace(' ', '-')}"
+    # Enforce unique provider names
+    existing = get_provider_by_name(request.name)
+    if existing:
+        raise ValueError(f"Provider with name '{request.name}' already exists")
     _save_provider(config)
     return config
 
