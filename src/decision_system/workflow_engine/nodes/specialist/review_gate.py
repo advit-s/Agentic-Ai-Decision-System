@@ -84,6 +84,7 @@ class ReviewGateNode(WorkflowNode):
             "review_id": review_id,
             "workflow_id": ctx.workflow_id,
             "execution_id": ctx.execution_id,
+            "workspace_id": ctx.workspace_id,
             "status": _PENDING_REVIEW,
             "data": data,
             "instructions": instructions,

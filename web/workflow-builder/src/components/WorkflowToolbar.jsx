@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import LoadDropdown from "./LoadDropdown";
 import ThemeToggle from "./ThemeToggle";
-import { getBaseUrl, isMockMode, listProviders, checkProvider } from "../api";
+import { getBaseUrl, getBackendMode, isMockMode, listProviders, checkProvider } from "../api";
 import "../styles/toolbar.css";
 
 function WorkflowToolbar({
@@ -47,6 +47,7 @@ function WorkflowToolbar({
 
   const mock = isMockMode();
   const baseUrl = getBaseUrl();
+  const backendMode = getBackendMode();
 
   // Sync the input when opening edit
   const handleStartEdit = useCallback(() => {
@@ -171,11 +172,25 @@ function WorkflowToolbar({
           </div>
         ) : (
           <button
-            className={`connection-badge ${mock ? "connection-badge-mock" : "connection-badge-live"}`}
+          let badgeLabel, badgeClass;
+          if (mock) {
+            badgeLabel = "🟡 Mock mode";
+            badgeClass = "connection-badge-mock";
+          } else if (backendMode === "live" && window.location.port === "3000") {
+            badgeLabel = "🟢 Local live backend";
+            badgeClass = "connection-badge-live";
+          } else if (backendMode === "live") {
+            badgeLabel = `🟢 ${baseUrl.replace(/^https?:\/\//, "")}`;
+            badgeClass = "connection-badge-live";
+          } else {
+            badgeLabel = "🔴 Backend unavailable";
+            badgeClass = "connection-badge-mock";
+          }
+            className={`connection-badge ${badgeClass}`}
             onClick={handleStartEdit}
             title="Click to change API URL"
           >
-            {mock ? "🟡 Mock Mode" : `🟢 ${baseUrl.replace(/^https?:\/\//, "")}`}
+            {badgeLabel}
           </button>
         )}
       </div>

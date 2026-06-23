@@ -928,3 +928,353 @@ class TestReviewGatePauseResume:
         entries = [e for e in hist_resp.json()["executions"] if e["execution_id"] == exec_id]
         assert len(entries) >= 1
         assert entries[0]["status"] == "awaiting_review"
+
+
+class TestWorkspaceScoping:
+    """Tests for workspace_id propagation and filtering."""
+
+    async def test_create_workflow_with_workspace_id(self, client):
+        """Creating a workflow with workspace_id stores and returns it."""
+        payload = {
+            "name": "WS Workflow",
+            "workspace_id": "ws-1",
+            "nodes": [
+                {"id": "n1", "type": "decision_system.trigger_manual"},
+            ],
+            "connections": [],
+        }
+        create_resp = await client.post("/workflows", json=payload)
+        assert create_resp.status_code == 200
+        data = create_resp.json()
+        assert data["workspace_id"] == "ws-1"
+        assert data["name"] == "WS Workflow"
+
+        # Load it back
+        get_resp = await client.get(f"/workflows/{data['id']}")
+        assert get_resp.status_code == 200
+        assert get_resp.json()["workspace_id"] == "ws-1"
+
+    async def test_workspace_workflows_filter_correctly(self, client):
+        """Workspace-scoped workflow listing returns only matching workflows."""
+        # Create workflows in different workspaces
+        for ws in ["ws-a", "ws-b", "ws-a"]:
+            await client.post("/workflows", json={
+                "name": f"WF-{ws}",
+                "workspace_id": ws,
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+                "connections": [],
+            })
+
+        # List workflows for workspace "ws-a"
+        resp = await client.get("/workspaces/ws-a/workflows")
+        assert resp.status_code == 200
+        workflows = resp.json()["workflows"]
+        assert len(workflows) == 2
+        for wf in workflows:
+            assert wf["workspace_id"] == "ws-a"
+
+        # List workflows for workspace "ws-b"
+        resp = await client.get("/workspaces/ws-b/workflows")
+        assert resp.status_code == 200
+        workflows = resp.json()["workflows"]
+        assert len(workflows) == 1
+        assert workflows[0]["workspace_id"] == "ws-b"
+
+    async def test_workspace_id_propagates_to_execution(self, client):
+        """Executing a workspace-owned workflow creates an execution with the same workspace_id."""
+        create_resp = await client.post("/workflows", json={
+            "name": "WS Exec Test",
+            "workspace_id": "ws-exec",
+            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            "connections": [],
+        })
+        wf_id = create_resp.json()["id"]
+
+        exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={})
+        assert exec_resp.status_code == 200
+        exec_id = exec_resp.json()["execution_id"]
+
+        detail_resp = await client.get(f"/executions/{exec_id}/detail")
+        assert detail_resp.status_code == 200
+        detail = detail_resp.json()
+        assert detail.get("workspace_id") == "ws-exec"
+
+    async def test_workspace_filtered_executions(self, client):
+        """Workspace-scoped execution listing returns only matching executions."""
+        create_resp = await client.post("/workflows", json={
+            "name": "WS Exec List",
+            "workspace_id": "ws-exec-list",
+            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            "connections": [],
+        })
+        wf_id = create_resp.json()["id"]
+
+        # Execute twice
+        await client.post(f"/workflows/{wf_id}/execute", json={})
+        await client.post(f"/workflows/{wf_id}/execute", json={})
+
+        resp = await client.get("/workspaces/ws-exec-list/executions")
+        assert resp.status_code == 200
+        executions = resp.json()["executions"]
+        assert len(executions) == 2
+        for exec_data in executions:
+            assert exec_data.get("workspace_id") == "ws-exec-list"
+
+        # Other workspace should have no executions
+        resp = await client.get("/workspaces/other-ws/executions")
+        assert resp.status_code == 200
+        assert len(resp.json()["executions"]) == 0
+
+    async def test_workspace_id_propagates_to_review(self, client):
+        """Review gate creates a review with workspace_id."""
+        create_resp = await client.post("/workflows", json={
+            "name": "WS Review Test",
+            "workspace_id": "ws-review",
+            "nodes": [
+                {"id": "n1", "type": "decision_system.trigger_manual"},
+                {"id": "n2", "type": "decision_system.review_gate"},
+            ],
+            "connections": [
+                {"source_node": "n1", "target_node": "n2"},
+            ],
+        })
+        wf_id = create_resp.json()["id"]
+
+        exec_resp = await client.post(
+            f"/workflows/{wf_id}/execute",
+            json={"inputs": {"data": {"value": 42}}},
+        )
+        review_id = exec_resp.json().get("review_id")
+        assert review_id is not None
+
+        # The review should be findable via workspace filter
+        reviews_resp = await client.get("/workspaces/ws-review/reviews")
+        assert reviews_resp.status_code == 200
+        reviews = reviews_resp.json()["reviews"]
+        matching = [r for r in reviews if r.get("review_id") == review_id]
+        assert len(matching) == 1
+        assert matching[0].get("workspace_id") == "ws-review"
+
+        # Other workspace should not include this review
+        other_resp = await client.get("/workspaces/other/reviews")
+        other_reviews = other_resp.json()["reviews"]
+        assert not any(r.get("review_id") == review_id for r in other_reviews)
+
+
+class TestClaimValidation:
+    """Tests for claim API validation."""
+
+    async def test_create_claim_empty_text_fails(self, client):
+        """Creating a claim with empty text should return 422."""
+        resp = await client.post("/claims", json={
+            "claim_text": "",
+        })
+        assert resp.status_code == 422
+
+    async def test_create_claim_invalid_type_fails(self, client):
+        """Creating a claim with invalid claim_type should return 422."""
+        resp = await client.post("/claims", json={
+            "claim_text": "This is a test claim",
+            "claim_type": "invalid_type_xyz",
+        })
+        assert resp.status_code == 422
+
+    async def test_create_claim_valid_succeeds(self, client):
+        """Creating a claim with valid data should succeed."""
+        resp = await client.post("/claims", json={
+            "claim_text": "Revenue increased by 20% in Q2",
+            "claim_type": "technical",
+            "workspace_id": "ws-claims",
+            "source_agent": "test",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["claim_text"] == "Revenue increased by 20% in Q2"
+        assert data["claim_type"] == "technical"
+        assert "claim_id" in data
+
+    async def test_create_claim_with_all_fields(self, client):
+        """Creating a claim with all optional fields should succeed."""
+        resp = await client.post("/claims", json={
+            "claim_text": "Security vulnerability detected",
+            "claim_type": "risk",
+            "source_agent": "scanner",
+            "workspace_id": "ws-1",
+            "execution_id": "exec-1",
+            "workflow_id": "wf-1",
+            "node_id": "node-1",
+            "confidence": "high",
+            "evidence_ids": ["ev-1", "ev-2"],
+            "metadata": {"source": "test"},
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["claim_text"] == "Security vulnerability detected"
+        assert data["confidence"] == "high"
+        assert data["workspace_id"] == "ws-1"
+
+
+class TestWorkspaceOverview:
+    """Tests for workspace overview endpoint."""
+
+    async def test_workspace_overview_basic(self, client):
+        """Workspace overview returns basic stats."""
+        resp = await client.get("/workspaces/_all_/overview")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "workflow_count" in data
+        assert "execution_count" in data
+        assert "review_count" in data
+        assert "claim_count" in data
+        assert "evidence_coverage_score" in data
+
+    async def test_workspace_overview_includes_claim_summary(self, client):
+        """Workspace overview includes claim counts and evidence coverage."""
+        # Create a claim in workspace "ws-overview"
+        await client.post("/claims", json={
+            "claim_text": "Test claim for overview",
+            "claim_type": "assumption",
+            "workspace_id": "ws-overview",
+            "source_agent": "test",
+        })
+
+        resp = await client.get("/workspaces/ws-overview/overview")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["workspace_id"] == "ws-overview"
+        assert data["claim_count"] >= 1
+        assert "supported_claim_count" in data
+        assert "contradicted_claim_count" in data
+        assert "unsupported_claim_count" in data
+        assert "uncertain_claim_count" in data
+        assert "pending_claim_count" in data
+
+
+class TestEventTimeline:
+    """Tests for event timeline persistence."""
+
+    async def test_execution_detail_has_event_timeline(self, client):
+        """Execution detail should include a non-empty event_timeline."""
+        create_resp = await client.post("/workflows", json={
+            "name": "Event Timeline WF",
+            "nodes": [
+                {"id": "n1", "type": "decision_system.trigger_manual"},
+            ],
+            "connections": [],
+        })
+        wf_id = create_resp.json()["id"]
+
+        exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={})
+        exec_id = exec_resp.json()["execution_id"]
+
+        detail_resp = await client.get(f"/executions/{exec_id}/detail")
+        assert detail_resp.status_code == 200
+        detail = detail_resp.json()
+        timeline = detail.get("event_timeline", [])
+        assert len(timeline) > 0
+        event_types = {e["event_type"] for e in timeline}
+        assert "workflow_started" in event_types
+        assert "workflow_completed" in event_types or "node_completed" in event_types
+
+    async def test_event_timeline_persists_across_reload(self, client):
+        """Event timeline should survive API store reload (file-backed)."""
+        create_resp = await client.post("/workflows", json={
+            "name": "Timeline Persist WF",
+            "nodes": [
+                {"id": "n1", "type": "decision_system.trigger_manual"},
+            ],
+            "connections": [],
+        })
+        wf_id = create_resp.json()["id"]
+
+        exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={})
+        exec_id = exec_resp.json()["execution_id"]
+
+        # Get detail (events loaded from file)
+        detail_resp = await client.get(f"/executions/{exec_id}/detail")
+        assert detail_resp.status_code == 200
+        timeline = detail_resp.json().get("event_timeline", [])
+        assert len(timeline) > 0
+
+
+class TestMultipleReviewGates:
+    """Tests for correct behavior with multiple review gates."""
+
+    async def test_two_review_gates_sequential(self, client):
+        """Workflow with two sequential review gates should pause at each one.
+        The second gate receives 'data' from the first gate's outputs,
+        so it should also pause rather than auto-approving.
+        """
+        create_resp = await client.post("/workflows", json={
+            "name": "Two Gate WF",
+            "nodes": [
+                {"id": "n1", "type": "decision_system.trigger_manual"},
+                {"id": "gate1", "type": "decision_system.review_gate"},
+                {"id": "gate2", "type": "decision_system.review_gate"},
+                {"id": "end", "type": "decision_system.trigger_manual"},
+            ],
+            "connections": [
+                {"source_node": "n1", "target_node": "gate1"},
+                {"source_node": "gate1", "target_node": "gate2"},
+                {"source_node": "gate2", "target_node": "end"},
+            ],
+        })
+        wf_id = create_resp.json()["id"]
+
+        # Execute — should pause at gate1
+        exec_resp = await client.post(
+            f"/workflows/{wf_id}/execute",
+            json={"inputs": {"data": {"value": 42}}},
+        )
+        exec_id = exec_resp.json()["execution_id"]
+        assert exec_resp.json()["status"] == "awaiting_review"
+
+        # Get the review_id for gate1
+        detail_resp = await client.get(f"/executions/{exec_id}/detail")
+        review_id_1 = detail_resp.json()["review_id"]
+        assert review_id_1 is not None
+
+        # Approve gate1
+        resolve_resp = await client.post(
+            f"/reviews/{review_id_1}/resolve",
+            json={"action": "approve", "notes": "Looks good"},
+        )
+        assert resolve_resp.status_code == 200
+
+        # Resume execution after approving gate1 — should pause at gate2
+        resume_resp = await client.post(
+            f"/executions/{exec_id}/resume",
+            json={"action": "resume"},
+        )
+        assert resume_resp.status_code == 200
+
+        # Verify execution is paused at gate2
+        state_resp = await client.get(f"/executions/{exec_id}")
+        assert state_resp.status_code == 200
+        assert state_resp.json()["status"] == "awaiting_review", \
+            f"Expected awaiting_review after gate2, got {state_resp.json()['status']}"
+
+        detail_resp2 = await client.get(f"/executions/{exec_id}/detail")
+        review_id_2 = detail_resp2.json()["review_id"]
+        assert review_id_2 is not None
+        assert review_id_2 != review_id_1
+
+        # Approve gate2
+        resolve_resp2 = await client.post(
+            f"/reviews/{review_id_2}/resolve",
+            json={"action": "approve", "notes": "Also good"},
+        )
+        assert resolve_resp2.status_code == 200
+
+        # Resume after approving gate2 — should complete
+        resume_resp2 = await client.post(
+            f"/executions/{exec_id}/resume",
+            json={"action": "resume"},
+        )
+        assert resume_resp2.status_code == 200
+
+        state_resp3 = await client.get(f"/executions/{exec_id}")
+        assert state_resp3.status_code == 200
+        assert state_resp3.json()["status"] == "completed", \
+            f"Expected completed after both gates, got {state_resp3.json()['status']}"
+        assert state_resp3.json().get("completed_at") is not None

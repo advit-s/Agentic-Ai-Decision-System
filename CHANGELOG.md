@@ -599,3 +599,36 @@
 - Enterprise connectors.
 - Real OpenAI/Ollama execution.
 - Extra agents.
+## [1.18.0-dev] - 2026-06-23 — Local product-loop hardening (in development)
+
+### Planned
+- Consistent version metadata across all components
+- Docker/nginx port alignment
+- Frontend auto-detects local backend on port 3000
+- Nginx proxy routes for all backend APIs
+- Workspace scoping for workflows, executions, reviews
+- Persistent execution event timelines
+- Multiple review-gate resume correctness
+- Claim API validation hardening
+- Workspace overview claim summary
+- Frontend live-mode hardening and status indicators
+- One-command Docker build
+- Smoke test script
+- Code cleanup and whitespace fixes
+
+## [1.17.0] - 2026-06-23 — Local-first foundation
+
+### Added
+- **Persistent workflow stores**: JSON-file-backed stores for workflows, executions, schedules, and reviews
+- **Workspace routes**: `GET /workspaces/{workspace_id}/workflows` and workspace-scoped API endpoints
+- **Docker Compose setup**: Self-contained backend + frontend deployment via `docker compose up`
+- **Claim store foundation**: Persistent claim storage for workflow executions
+- **Review-gate pause/resume**: Human-in-the-loop review gates with approve/reject/request-changes
+- **CodeNode safety**: Code execution node disabled by default for security
+- **Cron parser improvements**: Better schedule parsing and validation
+- **Audit endpoints**: Execution detail and history API routes
+
+### Changed
+- Version bumped from 1.16.2 to 1.17.0 to reflect local-first milestone
+
+## [1.16.2] - 2026-06-13 — Backend Hardening & Deprecation Cleanup

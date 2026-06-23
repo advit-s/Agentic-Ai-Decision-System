@@ -1,7 +1,9 @@
 # Current State — Agentic Decision System
 
 > **Last updated:** 2026-06-23
-> **Package version:** 1.16.2
+> **Package version:** 1.18.0-dev
+> **Previous milestone:** v1.17 — Local-first foundation
+> **Current milestone:** v1.18 — Local product-loop hardening
 > **Python:** >=3.11
 
 ---
@@ -63,6 +65,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 | Audit logging | 🟡 **Prototype** | Basic audit for workflow execution; more events needed |
 | Observability metrics | 🟡 **Prototype** | Modules exist; not consistently wired to normal flows |
 | Claim ledger APIs | 🟡 **Prototype** | Claims exist in-memory per run; no persistent claim store yet |
+ | Claim ledger APIs | ✅ **Live** | JSON-backed durable claim store for workflow executions |
 | Report export API | 🟡 **Prototype** | Reports can be generated; local file export not finalized |
 | Workspace export/import | 🟡 **Prototype** | Basic export exists; not fully tested |
 | Connectors | 🟡 **Prototype** | Local file import works; stubs for remote exist |
@@ -76,6 +79,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 | Area | Status | Notes |
 |------|--------|-------|
 | Frontend live-mode | 🔴 **Mock** | Frontend uses mock data by default; can switch to live backend |
+ | Frontend live-mode | ✅ **Live** | Auto-detects backend on localhost:3000 (Docker); mock still available |
 | Execution history UI | 🔴 **Mock** | ExecutionHistory component uses mock data without live backend |
 | Execution detail UI | 🔴 **Mock** | ExecutionPanel expects real detail endpoint (exists now) |
 | Claim ledger panel | 🔴 **Mock** | Panel exists; requires claim API endpoints |

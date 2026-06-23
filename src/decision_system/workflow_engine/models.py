@@ -71,6 +71,7 @@ class WorkflowDefinition(BaseModel):
     description: str = ""
     nodes: list[NodeConfig] = Field(default_factory=list)
     connections: list[Connection] = Field(default_factory=list)
+    workspace_id: str | None = None
     tags: list[str] = Field(default_factory=list)
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -122,6 +123,7 @@ class ExecutionContext(BaseModel):
     workflow_id: str
     execution_id: str
     schedule_id: str | None = None
+    workspace_id: str | None = None
     provider: str = "fake"
     global_config: dict[str, Any] = Field(default_factory=dict)
     log: list[str] = Field(default_factory=list)

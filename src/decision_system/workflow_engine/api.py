@@ -105,6 +105,25 @@ class CreateWorkflowRequest(BaseModel):
     connections: list[dict[str, str]] = []
 
 
+class CreateClaimRequest(BaseModel):
+    """Validated request model for creating a claim."""
+    claim_text: str
+    source_agent: str = "api"
+    claim_type: str = "assumption"
+    status: str | None = None
+    confidence: str | None = None
+    workspace_id: str | None = None
+    execution_id: str | None = None
+    workflow_id: str | None = None
+    node_id: str | None = None
+    run_id: str | None = None
+    evidence_ids: list[str] | None = None
+    contradicting_evidence_ids: list[str] | None = None
+    review_required: bool | None = None
+    review_status: str | None = None
+    metadata: dict[str, str] | None = None
+
+
 class NodeTypesResponse(BaseModel):
     node_types: list[dict[str, Any]]
 
@@ -252,6 +271,7 @@ def create_workflow(req: CreateWorkflowRequest) -> dict[str, Any]:
     wf = WorkflowDefinition(
         name=req.name,
         description=req.description,
+        workspace_id=req.workspace_id,
         nodes=nodes,
         connections=connections,
     )
@@ -311,6 +331,7 @@ def update_workflow(workflow_id: str, req: CreateWorkflowRequest) -> dict[str, A
         id=workflow_id,
         name=req.name,
         description=req.description,
+        workspace_id=req.workspace_id if req.workspace_id is not None else existing.workspace_id,
         nodes=nodes,
         connections=connections,
         version=existing.version + 1,
@@ -376,7 +397,10 @@ async def execute_workflow(
             version_id = v.version_id
 
     inputs = (body or {}).get("inputs", {})
-    state = await _engine.execute(wf, global_inputs=inputs)
+
+    # Determine workspace_id: request body > workflow definition > None
+    workspace_id = (body or {}).get("workspace_id") or wf.workspace_id
+    state = await _engine.execute(wf, global_inputs=inputs, workspace_id=workspace_id)
 
     # Link workflow version to execution
     if version_id:
@@ -626,6 +650,15 @@ def _save_execution_event(execution_id: str, event: dict[str, Any]) -> None:
         filepath.write_text(json.dumps(events, indent=2, default=str))
     except (json.JSONDecodeError, OSError):
         filepath.write_text(json.dumps([event], indent=2, default=str))
+
+
+def _persist_execution_event(event: ExecutionEvent) -> None:
+    """Handler that persists execution events to the event store."""
+    _save_execution_event(event.execution_id, event.model_dump(mode="json"))
+
+
+# Register the event persistence handler (must be after _save_execution_event definition)
+_engine.on_event(_persist_execution_event)
 
 
 def _load_execution_reviews(execution_id: str) -> list[dict[str, Any]]:
@@ -1135,6 +1168,9 @@ def workspace_overview(workspace_id: str) -> dict[str, Any]:
     schedules = _schedule_store.list()
     sched_count = len(schedules)
 
+    # Claim summary
+    claim_summary = _claim_store.summary(workspace_id=workspace_id if workspace_id != "_all_" else None)
+
     return {
         "workspace_id": workspace_id,
         "workflow_count": wf_count,
@@ -1145,6 +1181,13 @@ def workspace_overview(workspace_id: str) -> dict[str, Any]:
         "pending_reviews": pending_reviews,
         "schedule_count": sched_count,
         "review_count": len(all_reviews),
+        "claim_count": claim_summary["total"],
+        "supported_claim_count": claim_summary["supported"],
+        "contradicted_claim_count": claim_summary["contradicted"],
+        "unsupported_claim_count": claim_summary["unsupported"],
+        "uncertain_claim_count": claim_summary["uncertain"],
+        "pending_claim_count": claim_summary["pending"],
+        "evidence_coverage_score": claim_summary["evidence_coverage_score"],
     }
 
 
@@ -1179,25 +1222,33 @@ def get_claim(claim_id: str) -> dict[str, Any]:
     return claim.model_dump(mode="json", exclude_none=True)
 
 
-@router.post("/claims")
-def create_claim(body: dict[str, Any]) -> dict[str, Any]:
-    """Create a new claim.
+VALID_CLAIM_TYPES = {"technical", "risk", "option", "recommendation", "assumption"}
+VALID_CLAIM_STATUSES = {"pending", "verified", "unsupported", "contradicted", "uncertain"}
 
-    Body fields:
-        claim_text (required): The claim statement.
-        source_agent: Agent or node that produced the claim.
-        claim_type: "technical", "risk", "option", "recommendation", "assumption"
-        workspace_id, execution_id, workflow_id, node_id: Linkage fields.
-    """
+@router.post("/claims")
+def create_claim(req: CreateClaimRequest) -> dict[str, Any]:
+    """Create a new claim with validated input."""
+    if not req.claim_text or not req.claim_text.strip():
+        raise HTTPException(status_code=422, detail="claim_text is required and cannot be empty")
+    if req.claim_type not in VALID_CLAIM_TYPES:
+        raise HTTPException(status_code=422, detail=f"Invalid claim_type '{req.claim_type}'. Must be one of: {', '.join(sorted(VALID_CLAIM_TYPES))}")
+
     claim = _claim_store.add_claim(
-        claim_text=body.get("claim_text", ""),
-        source_agent=body.get("source_agent", "api"),
-        claim_type=body.get("claim_type", "assumption"),
-        workspace_id=body.get("workspace_id"),
-        execution_id=body.get("execution_id"),
-        workflow_id=body.get("workflow_id"),
-        node_id=body.get("node_id"),
-        run_id=body.get("run_id"),
+        claim_text=req.claim_text,
+        source_agent=req.source_agent,
+        claim_type=req.claim_type,
+        workspace_id=req.workspace_id,
+        execution_id=req.execution_id,
+        workflow_id=req.workflow_id,
+        node_id=req.node_id,
+        run_id=req.run_id,
+        status=req.status,
+        confidence=req.confidence,
+        evidence_ids=req.evidence_ids,
+        contradicting_evidence_ids=req.contradicting_evidence_ids,
+        review_required=req.review_required,
+        review_status=req.review_status,
+        metadata=req.metadata,
     )
     return claim.model_dump(mode="json", exclude_none=True)
 

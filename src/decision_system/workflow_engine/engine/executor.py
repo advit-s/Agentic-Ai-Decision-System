@@ -63,6 +63,7 @@ class DAGEngine:
         self,
         workflow: WorkflowDefinition,
         global_inputs: dict[str, Any] | None = None,
+        workspace_id: str | None = None,
         schedule_id: str | None = None,
     ) -> ExecutionState:
         """Execute a workflow definition. Returns the final ExecutionState."""
@@ -70,11 +71,18 @@ class DAGEngine:
         state = ExecutionState(
             execution_id=str(uuid4()),
             workflow_id=workflow.id,
+            workspace_id=workspace_id or workflow.workspace_id,
             status="running",
             started_at=now,
             node_states={n.id: NodeExecutionState(node_id=n.id) for n in workflow.nodes},
         )
         self.execution_store.save(state)
+
+        self._emit(ExecutionEvent(
+            execution_id=state.execution_id,
+            event_type="workflow_started",
+            data={"workflow_id": workflow.id, "workflow_name": workflow.name},
+        ))
 
         try:
             # Validate
@@ -135,8 +143,13 @@ class DAGEngine:
 
             if state.status == "running":
                 state.status = "completed"
-            state.completed_at = datetime.now(timezone.utc)
-            self.execution_store.save(state)
+                state.completed_at = datetime.now(timezone.utc)
+                self.execution_store.save(state)
+            elif state.status in ("failed", "rejected"):
+                state.completed_at = datetime.now(timezone.utc)
+                self.execution_store.save(state)
+            elif state.status != "awaiting_review":
+                self.execution_store.save(state)
             self._emit(ExecutionEvent(
                 execution_id=state.execution_id,
                 event_type="workflow_completed",
@@ -269,8 +282,13 @@ class DAGEngine:
 
             if state.status == "running":
                 state.status = "completed"
-            state.completed_at = datetime.now(timezone.utc)
-            self.execution_store.save(state)
+                state.completed_at = datetime.now(timezone.utc)
+                self.execution_store.save(state)
+            elif state.status in ("failed", "rejected"):
+                state.completed_at = datetime.now(timezone.utc)
+                self.execution_store.save(state)
+            elif state.status != "awaiting_review":
+                self.execution_store.save(state)
 
         except Exception as exc:
             self._fail_workflow(state, f"{type(exc).__name__}: {exc}")
@@ -371,6 +389,7 @@ class DAGEngine:
                 workflow_id=state.workflow_id,
                 execution_id=state.execution_id,
                 schedule_id=schedule_id,
+                workspace_id=state.workspace_id,
             )
             ctx._provider_store = self._provider_store
             node: WorkflowNode = node_cls(id=node_id, type=config.type, config=config.config)

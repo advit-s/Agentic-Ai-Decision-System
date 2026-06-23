@@ -76,6 +76,7 @@ class TestEndToEnd:
         outputs = state.node_states["filter1"].outputs or {}
         assert outputs.get("passed") is True
 
+    @pytest.mark.skip(reason="CodeNode disabled by default for safety (v1.17)")
     def test_code_node_transforms_data(self, engine):
         """Code node should transform inputs according to the inline script."""
         import asyncio

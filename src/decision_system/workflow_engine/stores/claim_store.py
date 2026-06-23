@@ -143,6 +143,13 @@ class JSONClaimStore:
         claim_text: str,
         source_agent: str,
         claim_type: str = "assumption",
+        status: str | None = None,
+        confidence: str | None = None,
+        evidence_ids: list[str] | None = None,
+        contradicting_evidence_ids: list[str] | None = None,
+        review_required: bool | None = None,
+        review_status: str | None = None,
+        metadata: dict[str, str] | None = None,
         workspace_id: str | None = None,
         execution_id: str | None = None,
         workflow_id: str | None = None,
@@ -160,6 +167,13 @@ class JSONClaimStore:
             source_agent=source_agent,
             claim_text=claim_text,
             claim_type=claim_type,  # type: ignore
+            status=status or "pending",  # type: ignore
+            confidence=confidence or "low",  # type: ignore
+            evidence_ids=evidence_ids or [],
+            contradicting_evidence_ids=contradicting_evidence_ids or [],
+            review_required=review_required or False,
+            review_status=review_status,
+            metadata=metadata or {},
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         )

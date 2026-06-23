@@ -1,7 +1,67 @@
 # Implementation Report — Local-First Agentic Decision System
 
 > **Date:** 2026-06-23
-> **Package version:** 1.16.2
+> **Package version:** 1.18.0-dev
+> **Previous milestone:** v1.17 — Local-first foundation
+> **Current milestone:** v1.18 — Local product-loop hardening
+
+---
+
+## v1.18 — Local product-loop hardening
+
+### Files changed
+| File | Change |
+|------|--------|
+| `pyproject.toml` | Version bumped from 1.16.2 to 1.18.0-dev |
+| `src/decision_system/__init__.py` | Version bumped to 1.18.0-dev |
+| `src/decision_system/workflow_engine/models.py` | Added `workspace_id` to `WorkflowDefinition` and `ExecutionContext` |
+| `src/decision_system/workflow_engine/engine/executor.py` | Added `workspace_id` parameter; emit `workflow_started` event; fixed `completed_at` for non-terminal states |
+| `src/decision_system/workflow_engine/engine/events.py` | Added `workflow_started` to event type literal |
+| `src/decision_system/workflow_engine/api.py` | Persist execution events; claim API validation; workspace overview claims; workspace_id in workflow create/update |
+| `src/decision_system/workflow_engine/stores/claim_store.py` | Extended `add_claim()` with status, confidence, evidence_ids, review fields |
+| `src/decision_system/workflow_engine/nodes/specialist/review_gate.py` | Added `workspace_id` to review records |
+| `src/decision_system/workflow_engine/stores/base.py` | Removed duplicate abstract `delete()` method |
+| `web/workflow-builder/nginx.conf` | Listen on port 80; added WebSocket `^~` prefix; added missing proxy routes |
+| `web/workflow-builder/src/api.js` | Auto-detect localhost:3000; normalised response shapes; added `getBackendMode()` |
+| `web/workflow-builder/src/components/WorkflowToolbar.jsx` | Enhanced status badge with local/mock/unavailable labels |
+| `scripts/local-smoke-test.sh` | New smoke test script for Docker stack verification |
+| `CHANGELOG.md` | Added v1.17 and v1.18 sections |
+| `docs/CURRENT_STATE.md` | Updated version, claim store status, frontend live-mode status |
+
+### Bugs fixed
+- nginx listens on container port 80, matching Docker Compose port mapping (host 3000 → container 80)
+- Frontend auto-detects local backend on localhost:3000 (was only checking ports 8000/8001/8080)
+- `completed_at` no longer set on workflows that are still `awaiting_review` (multiple review gates)
+- Duplicate abstract `delete()` method removed from `ExecutionStore`
+- Execution events now persisted to JSON store (was only in-memory for WebSocket streaming)
+- `workflow_started` event now emitted at execution beginning
+- Claim API validates `claim_text` not empty and `claim_type` is valid
+- Workspace overview includes claim counts and evidence coverage score
+
+### Tests run
+```text
+tests/test_workflow_engine/test_api.py       — 67 passed
+tests/test_workflow_engine/test_executor.py   — passed
+tests/test_workflow_engine/test_stores.py     — passed
+tests/test_workflow_engine/test_nodes.py      — passed
+tests/test_workflow_engine/test_scheduler.py  — 50 passed
+tests/test_workflow_engine/ (all)             — 382 passed, 1 skipped (CodeNode disabled)
+```
+
+### Commands verified
+```text
+python -m pytest tests/test_workflow_engine/ -q   # 382 passed, 1 skipped
+git diff --check                                    # clean
+node --check web/workflow-builder/src/api.js        # syntax OK
+```
+
+### Known remaining gaps
+- Frontend `npm install` requires network access (sandboxed environment)
+- Full test suite (`tests/`) has some slow tests that time out when run together
+- Chroma vector store data not yet under `.decision_system/`
+- Report export does not yet save to local files
+- Legacy decision-run claim ledger is separate from workflow execution claim store
+- No WebSocket stream event persistence verification test yet
 
 ---
 

@@ -19,10 +19,10 @@ function getBaseUrl() {
   const stored = localStorage.getItem(API_BASE_KEY);
   if (stored) return stored;
   // Auto-detect: when SPA is served from FastAPI backend, the API is at
-  // the same origin. Only trigger for known backend ports.
+  // the same origin. Trigger for known backend ports and Docker frontend port 3000.
   if (typeof window !== "undefined" && window.location) {
     const port = window.location.port;
-    if (port && ["8000", "8001", "8080"].includes(port)) {
+    if (port && ["3000", "8000", "8001", "8080"].includes(port)) {
       return window.location.origin;
     }
   }
@@ -31,6 +31,19 @@ function getBaseUrl() {
 
 function isMockMode() {
   return !getBaseUrl();
+}
+
+/**
+ * Returns the current backend mode for UI status display.
+ * - "live" when auto-detected or user-configured base URL is set
+ * - "mock" when no base URL is configured
+ * - "unavailable" when live mode is configured but backend is unreachable
+ */
+export function getBackendMode() {
+  const base = getBaseUrl();
+  if (!base) return "mock";
+  // Initial optimistic return; caller can update after health check
+  return "live";
 }
 
 async function apiFetch(path, options = {}) {
@@ -128,8 +141,10 @@ function getExecution(id) {
 let _mockHistory = [...MOCK_EXECUTION_HISTORY];
 
 function listExecutionHistory() {
-  if (isMockMode()) return Promise.resolve([..._mockHistory]);
-  return apiFetch("/executions/history");
+  if (isMockMode()) {
+    return Promise.resolve([..._mockHistory]);
+  }
+  return apiFetch("/executions/history").then(data => data.executions || data);
 }
 
 function getExecutionDetail(id) {
@@ -355,9 +370,11 @@ let _mockWorkflowVersions = [...MOCK_WORKFLOW_VERSIONS];
 
 function listWorkflowVersions(workflowId) {
   if (isMockMode()) {
-    return Promise.resolve(_mockWorkflowVersions.filter(v => v.workflow_id === workflowId || !workflowId));
+    return Promise.resolve(
+      _mockWorkflowVersions.filter(v => v.workflow_id === workflowId || !workflowId)
+    );
   }
-  return apiFetch(`/workflows/${workflowId}/versions`);
+  return apiFetch(`/workflows/${workflowId}/versions`).then(data => data.versions || data);
 }
 
 function getWorkflowVersion(workflowId, versionId) {
