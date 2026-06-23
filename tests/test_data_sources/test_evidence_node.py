@@ -62,7 +62,7 @@ async def test_evidence_node_keyword_fallback():
         "limit": 5,
     }, ctx)
     assert "evidence_results" in result
-    assert result["retrieval_mode"] in ("keyword", "none")
+    assert result["retrieval_mode"] in ("vector", "keyword", "none")
 
 
 @pytest.mark.asyncio

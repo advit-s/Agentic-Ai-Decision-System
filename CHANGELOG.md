@@ -674,3 +674,31 @@
 ### Changed
 - Version bumped from 1.16.2 to 1.17.0 to reflect local-first milestone
 ## [1.16.2] - 2026-06-13 — Backend Hardening & Deprecation Cleanup
+
+
+## [1.23.1] - 2026-06-23 — Finish Document Ingestion Wiring + Test Reliability
+### Fixed
+- **DataSourceStore local data directory**: Default construction now honors `DECISION_SYSTEM_DATA_DIR` environment variable instead of hardcoding `.decision_system`
+- **Upload source_id consistency**: `store.create()` accepts optional `source_id` parameter so the upload endpoint uses the same ID for file storage and the data source record
+- **Upload endpoint file type support**: Added `pdf`, `docx`, `xlsx` to supported upload types using shared `SUPPORTED_UPLOAD_EXTENSIONS` constant
+- **Raw upload robustness**: Upload endpoint accepts raw bytes body (no JSON wrapper required)
+- **XLSX profile bug**: Fixed `NameError: name 'sheets' is not defined` by saving sheet metadata before closing the workbook
+- **Indexing with warnings**: Index endpoint now allows files with `parsed_with_warnings` status when chunks exist
+- **Evidence source names**: Evidence search results use the DataSource's `original_filename` instead of internal stored filenames
+- **File safety hardening**: Added filename sanitization, path traversal protection, and 100 MB max file size limit
+- **Docker install**: Backend Dockerfile now installs doc-parsing extras (`pypdf`, `python-docx`, `openpyxl`)
+- **Frontend text**: Data Sources page in legacy web app correctly lists PDF, DOCX, XLSX as supported
+- **Test collection**: Renamed duplicate `test_ollama_provider.py` to `test_ollama_provider_legacy.py` to fix module name collision
+- **pytest-asyncio**: Added to dev dependencies so async tests work by default
+### Changed
+- Version bumped from 1.23.0-dev to 1.23.1-dev
+- Evidence search in routes now passes `source.original_filename` to Chroma indexing
+- Docs updated to reflect correct file type support and known limitations
+### Removed
+- No features removed
+### Known limitations
+- PDF support is text-extraction only (pypdf). Scanned image PDFs require OCR (intentionally excluded)
+- XLSX formulas are read as values only (data_only=True), no formula execution
+- DOCX embedded images are not extracted
+- Data Sources UI is in the legacy static web app (`web/index.html`), not yet in the React workflow builder
+- API-level upload tests using ASGITransport may hang on Python 3.13 (environmental compatibility issue)

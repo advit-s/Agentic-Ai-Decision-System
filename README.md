@@ -444,9 +444,9 @@ GET  /reports/{rid}/export?format=markdown          Export report as Markdown
 | Markdown | .md | ✅ Full | — |
 | CSV | .csv | — | ✅ Full |
 | JSON | .json | ✅ Basic | ✅ Basic |
-| PDF | .pdf | ❌ | — |
-| DOCX | .docx | ❌ | — |
-| XLSX | .xlsx | ❌ | — |
+| PDF | .pdf | ✅ | Text extraction via pypdf (no OCR) |
+| DOCX | .docx | ✅ | Paragraphs, headings, tables via python-docx |
+| XLSX | .xlsx | ✅ | Sheet profiling and searchable text via openpyxl |
 
 ### Evidence search modes
 
@@ -527,9 +527,9 @@ GET  /reports/{rid}/export?format=markdown          Export report as Markdown
 | Markdown | .md | ✅ Full | — |
 | CSV | .csv | — | ✅ Full |
 | JSON | .json | ✅ Basic | ✅ Basic |
-| PDF | .pdf | ❌ | — |
-| DOCX | .docx | ❌ | — |
-| XLSX | .xlsx | ❌ | — |
+| PDF | .pdf | ✅ | Text extraction via pypdf (no OCR) |
+| DOCX | .docx | ✅ | Paragraphs, headings, tables via python-docx |
+| XLSX | .xlsx | ✅ | Sheet profiling and searchable text via openpyxl |
 
 ### Evidence search modes
 

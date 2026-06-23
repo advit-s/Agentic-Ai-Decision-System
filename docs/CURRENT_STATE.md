@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
- > **Last updated:** 2026-06-23
- > **Package version:** 1.23.0-dev
+ > **Last updated:** 2026-06-23 (v1.23.1 stabilization patch)
+ > **Package version:** 1.23.1-dev
 > **Previous milestone:** v1.22.1 — Provider API Route Fix + Release Stabilization
-> **Current milestone:** v1.23 — Document Parsing Expansion + PDF/DOCX/XLSX Support
+> **Current milestone:** v1.23.1 — Finish Document Ingestion Wiring + Test Reliability
 > **Python:** >=3.11
 
 ---
@@ -37,6 +37,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 |------|--------|-------|
 | CLI framework | ✅ **Production** | Typer-based CLI; all documented commands work offline |
 | Document indexing | ✅ **Production** | Chroma-based chunking, loading, and retrieval |
+| Document parsing (PDF/DOCX/XLSX) | ✅ **Production** | Local text extraction via pypdf, python-docx, openpyxl; no OCR; data_only formulas |
 | Claim ledger | ✅ **Production** | Create/store/query claims; statuses (supported, contradicted, unsupported, uncertain, needs_review) |
 | Verifier | ✅ **Production** | Check claims against evidence; deterministic local verifier with keyword/contradiction detection |
 | Decision report generation | ✅ **Production** | Trust report format with verification summary, evidence quality, contradictions, and clear status separation |

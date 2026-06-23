@@ -57,6 +57,21 @@ def _file_hash(file_path: Path) -> str:
     return h.hexdigest()
 
 
+def sanitize_filename(filename: str) -> str:
+    """Sanitize a filename to prevent path traversal.
+
+    Strips directory components and returns only the safe basename.
+    """
+    import os
+    # Remove any path components (path traversal protection)
+    safe = os.path.basename(filename)
+    # Strip null bytes and control characters
+    safe = "".join(c for c in safe if c.isprintable() and c not in ("/", "\\", "\0"))
+    if not safe:
+        safe = "unnamed_file"
+    return safe
+
+
 class DataSourceStore:
     """Persistent data source store backed by JSON files.
 
@@ -66,8 +81,9 @@ class DataSourceStore:
     An index per workspace tracks all source IDs for efficient listing.
     """
 
-    def __init__(self, base_dir: str | Path = ".decision_system") -> None:
-        self._base = Path(base_dir)
+    def __init__(self, base_dir: str | Path | None = None) -> None:
+        import os
+        self._base = Path(base_dir if base_dir is not None else os.environ.get("DECISION_SYSTEM_DATA_DIR", ".decision_system"))
         self._sources_dir = self._base / "data_sources"
         _ensure_dir(self._sources_dir)
 
@@ -144,11 +160,12 @@ class DataSourceStore:
         local_path: str,
         size_bytes: int = 0,
         content_hash: str = "",
+        source_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> DataSource:
         """Create a new data source with an auto-generated ID."""
         source = DataSource(
-            source_id=str(uuid4()),
+            source_id=source_id or str(uuid4()),
             workspace_id=workspace_id,
             name=name,
             source_type=source_type,
@@ -191,7 +208,11 @@ class DataSourceStore:
         """Store an uploaded file under .decision_system/files/{workspace_id}/."""
         files_dir = self._base / "files" / workspace_id
         _ensure_dir(files_dir)
-        dest = files_dir / f"{source_id}_{filename}"
+        safe_filename = sanitize_filename(filename)
+        dest = (files_dir / f"{source_id}_{safe_filename}").resolve()
+        # Path traversal protection: ensure dest is within files_dir
+        if not str(dest).startswith(str(files_dir.resolve())):
+            raise ValueError(f"Path traversal detected for filename: {filename}")
         dest.write_bytes(content)
         return str(dest)
 
@@ -284,12 +305,16 @@ class DataSourceStore:
                 score = sum(1 for term in query_terms if term in text_lower)
 
                 if score > 0:
+                    # Look up the data source to get original filename
+                    source_record = self.load(workspace_id, src_id)
+                    source_name = (source_record.original_filename if source_record and source_record.original_filename
+                                   else data.get("metadata", {}).get("source_name", src_id))
                     results.append(
                         EvidenceSearchResult(
                             evidence_id=f"kw-{src_id}-{data.get('chunk_id', '')}",
                             workspace_id=workspace_id,
                             source_id=src_id,
-                            source_name=data.get("metadata", {}).get("source_name", src_id),
+                            source_name=source_name,
                             chunk_id=data.get("chunk_id", ""),
                             text=text,
                             score=score,

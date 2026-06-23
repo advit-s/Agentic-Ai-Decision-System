@@ -21,7 +21,7 @@ COPY tests/ tests/
 COPY web/ web/
 
 # Install in dev mode (includes test deps)
-RUN pip install --no-cache-dir -e ".[dev]"
+RUN pip install --no-cache-dir -e ".[dev,doc-parsing]"
 
 # Create .decision_system/ dir (generated at runtime, ignored by git)
 RUN mkdir -p .decision_system

@@ -568,12 +568,14 @@ class XlsxParser(BaseParser):
                 "warnings": warnings_local,
             })
 
+        sheet_names = list(wb.sheetnames) if hasattr(wb, 'sheetnames') else [s["sheet_name"] for s in sheets_profile]
+        sheet_count = len(sheet_names)
         wb.close()
         return {
             "source_id": source_id,
             "workspace_id": workspace_id,
-            "sheet_count": len(sheets),
-            "sheet_names": wb.sheetnames if hasattr(wb, 'sheetnames') else sheets,
+            "sheet_count": sheet_count,
+            "sheet_names": sheet_names,
             "sheets": sheets_profile,
         }
 

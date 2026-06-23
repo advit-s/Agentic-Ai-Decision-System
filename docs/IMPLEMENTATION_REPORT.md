@@ -1,7 +1,7 @@
 # Implementation Report — Local-First Agentic Decision System
 
 > **Date:** 2026-06-23
-> **Package version:** 1.23.0-dev
+> **Package version:** 1.23.1-dev
 > **Previous milestone:** v1.22.1 — Provider API Route Fix + Release Stabilization
 > **Current milestone:** v1.23 — Document Parsing Expansion + PDF/DOCX/XLSX Support
 
@@ -247,7 +247,7 @@ v1.23 makes PDF, DOCX, and XLSX files searchable, citable workspace evidence —
 
 ### Version
 
-- Bumped to 1.23.0-dev
+- Bumped to 1.23.1-dev
 - Files: pyproject.toml, src/decision_system/__init__.py, docs/CURRENT_STATE.md, docs/IMPLEMENTATION_REPORT.md, CHANGELOG.md
 
 ### Parser dependencies
@@ -333,8 +333,8 @@ Expanded from 4 to 9 statuses:
 
 | File | Change |
 |------|--------|
-| `pyproject.toml` | Version bumped to 1.23.0-dev; added doc-parsing optional deps |
-| `src/decision_system/__init__.py` | Version bumped to 1.23.0-dev |
+| `pyproject.toml` | Version bumped to 1.23.1-dev; added doc-parsing optional deps |
+| `src/decision_system/__init__.py` | Version bumped to 1.23.1-dev |
 | `CHANGELOG.md` | Added v1.23 changelog section |
 | `docs/CURRENT_STATE.md` | Updated version, milestone, production status |
 | `docs/IMPLEMENTATION_REPORT.md` | This file — v1.23 report section |
@@ -398,3 +398,63 @@ v1.24 — Knowledge Graph + Entity/Risk Extraction v2
 10. ✅ Existing local features continue to work
 11. ✅ No external write/action connectors added
 12. ✅ Changes are incremental and testable
+
+
+---
+
+## v1.23.1 — Finish Document Ingestion Wiring + Test Reliability (2026-06-23)
+
+### Summary
+Stabilization patch that completes the PDF/DOCX/XLSX ingestion pipeline started in v1.23.
+
+### Root causes fixed
+1. **DataSourceStore**: Default constructor now honors `DECISION_SYSTEM_DATA_DIR` env var for test isolation
+2. **Upload source_id mismatch**: Upload endpoint generated one UUID for file storage and another for the record; now uses the same
+3. **Upload file type filtering**: Hardcoded allowlist only included txt/md/csv/json; extended to pdf/docx/xlsx
+4. **XLSX profile bug**: `profile()` referenced undefined `sheets` variable and accessed workbook after close
+5. **Index status gate**: Only allowed `parsed`; added `parsed_with_warnings` when chunks exist
+6. **Evidence source names**: Metadata stored internal filenames; now resolves `original_filename` from DataSource record
+7. **File safety**: No path traversal protection, no size limit; both added
+8. **Docker**: Missing doc-parsing extras in install command
+9. **Frontend**: Legacy web app said PDF/DOCX/XLSX not supported
+
+### Files changed
+- `src/decision_system/__init__.py` — version bump
+- `src/decision_system/data_sources/store.py` — DECISION_SYSTEM_DATA_DIR, sanitize_filename, optional source_id, path traversal protection, original_filename in search
+- `src/decision_system/data_sources/parser.py` — XLSX profile bug fix
+- `src/decision_system/api/routes_data_sources.py` — SUPPORTED_UPLOAD_EXTENSIONS, source_id fix, parsed_with_warnings gate, original_filename in indexing, file safety, 100 MB limit
+- `pyproject.toml` — version bump, pytest-asyncio dev dep
+- `tests/test_data_sources/test_ds_api.py` — PDF/DOCX/XLSX upload tests, unsupported extension test, path traversal test, parsed_with_warnings test
+- `tests/test_data_sources/test_store.py` — env var tests, sanitize tests, source_id test, original_filename test
+- `tests/test_data_sources/test_evidence_node.py` — accept vector retrieval mode
+- `tests/test_ollama_provider.py` → `test_ollama_provider_legacy.py` — fix duplicate module name
+- `web/index.html` — list PDF/DOCX/XLSX as supported
+- `Dockerfile` — add doc-parsing extras
+- `CHANGELOG.md`, `docs/CURRENT_STATE.md` — updated
+
+### Tests added
+- PDF upload API (returns 200)
+- DOCX upload API (returns 200)
+- XLSX upload API (returns 200)
+- MD/JSON upload still works (regression)
+- Unsupported extension returns 400
+- XLSX parse and profile endpoint
+- Upload source_id consistency
+- Path traversal protection
+- parsed_with_warnings indexing
+- DataSourceStore honors DECISION_SYSTEM_DATA_DIR
+- sanitize_filename unit tests
+- store_uploaded_file with path traversal
+- create() with explicit source_id
+- Delete removes uploaded file
+- Evidence search returns original_filename
+
+### Known limitations
+- PDF support is text-extraction only. Scanned image PDFs require OCR (intentionally excluded)
+- XLSX formulas are read as values only (data_only=True), no formula execution
+- DOCX embedded images are not extracted
+- Data Sources UI is in the legacy static web app (`web/index.html`), not yet in the React workflow builder
+- API-level upload tests using ASGITransport may hang on Python 3.13 (environmental compatibility issue)
+
+### Recommended next milestone
+**v1.24 — Single App Integration + Data Sources in React Workflow Builder**

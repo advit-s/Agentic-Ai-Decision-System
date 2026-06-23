@@ -32,7 +32,11 @@ from decision_system.data_sources.parser import (
     DocxParser,
     XlsxParser,
 )
-from decision_system.data_sources.store import DataSourceStore
+from decision_system.data_sources.store import DataSourceStore, sanitize_filename
+
+MAX_UPLOAD_SIZE_BYTES = 100 * 1024 * 1024  # 100 MB
+
+SUPPORTED_UPLOAD_EXTENSIONS: set[str] = {"txt", "md", "json", "csv", "pdf", "docx", "xlsx"}
 
 router = APIRouter(tags=["data-sources"])
 
@@ -85,15 +89,16 @@ def _emit_audit_event(event_type: str, data: dict) -> None:
 def upload_data_source(
     workspace_id: str,
     filename: str = Query(..., description="Original filename with extension"),
-    content: bytes = Body(..., description="Raw file content"),
+    content: bytes = Body(..., description="Raw file content as bytes"),
 ) -> dict[str, Any]:
     """Upload a local file as a workspace data source.
 
     Send file content as raw bytes in the request body.
     Filename is passed as a query parameter.
 
-    Supported file types: txt, md, csv, json.
+    Supported file types: txt, md, json, csv, pdf, docx, xlsx.
     Files are stored under .decision_system/files/{workspace_id}/.
+    File size limited to 100 MB.
     """
     if not filename:
         raise HTTPException(status_code=400, detail="No filename provided")
@@ -102,18 +107,32 @@ def upload_data_source(
     file_type = _get_file_type(filename)
     source_type = _get_source_type(file_type)
 
-    if file_type not in ("txt", "md", "csv", "json"):
+    if file_type not in SUPPORTED_UPLOAD_EXTENSIONS:
         raise HTTPException(
             status_code=400,
             detail={
                 "code": "unsupported_file_type",
-                "message": f"Unsupported file type: {ext}. Supported types: .txt, .md, .csv, .json",
-                "supported_extensions": get_supported_extensions(),
+                "message": f"Unsupported file type: {ext}. Supported types: {', '.join(sorted(SUPPORTED_UPLOAD_EXTENSIONS))}",
+                "supported_extensions": sorted(SUPPORTED_UPLOAD_EXTENSIONS),
             },
         )
 
     size_bytes = len(content)
+    if size_bytes > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "file_too_large",
+                "message": f"File size {size_bytes} bytes exceeds maximum of {MAX_UPLOAD_SIZE_BYTES} bytes",
+                "max_size_bytes": MAX_UPLOAD_SIZE_BYTES,
+            },
+        )
     content_hash = hashlib.sha256(content).hexdigest()
+
+    # Sanitize filename for path traversal protection
+    safe_filename = sanitize_filename(filename)
+    if safe_filename != filename:
+        filename = safe_filename
 
     # Create data source record
     source_id = str(uuid4())
@@ -131,6 +150,7 @@ def upload_data_source(
         local_path=local_path,
         size_bytes=size_bytes,
         content_hash=content_hash,
+        source_id=source_id,
         metadata={"original_filename": filename},
     )
 
@@ -349,7 +369,7 @@ def index_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
     if source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
 
-    if source.status != "parsed":
+    if source.status not in ("parsed", "parsed_with_warnings"):
         raise HTTPException(
             status_code=400,
             detail=f"Data source must be parsed before indexing. Current status: {source.status}",
@@ -371,7 +391,7 @@ def index_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
                 evidence_id=f"ds-{source_id}-{c.chunk_id}",
                 document_id=source_id,
                 source_path=source.local_path,
-                source_filename=source.name,
+                source_filename=source.original_filename or source.name,
                 chunk_id=c.chunk_id,
                 text=c.text,
                 metadata={
@@ -452,7 +472,7 @@ def get_data_source_profile(workspace_id: str, source_id: str) -> dict[str, Any]
     if source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
 
-    if source.file_type not in ("csv", "json"):
+    if source.file_type not in ("csv", "json", "xlsx"):
         raise HTTPException(
             status_code=400,
             detail=f"Profiling not supported for file type: {source.file_type}",
