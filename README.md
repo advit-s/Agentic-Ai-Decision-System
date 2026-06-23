@@ -366,10 +366,10 @@ Stub connectors fail safely with a clear message. Dry-run should always be used 
 
 ## Visual Workflow Builder (v1.16)
 
-The project includes a **React + React Flow** visual workflow builder at `web/workflow-builder/` with 28 node types across 5 categories (Triggers, Data, AI/Analysis, Output, Flow Control). It connects to the real backend or runs entirely in mock mode.
+The project includes a **React + React Flow** visual workflow builder at `web/workflow-builder/` with 30+ node types across 8 categories (Core, Data, Evidence, AI, Verification, Review, Report, Utility). It connects to the real backend or runs entirely in mock mode.
 
 #### Features (v1.15–v1.16)
-- **28 node types**: Manual/Cron/Webhook triggers, Retrieve, Researcher, Critic, Synthesizer, Data Analyst, Technical/Risk Analyst, Extract/Verify Claims, Write Report, War Room, Review Gate, Filter, Merge, Code, and more
+- **30+ node types**: Manual/Cron/Webhook triggers, Retrieve, Researcher, Critic, Synthesizer, Data Analyst, Technical/Risk Analyst, Extract/Verify Claims, Write Report, War Room, Review Gate, Filter, Merge, Code, and more
 - **Drag-and-drop canvas** with custom node cards, per-type icons and colors
 - **DAG execution engine** — connect nodes, execute end-to-end, watch live execution events stream via WebSocket
 - **Claim Ledger Report** — claim-centric post-execution view with search/filter/sort and one-click JSON export

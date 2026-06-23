@@ -9,7 +9,7 @@ function NodePalette({ nodeTypes, onDragStart }) {
   // Group node types by category
   const grouped = {};
   for (const nt of nodeTypes) {
-    const cat = nt.categories?.[0] || "flow";
+    const cat = nt.categories?.[0] || "utility";
     if (!grouped[cat]) grouped[cat] = [];
     grouped[cat].push(nt);
   }

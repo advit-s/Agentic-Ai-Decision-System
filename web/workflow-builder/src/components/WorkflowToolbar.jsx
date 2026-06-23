@@ -1,4 +1,4 @@
-// components/WorkflowToolbar.jsx
+// components/WorkflowToolbar.jsx — Toolbar with save, load, execute, validate, history, schedules, providers, trust
 import React, { useState, useEffect, useCallback } from "react";
 import LoadDropdown from "./LoadDropdown";
 import ThemeToggle from "./ThemeToggle";
@@ -10,6 +10,7 @@ function WorkflowToolbar({
   onSave,
   onLoad,
   onExecute,
+  onImport,
   onExport,
   onHistory,
   historyPanel,
@@ -17,6 +18,8 @@ function WorkflowToolbar({
   onProviders,
   onTemplates,
   onTrust,
+  onValidate,
+  validationResult,
   schedulePanel,
   providerPanel,
   trustPanel,
@@ -25,12 +28,13 @@ function WorkflowToolbar({
   isExecuting,
   hasUnsavedChanges,
   onShortcuts,
+  showValidationDialog,
+  setShowValidationDialog,
 }) {
   const [editingUrl, setEditingUrl] = useState(false);
   const [urlInput, setUrlInput] = useState("");
-  const [providerHealth, setProviderHealth] = useState("unknown"); // "ok" | "warn" | "unknown"
+  const [providerHealth, setProviderHealth] = useState("unknown");
 
-  // Check provider health on mount
   useEffect(() => {
     listProviders()
       .then((data) => {
@@ -39,7 +43,6 @@ function WorkflowToolbar({
           setProviderHealth("unknown");
           return;
         }
-        // Check the default (first) provider
         return checkProvider(providers[0].name).then((result) => {
           setProviderHealth(result.status === "ok" ? "ok" : "warn");
         });
@@ -51,7 +54,6 @@ function WorkflowToolbar({
   const baseUrl = getBaseUrl();
   const backendMode = getBackendMode();
 
-  // Sync the input when opening edit
   const handleStartEdit = useCallback(() => {
     setUrlInput(baseUrl);
     setEditingUrl(true);
@@ -65,7 +67,7 @@ function WorkflowToolbar({
       localStorage.removeItem("wfBuilderApiBaseUrl");
     }
     setEditingUrl(false);
-    window.location.reload(); // Reload to pick up the new mock/real state
+    window.location.reload();
   }, [urlInput]);
 
   const handleCancelUrl = useCallback(() => {
@@ -80,7 +82,6 @@ function WorkflowToolbar({
     [handleSaveUrl, handleCancelUrl]
   );
 
-  // Auto focus input when editing
   useEffect(() => {
     if (editingUrl) {
       const input = document.querySelector(".connection-url-input");
@@ -88,7 +89,11 @@ function WorkflowToolbar({
     }
   }, [editingUrl]);
 
-  // Compute connection badge label/class
+  const handleValidateClick = useCallback(() => {
+    if (onValidate) onValidate();
+    if (setShowValidationDialog) setShowValidationDialog(true);
+  }, [onValidate, setShowValidationDialog]);
+
   let badgeLabel, badgeClass;
   if (mock) {
     badgeLabel = "🟡 Mock mode";
@@ -104,6 +109,9 @@ function WorkflowToolbar({
     badgeClass = "connection-badge-mock";
   }
 
+  const hasErrors = validationResult && !validationResult.valid;
+  const hasWarnings = validationResult && validationResult.warnings && validationResult.warnings.length > 0;
+
   return (
     <div className="workflow-toolbar">
       <div className="toolbar-left">
@@ -114,18 +122,32 @@ function WorkflowToolbar({
           {hasUnsavedChanges ? "💾 Save *" : "💾 Save"}
         </button>
         <LoadDropdown workflows={workflows} onSelect={onLoad} />
+        <button className="toolbar-btn" onClick={handleValidateClick} title="Validate workflow before run">
+          ✓ Validate
+        </button>
+        {hasErrors && (
+          <span className="toolbar-validation-badge toolbar-validation-error" title="Workflow has errors">
+            {validationResult.errors.length} err
+          </span>
+        )}
+        {hasWarnings && !hasErrors && (
+          <span className="toolbar-validation-badge toolbar-validation-warn" title="Workflow has warnings">
+            {validationResult.warnings.length} warn
+          </span>
+        )}
         <button
           className="toolbar-btn toolbar-btn-primary"
           onClick={onExecute}
-          disabled={isExecuting}
+          disabled={isExecuting || hasErrors}
         >
           {isExecuting ? "⏳ Running..." : "▶ Execute"}
         </button>
-        <button className="toolbar-btn" onClick={onExport} title="Export as JSON">
-          📋 Export
-        </button>
         <button className="toolbar-btn" onClick={onTemplates} title="New from template">
           📋 Templates
+        </button>
+        <button className="toolbar-btn" onClick={onImport} title="Import workflow from JSON file">📂 Import</button>
+        <button className="toolbar-btn" onClick={onExport} title="Export as JSON">
+          📋 Export
         </button>
         <div className="toolbar-divider" />
         <button
@@ -148,9 +170,7 @@ function WorkflowToolbar({
           title="Manage LLM providers"
         >
           <span className="provider-toolbar-indicator">
-            <span
-              className={`provider-indicator-dot provider-indicator-${providerHealth}`}
-            />
+            <span className={`provider-indicator-dot provider-indicator-${providerHealth}`} />
           </span>
           🤖 Providers
         </button>

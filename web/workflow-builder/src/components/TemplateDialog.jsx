@@ -5,10 +5,12 @@ import "../styles/template-dialog.css";
 
 const CATEGORY_META = {
   starter:    { icon: "⬜", label: "Starter" },
-  research:   { icon: "🔬", label: "Research" },
+  evidence:   { icon: "🔍", label: "Evidence" },
+  full:       { icon: "🤖", label: "Full Pipeline" },
+  compliance: { icon: "🛡️", label: "Risk & Compliance" },
+  report:     { icon: "📄", label: "Report" },
   data:       { icon: "📊", label: "Data Analysis" },
-  compliance: { icon: "🛡️", label: "Compliance" },
-  full:       { icon: "🏛️", label: "Full Pipeline" },
+  research:   { icon: "🔬", label: "Research" },
 };
 
 function nodeCountFor(tpl) {

@@ -15,11 +15,11 @@ describe("NodePalette", () => {
 
   it("renders category headers", () => {
     render(<NodePalette nodeTypes={MOCK_NODE_TYPES} onDragStart={() => {}} />);
-    expect(screen.getByText(/Triggers/)).toBeDefined();
+    expect(screen.getByText(/Core/)).toBeDefined();
     expect(screen.getByText(/Data/, { selector: ".palette-category-title" })).toBeDefined();
     expect(screen.getByText(/AI/, { selector: ".palette-category-title" })).toBeDefined();
-    expect(screen.getByText(/Output/, { selector: ".palette-category-title" })).toBeDefined();
-    expect(screen.getByText(/Flow/, { selector: ".palette-category-title" })).toBeDefined();
+    expect(screen.getByText(/Report/, { selector: ".palette-category-title" })).toBeDefined();
+    expect(screen.getByText(/Utility/, { selector: ".palette-category-title" })).toBeDefined();
   });
 
   it("fires onDragStart when dragging a node type", () => {

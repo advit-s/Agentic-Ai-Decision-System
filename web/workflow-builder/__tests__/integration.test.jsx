@@ -20,7 +20,7 @@ describe("App integration", () => {
     // Node palette loads async via fetchNodeTypes
     const trigger = await screen.findByText("Manual Trigger");
     expect(trigger).toBeDefined();
-    expect(screen.getByText(/Triggers/)).toBeDefined();
+    expect(screen.getByText(/Core/)).toBeDefined();
   });
 
   it("shows Untitled Workflow initially", () => {

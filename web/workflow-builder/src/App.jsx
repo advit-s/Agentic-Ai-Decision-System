@@ -16,6 +16,8 @@ import TemplateDialog from "./components/TemplateDialog";
 import NodeComponent from "./components/NodeComponent";
 import ResizablePanel from "./components/ResizablePanel";
 import ShortcutsHelp from "./components/ShortcutsHelp";
+import ValidationDialog from "./components/ValidationDialog";
+import OnboardingPanel from "./components/OnboardingPanel";
 import { ToastProvider, useToast } from "./components/Toast";
 import useKeyboardShortcuts from "./hooks/useKeyboardShortcuts";
 import {
@@ -31,6 +33,7 @@ import {
   getWorkflowVersion,
 } from "./api";
 import { getNodeCategoryConfig } from "./nodeTypes";
+import { validateWorkflow } from "./workflowValidation";
 import "./App.css";
 
 const ERROR_POLICIES = ["fail_workflow", "fail_node", "retry", "skip"];
@@ -69,6 +72,8 @@ function CanvasInner() {
   const [diffView, setDiffView] = useState(null);
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [validationResult, setValidationResult] = useState(null);
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
   const { showToast } = useToast();
   const timerRef = useRef(null);
 
@@ -100,7 +105,7 @@ function CanvasInner() {
   function workflowToReactNodes(wf) {
     return wf.nodes.map((n, i) => {
       const nt = getNodeTypeInfo(n.type);
-      const cat = nt?.categories?.[0] || "flow";
+      const cat = nt?.categories?.[0] || "utility";
       const inputPorts = nt
         ? Object.keys(nt.input_schema?.properties || {})
         : [];
@@ -224,7 +229,25 @@ function CanvasInner() {
     }
   }
 
+  function handleValidate() {
+    const result = validateWorkflow(
+      { nodes: nodes, connections: edges },
+      nodeTypes
+    );
+    setValidationResult(result);
+    setShowValidationDialog(true);
+    if (result.valid) {
+      showToast("Workflow is valid - no errors found", "success");
+    } else {
+      showToast(
+        `Validation: ${result.errors.length} error(s), ${result.warnings.length} warning(s)`,
+        result.errors.length > 0 ? "error" : "warning"
+      );
+    }
+  }
+
   async function handleExecute() {
+
     if (nodes.length === 0) {
       showToast("Add at least one node to the workflow", "warning");
       return;
@@ -471,6 +494,61 @@ function CanvasInner() {
     setShortcutsHelpOpen((prev) => !prev);
   }
 
+  function handleImport() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target?.result);
+          if (!data.nodes || !data.connections) {
+            throw new Error("Invalid workflow JSON: missing nodes or connections");
+          }
+          // Convert imported connections to edges
+          const importConnections = data.connections.map((c, idx) => ({
+            id: `edge-import-${idx}`,
+            source: c.source_node || c.source,
+            target: c.target_node || c.target,
+            sourceHandle: c.source_output || null,
+            targetHandle: c.target_input || null,
+          }));
+          // Convert imported nodes to react-flow format
+          const importNodes = data.nodes.map((n) => {
+            const nt = nodeTypes.find((t) => t.type === n.type);
+            const cat = nt?.categories?.[0] || "utility";
+            return {
+              id: n.id || `node-import-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              type: "custom",
+              position: { x: n.position_x || 200, y: n.position_y || 100 },
+              data: {
+                label: n.label || n.type,
+                typeLabel: nt?.label || n.type,
+                category: cat,
+                config: n.config || {},
+                inputPorts: nt ? Object.keys(nt.input_schema?.properties || {}) : [],
+                outputPorts: nt ? Object.keys(nt.output_schema?.properties || {}) : [],
+              },
+            };
+          });
+          setNodes(importNodes);
+          setEdges(importConnections);
+          setCurrentWorkflowName(data.name || "Imported Workflow");
+          setHasUnsavedChanges(true);
+          showToast(`Imported workflow: "${data.name || "Untitled"}" with ${importNodes.length} nodes`, "success");
+        } catch (err) {
+          showToast("Import failed: " + err.message, "error");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+
   function handleExport() {
     const data = {
       name: currentWorkflowName,
@@ -501,7 +579,7 @@ function CanvasInner() {
       const newId = idGen();
       idMap[n.id] = newId;
       const nt = getNodeTypeInfo(n.type);
-      const cat = nt?.categories?.[0] || "flow";
+      const cat = nt?.categories?.[0] || "utility";
       const inputPorts = nt
         ? Object.keys(nt.input_schema?.properties || {})
         : [];
@@ -553,7 +631,7 @@ function CanvasInner() {
 
       try {
         const nt = JSON.parse(data);
-        const cat = nt.categories?.[0] || "flow";
+        const cat = nt.categories?.[0] || "utility";
         const position = reactFlow.screenToFlowPosition({
           x: event.clientX,
           y: event.clientY,
@@ -692,7 +770,13 @@ function CanvasInner() {
         onSave={handleSave}
         onLoad={handleLoad}
         onExecute={handleExecute}
+        onValidate={handleValidate}
+        validationResult={validationResult}
+        showValidationDialog={showValidationDialog}
+        setShowValidationDialog={setShowValidationDialog}
         onExport={handleExport}
+        onImport={handleImport}
+
         onHistory={handleShowHistory}
         historyPanel={historyPanel}
         onSchedules={() => {
@@ -813,9 +897,16 @@ function CanvasInner() {
           )}
         </ResizablePanel>
       </div>
+      <OnboardingPanel onDismiss={() => {}} />
+
       <ShortcutsHelp
         isOpen={shortcutsHelpOpen}
         onClose={() => setShortcutsHelpOpen(false)}
+      />
+      <ValidationDialog
+        isOpen={showValidationDialog}
+        result={validationResult}
+        onClose={() => setShowValidationDialog(false)}
       />
       <TemplateDialog
         isOpen={templateDialogOpen}

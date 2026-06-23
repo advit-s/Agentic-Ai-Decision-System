@@ -7,7 +7,7 @@ const MOCK_NODE_TYPES = [
     description: "Start a workflow manually",
     icon: "⚡",
     color: "#3b82f6",
-    categories: ["trigger"],
+    categories: ["core"],
     config_schema: { type: "object", properties: {} },
     input_schema: { type: "object", properties: {} },
     output_schema: { type: "object", properties: { triggered: { type: "boolean" } } },
@@ -18,7 +18,7 @@ const MOCK_NODE_TYPES = [
     description: "Provide text input for the workflow",
     icon: "✏️",
     color: "#14b8a6",
-    categories: ["trigger"],
+    categories: ["core"],
     config_schema: {
       type: "object",
       properties: {
@@ -35,7 +35,7 @@ const MOCK_NODE_TYPES = [
     description: "Retrieve documents from the vector store",
     icon: "🔍",
     color: "#f59e0b",
-    categories: ["data"],
+    categories: ["evidence"],
     config_schema: {
       type: "object",
       properties: {
@@ -101,7 +101,7 @@ const MOCK_NODE_TYPES = [
     description: "Verify extracted claims against evidence",
     icon: "✅",
     color: "#9333ea",
-    categories: ["ai"],
+    categories: ["verification"],
     config_schema: {
       type: "object",
       properties: {
@@ -117,7 +117,7 @@ const MOCK_NODE_TYPES = [
     description: "Generate a decision report from verified claims",
     icon: "📝",
     color: "#6d28d9",
-    categories: ["output"],
+    categories: ["report"],
     config_schema: {
       type: "object",
       properties: {
@@ -161,7 +161,7 @@ const MOCK_NODE_TYPES = [
     description: "Map data profiles to ontology concepts",
     icon: "🧩",
     color: "#7e22ce",
-    categories: ["output"],
+    categories: ["report"],
     config_schema: { type: "object", properties: {} },
     input_schema: { type: "object", properties: { profiles: { type: "array" } } },
     output_schema: { type: "object", properties: { ontology: { type: "object" } } },
@@ -208,7 +208,7 @@ const MOCK_NODE_TYPES = [
     description: "Filter data based on conditions",
     icon: "🧪",
     color: "#6b7280",
-    categories: ["flow"],
+    categories: ["utility"],
     config_schema: {
       type: "object",
       properties: {
@@ -229,7 +229,7 @@ const MOCK_NODE_TYPES = [
     description: "Merge multiple data sources",
     icon: "🔀",
     color: "#4b5563",
-    categories: ["flow"],
+    categories: ["utility"],
     config_schema: {
       type: "object",
       properties: {
@@ -248,7 +248,7 @@ const MOCK_NODE_TYPES = [
     description: "Execute a Python snippet",
     icon: "💻",
     color: "#374151",
-    categories: ["flow"],
+    categories: ["utility"],
     config_schema: {
       type: "object",
       properties: {
@@ -265,7 +265,7 @@ const MOCK_NODE_TYPES = [
     description: "Trigger a workflow on a cron schedule",
     icon: "🕐",
     color: "#6366f1",
-    categories: ["trigger"],
+    categories: ["core"],
     config_schema: {
       type: "object",
       properties: {
@@ -292,7 +292,7 @@ const MOCK_NODE_TYPES = [
     description: "Trigger a workflow via an HTTP webhook",
     icon: "🔗",
     color: "#4f46e5",
-    categories: ["trigger"],
+    categories: ["core"],
     config_schema: {
       type: "object",
       properties: {
@@ -318,7 +318,7 @@ const MOCK_NODE_TYPES = [
     description: "Trigger a workflow when new files appear in a directory",
     icon: "👁️",
     color: "#8b5cf6",
-    categories: ["trigger"],
+    categories: ["core"],
     config_schema: {
       type: "object",
       properties: {
@@ -454,7 +454,7 @@ const MOCK_NODE_TYPES = [
     description: "Pause the workflow for human review of intermediate results",
     icon: "👁️",
     color: "#f97316",
-    categories: ["flow"],
+    categories: ["review"],
     config_schema: {
       type: "object",
       properties: {
@@ -655,7 +655,7 @@ const MOCK_NODE_TYPES = [
     description: "Execute Python snippets with I/O variables and timeout (simulated)",
     icon: "⚙️",
     color: "#64748b",
-    categories: ["flow"],
+    categories: ["utility"],
     config_schema: {
       type: "object",
       properties: {
@@ -693,7 +693,7 @@ const MOCK_NODE_TYPES = [
     description: "Scans workspace evidence for contradictions between claims.",
     icon: "\u26a1",
     color: "#dc2626",
-    categories: ["ai"],
+    categories: ["verification"],
     config_schema: {
       type: "object",
       properties: {
@@ -709,7 +709,7 @@ const MOCK_NODE_TYPES = [
     description: "Searches workspace evidence using keyword or vector retrieval.",
     icon: "\ud83d\udd0d",
     color: "#2563eb",
-    categories: ["data"],
+    categories: ["evidence"],
     config_schema: {
       type: "object",
       properties: {
@@ -727,7 +727,7 @@ const MOCK_NODE_TYPES = [
     description: "Generates verification summary for execution or workspace.",
     icon: "\ud83d\udcca",
     color: "#059669",
-    categories: ["ai"],
+    categories: ["verification"],
     config_schema: {
       type: "object",
       properties: {

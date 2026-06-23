@@ -206,3 +206,104 @@
   font-size: 11px;
   color: var(--color-text-muted);
 }
+
+/* ── Catalog hints ────────────────────────────────── */
+.config-catalog-hints {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--color-surface-alt, #f9fafb);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.config-hint-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-top: 4px;
+}
+.config-hint-row:first-child {
+  margin-top: 0;
+}
+.config-hint-label {
+  font-weight: 600;
+  color: var(--color-text-muted, #6b7280);
+  min-width: 100px;
+}
+.config-hint-value {
+  color: var(--color-text, #111827);
+}
+.config-hint-warning {
+  color: #d97706;
+  font-weight: 500;
+}
+.config-hint-safety {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* ── Provider required ────────────────────────────── */
+.config-provider-required {
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 8px;
+  background: #fffbeb;
+}
+.config-provider-required-msg {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.4;
+}
+.config-provider-badge-warn {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* ── Required badge ───────────────────────────────── */
+.config-required-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ── Dark theme overrides ─────────────────────────── */
+[data-theme="dark"] .config-catalog-hints {
+  background: #1f2937;
+}
+[data-theme="dark"] .config-hint-label {
+  color: #9ca3af;
+}
+[data-theme="dark"] .config-hint-value {
+  color: #e5e7eb;
+}
+[data-theme="dark"] .config-hint-warning {
+  color: #fbbf24;
+}
+[data-theme="dark"] .config-hint-safety {
+  color: #f87171;
+}
+[data-theme="dark"] .config-provider-required {
+  background: #1c1917;
+  border-color: #b45309;
+}
+[data-theme="dark"] .config-provider-required-msg {
+  color: #fde68a;
+}
+[data-theme="dark"] .config-provider-badge-warn {
+  background: #78350f;
+  color: #fde68a;
+}
+[data-theme="dark"] .config-required-badge {
+  background: #450a0a;
+  color: #fca5a5;
+}

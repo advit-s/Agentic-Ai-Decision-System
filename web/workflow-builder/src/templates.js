@@ -1,7 +1,7 @@
 // templates.js — Pre-built workflow template definitions
 //
 // Each template is a serialized workflow that can be loaded into the canvas.
-// Nodes use stable template IDs and are remapped to fresh IDs on load.
+// v1.22 templates are designed for the demo path with Evidence/AI/Verification flows.
 
 const TEMPLATES = [
   {
@@ -13,6 +13,213 @@ const TEMPLATES = [
     connections: [],
   },
   {
+    name: "Local Evidence Search",
+    description: "Search local workspace evidence by keyword. No AI provider needed.",
+    icon: "🔍",
+    category: "evidence",
+    nodes: [
+      {
+        id: "tpl-es-1", type: "decision_system.trigger_manual",
+        label: "Start", config: {},
+        position_x: 40, position_y: 200,
+      },
+      {
+        id: "tpl-es-2", type: "decision_system.evidence_search",
+        label: "Evidence Search", config: { query: "", limit: 5, workspace_id: "" },
+        position_x: 280, position_y: 200,
+      },
+      {
+        id: "tpl-es-3", type: "decision_system.verification_summary",
+        label: "Verification Summary", config: {},
+        position_x: 520, position_y: 200,
+      },
+    ],
+    connections: [
+      { source_node: "tpl-es-1", source_output: "default", target_node: "tpl-es-2", target_input: "default" },
+      { source_node: "tpl-es-2", source_output: "default", target_node: "tpl-es-3", target_input: "default" },
+    ],
+  },
+  {
+    name: "Evidence → AI Synthesis → Verify",
+    description: "Full pipeline: search evidence, synthesize with AI, verify claims, generate report.",
+    icon: "🤖",
+    category: "full",
+    nodes: [
+      {
+        id: "tpl-ai-1", type: "decision_system.trigger_manual",
+        label: "Start", config: {},
+        position_x: 40, position_y: 200,
+      },
+      {
+        id: "tpl-ai-2", type: "decision_system.evidence_search",
+        label: "Search Evidence", config: { query: "", limit: 10, workspace_id: "" },
+        position_x: 260, position_y: 200,
+      },
+      {
+        id: "tpl-ai-3", type: "decision_system.evidence_synthesis",
+        label: "Synthesize", config: { question: "", synthesis_mode: "summary", auto_verify: false },
+        position_x: 500, position_y: 200,
+      },
+      {
+        id: "tpl-ai-4", type: "decision_system.contradiction_scan",
+        label: "Contradiction Scan", config: {},
+        position_x: 740, position_y: 200,
+      },
+      {
+        id: "tpl-ai-5", type: "decision_system.verify_claims",
+        label: "Verify Claims", config: { workspace_id: "" },
+        position_x: 980, position_y: 200,
+      },
+      {
+        id: "tpl-ai-6", type: "decision_system.write_report",
+        label: "Trust Report", config: { format: "markdown", include_evidence: true, include_contradictions: true },
+        position_x: 1220, position_y: 200,
+      },
+    ],
+    connections: [
+      { source_node: "tpl-ai-1", source_output: "default", target_node: "tpl-ai-2", target_input: "default" },
+      { source_node: "tpl-ai-2", source_output: "default", target_node: "tpl-ai-3", target_input: "default" },
+      { source_node: "tpl-ai-3", source_output: "default", target_node: "tpl-ai-4", target_input: "default" },
+      { source_node: "tpl-ai-4", source_output: "default", target_node: "tpl-ai-5", target_input: "default" },
+      { source_node: "tpl-ai-5", source_output: "default", target_node: "tpl-ai-6", target_input: "default" },
+    ],
+  },
+  {
+    name: "Risk Review Workflow",
+    description: "Search evidence, analyze risks, verify claims, and generate risk report.",
+    icon: "🛡️",
+    category: "compliance",
+    nodes: [
+      {
+        id: "tpl-rr-1", type: "decision_system.trigger_manual",
+        label: "Start", config: {},
+        position_x: 40, position_y: 200,
+      },
+      {
+        id: "tpl-rr-2", type: "decision_system.evidence_search",
+        label: "Search Evidence", config: { query: "risk", limit: 10, workspace_id: "" },
+        position_x: 260, position_y: 200,
+      },
+      {
+        id: "tpl-rr-3", type: "decision_system.risk_analyst",
+        label: "Risk Analyst", config: {},
+        position_x: 500, position_y: 200,
+      },
+      {
+        id: "tpl-rr-4", type: "decision_system.extract_claims",
+        label: "Extract Claims", config: {},
+        position_x: 740, position_y: 200,
+      },
+      {
+        id: "tpl-rr-5", type: "decision_system.verify_claims",
+        label: "Verify Claims", config: { workspace_id: "" },
+        position_x: 980, position_y: 200,
+      },
+      {
+        id: "tpl-rr-6", type: "decision_system.review_gate",
+        label: "Review Gate", config: { instructions: "Review risk findings before report", risk_level: "medium" },
+        position_x: 1220, position_y: 200,
+      },
+      {
+        id: "tpl-rr-7", type: "decision_system.write_report",
+        label: "Risk Report", config: { format: "markdown" },
+        position_x: 1460, position_y: 200,
+      },
+    ],
+    connections: [
+      { source_node: "tpl-rr-1", source_output: "default", target_node: "tpl-rr-2", target_input: "default" },
+      { source_node: "tpl-rr-2", source_output: "default", target_node: "tpl-rr-3", target_input: "default" },
+      { source_node: "tpl-rr-3", source_output: "default", target_node: "tpl-rr-4", target_input: "default" },
+      { source_node: "tpl-rr-4", source_output: "default", target_node: "tpl-rr-5", target_input: "default" },
+      { source_node: "tpl-rr-5", source_output: "default", target_node: "tpl-rr-6", target_input: "default" },
+      { source_node: "tpl-rr-6", source_output: "default", target_node: "tpl-rr-7", target_input: "default" },
+    ],
+  },
+  {
+    name: "Trust Report Generator",
+    description: "Verify claims, scan contradictions, and generate a trust report with evidence.",
+    icon: "📄",
+    category: "report",
+    nodes: [
+      {
+        id: "tpl-tr-1", type: "decision_system.trigger_manual",
+        label: "Start", config: {},
+        position_x: 40, position_y: 200,
+      },
+      {
+        id: "tpl-tr-2", type: "decision_system.evidence_search",
+        label: "Search Evidence", config: { query: "", limit: 10, workspace_id: "" },
+        position_x: 260, position_y: 200,
+      },
+      {
+        id: "tpl-tr-3", type: "decision_system.extract_claims",
+        label: "Extract Claims", config: {},
+        position_x: 500, position_y: 200,
+      },
+      {
+        id: "tpl-tr-4", type: "decision_system.verify_claims",
+        label: "Verify Claims", config: { workspace_id: "" },
+        position_x: 740, position_y: 200,
+      },
+      {
+        id: "tpl-tr-5", type: "decision_system.contradiction_scan",
+        label: "Contradiction Scan", config: {},
+        position_x: 980, position_y: 200,
+      },
+      {
+        id: "tpl-tr-6", type: "decision_system.write_report",
+        label: "Trust Report", config: { format: "markdown", include_evidence: true, include_contradictions: true },
+        position_x: 1220, position_y: 200,
+      },
+    ],
+    connections: [
+      { source_node: "tpl-tr-1", source_output: "default", target_node: "tpl-tr-2", target_input: "default" },
+      { source_node: "tpl-tr-2", source_output: "default", target_node: "tpl-tr-3", target_input: "default" },
+      { source_node: "tpl-tr-3", source_output: "default", target_node: "tpl-tr-4", target_input: "default" },
+      { source_node: "tpl-tr-4", source_output: "default", target_node: "tpl-tr-5", target_input: "default" },
+      { source_node: "tpl-tr-5", source_output: "default", target_node: "tpl-tr-6", target_input: "default" },
+    ],
+  },
+  {
+    name: "Data Profile Summary",
+    description: "Profile structured data, detect patterns, and generate a data quality report.",
+    icon: "📊",
+    category: "data",
+    nodes: [
+      {
+        id: "tpl-dp-1", type: "decision_system.trigger_manual",
+        label: "Start", config: {},
+        position_x: 40, position_y: 200,
+      },
+      {
+        id: "tpl-dp-2", type: "decision_system.input_text",
+        label: "Query", config: { label: "Analysis question", text: "" },
+        position_x: 40, position_y: 340,
+      },
+      {
+        id: "tpl-dp-3", type: "decision_system.profile_data",
+        label: "Profile Data", config: { max_rows: 1000 },
+        position_x: 280, position_y: 200,
+      },
+      {
+        id: "tpl-dp-4", type: "decision_system.detect_patterns",
+        label: "Detect Patterns", config: {},
+        position_x: 520, position_y: 200,
+      },
+      {
+        id: "tpl-dp-5", type: "decision_system.verification_summary",
+        label: "Summary", config: {},
+        position_x: 760, position_y: 200,
+      },
+    ],
+    connections: [
+      { source_node: "tpl-dp-1", source_output: "default", target_node: "tpl-dp-3", target_input: "default" },
+      { source_node: "tpl-dp-2", source_output: "default", target_node: "tpl-dp-3", target_input: "query" },
+      { source_node: "tpl-dp-3", source_output: "default", target_node: "tpl-dp-4", target_input: "default" },
+      { source_node: "tpl-dp-4", source_output: "default", target_node: "tpl-dp-5", target_input: "default" },
+    ],
+  },
+  {
     name: "Research Pipeline",
     description: "Research question → retrieve evidence → analyze → synthesize → report",
     icon: "🔬",
@@ -20,7 +227,7 @@ const TEMPLATES = [
     nodes: [
       {
         id: "tpl-r-1", type: "decision_system.trigger_manual",
-        label: "Start Research", config: {},
+        label: "Start", config: {},
         position_x: 40, position_y: 160,
       },
       {
@@ -49,97 +256,6 @@ const TEMPLATES = [
       { source_node: "tpl-r-2", source_output: "default", target_node: "tpl-r-3", target_input: "default" },
       { source_node: "tpl-r-3", source_output: "default", target_node: "tpl-r-4", target_input: "default" },
       { source_node: "tpl-r-4", source_output: "default", target_node: "tpl-r-5", target_input: "default" },
-    ],
-  },
-  {
-    name: "Data Analysis",
-    description: "Ingest structured data → profile → detect patterns → report",
-    icon: "📊",
-    category: "data",
-    nodes: [
-      {
-        id: "tpl-d-1", type: "decision_system.trigger_manual",
-        label: "Start Analysis", config: {},
-        position_x: 40, position_y: 200,
-      },
-      {
-        id: "tpl-d-2", type: "decision_system.input_text",
-        label: "Query", config: { label: "Analysis question" },
-        position_x: 40, position_y: 340,
-      },
-      {
-        id: "tpl-d-3", type: "decision_system.retrieve",
-        label: "Retrieve Evidence", config: { top_k: 5 },
-        position_x: 280, position_y: 200,
-      },
-      {
-        id: "tpl-d-4", type: "decision_system.data_analyst",
-        label: "Data Analyst", config: { analysis_type: "summary", max_rows: 1000 },
-        position_x: 520, position_y: 200,
-      },
-      {
-        id: "tpl-d-5", type: "decision_system.write_report",
-        label: "Report", config: { format: "markdown" },
-        position_x: 760, position_y: 200,
-      },
-    ],
-    connections: [
-      { source_node: "tpl-d-1", source_output: "default", target_node: "tpl-d-3", target_input: "default" },
-      { source_node: "tpl-d-2", source_output: "default", target_node: "tpl-d-3", target_input: "query" },
-      { source_node: "tpl-d-3", source_output: "default", target_node: "tpl-d-4", target_input: "default" },
-      { source_node: "tpl-d-4", source_output: "default", target_node: "tpl-d-5", target_input: "default" },
-    ],
-  },
-  {
-    name: "Compliance Audit",
-    description: "Full compliance review: retrieve → analyze risks → extract claims → verify → human gate → report",
-    icon: "🛡️",
-    category: "compliance",
-    nodes: [
-      {
-        id: "tpl-c-1", type: "decision_system.trigger_manual",
-        label: "Start Audit", config: {},
-        position_x: 40, position_y: 200,
-      },
-      {
-        id: "tpl-c-2", type: "decision_system.technical_analyst",
-        label: "Technical Analyst", config: {},
-        position_x: 280, position_y: 120,
-      },
-      {
-        id: "tpl-c-3", type: "decision_system.risk_analyst",
-        label: "Risk Analyst", config: {},
-        position_x: 280, position_y: 320,
-      },
-      {
-        id: "tpl-c-4", type: "decision_system.extract_claims",
-        label: "Extract Claims", config: {},
-        position_x: 520, position_y: 220,
-      },
-      {
-        id: "tpl-c-5", type: "decision_system.verify_claims",
-        label: "Verify Claims", config: {},
-        position_x: 760, position_y: 220,
-      },
-      {
-        id: "tpl-c-6", type: "decision_system.review_gate",
-        label: "Human Review", config: { require_notes: true, allow_edit: true },
-        position_x: 1000, position_y: 220,
-      },
-      {
-        id: "tpl-c-7", type: "decision_system.write_report",
-        label: "Audit Report", config: { format: "markdown" },
-        position_x: 1240, position_y: 220,
-      },
-    ],
-    connections: [
-      { source_node: "tpl-c-1", source_output: "default", target_node: "tpl-c-2", target_input: "default" },
-      { source_node: "tpl-c-1", source_output: "default", target_node: "tpl-c-3", target_input: "default" },
-      { source_node: "tpl-c-2", source_output: "default", target_node: "tpl-c-4", target_input: "default" },
-      { source_node: "tpl-c-3", source_output: "default", target_node: "tpl-c-4", target_input: "default" },
-      { source_node: "tpl-c-4", source_output: "default", target_node: "tpl-c-5", target_input: "default" },
-      { source_node: "tpl-c-5", source_output: "default", target_node: "tpl-c-6", target_input: "default" },
-      { source_node: "tpl-c-6", source_output: "default", target_node: "tpl-c-7", target_input: "default" },
     ],
   },
   {

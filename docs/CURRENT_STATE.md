@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
  > **Last updated:** 2026-06-23
- > **Package version:** 1.21.0-dev
+ > **Package version:** 1.22.0-dev
  > **Previous milestone:** v1.20.1 — Trust UI + Audit Wiring + Release Hardening
- > **Current milestone:** v1.21 — Local Provider Runtime + AI-Assisted Evidence Synthesis
+ > **Current milestone:** v1.22 — Visual Workflow Builder Productization
 > **Python:** >=3.11
 
 ---
@@ -81,6 +81,17 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 | Workspace management | ✅ **Production** | CRUD workspaces; activate/deactivate; artifact counts |
 | Persistent storage | ✅ **Production** | JSON stores under `.decision_system/`; survives restart |
 | Docker Compose setup | ✅ **Production** | Backend + frontend services; persistent volume |
+
+| Workflow node catalog | ✅ **Production** | Categorized palette: Core, Data, Evidence, AI, Verification, Review, Report, Utility |
+| Node configuration panels | ✅ **Production** | Catalog hints, required field markers, provider warnings, safety warnings |
+| Workflow validation | ✅ **Production** | Pre-run validation for required fields, disconnected nodes, unsafe nodes |
+| Execution debugger | ✅ **Production** | Node status, elapsed time, collapsible inputs/outputs |
+| Demo workflow templates | ✅ **Production** | Local Evidence Search, Evidence→AI Synthesis→Verify, Risk Review, Trust Report Generator, Data Profile |
+| First-run onboarding | ✅ **Production** | Guided steps for workspace, data upload, provider, demo workflow |
+| Provider selection UX | ✅ **Production** | Provider dropdown, required provider warnings, fake provider quick-select |
+| Workflow import/export | ✅ **Production** | JSON export and import workflows |
+| Workflow version visibility | ✅ **Production** | Version history display, saved state indicator |
+| Empty/error state polish | ✅ **Production** | Helpful messages and next-action guidance |
 
 ## What is prototype-only
 
@@ -210,7 +221,7 @@ npm run dev
 
 ## Next milestone
 
-Continuing from v1.20
+Continuing from v1.22
 
 1. **PDF/DOCX/XLSX parsing support** — Broader file type coverage
 2. **Frontend Data Sources page polish** — Rich data source management UI

@@ -1,7 +1,7 @@
-// components/ConfigPanel.jsx
+// components/ConfigPanel.jsx — Enhanced config panel with catalog hints, required field markers, and safety warnings
 import React from "react";
 import SchemaForm from "./SchemaForm";
-import { getNodeCategoryConfig } from "../nodeTypes";
+import { getNodeCategoryConfig, getNodeCatalogEntry } from "../nodeTypes";
 import "../styles/config-panel.css";
 
 const ERROR_POLICIES = ["fail_workflow", "fail_node", "retry", "skip"];
@@ -17,9 +17,12 @@ function ConfigPanel({
   if (!selectedNode || !nodeType) return null;
 
   const catConfig = getNodeCategoryConfig(nodeType.categories?.[0]);
+  const catalogEntry = getNodeCatalogEntry(nodeType.type);
   const currentConfig = selectedNode.data.config || {};
   const hasProviderField = nodeType.config_schema?.properties?.provider !== undefined;
   const currentProvider = currentConfig.provider || "fake";
+  const providerRequired = catalogEntry?.provider_required || false;
+  const safetyWarning = catalogEntry?.safety_warning || null;
 
   function handleConfigChange(changes) {
     onUpdateConfig(selectedNode.id, { ...currentConfig, ...changes });
@@ -65,9 +68,35 @@ function ConfigPanel({
         <div className="config-section">
           <label className="config-label">Description</label>
           <p className="config-desc">{nodeType.description}</p>
+          {catalogEntry && (
+            <div className="config-catalog-hints">
+              <div className="config-hint-row">
+                <span className="config-hint-label">Required fields:</span>
+                <span className="config-hint-value">
+                  {catalogEntry.required_fields.length > 0
+                    ? catalogEntry.required_fields.join(", ")
+                    : "None"}
+                </span>
+              </div>
+              <div className="config-hint-row">
+                <span className="config-hint-label">Category:</span>
+                <span className="config-hint-value">{catConfig.label}</span>
+              </div>
+              {providerRequired && (
+                <div className="config-hint-row config-hint-warning">
+                  <span>⚠️ AI provider required for this node</span>
+                </div>
+              )}
+              {safetyWarning && (
+                <div className="config-hint-row config-hint-safety">
+                  <span>⚠️ {safetyWarning}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {hasProviderField && (
+        {hasProviderField && !providerRequired && (
           <div className="config-section">
             <div className="config-section-title">Provider</div>
             <div className="config-provider-info">
@@ -87,8 +116,31 @@ function ConfigPanel({
           </div>
         )}
 
+        {providerRequired && (
+          <div className="config-section">
+            <div className="config-section-title">Provider (Required)</div>
+            <div className="config-provider-info config-provider-required">
+              <p className="config-provider-required-msg">
+                This node requires an AI provider. The Evidence Synthesis node uses
+                a configured provider to draft summaries and claims from evidence.
+              </p>
+              <p className="config-provider-hint">
+                Go to <strong>Provider Manager</strong> to configure a provider, or
+                use <strong>Fake Provider</strong> for local demo (no API key required).
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="config-section">
-          <div className="config-section-title">Configuration</div>
+          <div className="config-section-title">
+            Configuration
+            {catalogEntry && catalogEntry.required_fields.length > 0 && (
+              <span className="config-required-badge">
+                {catalogEntry.required_fields.length} required
+              </span>
+            )}
+          </div>
           <SchemaForm
             schema={nodeType.config_schema}
             values={currentConfig}
@@ -116,7 +168,7 @@ function ConfigPanel({
         <div className="config-section">
           <div className="config-section-title">Inputs</div>
           <div className="config-schema-view">
-            {Object.keys(nodeType.input_schema?.properties || {}).length === 0 ? (
+            {(!nodeType.input_schema?.properties || Object.keys(nodeType.input_schema.properties).length === 0) ? (
               <span className="config-muted">No inputs expected</span>
             ) : (
               Object.entries(nodeType.input_schema.properties).map(([key, prop]) => (
@@ -132,7 +184,7 @@ function ConfigPanel({
         <div className="config-section">
           <div className="config-section-title">Outputs</div>
           <div className="config-schema-view">
-            {Object.keys(nodeType.output_schema?.properties || {}).length === 0 ? (
+            {(!nodeType.output_schema?.properties || Object.keys(nodeType.output_schema.properties).length === 0) ? (
               <span className="config-muted">No outputs</span>
             ) : (
               Object.entries(nodeType.output_schema.properties).map(([key, prop]) => (

@@ -1,3 +1,32 @@
+## [1.22.0] - 2026-06-23 — Visual Workflow Builder Productization
+### Added
+- **Version identity**: Updated to 1.22.0-dev for the v1.22 milestone.
+- **Workflow builder UX audit**: Documented current UI state, gaps, and fixes.
+- **Node catalog cleanup**: Categorized node palette with clear labels and safety warnings.
+- **Node configuration panels**: Dedicated config UI for evidence search, synthesis, claim verification, review gate, and trust report nodes.
+- **Workflow validation**: Pre-run validation for missing fields, disconnected nodes, unsafe CodeNode.
+- **Execution run experience**: Live node status, elapsed time, logs.
+- **Execution debugger panel**: Node inputs/outputs, errors, collapsible payloads.
+- **Guided demo templates**: Local Evidence Search, Evidence→AI Synthesis→Verify, Risk Review, Trust Report, Data Profile templates.
+- **First-run onboarding**: Guided steps for workspace creation, data upload, demo workflow.
+- **Provider selection UX**: Dropdown, model dropdown, status indicator, fake provider quick-select.
+- **Report actions from workflow result**: Verify claims, scan contradictions, generate trust report, export.
+- **Workflow import/export**: JSON export and import workflows.
+- **Autosave and version visibility**: Saved state, last saved time, version history.
+- **Error and empty state polish**: Helpful messages across workspace, workflow, data sources, execution, and reports.
+- **Accessibility and usability pass**: Button labels, form labels, keyboard focus, aria labels, status text.
+- **Frontend tests**: Updated and expanded coverage.
+- **Backend tests**: Updated where needed.
+- **Local demo script**: Seed script for workspace, data, fake provider, and demo workflow.
+- **Documentation**: Updated CURRENT_STATE, IMPLEMENTATION_REPORT, WORKFLOW_BUILDER, LOCAL_FIRST_SETUP, README, CHANGELOG.
+### Changed
+- Version bumped from 1.21.0-dev to 1.22.0-dev.
+- Workflow builder now has categorized node palette, config panels, validation, execution debugger, demo templates, onboarding, import/export, autosave, error/empty states, accessibility.
+- Frontend test count expanded.
+- Backend targeted tests remain passing.
+
+---
+
 ## [1.21.0] - 2026-06-23 — Local Provider Runtime + AI-Assisted Evidence Synthesis
 ### Added
 - **Version identity**: Updated to 1.21.0-dev for the v1.21 milestone.

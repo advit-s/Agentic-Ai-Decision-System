@@ -2,7 +2,7 @@
 
 ## Overview
 
-The workflow builder is a **React 18 + React Flow** single-page application at `web/workflow-builder/`. It provides a visual DAG (directed acyclic graph) editor for composing AI decision workflows from 28 node types.
+The workflow builder is a **React 18 + React Flow** single-page application at `web/workflow-builder/`. It provides a visual DAG (directed acyclic graph) editor for composing AI decision workflows from 30+ node types.
 
 The builder runs in two modes:
 - **Mock mode** (default) — works offline with simulated data, no backend needed
@@ -13,7 +13,7 @@ The builder runs in two modes:
 ```
 App (ReactFlowProvider > ToastProvider)
 ├── WorkflowToolbar          — New, Save, Load, Execute, Export, Templates, History, Schedules, Providers, Theme, Connection badge
-├── NodePalette              — Draggable node type sidebar (5 categories)
+├── NodePalette              — Draggable node type sidebar (8 categories)
 ├── WorkflowCanvas           — React Flow canvas with Background, Controls, MiniMap
 │   └── NodeComponent        — Custom React Flow node card (per-type icon, color, status glyphs)
 └── ResizablePanel (right sidebar, 280–900px)
@@ -104,7 +104,7 @@ All API calls go through `api.js`, which routes to mock or real backend based on
 
 ## Node Types
 
-28 node types across 5 categories:
+30+ node types across 8 categories:
 
 - **⚡ Triggers** (5): Manual, Input Text, Cron, Webhook, File Watch
 - **📊 Data** (4): Retrieve, Extract Graph, Profile Data, Data Analyst
@@ -178,3 +178,112 @@ python -m pytest -q               # 1061+ tests
 | `Space` | Execute workflow |
 | `Ctrl+Shift+E` | Export as JSON |
 | `Shift+?` | Show shortcuts help |
+
+## v1.22 — Productized Workflow Builder
+
+### Node Catalog (v1.22)
+
+Categories: **Core**, **Data**, **Evidence**, **AI**, **Verification**, **Review**, **Report**, **Utility**
+
+| Node Type | Category | Provider Required | Safety Warning |
+|-----------|----------|-------------------|----------------|
+| Start | Core | No | — |
+| Manual Input | Core | No | — |
+| Cron Trigger | Core | No | — |
+| Webhook Trigger | Core | No | — |
+| File Watch Trigger | Core | No | — |
+| Retrieve Evidence | Evidence | No | — |
+| Evidence Search | Evidence | No | — |
+| Evidence Synthesis | AI | **Yes** | Claims are draft-quality until verified |
+| Technical Analyst | AI | No | — |
+| Risk Analyst | AI | No | — |
+| Researcher | AI | No | — |
+| Critic / Judge | AI | No | — |
+| Decision Synthesizer | AI | No | — |
+| Data Analyst | AI | No | — |
+| Extract Claims | AI | No | — |
+| Planner | AI | No | — |
+| Auditor | AI | No | — |
+| Compliance Checker | AI | No | — |
+| War Room | AI | No | — |
+| Verify Claims | Verification | No | Verification is against available evidence only |
+| Claim Verifier v2 | Verification | No | Verification is against available evidence only |
+| Contradiction Scan | Verification | No | — |
+| Verification Summary | Verification | No | — |
+| Review Gate | Review | No | Pauses workflow for human approval |
+| Write Report | Report | No | Report quality depends on claim verification |
+| Filter | Utility | No | — |
+| Merge | Utility | No | — |
+| Code Node | Utility | No | **DISABLED by default** |
+| Code Runner | Utility | No | **Unsafe** |
+
+### Configuration Panels
+
+Each node shows:
+- Human-readable label and description
+- Required fields list
+- Provider requirement warning (if applicable)
+- Safety warning (if applicable)
+- Auto-generated form for config_schema fields
+- Input/output port definitions
+
+### Workflow Validation
+
+Before running a workflow, click **Validate** to check:
+1. At least one Start/trigger node exists
+2. No disconnected nodes
+3. All required fields are filled
+4. Provider-required nodes have a provider configured
+5. Unsafe Code nodes are flagged
+6. Workspace ID is set for evidence/verification nodes
+
+Validation results are shown in a dialog with errors and warnings. Workflows with errors cannot be executed.
+
+### Execution Experience
+
+When a workflow runs:
+- Node status updates live on the canvas
+- Elapsed timer shows run duration
+- Each node shows running/completed/failed status
+- Execution panel shows event timeline
+- Verification and trust report actions appear after completion
+
+### Demo Templates
+
+Built-in templates (no cloud keys required):
+
+| Template | Nodes | Description |
+|----------|-------|-------------|
+| Local Evidence Search | Start → Evidence Search → Verification Summary | Search local evidence |
+| Evidence → AI Synthesis → Verify | Start → Search → Synthesize → Contradiction Scan → Verify → Report | Full AI pipeline |
+| Risk Review Workflow | Start → Search → Risk Analyst → Extract → Verify → Review Gate → Report | Risk analysis with human review |
+| Trust Report Generator | Start → Search → Extract → Verify → Contradiction Scan → Report | Generate verified trust report |
+| Data Profile Summary | Start → Profile → Detect Patterns → Summary | Profile CSV data |
+
+### Import/Export
+
+- **Export**: Click the Export button to download the current workflow as JSON
+- **Import**: Click the Import button to load a workflow from a JSON file
+- Import validates the JSON structure before loading
+
+### Provider Integration
+
+- Provider selector available in node config panels
+- Evidence Synthesis node shows a required provider warning
+- Provider Manager accessible from toolbar
+- Fake provider works offline with no API keys
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/nodeTypes.js` | Node catalog and category definitions |
+| `src/workflowValidation.js` | Pre-run validation logic |
+| `src/templates.js` | Demo workflow templates |
+| `src/mockData.js` | Mock data with categorized node types |
+| `src/components/ConfigPanel.jsx` | Enhanced config panel with catalog hints |
+| `src/components/ValidationDialog.jsx` | Validation results display |
+| `src/components/OnboardingPanel.jsx` | First-run onboarding |
+| `src/components/WorkflowToolbar.jsx` | Toolbar with validate/import/export |
+| `src/styles/config-panel.css` | Config panel and catalog hint styles |
+| `scripts/local-demo-seed.sh` | Demo seed script |
