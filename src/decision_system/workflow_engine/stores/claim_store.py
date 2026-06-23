@@ -128,6 +128,7 @@ class JSONClaimStore:
         unsupported = sum(1 for c in claims if c.status == "unsupported")
         uncertain = sum(1 for c in claims if c.status == "uncertain")
         pending = sum(1 for c in claims if c.status == "pending")
+        claims_with_evidence = sum(1 for c in claims if c.evidence_ids or c.evidence_snippets)
         return {
             "total": total,
             "supported": supported,
@@ -135,7 +136,10 @@ class JSONClaimStore:
             "unsupported": unsupported,
             "uncertain": uncertain,
             "pending": pending,
+            "claims_with_evidence": claims_with_evidence,
+            "claims_without_evidence": total - claims_with_evidence,
             "evidence_coverage_score": round(supported / total, 2) if total > 0 else 0.0,
+            "evidence_coverage_score_v2": round(claims_with_evidence / total, 2) if total > 0 else 0.0,
         }
 
     def add_claim(
@@ -146,6 +150,9 @@ class JSONClaimStore:
         status: str | None = None,
         confidence: str | None = None,
         evidence_ids: list[str] | None = None,
+        source_ids: list[str] | None = None,
+        chunk_ids: list[str] | None = None,
+        evidence_snippets: list[str] | None = None,
         contradicting_evidence_ids: list[str] | None = None,
         review_required: bool | None = None,
         review_status: str | None = None,
@@ -170,6 +177,9 @@ class JSONClaimStore:
             status=status or "pending",  # type: ignore
             confidence=confidence or "low",  # type: ignore
             evidence_ids=evidence_ids or [],
+            source_ids=source_ids or [],
+            chunk_ids=chunk_ids or [],
+            evidence_snippets=evidence_snippets or [],
             contradicting_evidence_ids=contradicting_evidence_ids or [],
             review_required=review_required or False,
             review_status=review_status,

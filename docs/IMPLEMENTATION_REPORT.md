@@ -1,9 +1,9 @@
 # Implementation Report — Local-First Agentic Decision System
 
 > **Date:** 2026-06-23
-> **Package version:** 1.18.0-dev
-> **Previous milestone:** v1.17 — Local-first foundation
-> **Current milestone:** v1.18 — Local product-loop hardening
+> **Package version:** 1.19.0-dev
+> **Previous milestone:** v1.18 — Local product-loop hardening
+> **Current milestone:** v1.19 — Local Data Sources + Evidence Intelligence Layer
 
 ---
 
@@ -429,3 +429,81 @@ cd web/workflow-builder && npm install && npm run dev
 6. **Observability dashboards** — Wire existing metrics modules to normal flows
 7. **CodeNode sandbox** — Replace `exec()` with restricted runner (limited builtins,
    no filesystem, timeout, audit)
+
+---
+
+## v1.19 — Local Data Sources + Evidence Intelligence Layer
+
+### Files changed
+| File | Change |
+|------|--------|
+| `pyproject.toml` | Version bumped from 1.18.0-dev to 1.19.0-dev |
+| `src/decision_system/__init__.py` | Version bumped to 1.19.0-dev |
+| `src/decision_system/data_sources/__init__.py` | New package |
+| `src/decision_system/data_sources/models.py` | New — DataSource, DataSourceChunk, DatasetProfile, EvidenceSearch models |
+| `src/decision_system/data_sources/store.py` | New — JSON file-backed store for data sources, chunks, profiles, keyword search |
+| `src/decision_system/data_sources/parser.py` | New — Document parsing (txt, md, json) and CSV/JSON profiling |
+| `src/decision_system/api/routes_data_sources.py` | New — Upload, list, get, delete, parse, index, status, profile, evidence search endpoints |
+| `src/decision_system/api/routes_execution_reports.py` | New — Execution report generation with evidence references |
+| `src/decision_system/api/app.py` | Registered data_sources and execution_reports routers |
+| `src/decision_system/api/routes_dashboard.py` | Added data source counts and recommended actions |
+| `src/decision_system/api/routes_workspaces.py` | Added data source, chunk, claim, and evidence counts to workspace overview |
+| `src/decision_system/workflow_engine/nodes/builtin/evidence_nodes.py` | New — EvidenceSearchNode for workflow evidence search |
+| `src/decision_system/workflow_engine/nodes/__init__.py` | Registered EvidenceSearchNode |
+| `src/decision_system/workflow_engine/nodes/builtin/__init__.py` | Exported EvidenceSearchNode |
+| `src/decision_system/models.py` | Added source_ids, chunk_ids, evidence_snippets to Claim and VerificationResult |
+| `src/decision_system/workflow_engine/api.py` | Added source_ids, chunk_ids, evidence_snippets to CreateClaimRequest |
+| `src/decision_system/workflow_engine/stores/claim_store.py` | Updated add_claim and summary with evidence reference fields |
+| `src/decision_system/storage/models.py` | Added DATA_SOURCE to ArtifactType |
+| `.decision_system/demo/evidence_search_workflow.json` | New — Demo workflow template |
+| `CHANGELOG.md` | Added v1.19 changelog section |
+
+### APIs added
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /workspaces/{id}/data-sources/upload` | Upload file as workspace data source |
+| `GET /workspaces/{id}/data-sources` | List workspace data sources |
+| `GET /workspaces/{id}/data-sources/{sid}` | Get data source details |
+| `DELETE /workspaces/{id}/data-sources/{sid}` | Delete data source and files |
+| `POST /workspaces/{id}/data-sources/{sid}/parse` | Parse document or profile dataset |
+| `POST /workspaces/{id}/data-sources/{sid}/index` | Index parsed data for evidence search |
+| `GET /workspaces/{id}/data-sources/{sid}/status` | Get parse/index status |
+| `GET /workspaces/{id}/data-sources/{sid}/profile` | Get dataset profile |
+| `POST /workspaces/{id}/evidence/search` | Workspace-scoped evidence search |
+| `POST /executions/{eid}/report` | Generate report from execution with evidence |
+| `GET /workspaces/{id}/reports` | List workspace reports |
+| `GET /reports/{rid}` | Get report details |
+| `GET /reports/{rid}/export?format=markdown` | Export report as markdown |
+
+### Stores added
+| Store | Location | Purpose |
+|-------|----------|---------|
+| Data Source Metadata | `.decision_system/data_sources/{ws_id}/` | JSON files per data source |
+| Uploaded Files | `.decision_system/files/{ws_id}/` | Raw file copies |
+| Parsed Chunks | `.decision_system/chunks/{ws_id}/{src_id}/` | Text chunks from parsing |
+| Dataset Profiles | `.decision_system/datasets/{ws_id}/{src_id}/` | CSV/JSON profiles |
+| Index Metadata | `.decision_system/index/{ws_id}/` | Index tracking |
+| Execution Reports | `.decision_system/reports/{ws_id}/` | Generated reports |
+
+### New workflow node
+| Node Type | Label | Purpose |
+|-----------|-------|---------|
+| `decision_system.evidence_search` | Evidence Search | Searches workspace evidence via vector or keyword |
+
+### Tests added
+| Test file | Tests |
+|-----------|-------|
+| `tests/test_data_sources/test_models.py` | 6 tests — DataSource, DataSourceChunk, DatasetProfile, EvidenceSearch models |
+| `tests/test_data_sources/test_store.py` | 7 tests — CRUD, keyword search, file storage, workspace scoping |
+| `tests/test_data_sources/test_parser.py` | 12 tests — txt/md/json parsing, CSV/JSON profiling |
+| `tests/test_data_sources/test_api.py` | 11 tests — Upload, list, get, delete, parse, status, profile, index, evidence search |
+| `tests/test_data_sources/test_evidence_node.py` | 5 tests — EvidenceSearchNode with keyword fallback |
+| `tests/test_data_sources/test_claim_evidence.py` | 3 tests — Claims with evidence references and coverage scoring |
+
+### Known remaining gaps
+- PDF/DOCX/XLSX parsing not yet supported (dependencies not verified)
+- Vector search requires Chroma to have indexed data (keyword fallback covers missing deps)
+- Frontend Data Sources page not yet implemented (backend fully wired)
+- Report HTML export format may need styling improvements
+- Audit events recorded but no dedicated audit timeline UI yet

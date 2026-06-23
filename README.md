@@ -391,7 +391,70 @@ npm run dev
 
 The builder runs at **`http://localhost:5173`** by default. In mock mode it works without the backend; set the API URL in the toolbar to connect to the FastAPI backend.
 
-#### Architecture
+##
+## v1.19 — Local Data Sources + Evidence Intelligence Layer
+
+### New features
+
+- **Data Source Management**: Upload, list, get, delete workspace-scoped data sources via REST API
+- **Document Parsing**: Parse .txt, .md, .json files into searchable chunks
+- **Dataset Profiling**: Profile CSV/JSON datasets with row counts, column types, missing values
+- **Evidence Search**: Workspace-scoped evidence search with Chroma vector search and keyword fallback
+- **EvidenceSearchNode**: New workflow node to search workspace evidence from within workflows
+- **Claims with Evidence**: Claims now support evidence_ids, source_ids, chunk_ids, and evidence_snippets
+- **Execution Reports**: Generate reports from workflow executions with evidence references and Markdown export
+- **Audit Events**: Data source upload, index, search, and report actions create audit events
+- **Demo Workflow**: Pre-built Evidence Search → Review Gate demo workflow template
+
+### New API endpoints
+
+```
+POST /workspaces/{id}/data-sources/upload          Upload a file as workspace data source
+GET  /workspaces/{id}/data-sources                  List workspace data sources
+GET  /workspaces/{id}/data-sources/{sid}            Get data source details
+DELETE /workspaces/{id}/data-sources/{sid}          Delete data source
+POST /workspaces/{id}/data-sources/{sid}/parse      Parse document or profile dataset
+POST /workspaces/{id}/data-sources/{sid}/index      Index data for evidence search
+GET  /workspaces/{id}/data-sources/{sid}/status     Get parse/index status
+GET  /workspaces/{id}/data-sources/{sid}/profile    Get dataset profile
+POST /workspaces/{id}/evidence/search               Search workspace evidence
+POST /executions/{eid}/report                       Generate execution report
+GET  /workspaces/{id}/reports                       List workspace reports
+GET  /reports/{rid}                                 Get report
+GET  /reports/{rid}/export?format=markdown          Export report as Markdown
+```
+
+### Local storage layout
+
+```
+.decision_system/
+├── data_sources/{ws_id}/    Data source metadata (JSON)
+├── files/{ws_id}/           Uploaded file copies
+├── chunks/{ws_id}/{src}/    Parsed text chunks
+├── datasets/{ws_id}/{src}/  Dataset profiles
+├── index/{ws_id}/           Index tracking metadata
+└── reports/{ws_id}/         Generated execution reports
+```
+
+### Supported file types
+
+| Type | Extension | Parsing | Profiling |
+|------|-----------|---------|-----------|
+| Text | .txt | ✅ Full | — |
+| Markdown | .md | ✅ Full | — |
+| CSV | .csv | — | ✅ Full |
+| JSON | .json | ✅ Basic | ✅ Basic |
+| PDF | .pdf | ❌ | — |
+| DOCX | .docx | ❌ | — |
+| XLSX | .xlsx | ❌ | — |
+
+### Evidence search modes
+
+1. **Vector search**: Uses Chroma with hash embeddings (default when Chroma is available)
+2. **Keyword fallback**: Simple term-matching over stored chunks (no external dependencies required)
+
+
+## Architecture
 See [docs/WORKFLOW_BUILDER.md](docs/WORKFLOW_BUILDER.md) for the full architecture, component tree, data flow, and API reference.
 
 ## What Is Not Included Yet
@@ -410,6 +473,69 @@ Not included in this prototype (see also `decision-system enterprise-readiness` 
 - deployment hardening (TLS, rate limiting)
 - encrypted storage at rest (all data unencrypted locally)
 - API input sanitization (basic Pydantic validation only)
+
+
+## v1.19 — Local Data Sources + Evidence Intelligence Layer
+
+### New features
+
+- **Data Source Management**: Upload, list, get, delete workspace-scoped data sources via REST API
+- **Document Parsing**: Parse .txt, .md, .json files into searchable chunks
+- **Dataset Profiling**: Profile CSV/JSON datasets with row counts, column types, missing values
+- **Evidence Search**: Workspace-scoped evidence search with Chroma vector search and keyword fallback
+- **EvidenceSearchNode**: New workflow node to search workspace evidence from within workflows
+- **Claims with Evidence**: Claims now support evidence_ids, source_ids, chunk_ids, and evidence_snippets
+- **Execution Reports**: Generate reports from workflow executions with evidence references and Markdown export
+- **Audit Events**: Data source upload, index, search, and report actions create audit events
+- **Demo Workflow**: Pre-built Evidence Search → Review Gate demo workflow template
+
+### New API endpoints
+
+```
+POST /workspaces/{id}/data-sources/upload          Upload a file as workspace data source
+GET  /workspaces/{id}/data-sources                  List workspace data sources
+GET  /workspaces/{id}/data-sources/{sid}            Get data source details
+DELETE /workspaces/{id}/data-sources/{sid}          Delete data source
+POST /workspaces/{id}/data-sources/{sid}/parse      Parse document or profile dataset
+POST /workspaces/{id}/data-sources/{sid}/index      Index data for evidence search
+GET  /workspaces/{id}/data-sources/{sid}/status     Get parse/index status
+GET  /workspaces/{id}/data-sources/{sid}/profile    Get dataset profile
+POST /workspaces/{id}/evidence/search               Search workspace evidence
+POST /executions/{eid}/report                       Generate execution report
+GET  /workspaces/{id}/reports                       List workspace reports
+GET  /reports/{rid}                                 Get report
+GET  /reports/{rid}/export?format=markdown          Export report as Markdown
+```
+
+### Local storage layout
+
+```
+.decision_system/
+├── data_sources/{ws_id}/    Data source metadata (JSON)
+├── files/{ws_id}/           Uploaded file copies
+├── chunks/{ws_id}/{src}/    Parsed text chunks
+├── datasets/{ws_id}/{src}/  Dataset profiles
+├── index/{ws_id}/           Index tracking metadata
+└── reports/{ws_id}/         Generated execution reports
+```
+
+### Supported file types
+
+| Type | Extension | Parsing | Profiling |
+|------|-----------|---------|-----------|
+| Text | .txt | ✅ Full | — |
+| Markdown | .md | ✅ Full | — |
+| CSV | .csv | — | ✅ Full |
+| JSON | .json | ✅ Basic | ✅ Basic |
+| PDF | .pdf | ❌ | — |
+| DOCX | .docx | ❌ | — |
+| XLSX | .xlsx | ❌ | — |
+
+### Evidence search modes
+
+1. **Vector search**: Uses Chroma with hash embeddings (default when Chroma is available)
+2. **Keyword fallback**: Simple term-matching over stored chunks (no external dependencies required)
+
 
 ## Architecture
 

@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
 > **Last updated:** 2026-06-23
-> **Package version:** 1.18.0-dev
-> **Previous milestone:** v1.17 — Local-first foundation
-> **Current milestone:** v1.18 — Local product-loop hardening
+> **Package version:** 1.19.0-dev
+> **Previous milestone:** v1.18 — Local product-loop hardening
+> **Current milestone:** v1.19 — Local Data Sources + Evidence Intelligence Layer
 > **Python:** >=3.11
 
 ---
@@ -129,27 +129,19 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 
 | Area | Notes |
 |------|-------|
-| Claim ledger durable storage | Claims are in-memory per run |
-| Report local file export | Reports generated but export path not finalized |
-| Vector store data under `.decision_system/` | Chroma uses its own directory |
-| Audit log persistence | Basic events emitted; not all actions wired |
+| PDF/DOCX/XLSX parsing | Only txt, md, csv, json supported |
+| Vector search with fallback | Vector search requires Chroma; keyword fallback works without it |
 | Workspace export/import | Exists in prototype; not fully reliable |
+| Frontend Data Sources page | Basic implementation; needs real API connection for full demo |
 
 ## Known limitations
 
 1. **Frontend requires npm build.** The React workflow builder needs `npm install && npm run build` before Docker Compose will serve it. Until built, the simpler static frontend at `web/` is served instead.
 2. **Running all workflow engine tests together** can cause pytest-asyncio event loop issues. Run individual test files.
 3. **CodeNode is disabled by default.** Set `DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true` to enable (unsafe).
-4. **Chroma vector store** data is not yet stored under `.decision_system/`.
-5. **Claim ledger** is in-memory per run — claims are not yet persisted across restarts.
-6. **Report export** generates reports but does not save them as local files yet.
-
-1. **Running all workflow engine tests together** can cause pytest-asyncio event loop issues. Run individual test files.
-2. **Frontend uses mock data by default.** Set the API base URL in localStorage (`wfBuilderApiBaseUrl`) or use Docker.
-3. **CodeNode is disabled by default.** Set `DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true` to enable (unsafe).
-4. **Chroma vector store** data is not yet stored under `.decision_system/`.
-5. **Claim ledger** is in-memory per run — claims are not yet persisted across restarts.
-6. **Report export** generates reports but does not save them as local files yet.
+4. **PDF/DOCX/XLSX parsing** is not yet supported.
+5. **Vector search** requires Chroma to have indexed data; keyword fallback works without it.
+6. **Frontend Data Sources page** is functional but basic.
 
 ## Test commands
 
@@ -195,11 +187,10 @@ npm run dev
 
 ## Next milestone
 
-Complete the remaining phases to close the gap to a fully self-hosted n8n-style product:
+Continuing from v1.19, the next areas of focus are:
 
-1. **Claim ledger durable storage** — JSON-backed claim store
-2. **Report local file export** — Save reports to `.decision_system/reports/`
-3. **Frontend live-mode polish** — Wire mock-only components to real API
-4. **Audit event wiring** — Log more high-value actions
-5. **Workspace export/import** — Reliable backup/restore
-6. **Chroma under `.decision_system/`** — Move vector store data into data dir
+1. **PDF/DOCX/XLSX parsing support** — Broader file type coverage
+2. **Frontend Data Sources page polish** — Rich data source management UI
+3. **Workspace export/import** — Reliable backup/restore
+4. **Frontend live-mode polish** — Wire mock-only components to real API
+5. **Docker Compose v2** — Improved Docker startup and networking

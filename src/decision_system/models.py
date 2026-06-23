@@ -68,6 +68,9 @@ class Claim(BaseModel):
     claim_type: Literal["technical", "risk", "option", "recommendation", "assumption"]
     status: ClaimStatus = "pending"
     evidence_ids: list[str] = Field(default_factory=list)
+    source_ids: list[str] = Field(default_factory=list)
+    chunk_ids: list[str] = Field(default_factory=list)
+    evidence_snippets: list[str] = Field(default_factory=list)
     contradicting_evidence_ids: list[str] = Field(default_factory=list)
     confidence: ConfidenceLevel = "low"
     verification_notes: str = ""
@@ -88,6 +91,9 @@ class VerificationResult(BaseModel):
     claim_id: str
     status: Literal["verified", "unsupported", "contradicted"]
     evidence_ids: list[str] = Field(default_factory=list)
+    source_ids: list[str] = Field(default_factory=list)
+    chunk_ids: list[str] = Field(default_factory=list)
+    evidence_snippets: list[str] = Field(default_factory=list)
     contradicting_evidence_ids: list[str] = Field(default_factory=list)
     confidence: ConfidenceLevel
     verification_notes: str

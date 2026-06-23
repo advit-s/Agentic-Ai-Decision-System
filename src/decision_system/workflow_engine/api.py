@@ -118,6 +118,9 @@ class CreateClaimRequest(BaseModel):
     node_id: str | None = None
     run_id: str | None = None
     evidence_ids: list[str] | None = None
+    source_ids: list[str] | None = None
+    chunk_ids: list[str] | None = None
+    evidence_snippets: list[str] | None = None
     contradicting_evidence_ids: list[str] | None = None
     review_required: bool | None = None
     review_status: str | None = None
@@ -1245,6 +1248,9 @@ def create_claim(req: CreateClaimRequest) -> dict[str, Any]:
         status=req.status,
         confidence=req.confidence,
         evidence_ids=req.evidence_ids,
+        source_ids=req.source_ids,
+        chunk_ids=req.chunk_ids,
+        evidence_snippets=req.evidence_snippets,
         contradicting_evidence_ids=req.contradicting_evidence_ids,
         review_required=req.review_required,
         review_status=req.review_status,

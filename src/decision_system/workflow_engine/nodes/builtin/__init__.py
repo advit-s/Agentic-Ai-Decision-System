@@ -24,4 +24,8 @@ __all__ = [
     "ExtractClaimsNode", "VerifyClaimsNode", "WriteReportNode",
     "ExtractGraphNode", "ProfileDataNode", "MapOntologyNode",
     "DetectPatternsNode", "WarRoomNode",
+    "EvidenceSearchNode",
 ]
+from decision_system.workflow_engine.nodes.builtin.evidence_nodes import (
+    EvidenceSearchNode,
+)

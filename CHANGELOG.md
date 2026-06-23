@@ -1,3 +1,8 @@
+## [1.19.0] - 2026-06-23 — Local Data Sources + Evidence Intelligence Layer
+
+### Added
+- **Version identity**: Updated to 1.19.0-dev for the v1.19 milestone.
+
 ## [1.16.2] - 2026-06-13 — Backend Hardening & Deprecation Cleanup
 
 ### Fixed

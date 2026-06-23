@@ -67,11 +67,62 @@ def workspace_status() -> dict[str, Any]:
             }
         art_repo = ArtifactRepository(db)
         counts = art_repo.count_by_type(ws.workspace_id)
+
+        # Gather data source and evidence stats
+        try:
+            from decision_system.data_sources.store import DataSourceStore
+            ds_store = DataSourceStore()
+            data_sources = ds_store.list_by_workspace(ws.workspace_id)
+            ds_count = len(data_sources)
+            doc_count = sum(1 for s in data_sources if s.source_type == "document")
+            dataset_count = sum(1 for s in data_sources if s.source_type == "dataset")
+            indexed_count = sum(1 for s in data_sources if s.status == "indexed")
+            failed_count = sum(1 for s in data_sources if s.status == "failed")
+
+            # Chunk count from store
+            chunk_count = 0
+            for s in data_sources:
+                chunks = ds_store.load_chunks(ws.workspace_id, s.source_id)
+                chunk_count += len(chunks)
+        except Exception:
+            ds_count = 0
+            doc_count = 0
+            dataset_count = 0
+            indexed_count = 0
+            failed_count = 0
+            chunk_count = 0
+
+        # Claim stats
+        try:
+            from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
+            from pathlib import Path
+            claim_store = JSONClaimStore(Path(".decision_system"))
+            claim_summary = claim_store.summary(workspace_id=ws.workspace_id)
+        except Exception:
+            claim_summary = {}
+
+        # Report count
+        report_count = 0
+        reports_dir = Path(".decision_system") / "reports" / ws.workspace_id
+        if reports_dir.exists():
+            report_count = len(list(reports_dir.glob("*.json")))
+
         return {
             "status": "ok",
             "workspace": to_jsonable(ws),
             "artifact_counts": counts,
             "database_path": _db_path(),
+            "data_source_count": ds_count,
+            "document_count": doc_count,
+            "dataset_count": dataset_count,
+            "indexed_document_count": indexed_count,
+            "failed_source_count": failed_count,
+            "chunk_count": chunk_count,
+            "claim_count": claim_summary.get("total", 0),
+            "claims_with_evidence": claim_summary.get("claims_with_evidence", 0),
+            "claims_without_evidence": claim_summary.get("claims_without_evidence", 0),
+            "evidence_coverage_score": claim_summary.get("evidence_coverage_score_v2", 0),
+            "report_count": report_count,
         }
     finally:
         db.close()

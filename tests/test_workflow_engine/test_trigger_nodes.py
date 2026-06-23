@@ -238,7 +238,7 @@ class TestTriggerNodeRegistry:
         from decision_system.workflow_engine.nodes import create_default_registry
         registry = create_default_registry()
         types = registry.list_types()
-        assert len(types) == 28  # 16 original + 3 trigger + 4 specialist + 1 review_gate + 4 new specialist (planner, auditor, compliance, code)
+        assert len(types) == 29  # +1 for EvidenceSearchNode  # 16 original + 3 trigger + 4 specialist + 1 review_gate + 4 new specialist (planner, auditor, compliance, code)
 
     def test_new_trigger_nodes_appear_in_list_types(self):
         from decision_system.workflow_engine.nodes import create_default_registry

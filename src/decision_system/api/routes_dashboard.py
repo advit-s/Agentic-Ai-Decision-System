@@ -101,3 +101,66 @@ def get_dashboard() -> dict:
         "phase_2_ready": True,
         "quick_links": quick_links,
     }
+
+    # Data source and evidence stats (computed after dashboard return)
+    data_source_count = 0
+    indexed_count = 0
+    recommended_actions = []
+
+    try:
+        from decision_system.data_sources.store import DataSourceStore
+        ds_store = DataSourceStore()
+        from decision_system.config import load_settings
+        from decision_system.storage.sqlite_store import DatabaseConnection
+        from decision_system.storage.repositories import WorkspaceRepository
+        from decision_system.storage.migrations import run_migrations
+        settings = load_settings()
+        db = DatabaseConnection(settings.workspace_db_path)
+        db.connect()
+        run_migrations(db.connect())
+        ws_repo = WorkspaceRepository(db)
+        ws = ws_repo.get_active()
+        if ws:
+            sources = ds_store.list_by_workspace(ws.workspace_id)
+            data_source_count = len(sources)
+            indexed_count = sum(1 for s in sources if s.status == "indexed")
+        db.close()
+    except Exception:
+        pass
+
+    if data_source_count == 0:
+        recommended_actions.append("Upload your first document")
+    elif indexed_count == 0:
+        recommended_actions.append("Index uploaded documents")
+    else:
+        recommended_actions.append("Run evidence search")
+        recommended_actions.append("Create a workflow using workspace evidence")
+        recommended_actions.append("Generate a report from an execution")
+
+    return {
+        "version": __version__,
+        "provider": provider,
+        "mock_mode": provider == "fake",
+        "api_status": "ok",
+        "workspace_status": workspace_status,
+        "index_status": index_status,
+        "connector_count": connector_count,
+        "insight_count": insight_count,
+        "ontology_concepts": 38,
+        "graph_entities": graph_entities,
+        "graph_relationships": graph_relationships,
+        "war_room_runs": war_room_runs,
+        "data_profiles": profile_count,
+        "system_ready": True,
+        "last_audit": datetime.now(timezone.utc).isoformat(),
+        "project_info": {
+            "name": "Agentic AI Decision System",
+            "description": "Company Intelligence Engine — local evidence, bounded analysis, claim verification, cited decision reports.",
+        },
+        "phase_1_ready": True,
+        "phase_2_ready": True,
+        "quick_links": quick_links,
+        "data_source_count": data_source_count,
+        "indexed_document_count": indexed_count,
+        "recommended_actions": recommended_actions,
+    }
