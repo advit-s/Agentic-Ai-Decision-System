@@ -15,6 +15,11 @@ class DataSourceStatus(str):
     PARSED = "parsed"
     INDEXED = "indexed"
     FAILED = "failed"
+    PARSING = "parsing"
+    PARSED_WITH_WARNINGS = "parsed_with_warnings"
+    INDEXING = "indexing"
+    UNSUPPORTED = "unsupported"
+    DELETED = "deleted"
 
 
 class DataSource(BaseModel):
@@ -69,6 +74,30 @@ class DatasetProfile(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+
+
+class ParseResult(BaseModel):
+    """Result from a document parser."""
+
+    source_id: str
+    workspace_id: str
+    text: str = ""
+    pages: list[dict[str, Any]] | None = None
+    tables: list[dict[str, Any]] | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    parser_name: str = ""
+    parser_version: str | None = None
+    chunks: list[DataSourceChunk] = Field(default_factory=list)
+
+
+class ParsedBlock(BaseModel):
+    """A structured block from a parsed document (paragraph, heading, table)."""
+
+    block_type: str  # paragraph | heading | table
+    text: str = ""
+    index: int = 0
+    metadata: dict[str, Any] = Field(default_factory=dict)
 class EvidenceSearchResult(BaseModel):
     """A single evidence search result item."""
 

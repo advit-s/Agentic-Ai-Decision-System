@@ -20,8 +20,10 @@ def test_is_parsable():
     assert is_parsable(".txt") is True
     assert is_parsable(".md") is True
     assert is_parsable(".json") is True
-    assert is_parsable(".pdf") is False
+    assert is_parsable(".pdf") is True  # PDF is now supported
     assert is_parsable(".csv") is False  # CSV is profiled, not parsed as text
+    assert is_parsable(".docx") is True  # DOCX is now supported
+    assert is_parsable(".xlsx") is True  # XLSX is now supported
 
 
 def test_parse_text():
@@ -60,7 +62,7 @@ def test_parse_empty():
 
 
 def test_parse_unsupported():
-    chunks, warnings = parse_document("content", ".pdf", "src1", "ws1")
+    chunks, warnings = parse_document("content", ".xyz", "src1", "ws1")
     assert len(chunks) == 0
     assert any("unsupported" in w.lower() for w in warnings)
 

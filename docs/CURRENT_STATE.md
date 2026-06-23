@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
  > **Last updated:** 2026-06-23
- > **Package version:** 1.22.1-dev
- > **Previous milestone:** v1.20.1 — Trust UI + Audit Wiring + Release Hardening
- > **Current milestone:** v1.22.1 — Provider API Route Fix + Release Stabilization
+ > **Package version:** 1.23.0-dev
+> **Previous milestone:** v1.22.1 — Provider API Route Fix + Release Stabilization
+> **Current milestone:** v1.23 — Document Parsing Expansion + PDF/DOCX/XLSX Support
 > **Python:** >=3.11
 
 ---
@@ -139,7 +139,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 | Webhook dispatch | ✅ **Live** | Webhook triggers match schedules and execute workflows |
 | Workspace CRUD | ✅ **Live** | Basic workspace operations work |
 | Workspace-scoped routes | ✅ **Live** | Workflows, executions, reviews, overview by workspace |
-| Document management | ✅ **Live** | Upload, list, delete documents |
+| Document management | ✅ **Production** | Upload, list, delete, parse, index, preview documents; supports PDF, DOCX, XLSX, CSV, TXT, MD, JSON |
 | Report generation | ✅ **Live** | Generate and view reports |
 | Ontology mapping | ✅ **Live** | Map and view ontology |
 | Security scanning | ✅ **Live** | Secret scanning, redaction, policy checks |

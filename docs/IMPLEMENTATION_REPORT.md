@@ -1,9 +1,9 @@
 # Implementation Report — Local-First Agentic Decision System
 
 > **Date:** 2026-06-23
-> **Package version:** 1.22.1-dev
-> **Previous milestone:** v1.22 — Visual Workflow Builder Productization
-> **Current milestone:** v1.22.1 — Provider API Route Fix + Release Stabilization
+> **Package version:** 1.23.0-dev
+> **Previous milestone:** v1.22.1 — Provider API Route Fix + Release Stabilization
+> **Current milestone:** v1.23 — Document Parsing Expansion + PDF/DOCX/XLSX Support
 
 ---
 
@@ -236,6 +236,153 @@ cd web/workflow-builder && npm run build
 | Verification | 68 | ✅ Pass |
 | Frontend | 35 | ✅ Pass |
 | Frontend build | — | ✅ Pass |
+
+## v1.23 — Document Parsing Expansion + PDF/DOCX/XLSX Support
+
+v1.23 expands the local data ingestion layer to handle real business files: PDF reports, DOCX contracts, and XLSX financial sheets. The parser module has been rewritten with a class-based architecture and registry pattern, enabling deterministic parser selection and consistent metadata propagation through the evidence pipeline.
+
+### Summary
+
+v1.23 makes PDF, DOCX, and XLSX files searchable, citable workspace evidence — all processed locally without cloud services or OCR.
+
+### Version
+
+- Bumped to 1.23.0-dev
+- Files: pyproject.toml, src/decision_system/__init__.py, docs/CURRENT_STATE.md, docs/IMPLEMENTATION_REPORT.md, CHANGELOG.md
+
+### Parser dependencies
+
+| Library | Usage | Optional? |
+|---------|-------|-----------|
+| pypdf | PDF text extraction | Yes (doc-parsing extra) |
+| python-docx | DOCX paragraph/table parsing | Yes (doc-parsing extra) |
+| openpyxl | XLSX sheet profiling and row extraction | Yes (doc-parsing extra) |
+| lxml | XML parsing (installed as openpyxl dependency) | Yes (transitive) |
+
+All parsers fail gracefully with clear error messages when dependencies are missing.
+
+### Parser registry
+
+New file: `src/decision_system/data_sources/parser.py` rewritten with:
+- `BaseParser` abstract base class with `parse()` method and `supported_extensions`
+- `TextParser` — `.txt`, `.md` files (paragraph-based chunking)
+- `JsonParser` — `.json` files (top-level key/element chunks)
+- `PdfParser` — `.pdf` files (page-level text with pypdf)
+- `DocxParser` — `.docx` files (paragraph, heading, table detection)
+- `XlsxParser` — `.xlsx` files (sheet profiling and row-level chunks)
+- `get_parser(ext)` function for deterministic parser lookup
+- Backward-compatible `parse_document()` accepts both string content and Path
+
+### PDF support
+
+- Text extraction via pypdf (`PdfReader`)
+- Page-level chunks preserve `page_number` in metadata
+- Page count, title, author extracted from PDF metadata
+- Warnings for empty/scanned pages (no extractable text)
+- Clear error for encrypted PDFs
+- No OCR support (intentional limitation)
+
+### DOCX support
+
+- Paragraph and heading extraction via python-docx
+- Table detection with markdown-format row output
+- Block-type metadata (`paragraph`, `heading`, `table`) in each chunk
+- Paragraph count and table count in document metadata
+- Warning for empty documents
+
+### XLSX support
+
+- Sheet detection, row count, column count per sheet
+- Column profiling: numeric/categorical type detection, missing values, min/max/mean
+- Searchable text per sheet (headers + sample rows + summary)
+- Per-row chunks for fine-grained evidence search
+- Warning for empty sheets
+- Values-only extraction (data_only=True, no formula execution)
+- Read-only mode (no modification)
+
+### Data source status model
+
+Expanded from 4 to 9 statuses:
+- `UPLOADED`, `PARSING`, `PARSED`, `PARSED_WITH_WARNINGS`, `INDEXING`, `INDEXED`, `FAILED`, `UNSUPPORTED`, `DELETED`
+
+### API changes
+
+| Endpoint | Change |
+|----------|--------|
+| POST /workspaces/{ws}/data-sources/{id}/parse | Rewritten to use parser registry; supports PDF, DOCX, XLSX; generates CSV/XLSX profiles |
+| GET /workspaces/{ws}/data-sources/{id}/chunks | New — retrieve parsed chunks with metadata |
+| GET /workspaces/{ws}/data-sources/{id}/preview | New — preview first 5 chunks, metadata, warnings, profile |
+| POST /workspaces/{ws}/data-sources/upload | Added file extension validation and 100 MB size limit |
+
+### Security hardening
+
+- Path traversal protection (filename sanitization — removes "..", "/", "\\")
+- Allowed extensions whitelist
+- 100 MB file size limit
+- XLSX formulas are read as values only, not executed
+- All file writes are under `.decision_system/`
+
+### Chunk metadata improvements
+
+- PDF chunks: `page_number`, `source_name`, `parser`
+- DOCX chunks: `block_type` (paragraph/heading/table), `source_name`, `parser`
+- XLSX chunks: `sheet_name`, `source_name`, `parser`
+- All chunks preserve `file_type`, `workspace_id`, `source_id` through EvidenceSearchResult
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `pyproject.toml` | Version bumped to 1.23.0-dev; added doc-parsing optional deps |
+| `src/decision_system/__init__.py` | Version bumped to 1.23.0-dev |
+| `CHANGELOG.md` | Added v1.23 changelog section |
+| `docs/CURRENT_STATE.md` | Updated version, milestone, production status |
+| `docs/IMPLEMENTATION_REPORT.md` | This file — v1.23 report section |
+| `src/decision_system/data_sources/__init__.py` | Added new class exports |
+| `src/decision_system/data_sources/models.py` | Added ParseResult, ParsedBlock, expanded DataSourceStatus |
+| `src/decision_system/data_sources/parser.py` | Rewritten with parser registry, PDF/DOCX/XLSX parsers |
+| `src/decision_system/api/routes_data_sources.py` | Updated parse endpoint, added chunks/preview, safety checks |
+| `tests/test_data_sources/test_parser.py` | Updated assertions for new parser registry and supported types |
+
+### Tests added/updated
+
+- Updated `test_is_parsable` for PDF/DOCX/XLSX support
+- Updated `test_parse_unsupported` to use truly unsupported extension
+- Existing 44 data source tests pass
+
+### Commands run
+
+```bash
+python -m pytest tests/test_data_sources -q
+python -m pytest tests/test_verification -q
+python -m pytest tests/test_workflow_engine/test_api.py::TestProviderAPI -q
+cd web/workflow-builder && npm test
+cd web/workflow-builder && npm run build
+```
+
+### Passing tests
+
+| Suite | Count | Status |
+|-------|-------|--------|
+| Data sources | 44 | ✅ Pass |
+| Verification | 68 | ✅ Pass |
+| Provider API | 20 | ✅ Pass |
+| Frontend | 35 | ✅ Pass |
+| Frontend build | — | ✅ Pass |
+
+### Known limitations (v1.23)
+
+1. **PDF text-only**: Scanned/image PDFs produce warnings about no extractable text. OCR is intentionally excluded.
+2. **XLSX formulas**: Read as cached values only (data_only=True). No formula execution.
+3. **Docker smoke test**: Not run in this environment.
+4. **DOCX embedded images**: Not extracted.
+5. **No HTML parser**: lxml is available as a dependency but HTML parser not yet integrated.
+
+### Recommended next milestone
+
+v1.24 — Knowledge Graph + Entity/Risk Extraction v2
+
+---
 
 ## Non-negotiable rules enforced
 

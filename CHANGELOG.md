@@ -16,6 +16,38 @@
 
 ---
 
+## [1.23.0] - 2026-06-23 — Document Parsing Expansion + PDF/DOCX/XLSX Support
+### Added
+- **Parser registry**: `BaseParser` ABC with `TextParser`, `JsonParser`, `PdfParser`, `DocxParser`, `XlsxParser`
+- **PDF text parsing**: Local text extraction via pypdf with page-level chunks and metadata
+- **DOCX parsing**: Local paragraph/heading/table extraction via python-docx with block-type metadata
+- **XLSX parsing**: Sheet detection, profiling, searchable text via openpyxl with per-row chunks
+- **CSV profiling**: Column type detection, missing value analysis, numeric/categorical summaries
+- **ParseResult model**: Structured parse output with text, pages, tables, metadata, warnings
+- **DataSourceStatus**: Added PARSING, PARSED_WITH_WARNINGS, INDEXING, UNSUPPORTED, DELETED statuses
+- **Chunks/preview endpoints**: GET /workspaces/{ws}/data-sources/{id}/chunks and /preview
+- **File safety checks**: Allowed extension validation, path traversal protection, 100 MB size limit
+- **Audit events**: document_parse_started, document_parse_completed, document_parse_failed
+- **Dependencies**: Added pypdf, python-docx, openpyxl as optional doc-parsing extras
+### Changed
+- Version bumped from 1.22.1-dev to 1.23.0-dev
+- Parser module rewritten with class-based architecture and parser registry
+- Parse endpoint handles PDF/DOCX/XLSX files through local parsers
+- Data source statuses expanded to cover full parse/index lifecycle
+- Evidence chunk metadata includes page_number, sheet_name, block_type where available
+- Docs updated to reflect new file type support and limitations
+### Removed
+- No features removed
+### Fixed
+- CSV parse now correctly saves profile and updates status without overwriting
+### Known limitations
+- PDF support is text-extraction only. Scanned image PDFs require OCR (intentionally excluded)
+- XLSX formulas are read as values only (data_only=True), no formula execution
+- No HTML parser yet (available via lxml but not integrated)
+- DOCX embedded images are not extracted
+
+---
+
 ## [1.22.0] - 2026-06-23 — Visual Workflow Builder Productization
 ### Added
 - **Version identity**: Updated to 1.22.0-dev for the v1.22 milestone.

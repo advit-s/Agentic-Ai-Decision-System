@@ -15,14 +15,22 @@ from pydantic import BaseModel
 
 from decision_system.data_sources.models import (
     DataSource,
+    DataSourceChunk,
+    DataSourceStatus,
+    DatasetProfile,
     EvidenceSearchResponse,
     EvidenceSearchResult,
+    ParseResult,
 )
 from decision_system.data_sources.parser import (
     get_supported_extensions,
     parse_document,
     profile_csv,
     profile_json_content,
+    get_parser,
+    PdfParser,
+    DocxParser,
+    XlsxParser,
 )
 from decision_system.data_sources.store import DataSourceStore
 
@@ -49,12 +57,17 @@ def _get_file_type(filename: str) -> str:
 
 
 def _get_source_type(file_type: str) -> str:
-    if file_type in ("csv", "xlsx", "json"):
+
+
+
+    """Map file extension to source type."""
+    doc_types = {"pdf", "docx", "txt", "md", "html", "json", "xml"}
+    dataset_types = {"csv", "xlsx", "xls", "tsv"}
+    if file_type in doc_types:
+        return "document"
+    elif file_type in dataset_types:
         return "dataset"
-    return "document"
-
-
-
+    return "unknown"
 def _emit_audit_event(event_type: str, data: dict) -> None:
     """Emit an audit event."""
     try:
@@ -195,89 +208,135 @@ def delete_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
 
 @router.post("/workspaces/{workspace_id}/data-sources/{source_id}/parse")
 def parse_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
-    """Parse a document or dataset data source into chunks.
+    """Parse a document or dataset file into chunks using the local parser.
 
-    For document types (txt, md, json): produces text chunks.
-    For dataset types (csv): produces a profile.
+    Supports txt, md, json, pdf, docx, csv, xlsx.
+    PDF uses text extraction only (no OCR).
+    XLSX and CSV also produce a dataset profile.
     """
     store = _get_store()
     source = store.load(workspace_id, source_id)
     if source is None:
         raise HTTPException(status_code=404, detail="Data source not found")
 
-    if source.file_type == "csv":
-        # Profile CSV
-        file_path = Path(source.local_path) if source.local_path else None
-        if not file_path or not file_path.exists():
-            raise HTTPException(status_code=400, detail="File not found on disk")
+    file_path = Path(source.local_path) if source.local_path else None
+    if not file_path or not file_path.exists():
+        raise HTTPException(status_code=400, detail="File not found on disk")
 
+    store.update_status(workspace_id, source_id, DataSourceStatus.PARSING)
+    _emit_audit_event("document_parse_started", {
+        "source_id": source_id,
+        "workspace_id": workspace_id,
+        "file_type": source.file_type,
+    })
+
+    ext = f".{source.file_type}"
+    # CSV is handled via profile, not the parser registry
+    if source.file_type == "csv":
+        return _parse_csv(store, source, file_path, workspace_id, source_id)
+
+    parser = get_parser(ext)
+    if parser is None:
+        store.update_status(workspace_id, source_id, DataSourceStatus.UNSUPPORTED,
+                           f"No parser for {ext}")
+        raise HTTPException(status_code=400,
+                           detail=f"No parser available for file type: {source.file_type}")
+
+    try:
+        result = parser.parse(file_path, source_id, workspace_id)
+    except Exception as e:
+        store.update_status(workspace_id, source_id, DataSourceStatus.FAILED, str(e))
+        _emit_audit_event("document_parse_failed", {
+            "source_id": source_id,
+            "workspace_id": workspace_id,
+            "error": str(e),
+        })
+        raise HTTPException(status_code=400, detail=str(e))
+
+    has_warnings = len(result.warnings) > 0
+    has_chunks = len(result.chunks) > 0
+
+    if has_chunks:
+        store.save_chunks(result.chunks)
+
+    status = DataSourceStatus.PARSED_WITH_WARNINGS if has_warnings else DataSourceStatus.PARSED
+    store.update_status(workspace_id, source_id, status)
+
+    # Save parser metadata
+    meta = dict(source.metadata or {})
+    meta["parser_name"] = result.parser_name
+    meta["parser_version"] = result.parser_version or ""
+    meta["chunk_count"] = len(result.chunks)
+    meta["warnings"] = result.warnings
+    # Reload to get updated status from update_status()
+    source = store.load(workspace_id, source_id) or source
+    source.metadata = meta
+    store.save(source)
+
+    # Generate profile for datasets
+    profile_data = None
+    if source.file_type == "csv":
+        from datetime import datetime, timezone
         content = file_path.read_text(encoding="utf-8")
         profile_data = profile_csv(content, source_id, workspace_id)
-
-        if "error" in profile_data:
-            store.update_status(workspace_id, source_id, "failed", profile_data["error"])
-            raise HTTPException(status_code=400, detail=profile_data["error"])
-
-        # Save the profile
+        if "error" not in profile_data:
+            profile = DatasetProfile(
+                profile_id=str(uuid4()),
+                source_id=source_id,
+                workspace_id=workspace_id,
+                row_count=profile_data.get("row_count", 0),
+                column_count=profile_data.get("column_count", 0),
+                columns=profile_data.get("columns", []),
+                column_types=profile_data.get("column_types", {}),
+                missing_values=profile_data.get("missing_values", {}),
+                numeric_summary=profile_data.get("numeric_summary", {}),
+                categorical_summary=profile_data.get("categorical_summary", {}),
+                date_like_columns=profile_data.get("date_like_columns", []),
+                sample_rows=profile_data.get("sample_rows", []),
+                warnings=profile_data.get("warnings", []),
+                created_at=datetime.now(timezone.utc),
+            )
+            store.save_profile(profile)
+            meta["profile_available"] = True
+    elif source.file_type == "xlsx":
         from datetime import datetime, timezone
-        from decision_system.data_sources.models import DatasetProfile
-        profile = DatasetProfile(
-            profile_id=str(uuid4()),
-            source_id=source_id,
-            workspace_id=workspace_id,
-            row_count=profile_data.get("row_count", 0),
-            column_count=profile_data.get("column_count", 0),
-            columns=profile_data.get("columns", []),
-            column_types=profile_data.get("column_types", {}),
-            missing_values=profile_data.get("missing_values", {}),
-            numeric_summary=profile_data.get("numeric_summary", {}),
-            categorical_summary=profile_data.get("categorical_summary", {}),
-            date_like_columns=profile_data.get("date_like_columns", []),
-            sample_rows=profile_data.get("sample_rows", []),
-            warnings=profile_data.get("warnings", []),
-            created_at=datetime.now(timezone.utc),
-        )
-        store.save_profile(profile)
-        store.update_status(workspace_id, source_id, "parsed")
+        xlsx_parser = XlsxParser()
+        profile_result = xlsx_parser.profile(file_path, source_id, workspace_id)
+        if "error" not in profile_result:
+            profile = DatasetProfile(
+                profile_id=str(uuid4()),
+                source_id=source_id,
+                workspace_id=workspace_id,
+                row_count=sum(s.get("row_count", 0) for s in profile_result.get("sheets", [])),
+                column_count=sum(s.get("column_count", 0) for s in profile_result.get("sheets", [])),
+                columns=[col for s in profile_result.get("sheets", []) for col in s.get("columns", [])],
+                warnings=[w for s in profile_result.get("sheets", []) for w in s.get("warnings", [])],
+                created_at=datetime.now(timezone.utc),
+            )
+            store.save_profile(profile)
+            profile_data = profile_result
+            meta["profile_available"] = True
+    # Reload to get updated status from update_status()
+    source = store.load(workspace_id, source_id) or source
+    source.metadata = meta
+    store.save(source)
 
-        return {
-            "status": "parsed",
-            "source_id": source_id,
-            "profile": profile_data,
-            "warnings": profile_data.get("warnings", []),
-        }
+    _emit_audit_event("document_parse_completed", {
+        "source_id": source_id,
+        "workspace_id": workspace_id,
+        "file_type": source.file_type,
+        "chunk_count": len(result.chunks),
+        "warnings_count": len(result.warnings),
+    })
 
-    elif source.file_type in ("txt", "md", "json"):
-        # Parse document
-        file_path = Path(source.local_path) if source.local_path else None
-        if not file_path or not file_path.exists():
-            raise HTTPException(status_code=400, detail="File not found on disk")
-
-        content = file_path.read_text(encoding="utf-8")
-        ext = f".{source.file_type}"
-        chunks, warnings = parse_document(content, ext, source_id, workspace_id)
-
-        if not chunks and not warnings:
-            store.update_status(workspace_id, source_id, "failed", "No content parsed")
-            raise HTTPException(status_code=400, detail="No content to parse")
-
-        store.save_chunks(chunks)
-        status = "parsed" if not any("error" in w.lower() for w in warnings) else "failed"
-        store.update_status(workspace_id, source_id, status)
-
-        return {
-            "status": status,
-            "source_id": source_id,
-            "chunk_count": len(chunks),
-            "warnings": warnings,
-        }
-
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Parsing not supported for file type: {source.file_type}",
-        )
-
+    return {
+        "status": status,
+        "source_id": source_id,
+        "chunk_count": len(result.chunks),
+        "warnings": result.warnings,
+        "metadata": result.metadata,
+        "profile": profile_data,
+    }
 
 @router.post("/workspaces/{workspace_id}/data-sources/{source_id}/index")
 def index_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
@@ -487,3 +546,89 @@ def search_evidence(
         retrieval_mode="keyword",
         total_results=len(results),
     )
+
+def _parse_csv(store, source, file_path, workspace_id, source_id):
+    """Parse a CSV file: generate profile and return result."""
+    from datetime import datetime, timezone
+    content = file_path.read_text(encoding="utf-8")
+    profile_data = profile_csv(content, source_id, workspace_id)
+
+    if "error" in profile_data:
+        store.update_status(workspace_id, source_id, DataSourceStatus.FAILED, profile_data["error"])
+        raise HTTPException(status_code=400, detail=profile_data["error"])
+
+    profile = DatasetProfile(
+        profile_id=str(uuid4()),
+        source_id=source_id,
+        workspace_id=workspace_id,
+        row_count=profile_data.get("row_count", 0),
+        column_count=profile_data.get("column_count", 0),
+        columns=profile_data.get("columns", []),
+        column_types=profile_data.get("column_types", {}),
+        missing_values=profile_data.get("missing_values", {}),
+        numeric_summary=profile_data.get("numeric_summary", {}),
+        categorical_summary=profile_data.get("categorical_summary", []),
+        date_like_columns=profile_data.get("date_like_columns", []),
+        sample_rows=profile_data.get("sample_rows", []),
+        warnings=profile_data.get("warnings", []),
+        created_at=datetime.now(timezone.utc),
+    )
+    store.save_profile(profile)
+    store.update_status(workspace_id, source_id, DataSourceStatus.PARSED)
+
+    # Update source metadata
+    source = store.load(workspace_id, source_id) or source
+    meta = dict(source.metadata or {})
+    meta["parser_name"] = "csv-profiler"
+    meta["profile_available"] = True
+    meta["warnings"] = profile_data.get("warnings", [])
+    source.metadata = meta
+    store.save(source)
+
+    return {
+        "status": DataSourceStatus.PARSED,
+        "source_id": source_id,
+        "chunk_count": 0,
+        "warnings": profile_data.get("warnings", []),
+        "metadata": {"parser": "csv-profiler"},
+        "profile": profile_data,
+    }
+
+
+
+@router.get("/workspaces/{workspace_id}/data-sources/{source_id}/chunks")
+def get_data_source_chunks(workspace_id: str, source_id: str) -> dict[str, Any]:
+    """Retrieve parsed chunks for a data source."""
+    store = _get_store()
+    source = store.load(workspace_id, source_id)
+    if source is None:
+        raise HTTPException(status_code=404, detail="Data source not found")
+    chunks = store.load_chunks(workspace_id, source_id)
+    return {
+        "source_id": source_id,
+        "chunk_count": len(chunks),
+        "chunks": [c.model_dump(mode="json") for c in chunks],
+    }
+
+
+@router.get("/workspaces/{workspace_id}/data-sources/{source_id}/preview")
+def get_data_source_preview(workspace_id: str, source_id: str) -> dict[str, Any]:
+    """Preview a parsed data source: first chunks, metadata, warnings, profile."""
+    store = _get_store()
+    source = store.load(workspace_id, source_id)
+    if source is None:
+        raise HTTPException(status_code=404, detail="Data source not found")
+    chunks = store.load_chunks(workspace_id, source_id)
+    profile = store.load_profile(workspace_id, source_id)
+    return {
+        "source_id": source_id,
+        "name": source.name,
+        "file_type": source.file_type,
+        "status": source.status,
+        "chunk_count": len(chunks),
+        "preview_chunks": [c.model_dump(mode="json") for c in chunks[:5]],
+        "warnings": source.metadata.get("warnings", []) if source.metadata else [],
+        "metadata": source.metadata,
+        "profile": profile.model_dump(mode="json") if profile else None,
+        "error_message": source.error_message,
+    }
