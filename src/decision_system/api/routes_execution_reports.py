@@ -211,8 +211,13 @@ def _export_markdown(report_data: dict[str, Any]) -> str:
 
 
 @router.post("/executions/{execution_id}/report")
-def generate_execution_report(execution_id: str) -> dict[str, Any]:
+def generate_execution_report(execution_id: str, mode: str = "deterministic") -> dict[str, Any]:
     """Generate a report from a workflow execution with evidence references.
+
+    The ``mode`` parameter controls report generation:
+    - ``deterministic`` (default): Local deterministic trust report from verified claims.
+    - ``trust_ai_draft``: AI-assisted draft where AI writes prose but trust data
+      (claim statuses, evidence references) remains authoritative.
 
     Report is saved locally under .decision_system/reports/{workspace_id}/.
     """
@@ -226,6 +231,46 @@ def generate_execution_report(execution_id: str) -> dict[str, Any]:
 
     claims = _load_claims_for_execution(execution_id)
     report_data = _generate_report_data(execution, claims)
+    # AI-assisted draft mode: use synthesis service to draft summary text
+    if mode == "trust_ai_draft":
+        try:
+            from decision_system.synthesis.service import run_synthesis
+            from decision_system.providers.store import list_providers
+            providers = list_providers()
+            provider_config = providers[0] if providers else None
+
+            evidence_items = []
+            for c in claims:
+                evidence_items.append({
+                    "id": c.get("claim_id", ""),
+                    "text": c.get("claim_text", ""),
+                    "source": f"claim/{c.get('claim_id', '')}",
+                })
+
+            synthesis = run_synthesis(
+                workspace_id=workspace_id,
+                question=execution.get("question", "Analysis report"),
+                evidence_results=evidence_items,
+                provider_config=provider_config,
+                synthesis_mode="summary",
+            )
+
+            if synthesis.summary_text:
+                report_data["ai_draft_summary"] = synthesis.summary_text
+                report_data["ai_draft_warnings"] = synthesis.warnings + synthesis.parse_warnings
+                report_data["synthesis_id"] = synthesis.synthesis_id
+                try:
+                    append_event("ai_report_draft_generated", f"AI draft for execution {execution_id}", metadata={
+                        "execution_id": execution_id,
+                        "workspace_id": workspace_id,
+                        "synthesis_id": synthesis.synthesis_id,
+                    })
+                except Exception:
+                    pass
+        except Exception:
+            report_data["ai_draft_summary"] = None
+            report_data["ai_draft_warnings"] = ["AI-assisted drafting unavailable"]
+
     saved_path = _save_report(workspace_id, report_data)
 
     # Emit audit event

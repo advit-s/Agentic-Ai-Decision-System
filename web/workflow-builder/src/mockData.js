@@ -687,6 +687,94 @@ const MOCK_NODE_TYPES = [
       },
     },
   },
+  {
+    type: "decision_system.contradiction_scan",
+    label: "Contradiction Scan",
+    description: "Scans workspace evidence for contradictions between claims.",
+    icon: "\u26a1",
+    color: "#dc2626",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        workspace_id: { type: "string", title: "Workspace ID" },
+      },
+    },
+    input_schema: { type: "object", properties: {} },
+    output_schema: { type: "object", properties: { contradictions: { type: "array" } } },
+  },
+  {
+    type: "decision_system.evidence_search",
+    label: "Evidence Search",
+    description: "Searches workspace evidence using keyword or vector retrieval.",
+    icon: "\ud83d\udd0d",
+    color: "#2563eb",
+    categories: ["data"],
+    config_schema: {
+      type: "object",
+      properties: {
+        workspace_id: { type: "string", title: "Workspace ID" },
+        query: { type: "string", title: "Search Query" },
+        max_results: { type: "integer", title: "Max Results", default: 10 },
+      },
+    },
+    input_schema: { type: "object", properties: {} },
+    output_schema: { type: "object", properties: { results: { type: "array" } } },
+  },
+  {
+    type: "decision_system.verification_summary",
+    label: "Verification Summary",
+    description: "Generates verification summary for execution or workspace.",
+    icon: "\ud83d\udcca",
+    color: "#059669",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        workspace_id: { type: "string", title: "Workspace ID" },
+      },
+    },
+    input_schema: { type: "object", properties: {} },
+    output_schema: { type: "object", properties: { summary: { type: "object" } } },
+  },
+  {
+    type: "decision_system.verify_claims_v2",
+    label: "Claim Verifier v2",
+    description: "Verifies claims against workspace evidence with supported/contradicted/unsupported/uncertain/needs_review statuses.",
+    icon: "\u2705",
+    color: "#059669",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        workspace_id: { type: "string", title: "Workspace ID" },
+        provider: { type: "string", title: "Provider", default: "fake", enum: ["fake"] },
+      },
+    },
+    input_schema: { type: "object", properties: { claims: { type: "array" } } },
+    output_schema: { type: "object", properties: { verified_claims: { type: "array" } } },
+  },
+  {
+    type: "decision_system.evidence_synthesis",
+    label: "Evidence Synthesis",
+    description: "Synthesizes evidence using AI, extracts claims, and optionally auto-verifies them.",
+    icon: "\ud83e\udde0",
+    color: "#7c3aed",
+    categories: ["ai"],
+    config_schema: {
+      type: "object",
+      properties: {
+        workspace_id: { type: "string", title: "Workspace ID" },
+        question: { type: "string", title: "Question / Objective" },
+        synthesis_mode: { type: "string", title: "Mode", default: "summary", enum: ["summary", "risks", "opportunities", "claims", "report_outline"] },
+        provider_id: { type: "string", title: "Provider" },
+        model: { type: "string", title: "Model" },
+        auto_verify: { type: "boolean", title: "Auto-Verify", default: false },
+      },
+    },
+    input_schema: { type: "object", properties: { evidence_results: { type: "array" } } },
+    output_schema: { type: "object", properties: { synthesis_id: { type: "string" }, summary_text: { type: "string" }, claim_ids: { type: "array" } } },
+  },
 ];
 
 const MOCK_WORKFLOWS = [
@@ -1234,6 +1322,28 @@ const MOCK_WORKFLOW_VERSIONS = [
       { source_node: "node-5", source_output: "default", target_node: "node-6", target_input: "default" },
       { source_node: "node-6", source_output: "default", target_node: "node-7", target_input: "default" },
       { source_node: "node-7", source_output: "default", target_node: "node-8", target_input: "default" },
+    ],
+  },
+  {
+    id: "wf-sample-3",
+    name: "AI-Assisted Evidence Synthesis",
+    description: "Search evidence, synthesize with AI, verify claims, and generate trust report",
+    nodes: [
+      { id: "node-1", type: "decision_system.trigger_manual", label: "Start", config: {}, error_policy: "fail_workflow" },
+      { id: "node-2", type: "decision_system.input_text", label: "Business Question", config: { text: "What are our key risks?" }, error_policy: "fail_workflow" },
+      { id: "node-3", type: "decision_system.evidence_search", label: "Search Evidence", config: { workspace_id: "ws-1", max_results: 10 }, error_policy: "fail_workflow" },
+      { id: "node-4", type: "decision_system.evidence_synthesis", label: "Synthesize Evidence", config: { synthesis_mode: "summary", auto_verify: true }, error_policy: "fail_workflow" },
+      { id: "node-5", type: "decision_system.contradiction_scan", label: "Contradiction Scan", config: { workspace_id: "ws-1" }, error_policy: "fail_workflow" },
+      { id: "node-6", type: "decision_system.review_gate", label: "Human Review", config: {}, error_policy: "pause_workflow" },
+      { id: "node-7", type: "decision_system.write_report", label: "Generate Report", config: { format: "markdown" }, error_policy: "fail_workflow" },
+    ],
+    connections: [
+      { source_node: "node-1", source_output: "default", target_node: "node-2", target_input: "default" },
+      { source_node: "node-2", source_output: "default", target_node: "node-3", target_input: "default" },
+      { source_node: "node-3", source_output: "default", target_node: "node-4", target_input: "default" },
+      { source_node: "node-4", source_output: "default", target_node: "node-5", target_input: "default" },
+      { source_node: "node-5", source_output: "default", target_node: "node-6", target_input: "default" },
+      { source_node: "node-6", source_output: "default", target_node: "node-7", target_input: "default" },
     ],
   },
 ];

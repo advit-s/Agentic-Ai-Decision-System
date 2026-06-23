@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
-> **Last updated:** 2026-06-23
-> **Package version:** 1.20.1-dev
-> **Previous milestone:** v1.20 — Intelligence Quality + Claim Verification v2
-> **Current milestone:** v1.20.1 — Trust UI + Audit Wiring + Release Hardening
+ > **Last updated:** 2026-06-23
+ > **Package version:** 1.21.0-dev
+ > **Previous milestone:** v1.20.1 — Trust UI + Audit Wiring + Release Hardening
+ > **Current milestone:** v1.21 — Local Provider Runtime + AI-Assisted Evidence Synthesis
 > **Python:** >=3.11
 
 ---
@@ -46,6 +46,14 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 | Evidence quality scoring | ✅ **Production** | Strong/moderate/weak/missing/contradicted labels per claim |
 | Verification API | ✅ **Production** | Claim, execution, and workspace-level verification endpoints |
 | Verification workflow nodes | ✅ **Production** | ClaimVerifierNode, ContradictionScanNode, VerificationSummaryNode |
+| Evidence Synthesis workflow node | ✅ **Production** | AI-assisted evidence synthesis with optional auto-verification |
+| Provider runtime | ✅ **Production** | Unified interface for fake, Ollama, OpenAI-compatible providers |
+| Provider configuration | ✅ **Production** | Local file-based provider store with env-var API keys |
+| Provider API | ✅ **Production** | Full CRUD, health checks, model listing, connection testing |
+| Prompt templates | ✅ **Production** | Grounded templates with anti-hallucination instructions |
+| Structured output parser | ✅ **Production** | Robust JSON/markdown/plain text parser |
+| AI-assisted report draft | ✅ **Production** | Optional AI-assisted report summarizing with trust preservation |
+| Demo workflows | ✅ **Production** | AI-Assisted Evidence Synthesis demo workflow |
 | Trust report format | ✅ **Production** | Verification summary, evidence table, contradictions, recommended next actions |
 | Local trust evaluation | ✅ **Production** | 53+ tests covering verification scenarios |
 | Verification API client | ✅ **Production** | Frontend JS client methods for all verification and trust report endpoints |

@@ -1,324 +1,128 @@
-# Local-First Setup Guide
+# Local-First Setup — Provider Runtime & AI-Assisted Evidence Synthesis
 
-This guide explains how to run the **Agentic Decision System** entirely locally,
-with no cloud accounts, no API keys, and all data stored on your machine.
+## Overview
 
----
+v1.21 adds a local provider runtime that enables AI-assisted evidence synthesis
+without requiring cloud API keys. You can use:
 
-## Quick Start (Docker Compose — Recommended)
+- **Fake provider** — built-in, deterministic, no network needed (default for dev/tests)
+- **Ollama** — local LLM server (recommended for offline use)
+- **OpenAI-compatible endpoint** — LM Studio, vLLM, LocalAI, etc.
+- **OpenAI / Anthropic** — cloud providers (requires API key)
 
-### Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) (v24+)
-- [Docker Compose](https://docs.docker.com/compose/install/) (v2.21+)
-
-### Start the app
+## Quick start (no API key needed)
 
 ```bash
-# Clone the repository (if not already cloned)
-git clone https://github.com/your-org/Agentic-Ai-Decision-System.git
-cd Agentic-Ai-Decision-System
+# The fake provider is pre-configured for development.
+# No setup required — all tests and demo workflows use it by default.
 
-# Start backend and frontend
-docker compose up
-```
-
-### Open the app
-
-```text
-Frontend:  http://localhost:3000
-Backend:   http://localhost:8000
-API Docs:  http://localhost:8000/docs
-```
-
-### Stop the app
-
-```bash
-docker compose down
-```
-
-Your data remains in `.decision_system/`.
-
-### Reset all local data
-
-```bash
-docker compose down
-rm -rf .decision_system/
-```
-
-> ⚠️ **Warning:** This permanently deletes all local workflows, executions,
-> reviews, claims, documents, and reports.
-
----
-
-## Manual Development Setup
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 20+
-- npm 9+
-
-### Backend setup
-
-```bash
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# .venv\Scripts\activate   # Windows
-
-# Install with dev dependencies
-python -m pip install -e ".[dev]"
-
-# Start the API server
-decision-system serve-api --host 0.0.0.0 --port 8000
-```
-
-### Frontend setup
-
-```bash
-cd web/workflow-builder
-npm install
-
-# Development mode (with hot reload)
-npm run dev
-
-# Production build
-npm run build
-```
-
-### Open the app
-
-```text
-Frontend (dev): http://localhost:5173
-Backend:        http://localhost:8000
-```
-
-The Vite dev server proxies API calls (`/workflows`, `/executions`, etc.)
-to the backend at `http://localhost:8000`.
-
----
-
-## Data Storage
-
-All persistent data is stored under `.decision_system/` in the project root:
-
-```text
-.decision_system/
-├── app.db              # Workspace metadata (SQLite)
-├── workflow_engine/    # Workflow definitions, executions, versions
-│   ├── workflows/      # Workflow JSON definitions
-│   ├── executions/     # Execution states
-│   ├── versions/       # Workflow version snapshots
-│   └── schedules/      # Schedule definitions
-├── files/              # Uploaded documents (future)
-├── datasets/           # Imported datasets (future)
-├── reports/            # Generated reports (future)
-├── vector_store/       # Chroma vector database (future)
-├── audits/             # Audit event logs (future)
-├── reviews/            # Review gate records
-├── providers/          # Provider configurations (future)
-└── workspaces/         # Workspace records
-```
-
-### Storage is configurable
-
-Set the `DECISION_SYSTEM_DATA_DIR` environment variable to change the
-data directory:
-
-```bash
-export DECISION_SYSTEM_DATA_DIR=/path/to/my/data
-docker compose up
-```
-
-### Data persistence guarantees
-
-- Workflow definitions survive restarts ✅
-- Workflow versions survive restarts ✅
-- Execution history survives restarts ✅
-- Schedule definitions survive restarts ✅
-- Review records survive restarts ✅
-- Provider configurations survive restarts ✅
-
----
-
-## AI Provider Setup
-
-The app starts with **fake/offline provider** by default — no API keys needed.
-
-### Configure a local AI provider
-
-#### Option 1: Ollama (Recommended)
-
-```bash
-# Install Ollama: https://ollama.com
-ollama pull llama3.2
-```
-
-Then add a provider in the UI:
-
-1. Open the Provider Manager (gear icon in toolbar)
-2. Click "Add Provider"
-3. Set:
-   - **Name:** `ollama`
-   - **API Base:** `http://localhost:11434/v1`
-   - **Default Model:** `llama3.2`
-4. Click "Check Connection" to verify
-5. Set as default
-
-#### Option 2: OpenAI-compatible local endpoint
-
-```bash
-# e.g., LocalAI, vLLM, Text Generation Inference
-```
-
-Add a provider in the UI with your local endpoint URL.
-
-#### Option 3: OpenAI API (requires key)
-
-Add a provider with:
-
-- **API Base:** `https://api.openai.com/v1`
-- **API Key Env:** `OPENAI_API_KEY`
-- **Default Model:** `gpt-4o-mini`
-
-Then set the environment variable when starting:
-
-```bash
-export OPENAI_API_KEY=sk-...
-docker compose up
-```
-
-### No provider configured?
-
-If no AI provider is configured, the app still starts and functions for:
-
-- Workflow creation and editing
-- Manual workflow execution (with fake provider)
-- Schedule management
-- Document browsing
-- Report viewing
-
-The UI will show a "No AI provider configured" message with setup options.
-
----
-
-## Testing
-
-### Backend tests
-
-```bash
-# All tests (requires venv activated)
-python -m pytest -q
-
-# Specific test files
-python -m pytest tests/test_workflow_engine/test_api.py -q
-python -m pytest tests/test_config.py tests/test_claim_ledger.py -q
-```
-
-### Frontend tests
-
-```bash
-cd web/workflow-builder
-npm test
-npm run build  # Verify production build
-```
-
----
-
-## CLI Commands
-
-```bash
-# Index local documents
+# Verify it works:
 decision-system index
-
-# Run a decision question
-decision-system ask "Should we migrate billing?"
-
-# Extract knowledge graph
-decision-system extract-graph
-
-# Profile data
-decision-system profile-data
-
-# Detect patterns
-decision-system detect-patterns
-
-# Run orchestration
-decision-system run-orchestration "Where are we losing money?"
-
-# Run war room
-decision-system run-war-room "Where are we losing money?"
+decision-system ask "What are the key risks?"
 ```
 
----
+## Ollama setup
 
-## Architecture
+1. Install Ollama from https://ollama.com
+2. Pull a model:
+   ```bash
+   ollama pull llama3.2
+   ```
+3. Ensure Ollama is running:
+   ```bash
+   curl http://localhost:11434/api/tags
+   ```
+4. Add a provider via the UI or API:
+   ```bash
+   curl -X POST http://localhost:8000/providers \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Local Ollama", "provider_type": "ollama", "base_url": "http://localhost:11434"}'
+   ```
+5. Test the connection:
+   ```bash
+   curl http://localhost:8000/providers/<provider_id>/test
+   ```
+6. Set as default:
+   ```bash
+   curl -X POST http://localhost:8000/providers/default?provider_id=<provider_id>
+   ```
 
-```text
-Browser UI (React + React Flow)
-    ↓ HTTP/WebSocket
-FastAPI Backend
-    ↓
-Local Workflow Engine (DAG executor)
-    ↓
-Local Stores (JSON/SQLite)
-    ↓
-.decision_system/  ← All data lives here
-```
+## OpenAI-compatible local endpoint setup
 
----
+Supports any server that provides an OpenAI-compatible API:
 
-## Known Limitations (MVP)
-
-- **Claim ledger** is in-memory per run; durable storage planned
-- **Reports** are generated in-memory; local file export planned
-- **Code node** is disabled by default (set `DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true` to enable)
-- **Vector store** (Chroma) data not yet stored under `.decision_system/`
-- **Audit logs** are partially wired; more events planned
-- **Workspace export/import** is in development
-
----
-
-## Troubleshooting
-
-### "Port already in use"
+- LM Studio: http://localhost:1234/v1
+- vLLM: http://localhost:8000/v1
+- LocalAI: http://localhost:8080/v1
+- Ollama (OpenAI-compatible mode): http://localhost:11434/v1
 
 ```bash
-# Check what's using port 8000 or 3000
-lsof -i :8000
-lsof -i :3000
-
-# Kill the process or use a different port
+curl -X POST http://localhost:8000/providers \
+  -H "Content-Type: application/json" \
+  -d '{"name": "LM Studio", "provider_type": "openai_compatible", "base_url": "http://localhost:1234/v1"}'
 ```
 
-### Docker build fails
+## Cloud provider setup
+
+Cloud providers require an API key supplied via environment variable:
 
 ```bash
-# Rebuild without cache
-docker compose build --no-cache
-
-# Check Docker logs
-docker compose logs backend
-docker compose logs frontend
+export OPENAI_API_KEY="sk-..."
 ```
 
-### Frontend shows blank page
+Then configure:
 
 ```bash
-# Clear browser cache and reload
-# Check browser console for errors
-# Ensure backend is running on port 8000
+curl -X POST http://localhost:8000/providers \
+  -H "Content-Type: application/json" \
+  -d '{"name": "OpenAI", "provider_type": "openai", "api_key_env": "OPENAI_API_KEY"}'
 ```
 
----
+## Security and privacy
 
-## Next Steps
+- **Local data stays local** unless you explicitly configure a cloud provider.
+- **Ollama/local endpoints** run on your machine or local network.
+- **Cloud providers** send selected evidence and prompts to the provider.
+- **API keys** should be supplied by environment variables, never stored in
+  config files or committed to version control.
+- Do **not** use cloud providers with sensitive data unless you understand the risk.
 
-- [ ] Try the quick start with Docker Compose
-- [ ] Create your first workspace
-- [ ] Build a workflow in the visual editor
-- [ ] Run a workflow and inspect execution history
-- [ ] Configure a local Ollama provider
-- [ ] Upload documents and run the indexing pipeline
-- [ ] Export a report
+## Provider statuses
+
+| Status | Meaning |
+|--------|---------|
+| `configured` | Provider is saved but not yet tested |
+| `healthy` | Provider is reachable and responsive |
+| `offline` | Provider endpoint is unreachable |
+| `missing_config` | Required API key is not set |
+| `error` | Provider returned an error |
+
+## Running the AI-assisted demo workflow
+
+```bash
+# This requires a configured provider (fake works without network)
+decision-system serve-api
+
+# Then in the UI (http://localhost:3000):
+# 1. Create a workspace
+# 2. Upload documents
+# 3. Configure a provider
+# 4. Load the "AI-Assisted Evidence Synthesis" workflow
+# 5. Run it
+```
+
+## How evidence synthesis works
+
+1. Evidence is retrieved from the workspace (vector or keyword search)
+2. Evidence is formatted and sent to the configured provider with a prompt template
+3. Provider generates structured output (summary, claims, risks, etc.)
+4. Output is parsed by the structured output parser
+5. Draft claims are saved as `pending` (not trusted)
+6. If auto-verify is enabled, claims are verified against workspace evidence
+7. Only verified claims appear in trust reports
+
+## Important honesty text
+
+> AI-assisted synthesis can help draft summaries and claims, but generated content
+> is not automatically trusted. Claims must be verified against local workspace
+> evidence, and unsupported or contradicted claims remain visible.

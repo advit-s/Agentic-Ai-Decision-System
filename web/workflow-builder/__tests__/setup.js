@@ -1,4 +1,16 @@
 // __tests__/setup.js — Test environment setup
+// Polyfill global fetch for jsdom (Node 18+ has it, but jsdom doesn't provide it)
+if (typeof globalThis.fetch === "undefined") {
+  // Minimal fetch polyfill that returns empty responses
+  // Tests using mock data won't call fetch; this prevents crashes
+  // for any tests that unexpectedly hit the live API path.
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({}),
+    text: async () => "",
+  });
+}
 
 // localStorage
 if (typeof globalThis.localStorage === "undefined") {
@@ -43,3 +55,8 @@ EventTarget.prototype.dispatchEvent = function (event) {
   }
   return origDispatch.call(this, event);
 };
+
+// Force API mock mode for all tests
+// jsdom defaults to port 3000 which triggers auto-detection in api.js getBaseUrl()
+import { _setMockOverride } from "../src/api";
+_setMockOverride(true);

@@ -1,5 +1,5 @@
 // __tests__/api.test.js
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   fetchNodeTypes,
   listWorkflows,
@@ -9,11 +9,16 @@ import {
   executeWorkflow,
   getExecution,
   isMockMode,
+  _setMockOverride,
 } from "../src/api";
 
 describe("api client (mock mode)", () => {
   beforeEach(() => {
+    _setMockOverride(true);
     localStorage.removeItem("wfBuilderApiBaseUrl");
+  });
+  afterEach(() => {
+    _setMockOverride(false);
   });
 
   it("is in mock mode when no base URL configured", () => {
@@ -22,7 +27,7 @@ describe("api client (mock mode)", () => {
 
   it("fetches node types", async () => {
     const types = await fetchNodeTypes();
-    expect(types.length).toBe(28);
+    expect(types.length).toBe(33);
     const typeNames = types.map((t) => t.type);
     expect(typeNames).toContain("decision_system.planner");
     expect(typeNames).toContain("decision_system.auditor");

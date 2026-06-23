@@ -18,8 +18,10 @@ import {
 } from "./mockData";
 
 const API_BASE_KEY = "wfBuilderApiBaseUrl";
+let _testMockOverride = false;
 
 function getBaseUrl() {
+  if (_testMockOverride) return "";
   const stored = localStorage.getItem(API_BASE_KEY);
   if (stored) return stored;
   // Auto-detect: when SPA is served from FastAPI backend, the API is at
@@ -553,6 +555,9 @@ function getReportMarkdown(reportId) {
   return exportReport(reportId, "md").then(r => r.content || r);
 }
 
+/** Exposed for test use only — overrides mock mode detection */
+function _setMockOverride(v) { _testMockOverride = v; }
+
 export {
   // Verification
   verifyClaim,
@@ -569,6 +574,7 @@ export {
   exportReport,
   getReportMarkdown,
   getBaseUrl,
+  _setMockOverride,
   isMockMode,
   fetchNodeTypes,
   listWorkflows,

@@ -1,6 +1,29 @@
- ## [1.20.0] - 2026-06-23 — Intelligence Quality + Claim Verification v2
+## [1.21.0] - 2026-06-23 — Local Provider Runtime + AI-Assisted Evidence Synthesis
+### Added
+- **Version identity**: Updated to 1.21.0-dev for the v1.21 milestone.
+- **Local provider runtime**: Provider model, store, and runtime interface supporting fake/dev, Ollama, and OpenAI-compatible local endpoints.
+- **Provider APIs**: Full CRUD endpoints for provider configuration, health checks, model listing, and connection testing.
+- **Fake provider**: Deterministic offline provider for development and testing.
+- **Ollama provider**: Support for Ollama local LLM with model listing, chat/generate, and health checks.
+- **OpenAI-compatible provider**: Support for LM Studio, vLLM, LocalAI, and similar local endpoints.
+- **Provider Manager UI**: Frontend provider configuration, health checks, model selection, and default provider setup.
+- **Evidence synthesis service**: AI-assisted summary, risk detection, opportunity detection, claim extraction, and report outlining from workspace evidence.
+- **Prompt templates**: Grounded prompt templates with anti-hallucination instructions for synthesis modes.
+- **Structured output parser**: Robust parser for AI output handling JSON, markdown-fenced JSON, and plain text fallback.
+- **EvidenceSynthesisNode**: Workflow node for AI-assisted evidence synthesis with optional auto-verification.
+- **AI-assisted report drafting**: Trust-preserving report generation where AI drafts prose but trust data remains authoritative.
+- **Demo workflow template**: Evidence Search → Synthesis → Verification → Contradiction Scan → Trust Report workflow.
+- **Provider/synthesis audit and observability**: Audit events and metrics for provider calls and synthesis operations.
+- **Security and privacy documentation**: Clear explanation of local vs cloud provider data handling.
+### Changed
+- Version bumped from 1.20.1-dev to 1.21.0-dev.
+- Frontend fetch test environment fixed with proper fetch mocking.
+- Backend test collection errors categorized and documented.
+- Frontend workflow builder updated with Evidence Synthesis node type.
+- Documentation updated for provider setup, synthesis service, and AI-assisted reports.
+---
+## [1.20.0] - 2026-06-23 — Intelligence Quality + Claim Verification v2
 ## [1.20.1] - 2026-06-23 — Trust UI + Audit Wiring + Release Hardening
-
 ### Added
 - **Version identity**: Updated to 1.20.1-dev for the v1.20.1 milestone.
 - **Verification API client**: Frontend API client methods for all verification and trust report endpoints.
@@ -13,18 +36,13 @@
 - **Observability metrics**: verification_duration_ms, claims_verified_count, contradictions_found_count, unsupported_claims_count, average_confidence, and more.
 - **Backend audit tests**: Tests cover audit event creation for verification and report actions.
 - **Documentation**: Updated CURRENT_STATE.md, CHANGELOG.md, and IMPLEMENTATION_REPORT.md.
-
 ### Changed
 - Version bumped from 1.20.0-dev to 1.20.1-dev.
 - Frontend components enhanced with verification/trust/report sections.
 - docs/CURRENT_STATE.md updated to reflect v1.20.1 completion.
-
 ### Fixed
 - No backend logic changes; all changes are UI/audit/observability additions.
-
 ---
-
-
 ### Added
 - **Version identity**: Updated to 1.20.0-dev for the v1.20 milestone.
 - **Claim verification v2**: Deterministic local claim verifier with supported/contradicted/unsupported/uncertain/needs_review statuses.
@@ -37,33 +55,25 @@
 - **Verification UI**: Frontend panels show claim status, evidence quality, contradictions, and verification summaries.
 - **Local trust evaluation suite**: Deterministic eval scenarios for claim verification quality.
 - **Audit events**: Verification actions and contradiction scans create audit records.
-
 ### Changed
 - Claim model expanded with new statuses and evidence quality fields.
 - Report renderer upgraded to produce trust-aware reports with full verification sections.
 - Documentation updated to explain verification capabilities and limitations.
 - Node registry test count updated (28→29) to match new evidence_search node.
-
 ### Fixed
 - WorkflowToolbar.jsx JSX syntax issue (let declarations inside JSX expressions).
 - Pre-existing test count assertion (28→29).
 ## [1.19.0] - 2026-06-23 — Local Data Sources + Evidence Intelligence Layer
-
 ### Added
 - **Version identity**: Updated to 1.19.0-dev for the v1.19 milestone.
-
 ## [1.16.2] - 2026-06-13 — Backend Hardening & Deprecation Cleanup
-
 ### Fixed
 - **Pydantic V2 deprecation**: Replaced class-based `Config` with `model_config = ConfigDict(...)` in workflow engine models.
 - **Starlette/httpx deprecation**: Installed `httpx2` to resolve `StarletteDeprecationWarning` about httpx TestClient.
 - **Version sync**: `pyproject.toml` bumped from 1.14.0 to 1.16.1 to match feature progress in CHANGELOG.
-
 ### Removed
 - **Skill artifacts**: Cleaned up skills-lock.json and related skill-generated files from the project root.
-
 ## [1.16.1] - 2026-06-13 — Frontend Modernization & Design System
-
 ### Added
 - **Signal-Intelligence Design System**: Refined color palette with richer primary (#2563eb), ember accent (#d97706), emerald success (#059669); deeper dark theme background (#0a0f1c); increased border-radius from 6px to 8px throughout.
 - **Animation System**: Shared CSS animation tokens with consistent easing/timing variables; loading skeleton shimmer keyframes with reusable `.skeleton` classes; view fade-in animations for panel transitions.
@@ -74,22 +84,17 @@
 - **Card Hover Lift**: Consistent translateY(-1px) + shadow on claim cards, execution items, and review cards.
 - **Unified Status Badges**: Reusable `.status-badge` component classes with subtle backgrounds for verified/unsupported/contradicted/pending states.
 - **Gradient Progress Bars**: Updated to match refined palette.
-
 ### Changed
 - Glass-morphism backdrop blur increased from 12px to 16px in dark mode.
 - Card hover effects consistently use `var(--color-primary)` for border highlighting.
 - Font rendering with `-webkit-font-smoothing: antialiased` for sharper text.
-
 ## [1.16.0] - 2026-06-13 — Backend Connection, 4 New Nodes, Execution UX, Visual Polish
-
 ### Added
 - **Backend Connection**: Async execute endpoint (removed asyncio.run wrapper); fix saveWorkflow POST/PUT routing for new vs existing workflows; fix execute payload format for real backend mode; list workflows response format handling.
 - **4 New Specialist Nodes**: Planner (step-by-step plans), Auditor (quality/completeness audits), Compliance Checker (rule/policy checks), Code Runner (simulated code execution with I/O).
 - **Execution UX Depth**: Inline execution preview badges; live streaming indicator with pulse animation; auto-expand completed nodes; execution timeline view with horizontal bar chart; edit-and-replay (modify configs post-execution); WorkflowDiff component for side-by-side definition comparison.
 - **Visual Polish**: Dark/light theme toggle; minimap; keyboard shortcuts (Ctrl+S, Delete, Escape, Space, Ctrl+Shift+E, Ctrl+D, Ctrl+C/V); shortcuts help dialog; resizable panels (280-900px); zoom-to-fit; themed React Flow Controls + MiniMap.
-
 ## [1.15.0] - 2026-06-13 — Claim Ledger DX, Human Review Gates, Execution History
-
 ### Added
 - Phase 8: Claim Ledger DX, Human Review Gates, and Execution History — three major workflow builder features.
 - **Claim Ledger Report (Phase 1)**: Claim-centric post-execution view is now the default display mode; "Export Decision Report" button generating downloadable JSON reports with full claim details, evidence, and issue trail; search/filter for claims by text content; enhanced claim card expansion with full verification trail (finding → critic issue → evidence link); claim path indicator ("Researcher → Critic → Ledger").
@@ -97,12 +102,9 @@
 - **Execution History & Comparison (Phase 3)**: Execution history browser with search, sort, and detail drill-down; side-by-side execution comparison with node and claim diffing; status pill summaries showing claim state evolution across runs; historical run persistence (mock mode) with detail expansion.
 - Rich sample workflow mock data with full Researcher → Critic → Synthesizer pipeline.
 - Frontend tests passing (35+), build clean.
-
 ### Changed
 - Project version is now 1.15.0.
-
 ## [1.14.0] - 2026-06-12
-
 ### Added
 - Phase 7: Data Analyst Node — structured data analysis capabilities for the workflow builder.
 - **DataAnalystNode** (`decision_system.data_analyst`): Analyzes structured data with 5 analysis types — profile, summary, trend, anomaly, and correlation. Deterministic fake fallback for each analysis type with schema-matching mock data. LLM path samples data (50 rows max) to avoid token limits and injects analysis instructions via system prompt.
@@ -111,13 +113,10 @@
 - Output: `analysis` (object), `summary` (string), `charts` (object), `fallback_reason` (string).
 - 21 new tests: DataAnalystNode with 10 async tests covering empty data, dict normalization, all 5 analysis types, LLM path, provider error, schema compliance, input override; plus 11 helper tests.
 - Frontend mock data entry for DataAnalystNode in the AI Analysis category.
-
 ### Changed
 - Project version is now 1.14.0.
 - Node registry now registers 23 built-in node types (up from 22).
-
 ## [1.13.0] - 2026-06-13
-
 ### Added
 - Phase 6: Bounded Specialist Agent Nodes — 3 new AI-powered drag-and-drop workflow node types for composable war-cabinet architecture.
 - **ResearcherNode** (`decision_system.researcher`): Retrieves and synthesizes information from connected data sources. Produces structured findings with citations and confidence scores. Keyword-matched fake fallback (`revenue`, `risk`, `growth` keyword sets).
@@ -127,13 +126,10 @@
 - Frontend mock data entries for all 3 node types in the AI Analysis category.
 - Integration tests for node chaining: Researcher→Critic, multi-stream→Synthesizer, Synthesizer→Critic validation gate.
 - 60 new tests: 6 researcher, 21 critic, 14 synthesizer, 11 helper unit tests, 4 integration tests, 4 chaining integration tests.
-
 ### Changed
 - Project version is now 1.13.0.
 - Node registry now registers 22 built-in node types (up from 19).
-
 ## [1.12.0] - 2026-06-13
-
 ### Added
 - Phase 5: Real LLM Provider Integration — transform AI analysis nodes from fake-only to real LLM-powered.
 - Provider configuration system: JSON file-backed ProviderStore with named provider instances.
@@ -150,7 +146,6 @@
 - 10 AI node integration tests (fake fallback + LLM path for each node).
 - 16 provider API route tests (CRUD, validation, error handling).
 - First-is-default semantics: first provider in config is the system default.
-
 ### Changed
 - Project version is now 1.12.0.
 - `DAGEngine` constructor accepts optional `provider_store` parameter.
@@ -159,9 +154,7 @@
 - httpx added as core dependency; pytest-httpx as dev dependency.
 - Cleaned up fallback paths in decision_nodes.py to correctly call legacy fake functions.
 - Removed `nvidia` optional dependency.
-
 ## [1.11.0] - 2026-06-13
-
 ### Added
 - Phase 4: Scheduling & Triggers — transform workflow engine from manual-execution-only to autonomous automation engine.
 - Schedule models (`ScheduleDefinition`, `TriggerType`) with JSON file store (`ScheduleStore`).
@@ -177,7 +170,6 @@
 - Frontend mock API for schedule CRUD and 3 new trigger node types in the node palette.
 - ScheduleManager React component for viewing, creating, toggling, and deleting schedules.
 - 14 schedule API tests, 9 CLI schedule tests, 6 auto-schedule tests, 8 end-to-end integration tests.
-
 ### Changed
 - Project version is now 1.11.0.
 - `ExecutionContext` now has `schedule_id` field.
@@ -185,9 +177,7 @@
 - Node registry now registers 19 built-in node types (up from 16).
 - Node count assertions updated in test files.
 - FastAPI app now uses lifespan context manager for scheduler lifecycle.
-
 ## [1.10.1] - 2026-06-13
-
 ### Added
 - Phase 3: Real-time workflow execution and data inspection.
 - WebSocket event streaming endpoint (`/executions/{id}/stream`) for live node status updates.
@@ -195,12 +185,9 @@
 - Node output data inspection panel showing execution results per node.
 - Real mode auto-detection: frontend detects when served from FastAPI backend.
 - 10 comprehensive test files covering all Phase 3 components.
-
 ### Changed
 - Phase 3 integration: WebSocket URL construction and event emission optimized.
-
 ## [1.10.0] - 2026-06-12
-
 ### Added
 - Visual workflow builder (Phase 2) — React Flow drag-and-drop editor with 15 implementation tasks.
 - 16 custom node types rendered with category-colored headers, status overlays, and config schemas.
@@ -213,13 +200,10 @@
 - Toast notification system with info/success/warning/error types and auto-dismiss.
 - 10 comprehensive test files (35 tests) covering all components with localStorage, ResizeObserver, and DataTransfer polyfills.
 - Navigation integration: "⚡ Workflows" nav item in the Intelligence Console sidebar.
-
 ### Changed
 - Project version is now 1.10.0.
 - WebSocket endpoint added to workflow engine API router.
-
 ## [1.9.0] - 2026-06-12
-
 ### Added
 - Workflow Engine (Phase 1) — node SDK, DAG runtime, CLI, and API for visual workflow automation.
 - Core models: WorkflowNode (ABC), WorkflowDefinition, ExecutionState, Connection, ErrorPolicy, RetryConfig.
@@ -233,13 +217,10 @@
 - REST API: CRUD workflows, execute workflow, get execution state, list node types with JSON schemas.
 - 93 new tests covering all components with no API keys required.
 - All 16 node types accessible via `create_default_registry()`.
-
 ### Changed
 - Project version is now 1.9.0.
 - All 700+ existing tests remain unchanged and passing.
-
 ## [1.8.0] - 2026-06-10
-
 ### Added
 - Decision Report Export CLI + API (`decision-system export-report --format markdown|json|html`) for exporting latest decision/war-room report with claims, risks, assumptions, evidence, and audit metadata.
 - Evidence Coverage Score CLI + API (`decision-system coverage`) showing total/verified/unsupported/contradicted claims and evidence coverage percentage.
@@ -250,7 +231,6 @@
 - Path validation utility (`decision_system.path_util`) for safe canonicalization and traversal protection.
 - API endpoints: `POST /reports/export`, `GET /reports/coverage`, `GET /reports/audit-timeline`, `GET /reports/provider-safety`.
 - 49 new tests covering all v1.8 features and path validation.
-
 ### Changed
 - Project version is now 1.8.0.
 - API web asset discovery fixed: uses `importlib.resources.files()` for correct wheel-installed mode serving (previously looked at wrong directory).
@@ -259,15 +239,12 @@
 - Dockerfile removed `COPY docs/` to match `.dockerignore` exclusion.
 - Release check now includes `validate-demo-data` gate (11 total checks).
 - CLI help includes 6 new commands.
-
 ### Fixed
 - API web serving path: now uses `importlib.resources.files("decision_system").joinpath("web")` with repo-root fallback.
 - Security redaction: overlapping patterns fixed (secret_token patterns now take precedence over phone fragments inside them).
 - Security redaction API: `original_text` no longer exposes raw secrets when findings exist.
 - Release check final summary now reliably printed even in non-Git fallback mode.
-
 ## [1.7.0] - 2026-06-09
-
 ### Added
 - Frontend product UI with 9 navigation sections: Dashboard, Decision Brief, Data & Ontology, War Room, Workspaces, Connectors, Security & Governance, Observability, and Enterprise Readiness.
 - Dashboard with system readiness status, provider info, document index state, workspace state, metrics (profiles, insights, graph entities/links, connectors, war-room runs), and quick links.
@@ -281,7 +258,6 @@
 - `GET /enterprise-readiness` API endpoint returning static readiness assessment.
 - `GET /observability/metrics`, `GET /observability/eval-history`, `GET /observability/quality-report`, `GET /observability/traces` API endpoints for observability data.
 - Mock data fixtures for all 9 sections under `web/mock-data/` and package `src/decision_system/web/mock-data/`.
-
 ### Changed
 - Project version is now 1.7.0.
 - Web UI completely rebuilt: `web/index.html`, `web/app.js`, `web/styles.css` rewritten with 9-section architecture.
@@ -289,23 +265,19 @@
 - Navigation uses sidebar with compact dark theme and section-specific page titles.
 - All existing API endpoints preserved; new endpoints added for enterprise-readiness and observability.
 - Web UI tests expanded to cover all 9 sections and new API endpoints.
-
 ### Fixed
 - Security view no longer crashes: `FALLBACK_DATA.security` added to prevent `TypeError` on undefined data.
 - Web UI tests updated to reference new section IDs and mock data contracts.
-
 ### Security
 - All 651 tests pass offline with no API keys.
 - No real secrets, tokens, or credentials in mock data fixtures.
 - Security scanner continues to mask full secret values.
-
 ## [1.6.0] - 2026-06-09
 ### Added
 - Final prototype hardening pass completed.
 - `clean-generated.sh` and `clean-generated.ps1` for safe generated-state cleanup (dry-run by default).
 - All 49 CLI commands verified working offline with fake provider.
 - CLI import verified fast (~0.2s) with lazy imports preserved.
-
 ### Changed
 - Project version is now 1.6.0.
 - CLI refactored: monolithic `cli.py` (2018 lines) split into `cli_security.py`, `cli_observability.py`, `cli_enterprise.py` (~1574 lines remaining).
@@ -314,19 +286,16 @@
 - DECISIONS.md: ADR-033 (observability), ADR-034 (Docker), ADR-035 (enterprise readiness), ADR-036 (final hardening) added.
 - RELEASE_CHECKLIST.md: v1.3 (observability), v1.4 (Docker), v1.5 (enterprise readiness), v1.6 (final hardening) checklist sections added.
 - Shallow implementations documented: observability module has working tests and CLI plumbing but is not populated by the core workflow.
-
 ### Fixed
 - Policy check now skips synthetic test secret fixtures to avoid false positives.
 - Storage paths now accept optional `root` parameter throughout observability.
 - CLI command duplication eliminated: observability commands were defined twice (sub-app + top-level aliases), now shared from a single implementation.
 - README documented wrong CLI paths for security commands (`scan-secrets` → `security scan-secrets`, etc.).
-
 ### Security
 - All 651 tests pass offline with no API keys.
 - No tracked generated state in the repository.
 - Security scanner never prints full secret values (masked preview only).
 - Audit log and security stores under `.decision_system/` are in `.gitignore`.
-
 ## [1.5.0] - 2026-06-09
 ### Added
 - Enterprise readiness checklist command (`decision-system enterprise-readiness`).
@@ -335,10 +304,8 @@
 - `docs/SECURITY_MODEL.md` describing current security posture and planned improvements.
 - `docs/HUMAN_APPROVAL_WORKFLOW.md` documenting the approval record-keeping mechanism.
 - CLI test for enterprise-readiness command (text and JSON output).
-
 ### Changed
 - Project version is now 1.5.0.
-
 ## [1.4.0] - 2026-06-09
 ### Added
 - `Dockerfile` for containerized local development (fake/offline default, no secrets baked in).
@@ -348,10 +315,8 @@
 - `scripts/release-check.sh` and `scripts/release-check.ps1` release verification scripts.
 - `docs/DEPLOYMENT.md` with local deployment instructions and security notes.
 - Release check verifies: no pycache/pyc in tracked files, no generated DBs, no raw datasets, no secrets, package installs, tests pass, CLI import fast, hygiene passes.
-
 ### Changed
 - Project version is now 1.4.0.
-
 ## [1.3.0] - 2026-06-09
 ### Added
 - Observability and evaluation history package (`src/decision_system/observability/`).
@@ -363,11 +328,9 @@
 - Observability sub-command group: `observability metrics/eval-history/quality-report/trace-summary`.
 - Deterministic persistence under `.decision_system/observability/` (metrics, eval_history, quality_reports, traces).
 - 28 observability tests with tempfile isolation.
-
 ### Changed
 - Project version is now 1.3.0.
 - `.gitignore` includes `.decision_system/observability/`.
-
 ## [1.2.0] - 2026-06-09
 ### Added
 - Deterministic local secret scanning (`decision-system scan-secrets`).
@@ -377,10 +340,8 @@
 - Local approval request workflow (`decision-system approval request/list/inspect`).
 - 9 security module package: models, secret_scan, redaction, audit, policy, approvals, store, inspector.
 - 64 security tests with synthetic data only.
-
 ### Changed
 - Project version is now 1.2.0.
-
 ## [1.1.0] - 2026-06-08
 ### Added
 - Safe connector framework with connector registry, job manifests, and inspection.
@@ -390,14 +351,12 @@
 - Connector API endpoints under `/connectors`.
 - Optional workspace artifact integration for connector import jobs.
 - Connector job persistence under `.decision_system/connectors/`.
-
 ## [1.0.1] - 2026-06-08
 ### Fixed
 - Synced root and packaged web UI assets.
 - Added top-level workspace CLI command aliases.
 - Fixed workspace API activation so only one workspace is active.
 - Tightened workspace CLI/API integration tests.
-
 ## [1.0.0] - 2026-06-07
 ### Added
 - Local SQLite workspace store under `src/decision_system/storage/` with idempotent migrations.
@@ -409,9 +368,7 @@
 ### Fixed
 - Aligned v0.9.2 package/API version metadata before v1.0 implementation.
 - Fixed `Settings` backward compatibility so existing `Settings(...)` calls that omit `workspace_db_path` still work.
-
 # Changelog
-
 ## [0.9.2] - 2026-06-07
 ### Fixed
 - Made generated-file cleanup scripts safe by default (dry-run, requires --force).
@@ -420,9 +377,7 @@
 - Tightened missing-index API test (requires status 400 and error.code == "missing_index").
 - Tightened missing-index CLI test (requires no traceback and the "decision-system index" hint).
 - Fixed provider eval documentation typo (renamed `runer` to `runner`).
-
 ## [0.9.1] - 2026-06-06
-
 ### Fixed
 - Aligned API version reporting with project version (0.9.1).
 - Routed API provider evaluation endpoint to the canonical provider-eval harness.
@@ -430,34 +385,26 @@
 - Hardened web UI static asset packaging (package-relative path).
 - Clarified provider evaluation command naming in documentation.
 - Improved release cleanup guidance for generated files and caches.
-
 ## [0.9.0] - 2026-06-06
-
 ### Added
 - Local web UI prototype.
 - Mock-first views for reports, insights, ontology, war-room, provider evals, and data profiles.
 - Static Graph and Ask views with optional API base URL configuration.
 - Lightweight mock JSON fixtures under `web/mock-data/`.
-
 ## [0.8.0] - 2026-06-06
-
 ### Added
 - FastAPI application.
 - Local API endpoints for documents, reports, ontology, insights, orchestration, war-room, and evals.
 - `decision-system serve-api`.
 - Offline API tests with TestClient.
-
 ## [0.7.1] - 2026-06-06
-
 ### Added
 - Provider evaluation harness.
 - `decision-system eval-providers`.
 - `decision-system inspect-provider-evals`.
 - Offline/mock evaluation for fake, NVIDIA NIM, and Ollama providers.
 - Saved provider evaluation results.
-
 ## [0.7.0] - 2026-06-05
-
 ### Added
 - Provider experiment harness (new `decision_system.provider_experiments` package).
 - `decision-system provider-health` - prints configured provider, NIM/Ollama status.
@@ -467,38 +414,30 @@
 - `evals/provider_cases/` - billing_migration, contradiction_case, empty_context eval cases.
 - `tests/test_provider_experiments.py` and `tests/test_ollama_provider.py` - offline tests.
 - `docs/OLLAMA.md` - Ollama setup and usage guide.
-
 ### Changed
 - `Settings` now includes `ollama_*` fields from `.env`.
 - Provider factory now supports `fake`, `nvidia_nim`, and `ollama`.
 - `decision-system ask --provider` accepts `ollama` in addition to `nvidia_nim`.
-
 ## [0.6.2] - 2026-06-05
-
 ### Added
 - `AGENTS.md` for Codex and coding-agent repository instructions.
 - Repository hygiene checker via `src/decision_system/devtools/hygiene.py`.
 - `decision-system check-hygiene` and `decision-system check-hygiene --json` CLI commands.
 - `tests/test_hygiene.py` - tests covering clean repo layout, missing files, and CLI output.
 - `docs/RELEASE_CHECKLIST.md` - install, test, smoke, eval, git hygiene, skills audit checklist.
-
 ### Fixed
 - `human_review_required_allowed` is now enforced in war-room eval quality gates.
   If a case disallows human review but judge interventions require it, the case fails.
 - War-room eval quality gate suite now includes `human_review_not_blocked` gate.
 - Added `human_review_not_blocked` gate tests in `tests/test_war_room_evals.py`.
-
 ## [0.6.1] - 2026-06-05
-
 ### Added
 - War-room evaluation cases under `evals/war_room_cases/`.
 - War-room quality gates: higher context existence, deep immutability, personal context reference, artifact count, append-only workspace, judge summary, human review flag, no external APIs, no unbounded chat.
 - `decision-system eval-war-room` with `--json` and `--save-results` flags.
 - War-room eval persistence at `.decision_system/evals/war_room_results.json`.
 - Structured models: `WarRoomEvalCase`, `WarRoomEvalResult`, `WarRoomEvalSuiteResult`.
-
 ## [0.6.0] - 2026-06-05
-
 ### Added - War-Cabinet Agent Context Protocol
 - `decision_system.war_room` package with 9 modules: `models`, `context_builder`, `dispatcher`, `sandbox`, `judge`, `runner`, `store`, `inspector`, `workspace`.
 - Deep-frozen `HigherContext` shared by all war-room agents.
@@ -511,9 +450,7 @@
 - Local JSON persistence for war-room runs under `.decision_system/war_room/runs/<run_id>.json`.
 - Three new CLI commands: `plan-war-room`, `run-war-room`, `inspect-war-room`.
 - 30 unit tests covering dispatch, immutability, workspace append-only semantics, sandbox validation, judge interventions, and runner integration.
-
 ## [0.5.0] - 2026-06-05
-
 ### Added
 - Decision context builder (`DecisionContextBuilder`) assembling structured context from local stores.
 - `decision-system build-context "..."` with `--json` and `--save` flags.
@@ -524,9 +461,7 @@
 - Decision context models: `InsightEvidence` and `DecisionContext`.
 - Context package with selector logic (relevance by keywords, ontology concepts, severity), store (persist/load JSON), and inspect/render helpers.
 - Context builder unit tests covering missing stores, financial/customer/marketing insight selection, high-severity always-include, and contradiction human review items.
-
 ## [0.4.1] - 2026-06-05
-
 ### Fixed
 - Fixed editable install dependency resolution for `python -m pip install -e ".[dev]"`.
 - Removed the direct `langchain-nvidia-ai-endpoints` dependency conflict.
@@ -536,9 +471,7 @@
 - Improved ontology mappings so columns such as `signup_month`, `page`, and `sessions` map to appropriate concepts.
 - Added ontology concept IDs to deterministic insights.
 - Updated NVIDIA provider documentation to describe the current OpenAI-compatible client path.
-
 ## [0.4.0] - 2026-06-05
-
 ### Added - Orchestration Layer
 - `decision_system.orchestration` package with Pydantic v2 models: `StorageTier`, `DecisionSession`, `DecisionType`, `ProblemAnalysis`, `DispatchPlan`, `JudgeSummary`.
 - `decision-system analyze-problem`: classifies a business question into a decision type and returns required data categories, tools, roles, ontology concepts, and storage tiers.
@@ -550,12 +483,10 @@
 - Judge summary: confidence scoring (low/medium/high), key findings, risks, missing data, recommended next actions, and human-review flags.
 - Persistence layer: save/load orchestration runs under `.decision_system/orchestration/runs/`.
 - Inspector renderers for problem analysis and dispatch plan output.
-
 ### Added - Ontology Layer
 - 31 business concepts across entity, metric, relationship, and risk types.
 - Deterministic column-to-concept mapper with ~200 rules.
 - `decision-system map-ontology` and `decision-system inspect-ontology`.
-
 ### Added - Pattern / Vulnerability Detection
 - Local insight models and insight store.
 - Deterministic pattern and vulnerability detectors (offline, no LLM).
@@ -563,31 +494,23 @@
 - `decision-system detect-patterns`.
 - `decision-system inspect-insights`.
 - 16 detector categories: revenue risk, profit margin, customer concentration, sales channel concentration, marketing ROI, feedback risk, product risk, competitor risk, operations bottleneck, analytics conversion, strategic gaps, missing data, data quality, dependency risk, contradiction, and ownership gap.
-
 ## [Unreleased]
-
 ### Added
 - Claude Code project memory and workflow commands.
-
 ## [0.3.2] - 2026-06-05
-
 ### Added
 - Local public dataset importer for ignored `datasets/` files.
 - `decision-system import-datasets` and `decision-system inspect-imports`.
 - CSV and XLSX import paths plus optional XLS support through `xlrd`.
 - Clear `.bak` skipping with an auditable import manifest under `.decision_system/imports/import_manifest.json`.
 - Offline importer tests for classification, dry runs, overwrite safety, row limits, `.bak` skipping, and CLI commands.
-
 ## [0.3.1] - 2026-06-05
-
 ### Added
 - Synthetic demo dataset starter pack.
 - `decision-system seed-demo-data` with `--force` flag.
 - Demo CSVs for financial, customer, sales, marketing, feedback, product, competitor, operations, analytics, and strategic data.
 - `docs/DATASETS.md` with synthetic data guidance and recommended public datasets.
-
 ## [0.3.0] - 2026-06-04
-
 ### Added
 - Local `company_data/` folder structure for structured company data intake.
 - Data catalog manifest with supported categories and fake demo CSV metadata.
@@ -596,9 +519,7 @@
 - Profile persistence under `.decision_system/data_profiles/profiles.json`.
 - `decision-system init-data-catalog`, `decision-system profile-data`, and `decision-system inspect-data`.
 - Offline tests for catalog initialization, CSV profiling, profile persistence, and CLI commands.
-
 ## [0.2.0] - 2026-06-04
-
 ### Added
 - Local entity and relationship extraction for the Company Intelligence Engine direction.
 - `Entity`, `Relationship`, and `KnowledgeGraph` Pydantic models.
@@ -613,26 +534,20 @@
 - Mocked provider tests for structured NIM JSON parsing and malformed-output failures.
 - GitHub readiness documentation for setup, architecture, development, NVIDIA NIM, troubleshooting, and contributing.
 - Secret hygiene guidance; fake provider remains default and no real secrets should be committed.
-
 ## [0.1.2] - 2026-06-04
-
 ### Added
 - `decision-system eval` for repeatable local evaluation cases.
 - Evaluation case models and structured suite results.
 - Offline eval runner that indexes temporary case documents and runs the normal workflow.
 - Bundled billing, empty-context, and contradiction eval cases.
 - `decision-system eval --json` and `decision-system eval --save-results`.
-
 ## [0.1.1] - 2026-06-04
-
 ### Added
 - `decision-system inspect-index` for Chroma collection count and source filename inspection.
 - `decision-system ask --show-evidence` for retrieved evidence previews.
 - `decision-system ask --json` for structured workflow state output.
 - `decision-system ask --save-run` for saving full workflow results under `.decision_system/runs/`.
-
 ## [0.1.0] - 2026-06-04
-
 ### Added
 - Backend-first CLI prototype.
 - `decision-system index`.
@@ -645,7 +560,6 @@
 - Claim ledger with `verified`, `unsupported`, and `contradicted` statuses.
 - Markdown decision report generation.
 - Test suite that passes without real API keys.
-
 ### Not Included
 - Frontend.
 - Database.
@@ -654,7 +568,6 @@
 - Real OpenAI/Ollama execution.
 - Extra agents.
 ## [1.18.0-dev] - 2026-06-23 — Local product-loop hardening (in development)
-
 ### Planned
 - Consistent version metadata across all components
 - Docker/nginx port alignment
@@ -669,9 +582,7 @@
 - One-command Docker build
 - Smoke test script
 - Code cleanup and whitespace fixes
-
 ## [1.17.0] - 2026-06-23 — Local-first foundation
-
 ### Added
 - **Persistent workflow stores**: JSON-file-backed stores for workflows, executions, schedules, and reviews
 - **Workspace routes**: `GET /workspaces/{workspace_id}/workflows` and workspace-scoped API endpoints
@@ -681,8 +592,6 @@
 - **CodeNode safety**: Code execution node disabled by default for security
 - **Cron parser improvements**: Better schedule parsing and validation
 - **Audit endpoints**: Execution detail and history API routes
-
 ### Changed
 - Version bumped from 1.16.2 to 1.17.0 to reflect local-first milestone
-
 ## [1.16.2] - 2026-06-13 — Backend Hardening & Deprecation Cleanup

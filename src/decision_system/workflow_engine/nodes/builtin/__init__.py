@@ -23,6 +23,9 @@ from decision_system.workflow_engine.nodes.builtin.verification_nodes import (
     ContradictionScanNode,
     VerificationSummaryNode,
 )
+from decision_system.workflow_engine.nodes.builtin.synthesis_node import (
+    EvidenceSynthesisNode,
+ )
 
 __all__ = [
     "ManualTriggerNode", "InputTextNode",
@@ -36,5 +39,5 @@ __all__ = [
     "ClaimVerifierNode",
     "ContradictionScanNode",
     "VerificationSummaryNode",
+    "EvidenceSynthesisNode",
 ]
-
