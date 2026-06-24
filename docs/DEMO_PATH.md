@@ -1,6 +1,6 @@
 # Demo Path — End-to-End Walkthrough
 
-> **Version:** 1.26.1-dev
+ > **Version:** 1.27.0-dev
 > **Last updated:** 2026-06-23
 
 This document describes the complete demo path a reviewer follows to understand

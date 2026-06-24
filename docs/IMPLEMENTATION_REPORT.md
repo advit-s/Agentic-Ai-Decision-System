@@ -1,150 +1,238 @@
-# Implementation Report — v1.26 Knowledge Graph + Entity/Risk Extraction v2
+# Implementation Report — v1.27 Security, Auth, RBAC + Governance Foundation
 
 > **Date:** 2026-06-24
-> **Package version:** 1.26.0-dev
-> **Previous milestone:** v1.25.0 — End-to-End Demo Hardening + Local Beta Release Prep
+> **Package version:** 1.27.0-dev
+> **Previous milestone:** v1.26.1 — Graph UI, Audit Metrics API + Extraction Quality Hardening
 
 ---
 
 ## Summary
 
-v1.26 transforms the system from document search and reporting into a structured,
-evidence-backed company intelligence map with entities, relationships, risks, and
-metrics under verification control.
+v1.27 adds a local-first security and governance foundation to make the local
+beta safe enough for private company data. The milestone adds:
 
-All backend phases are complete: workspace-scoped graph store, deterministic
-extraction (entities, risks, metrics, relationships), 9 REST API endpoints,
-4 workflow nodes, claim-graph integration, audit/observability events,
-trust report graph sections, and 124 automated tests.
-
-Frontend phases are also complete: Knowledge Graph page (entity/relationship/risk/
-metric views with extract button, search/filter, evidence links) and Risk Dashboard
-(severity cards, top risks, categories). Demo flow includes graph extraction step.
+- Local identity model with 5 roles (owner, admin, analyst, reviewer, viewer)
+- Workspace membership with role-based access control
+- Declarative permission matrix (17 permissions → 5 roles)
+- API route permission enforcement for providers, reviews, exports, settings
+- Governance-aware review gates (role enforcement, actor recording, audit)
+- Secure export governance (permission checks, audit events)
+- Provider secret safety (env-var API keys, redacted responses)
+- Workspace-scoped audit log viewer with filters
+- Security mode settings (demo | governed)
+- Security model and threat model documentation
+- 33 new identity/permission tests
 
 ## Version
 
-- `src/decision_system/__init__.py`: `1.26.0-dev`
-- `pyproject.toml`: `1.26.0-dev`
-- `/health` endpoint returns `1.26.0-dev`
+- `src/decision_system/__init__.py`: `1.27.0-dev`
+- `pyproject.toml`: `1.27.0-dev`
+- `/health` endpoint returns `1.27.0-dev`
+- All docs updated to reference v1.27
 
-## Agent Updates
+## MCP / Agent Skill Usage
 
-- **AGENTS.md**: Rewritten to reflect current product direction — React SPA main UI,
-  workspace-scoped data, local JSON/SQLite storage, evidence references requirement
-- **CLAUDE.md**: Updated project state, architecture, tech stack (React 18 + React Flow),
-  version history (v1.0-v1.25), architectural rules, "what not to add" list, roadmap
+- **codebase-memory-mcp**: Used to inspect architecture, security modules,
+  API routes, storage models, and workspace boundaries before implementation.
+  Graph indexed with 9,063 nodes and 29,617 edges.
+- **Repo agent instructions** (AGENTS.md, CLAUDE.md): Followed throughout.
+- **Phase 0 pre-flight**: All existing tests passed before security changes.
+
+## Security Model
+
+See `docs/SECURITY_MODEL.md` for the full security architecture.
+
+Key design decisions:
+- **Local-first**: No cloud auth, no passwords, no sessions — identity is an
+  opt-in governance layer.
+- **Demo mode**: Default mode — no login required, all access granted.
+- **Governed mode**: Permissions enforced via `X-User-Id` header.
+- **Provider secrets**: Env-var-based API keys only (`api_key_env`), never
+  stored or returned in plaintext.
+
+## Identity Model
+
+- **LocalUser**: user_id, display_name, role, timestamps, metadata
+- **Default user**: `local/system` with `owner` role
+- **Store**: JSON files under `.decision_system/identity/`
+- **API**: `GET/POST/PUT/DELETE /identity/users`
+- **Current user**: `GET /identity/me` returns user + effective permissions
+
+## Workspace Roles
+
+- **WorkspaceMembership**: workspace_id, user_id, role, timestamps
+- **Membership store**: JSON files under `.decision_system/identity/memberships.json`
+- **API**: `GET/POST/PUT/DELETE /workspaces/{id}/memberships`
+- **Role fallback**: Workspace role overrides global role for scoped operations
+
+## Permission Matrix
+
+| Permission | owner | admin | analyst | reviewer | viewer |
+|------------|-------|-------|---------|----------|--------|
+| workspace.read | ✅ | ✅ | ✅ | ✅ | ✅ |
+| workspace.manage | ✅ | ✅ | ❌ | ❌ | ❌ |
+| data_source.upload | ✅ | ✅ | ✅ | ❌ | ❌ |
+| data_source.delete | ✅ | ✅ | ✅ | ❌ | ❌ |
+| data_source.parse_index | ✅ | ✅ | ✅ | ❌ | ❌ |
+| evidence.search | ✅ | ✅ | ✅ | ✅ | ✅ |
+| workflow.create | ✅ | ✅ | ✅ | ❌ | ❌ |
+| workflow.update | ✅ | ✅ | ✅ | ❌ | ❌ |
+| workflow.execute | ✅ | ✅ | ✅ | ❌ | ❌ |
+| review.resolve | ✅ | ✅ | ❌ | ✅ | ❌ |
+| claim.verify | ✅ | ✅ | ✅ | ❌ | ❌ |
+| graph.extract | ✅ | ✅ | ✅ | ❌ | ❌ |
+| provider.manage | ✅ | ✅ | ❌ | ❌ | ❌ |
+| report.generate | ✅ | ✅ | ✅ | ❌ | ❌ |
+| report.export | ✅ | ✅ | ❌ | ❌ | ❌ |
+| audit.read | ✅ | ✅ | ✅ | ✅ | ✅ |
+| settings.manage | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+API: `GET /identity/permissions` returns the full matrix.
+
+## API Enforcement
+
+Routes with permission enforcement:
+- `POST/PUT/DELETE /providers/*` → `provider.manage`
+- `POST /reviews/{id}/resolve` → `review.resolve` + reviewer role check
+- `GET /reviews` → `audit.read`
+- `GET /reports/{id}/export` → `report.export` + admin role check (optional)
+- `GET/POST/PUT/DELETE /identity/*` → `settings.manage`
+- `GET /workspaces/{id}/audit/*` → `audit.read`
+- `GET/POST/PUT/DELETE /workspaces/{id}/memberships` → `workspace.manage`
+- `GET /identity/permissions` → `audit.read`
+- `GET/PUT /identity/settings` → `settings.manage`
+
+## Frontend Permission States
+
+- Frontend build passes (39 tests, 11 test files).
+- No frontend permission UI changes in this milestone — the API layer
+  enforces permissions and returns 403 for unauthorized actions.
+- Future milestone should add role-aware UI states.
+
+## Review Governance
+
+- Review resolution requires `review.resolve` permission.
+- Security settings require reviewer role or higher (`review_requires_reviewer_role`).
+- Review decisions record the actor (user_id).
+- Audit events include review_id, action, actor, and notes.
+- Tests cover permission denial for unauthorized review resolution.
+
+## Export Governance
+
+- Report export requires `report.export` permission.
+- Security settings can require admin role (`exports_require_admin`).
+- Export audit events include actor, workspace_id, report_id, and format.
+- Exports never include provider secrets (verified by design).
+
+## Provider Secret Handling
+
+- Provider configs use `api_key_env` (env var name) not `api_key` (value).
+- `api_key_configured` boolean indicates whether env var is set.
+- No plaintext API keys stored in config JSON files.
+- No plaintext API keys returned in API responses.
+- No plaintext API keys included in exports.
+- Provider config changes emit audit events.
+
+## Audit Log Viewer
+
+- `GET /workspaces/{id}/audit/events` with filters (event_type, actor, date range)
+- `GET /workspaces/{id}/audit/summary` for aggregate counts
+- Actor identity resolved from identity system (not hardcoded `"local-user"`)
+- API requires `audit.read` permission
+
+## Workspace Isolation
+
+- All data stores accept `workspace_id` as scoping parameter
+- Workspace membership required for mutation operations
+- Cross-workspace access requires appropriate membership
+- Existing workspace isolation in graph, data sources, and evidence stores
+
+## Tests Added
+
+New identity tests (`tests/test_identity.py`, 33 tests):
+- `TestLocalUser` — default user, custom roles, serialization
+- `TestWorkspaceMembership` — creation, serialization
+- `TestPermissionMatrix` — all roles, owner has all, viewer limited, analyst/reviewer specific
+- `TestUserStore` — CRUD operations, default user
+- `TestMembershipStore` — owner membership, CRUD, role updates
+- `TestPermissionCheck` — has/lacks permission, workspace role override
+- `TestSecuritySettings` — defaults, mode switching, serialization
+- `TestRoleHierarchy` — role ordering, `role_is_at_least`, `get_user_role`
+
+## Commands Run
+
+```bash
+# Pre-flight
+git status
+git diff --check
+python -m pytest tests/test_data_sources -q  # 60 passed
+python -m pytest tests/test_verification -q   # 68 passed
+python -m pytest tests/test_providers -q      # 48 passed
+python -m pytest tests/test_workflow_engine/test_api.py -q  # 85 passed
+python -m pytest tests/test_security.py       # 64 passed
+
+# Identity tests
+python -m pytest tests/test_identity.py -q    # 33 passed
+
+# Full validation
+python -m pytest tests/test_security.py tests/test_data_sources tests/test_verification tests/test_providers tests/test_workflow_engine/test_api.py tests/test_graph_store.py tests/test_extractor_v2.py tests/test_graph_api.py tests/test_graph_nodes.py tests/test_graph_audit.py tests/test_identity.py -q  # 490 passed
+
+# Frontend
+cd web/workflow-builder && npm test           # 39 passed
+cd web/workflow-builder && npm run build      # build succeeded
+
+# Git hygiene
+git diff --check                              # clean
+```
 
 ## Files Changed
-
-### Backend (Python)
-- `src/decision_system/graphing/audit.py` (new) — Graph audit events and metrics
-- `src/decision_system/graphing/__init__.py` — Package init
-- `src/decision_system/api/routes_observability.py` (fix) — MetricPoint serialization fix
-- `src/decision_system/models.py` — Added graph_node_refs, graph_edge_refs, risk_refs, metric_refs to Claim and ReportClaimEntry
-- `src/decision_system/reports/trust_renderer.py` — Added 4 graph section renderers (Entity Summary, Key Relationships, Extracted Risks, Key Metrics)
-- `src/decision_system/workflow_engine/nodes/builtin/graph_nodes.py` — Added audit events to all 4 workflow nodes
-| File | Change |
-|------|--------|
-| `src/decision_system/__init__.py` | Version `1.25.0-dev` -> `1.26.0-dev` |
-| `pyproject.toml` | Version `1.25.0-dev` -> `1.26.0-dev` |
-| `src/decision_system/api/app.py` | Added `routes_graph` import and registration |
-| `src/decision_system/graphing/models.py` | Added v2 models: WorkspaceNode, WorkspaceEdge, WorkspaceRisk, WorkspaceMetric (v1 legacy models preserved) |
-| `src/decision_system/graphing/store.py` | Added v2 CRUD store: upsert_node, upsert_edge, list_nodes, list_edges, risk/metric CRUD, workspace isolation (v1 legacy functions preserved) |
 
 ### New Files
 | File | Purpose |
 |------|---------|
-| `src/decision_system/graphing/extractor_v2.py` | Deterministic v2 extraction: companies, vendors, products, named entities, money, percentages, dates, emails/domains, risks (12 categories), metrics (30+ keywords), relationships (7 types) |
-| `src/decision_system/api/routes_graph.py` | Graph API: POST extract, GET graph/nodes/edges/risks/metrics, GET summary, GET node/edge by ID |
-| `tests/test_graph_store.py` | 26 tests for v2 graph store CRUD, workspace isolation, persistence |
-| `tests/test_extractor_v2.py` | 29 tests for v2 extraction: entities, risks, metrics, relationships, evidence refs, empty handling |
-| `tests/test_graph_api.py` | 13 tests for graph API: extraction, retrieval, error handling, empty states |
-| `docs/GRAPH_INTELLIGENCE_AUDIT.md` | Audit of existing graph/ontology/insight/data-source modules |
+| `src/decision_system/identity/__init__.py` | Identity package init with exports |
+| `src/decision_system/identity/models.py` | LocalUser, WorkspaceMembership, Permission, UserRole, ROLE_PERMISSIONS |
+| `src/decision_system/identity/store.py` | JSON-backed user and membership store |
+| `src/decision_system/identity/permissions.py` | Permission checking layer, FastAPI dependencies |
+| `src/decision_system/identity/settings.py` | Security mode settings (demo/governed) |
+| `src/decision_system/api/routes_identity.py` | Identity API endpoints (users, memberships, settings, permissions) |
+| `src/decision_system/api/routes_audit.py` | Workspace-scoped audit log API with filters |
+| `tests/test_identity.py` | 33 identity/permission tests |
+| `docs/SECURITY_GOVERNANCE_AUDIT.md` | Pre-implementation security audit |
+| `docs/SECURITY_MODEL.md` | Security architecture documentation |
+| `docs/THREAT_MODEL.md` | Threat model with 10 threats |
 
-### Docs
+### Modified Files
 | File | Change |
 |------|--------|
-| `docs/CURRENT_STATE.md` | Version bump, milestone update to v1.26 |
+| `src/decision_system/__init__.py` | Version 1.26.1-dev → 1.27.0-dev |
+| `pyproject.toml` | Version 1.26.1-dev → 1.27.0-dev |
+| `src/decision_system/api/app.py` | Registered routes_identity and routes_audit |
+| `src/decision_system/api/routes_providers.py` | Added permission enforcement to CRUD routes |
+| `src/decision_system/api/routes_execution_reports.py` | Added export permission enforcement |
+| `src/decision_system/security/audit.py` | Actor identity resolution from identity system |
+| `src/decision_system/workflow_engine/api.py` | Permission enforcement on review/review resolve routes |
+| `tests/test_graph_api.py` | Version string updated |
+| `CHANGELOG.md` | Added v1.27 section |
+| `docs/CURRENT_STATE.md` | Version/milestone update |
+| `docs/DEMO_PATH.md` | Version update |
 | `docs/IMPLEMENTATION_REPORT.md` | This report |
-| `docs/DEMO_PATH.md` | Version bump |
-| `docs/LOCAL_FIRST_SETUP.md` | Version bump |
-| `CHANGELOG.md` | Added v1.26 section |
-| `AGENTS.md` | Rewritten for current product direction |
-| `CLAUDE.md` | Updated project state, architecture, version history, rules |
-
-## Graph System
-
-### Model
-- **14 node types**: company, person, team, vendor, customer, product, system, document, dataset, metric, risk, event, decision, unknown
-- **12 edge types**: mentions, owns, depends_on, supplies, affects, contradicts, supports, related_to, has_metric, has_risk, occurred_on, evidence_for
-- All models workspace-scoped with evidence references
-- Status tracking: extracted, verified, contradicted, uncertain, archived
-
-### Store
-- Workspace-scoped JSON persistence under `.decision_system/graph/workspaces/{ws_id}/`
-- Full CRUD: upsert_node, get_node, list_nodes, search_nodes, delete_node
-- Edge CRUD, Risk CRUD, Metric CRUD
-- Workspace isolation enforced
-- Legacy v1 functions preserved for backward compatibility
-
-### Extraction (Deterministic v2)
-- **Companies**: suffix-based (Corp, Inc, LLC, GmbH) and keyword-based (Technologies, Solutions)
-- **Vendors**: explicit vendor/supplier/provider references
-- **Products**: product/platform/service references
-- **Named entities**: capitalized multi-word phrases with type inference
-- **Financial**: $X, USD X, EUR X amounts
-- **Percentages**: X%, X percent
-- **Dates**: ISO, US, named month formats
-- **Contacts**: email addresses, domains
-- **Risks**: 12 categories (security, compliance, financial, vendor, operational, technical, strategic)
-- **Metrics**: 30+ keyword patterns (revenue, cost, customer, churn, etc.)
-- **Relationships**: depends_on, owns, supplies, affects, contradicts, related_to, mentions
-
-### Audit/Observability
-
-Graph operations emit events and metrics via `graphing/audit.py`:
-- **Events**: graph_extraction_started, graph_extraction_completed, graph_extraction_failed, risk_extraction_completed, metric_extraction_completed, graph_fact_created
-- **Metrics**: graph_extraction_duration_ms, entities_extracted_count, edges_extracted_count, risks_extracted_count, metrics_extracted_count, graph_extraction_failure_count
-- Integrated into: graph extraction API route (`POST /workspaces/{id}/graph/extract`) and all workflow graph nodes (`GraphExtractionNodeV2`, `RiskExtractionNode`, `MetricExtractionNode`)
-- Storage: JSONL-based observability store at `.decision_system/observability/metrics/`
-
-### API Endpoints
-| Method | Path | Purpose |
-|--------|------|---------|
-| POST | /workspaces/{id}/graph/extract | Extract intelligence |
-| GET | /workspaces/{id}/graph | Full graph |
-| GET | /workspaces/{id}/graph/nodes | List nodes (filterable) |
-| GET | /workspaces/{id}/graph/edges | List edges (filterable) |
-| GET | /workspaces/{id}/graph/risks | List risks (filterable) |
-| GET | /workspaces/{id}/graph/metrics | List metrics |
-| GET | /workspaces/{id}/graph/summary | Graph statistics |
-| GET | /workspaces/{id}/graph/nodes/{node_id} | Single node |
-| GET | /workspaces/{id}/graph/edges/{edge_id} | Single edge |
-
-## Tests Passing
-
-### New Tests (140 total)
-- test_graph_store: 26 passed
-- test_extractor_v2: 29 passed
-- test_graph_api: 13 passed
-- test_graph_nodes: 29 passed
-- test_graph_audit: 16 passed
-
-### Full Suite (395+ passed across key modules)
-- test_data_sources: 60 passed
-- test_verification: 68 passed
-- test_providers: 48 passed
-- test_workflow_engine/test_api.py: 85 passed
-- test_graphing (legacy): 6 passed
-- test_graph_store: 26 passed
-- test_extractor_v2: 29 passed
-- test_graph_api: 13 passed
 
 ## Known Limitations
 
-1. **AI-assisted extraction** is stubbed (fake provider support exists in contract)
-2. Graph extraction is deterministic and evidence-linked but does not prove business truth by itself
+1. **No frontend permission UI** — The frontend does not yet have role-aware
+   UI states. Users see all buttons regardless of role. Future work.
+2. **No password authentication** — Identity is header-based (`X-User-Id`).
+   No login screen, no sessions, no tokens.
+3. **No encryption at rest** — Data is stored as plain JSON/SQLite files.
+4. **No transport security** — No TLS between services (add reverse proxy).
+5. **Demo mode is default** — Permissions are enforced only in governed mode.
+6. **Audit log integrity** — No cryptographic signing of audit events.
+7. **Some routes not yet permission-gated** — Data source, workflow, and
+   graph routes use workspace scoping but don't enforce granular permissions.
+8. **Workspace membership not yet required for all operations** — Some
+   stores accept workspace_id but don't fail when missing.
 
 ## Recommended Next Milestone
 
-**v1.27 — Security, Auth, RBAC + Governance Foundation** (with Graph UI polish, AI-assisted extraction, audit metrics API endpoints)
+**v1.28 — Connector Read-Only Imports + External Knowledge Sync**

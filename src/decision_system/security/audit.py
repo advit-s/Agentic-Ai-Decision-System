@@ -16,6 +16,15 @@ from typing import Any
 
 from decision_system.security.models import AuditEvent
 
+# Optional identity integration — the audit module tries to import the
+# identity system but does not require it. If the identity module is
+# not available, audit events fall back to "local-user".
+try:
+    from decision_system.identity.permissions import get_current_user as _get_audit_user
+    _IDENTITY_AVAILABLE = True
+except (ImportError, Exception):
+    _IDENTITY_AVAILABLE = False
+
 # ---------------------------------------------------------------------------
 # Path helpers
 # ---------------------------------------------------------------------------
@@ -35,11 +44,30 @@ def _ensure_dirs() -> None:
     DEFAULT_AUDIT_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _resolve_actor(actor: str | None = None) -> str:
+    """Resolve the actor for an audit event.
+
+    Priority:
+    1. Explicitly provided actor
+    2. Current user from identity system
+    3. Fallback to "local-user"
+    """
+    if actor is not None:
+        return actor
+    if _IDENTITY_AVAILABLE:
+        try:
+            user = _get_audit_user()
+            return user.user_id
+        except Exception:
+            pass
+    return "local-user"
+
+
 def append_event(
     event_type: str,
     message: str,
     *,
-    actor: str = "local-user",
+    actor: str | None = None,
     metadata: dict[str, Any] | None = None,
     audit_path: str | Path = DEFAULT_AUDIT_LOG,
 ) -> AuditEvent:
@@ -49,9 +77,10 @@ def append_event(
     """
     path = Path(audit_path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_actor = _resolve_actor(actor)
     event = AuditEvent(
         event_type=event_type,
-        actor=actor,
+        actor=resolved_actor,
         message=message,
         metadata=metadata or {},
     )
@@ -142,7 +171,7 @@ def render_audit_log(
 
 def log_audit_event(
     event: dict[str, Any],
-    actor: str = "local-user",
+    actor: str | None = None,
 ) -> AuditEvent:
     """Log an audit event from a dict.
 
@@ -161,9 +190,10 @@ def log_audit_event(
     event_type = event.pop("event_type", "unknown")
     message = event.pop("message", f"Event: {event_type}")
     metadata = event  # Remaining keys become metadata
+    resolved_actor = _resolve_actor(actor)
     return append_event(
         event_type=str(event_type),
         message=str(message),
-        actor=actor,
+        actor=resolved_actor,
         metadata=metadata,
     )

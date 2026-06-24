@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
- > **Last updated:** 2026-06-24 (v1.26.1-dev — Graph UI, Audit Metrics API + Extraction Quality Hardening)
- > **Package version:** 1.26.1-dev
-> **Previous milestone:** v1.25.0 — End-to-End Demo Hardening + Local Beta Release Prep
-> **Current milestone:** v1.26.1 — Graph UI, Audit Metrics API + Extraction Quality Hardening
+ > **Last updated:** 2026-06-24 (v1.27.0-dev — Security, Auth, RBAC + Governance Foundation)
+ > **Package version:** 1.27.0-dev
+ > **Previous milestone:** v1.26.1 — Graph UI, Audit Metrics API + Extraction Quality Hardening
+ > **Current milestone:** v1.27.0 — Security, Auth, RBAC + Governance Foundation
 > **Python:** >=3.11
 
 ---

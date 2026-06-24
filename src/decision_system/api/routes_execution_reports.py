@@ -8,11 +8,18 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from decision_system.api.models import api_error
 from decision_system.security.audit import append_event
+from decision_system.identity.models import LocalUser, Permission
+from decision_system.identity.permissions import (
+    get_current_user,
+    require_permission,
+    user_has_permission,
+)
+from decision_system.identity.settings import load_settings
 from decision_system.observability.metrics import MetricsCollector, MetricType
 
 router = APIRouter(tags=["execution-reports"])
@@ -370,8 +377,18 @@ def export_report(
     report_id: str,
     format: str = Query("markdown", alias="format"),
     workspace_id: str | None = Query(None),
+    _user: LocalUser = Depends(require_permission(Permission.REPORT_EXPORT)),
 ) -> dict[str, Any]:
-    """Export a report in markdown or json format."""
+    """Export a report in markdown or json format.
+
+    Requires report.export permission.
+    """
+    # Check if exports require admin
+    if load_settings().exports_require_admin:
+        from decision_system.identity.permissions import role_is_at_least
+        if not role_is_at_least(_user.role, UserRole.ADMIN):
+            raise api_error(403, "permission_denied",
+                "Report export requires admin or owner role.")
     # Find the report
     result = get_report(report_id, workspace_id)
     report_data = result["report"]

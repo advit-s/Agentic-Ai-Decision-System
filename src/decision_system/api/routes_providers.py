@@ -9,10 +9,12 @@ from __future__ import annotations
 import os
 import time
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from decision_system.api.models import api_error
 from decision_system.security.audit import append_event
+from decision_system.identity.models import LocalUser, Permission
+from decision_system.identity.permissions import require_permission
 from decision_system.providers import (
     ProviderConfig,
     ProviderCreateRequest,
@@ -42,7 +44,10 @@ def list_all_providers():
 
 
 @router.post("", response_model=ProviderConfig, status_code=201)
-def create_new_provider(request: ProviderCreateRequest):
+def create_new_provider(
+    request: ProviderCreateRequest,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_MANAGE)),
+):
     """Create a new provider configuration."""
     try:
         config = create_provider(request)
@@ -95,7 +100,11 @@ def get_provider_by_id(provider_id: str):
 
 
 @router.put("/{provider_id}", response_model=ProviderConfig)
-def update_provider_by_id(provider_id: str, request: ProviderUpdateRequest):
+def update_provider_by_id(
+    provider_id: str,
+    request: ProviderUpdateRequest,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_MANAGE)),
+):
     """Update an existing provider configuration."""
     config = update_provider(provider_id, request)
     if config is None:
@@ -110,7 +119,10 @@ def update_provider_by_id(provider_id: str, request: ProviderUpdateRequest):
 
 
 @router.delete("/{provider_id}", status_code=204)
-def delete_provider_by_id(provider_id: str):
+def delete_provider_by_id(
+    provider_id: str,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_MANAGE)),
+):
     """Delete a provider configuration."""
     if not delete_provider(provider_id):
         raise api_error(404, "provider_not_found", f"Provider '{provider_id}' not found")
@@ -246,6 +258,10 @@ def set_default_provider_system(body: dict[str, str]) -> dict[str, Any]:
 
     Legacy endpoint used by older frontend clients and tests.
     """
+    from decision_system.identity.permissions import get_current_user, user_has_permission
+    user = get_current_user()
+    if not user_has_permission(user, Permission.PROVIDER_MANAGE):
+        raise api_error(403, "permission_denied", "You do not have permission to manage providers.")
     name = body.get("name", "")
     if not name:
         raise api_error(400, "missing_name", "'name' field is required")

@@ -802,3 +802,36 @@
 - DOCX embedded images are not extracted
 - Data Sources UI is in the legacy static web app (`web/index.html`), not yet in the React workflow builder
 - API-level upload tests using ASGITransport may hang on Python 3.13 (environmental compatibility issue)
+## [1.27.0] - 2026-06-24 — Security, Auth, RBAC + Governance Foundation
+### Added
+- **Local identity model**: User model with roles (owner, admin, analyst, reviewer, viewer)
+- **Workspace membership**: Role-based workspace membership with scoped access
+- **Permission system**: 14+ permissions mapped to roles with a permission-checking layer
+- **API route permission enforcement**: Permission checks on workspaces, data sources, evidence, workflows, providers, reports, audit, settings
+- **Frontend permission states**: Role-aware UI that hides/disables restricted actions and handles 403 gracefully
+- **Governance-aware review gates**: Role enforcement for approve/reject, actor recording, audit
+- **Secure export governance**: Permission checks on report export, audit events for exports
+- **Provider secret safety**: Redacted API keys in responses, audit on config changes, secrets excluded from exports
+- **Audit log viewer**: GET /workspaces/{id}/audit/events with filters, frontend Audit Log page
+- **Workspace isolation enforcement**: Verified cross-workspace blocking for all major artifact types
+- **Security mode settings**: demo | governed mode, default_role, exports_require_admin, review_requires_reviewer_role
+- **Security docs**: SECURITY_MODEL.md and THREAT_MODEL.md with honest local-first assumptions
+### Changed
+- Version bumped from 1.26.1-dev to 1.27.0-dev
+- Audit events now include real actor identity
+- Provider API responses redact secrets (api_key_present boolean only)
+- Review gate resolution checks user role
+- Frontend API client handles 403 responses
+### Fixed
+- Provider secrets no longer exposed in API responses, exports, or logs
+- Cross-workspace data leakage prevented for all artifact types
+- Review gates can no longer be resolved by unauthorized users
+### Known limitations
+- No cloud auth or SSO — this is a local governance foundation
+- No password-based authentication — identity is local/system
+- No encryption at rest for stored data
+- No audit webhook or SIEM integration
+- No ABAC/ReBAC — role-based only
+- No session management — intended for local single-user/small-team use
+### Removed
+- No features removed

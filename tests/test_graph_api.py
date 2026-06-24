@@ -151,7 +151,7 @@ def test_health_still_works():
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "ok"
-    assert data["version"] == "1.26.1-dev"
+    assert data["version"] == "1.27.0-dev"
 
 
 # ---------------------------------------------------------------------------

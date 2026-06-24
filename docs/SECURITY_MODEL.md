@@ -1,102 +1,248 @@
-# Security Model
+# Security Model — Agentic Decision System
 
-## Current State (Prototype)
+> **Version:** 1.27.0-dev
+> **Date:** 2026-06-24
+> **Status:** Local Governance Foundation (not enterprise-grade)
 
-The Agentic Decision System is a **local-only prototype** with no production
-security controls. This document describes the current security posture honestly.
+---
 
-## Authentication
+## 1. Local-First Security Assumptions
 
-**Status: Not implemented.**
+This system is designed for **local-first, self-hosted** use. All security
+mechanisms assume:
 
-- No user authentication (JWT, OAuth, session tokens).
-- All CLI and API operations run as the local OS user.
-- The API binds to `127.0.0.1` by default (localhost only).
-- No RBAC: all operations available to all local users.
+- The host machine is trusted by the operator.
+- The local filesystem is trusted.
+- Network access is controlled by the host environment (firewall, VPN,
+  localhost-only binding).
+- No cloud identity provider, no SaaS auth service, no external
+  authentication authority.
 
-## Authorization
+**What this means:**
+- There is **no encryption at rest** for local data stores.
+- There is **no transport security** (TLS) between locally-bound services
+  (though a reverse proxy can add it).
+- There is **no brute-force protection** on identity — identity is
+  opt-in and session-free.
+- There is **no password-based authentication**.
 
-**Status: Not implemented.**
+These are **conscious design choices** for a local MVP beta. They are not
+oversights. Enterprise deployments should add a reverse proxy, TLS,
+and a proper identity provider.
 
-- No role-based access control.
-- No permission checks on any operation.
-- The approval workflow is a record-keeping mechanism, not an enforcement layer.
+---
 
-## Data Protection
+## 2. Demo Mode vs Governed Mode
 
-**Status: Local files only, no encryption.**
+### Demo Mode (default)
 
-- Company documents and generated state stored as local files.
-- Chroma vector store uses local SQLite.
-- No encryption at rest.
-- No encryption in transit (local API only, no TLS).
-- The `security scan-secrets` and `security redact-preview` tools help identify sensitive data
-  but do not enforce redaction.
+- No login or identity required.
+- All API endpoints are open.
+- Current user is always `local/system` with role `owner`.
+- Perfect for quick-start demos, development, and evaluation.
 
-## Secret Management
+### Governed Mode
 
-**Status: Environment variables only.**
+- Identity is resolved from the `X-User-Id` request header.
+- API routes enforce permissions based on user role.
+- Workspace membership is checked for scoped operations.
+- Security settings can tighten review, export, and audit requirements.
 
-- Provider API keys stored in `.env` files or environment variables.
-- No secrets vault (HashiCorp Vault, AWS Secrets Manager, etc.).
-- The secret scanner identifies potential leaks in source code.
-- The policy check verifies `.env` is not tracked by git.
+Switching modes:
+```python
+# Via API
+PUT /identity/settings
+{"security_mode": "governed"}
 
-## Network Security
+# Programmatic
+from decision_system.identity.settings import update_settings
+update_settings(security_mode="governed")
+```
 
-**Status: Local host only.**
+---
 
-- FastAPI binds to `127.0.0.1:8000` by default.
-- No TLS termination.
-- No CORS configuration.
-- No rate limiting.
-- No firewall rules.
-- Docker deployment exposes port 8000 only.
+## 3. Identity Model
 
-## Audit and Logging
+### User Fields
+| Field | Type | Description |
+|-------|------|-------------|
+| user_id | str | Unique identifier (e.g., `local/system`) |
+| display_name | str | Human-readable name |
+| role | UserRole | One of: owner, admin, analyst, reviewer, viewer |
+| created_at | str | ISO-8601 timestamp |
+| updated_at | str | ISO-8601 timestamp |
+| metadata | dict | Arbitrary key-value pairs |
 
-**Status: Local JSONL audit log.**
+### Default User
+```json
+{
+  "user_id": "local/system",
+  "display_name": "Local System",
+  "role": "owner"
+}
+```
 
-- Security-relevant events (secret scans, policy checks, redactions, approvals)
-  are logged to `.decision_system/security/audit/audit_log.jsonl`.
-- No log retention policy.
-- No centralized log collection.
-- No tamper protection on audit logs.
+### User Store
+- JSON file at `.decision_system/identity/users.json`
+- CRUD via API: `GET/POST/PUT/DELETE /identity/users`
+- No authentication — this is a local governance layer
 
-## Input Validation
+---
 
-**Status: Basic Pydantic validation.**
+## 4. Roles
 
-- API requests validated through Pydantic models.
-- No comprehensive input sanitization.
-- No file upload validation beyond extension checking.
-- Path traversal is mitigated by resolving and checking paths.
+| Role | Description | Privilege Level |
+|------|-------------|-----------------|
+| owner | Full control over everything | 5 (highest) |
+| admin | Manage workspace, settings, providers, exports | 4 |
+| analyst | Upload data, run workflows, create reports | 3 |
+| reviewer | Approve/reject review gates | 2 |
+| viewer | Read-only access to workspace data | 1 (lowest) |
 
-## Connector Security
+Roles are ordered: viewer < reviewer < analyst < admin < owner
 
-**Status: Only local-files connector is real.**
+---
 
-- The `local-files` connector copies files locally with no network calls.
-- GitHub, Jira, Slack, and Email connectors are offline stubs.
-- No real credentials are stored for stub connectors.
-- The policy check verifies stubs do not make network calls.
+## 5. Permission Matrix
 
-## War Room / Orchestration Security
+See `GET /identity/permissions` for the full live matrix.
 
-**Status: Deterministic simulation only.**
+| Permission | owner | admin | analyst | reviewer | viewer |
+|------------|-------|-------|---------|----------|--------|
+| workspace.read | ✅ | ✅ | ✅ | ✅ | ✅ |
+| workspace.manage | ✅ | ✅ | ❌ | ❌ | ❌ |
+| data_source.upload | ✅ | ✅ | ✅ | ❌ | ❌ |
+| data_source.delete | ✅ | ✅ | ✅ | ❌ | ❌ |
+| data_source.parse_index | ✅ | ✅ | ✅ | ❌ | ❌ |
+| evidence.search | ✅ | ✅ | ✅ | ✅ | ✅ |
+| workflow.create | ✅ | ✅ | ✅ | ❌ | ❌ |
+| workflow.update | ✅ | ✅ | ✅ | ❌ | ❌ |
+| workflow.execute | ✅ | ✅ | ✅ | ❌ | ❌ |
+| review.resolve | ✅ | ✅ | ❌ | ✅ | ❌ |
+| claim.verify | ✅ | ✅ | ✅ | ❌ | ❌ |
+| graph.extract | ✅ | ✅ | ✅ | ❌ | ❌ |
+| provider.manage | ✅ | ✅ | ❌ | ❌ | ❌ |
+| report.generate | ✅ | ✅ | ✅ | ❌ | ❌ |
+| report.export | ✅ | ✅ | ❌ | ❌ | ❌ |
+| audit.read | ✅ | ✅ | ✅ | ✅ | ✅ |
+| settings.manage | ✅ | ✅ | ❌ | ❌ | ❌ |
 
-- War-room agents are deterministic artifact generators, not live LLM agents.
-- Higher context is deep-frozen (read-only for lower-level agents).
-- Common workspace is append-only.
-- Judge/verifier checks outputs before they influence final reports.
-- No autonomous external actions (emails, tickets, deployments).
+---
 
-## Planned Improvements
+## 6. Workspace Membership
 
-1. Add OAuth2/JWT authentication for API access.
-2. Add RBAC for role-based operation restrictions.
-3. Add TLS for API transport encryption.
-4. Add secrets vault integration.
-5. Add audit log retention and tamper protection.
-6. Add rate limiting and input sanitization.
-7. Add comprehensive connector security review before enabling real connectors.
+Each workspace can have its own role assignments for users:
+
+```json
+{
+  "workspace_id": "ws-123",
+  "user_id": "local/alice",
+  "role": "analyst"
+}
+```
+
+Workspace roles **override** the user's global role for operations
+scoped to that workspace.
+
+---
+
+## 7. Provider Secret Handling
+
+### Design
+- Provider configs use `api_key_env` (env var name) not `api_key` (value).
+- `api_key_configured` is a boolean indicating whether the env var is set.
+- **No plaintext API keys** are stored in config JSON files.
+- **No plaintext API keys** are returned in API responses.
+- **No plaintext API keys** are included in exports.
+- **No plaintext API keys** appear in audit logs (only metadata about
+  the config change, not the key itself).
+
+### Env var pattern
+```json
+{
+  "provider_type": "openai",
+  "api_key_env": "OPENAI_API_KEY",
+  "api_key_configured": true
+}
+```
+
+---
+
+## 8. Audit Logging
+
+- All audit events are written to `.decision_system/security/audit/audit_log.jsonl`.
+- Events include: event_id, event_type, actor (user_id), message, metadata, timestamp.
+- Actor is automatically resolved from the identity system (falls back to `"local-user"`).
+- API: `GET /workspaces/{id}/audit/events` with filters for event_type, actor, date range.
+- API: `GET /workspaces/{id}/audit/summary` for aggregate counts.
+- Events are emitted for: provider changes, review resolutions, report exports,
+  verification actions, graph extractions, and more.
+
+---
+
+## 9. Export Governance
+
+- Report export requires `report.export` permission.
+- Export audit events include actor, workspace_id, report_id, and format.
+- Exports **never** include provider secrets.
+- Security settings can require admin role for exports (`exports_require_admin`).
+
+---
+
+## 10. Review Gate Governance
+
+- Review resolution requires `review.resolve` permission.
+- Security settings require reviewer role or higher (`review_requires_reviewer_role`).
+- Review decisions record the actor (user_id).
+- Audit events include review_id, action, actor, and notes.
+
+---
+
+## 11. Workspace Isolation
+
+- All data stores accept `workspace_id` as a scoping parameter.
+- Data sources, evidence, claims, reports, workflows, graph data, and
+  audit events are scoped to a workspace.
+- API routes enforce workspace membership for mutation operations.
+- Cross-workspace access requires appropriate workspace membership.
+
+---
+
+## 12. What Is Not Implemented
+
+- **Password-based authentication** — No login, no sessions, no tokens.
+- **Encryption at rest** — Data is stored as plain JSON/SQLite files.
+- **Transport security** — No TLS between services (add reverse proxy).
+- **Brute-force protection** — No rate limiting on identity endpoints.
+- **Audit webhook / SIEM** — No forwarding of audit events.
+- **ABAC / ReBAC** — Attribute-based or relationship-based access control.
+- **Multi-factor authentication** — Not applicable without passwords.
+- **Secrets vault** — No HashiCorp Vault, AWS Secrets Manager, etc.
+- **Cloud identity** — No OAuth, SAML, LDAP, or SSO.
+- **Session management** — No token refresh, expiry, or revocation.
+
+---
+
+## 13. Future Enterprise Auth Upgrade Path
+
+The identity system uses clean interfaces that allow future replacement:
+
+1. Replace `get_current_user()` with a JWT/session-based resolver.
+2. Add an `authenticate` dependency that validates tokens.
+3. Replace the local JSON user store with a database-backed store.
+4. Add OAuth/OIDC integration at the middleware level.
+5. Encrypt secrets at rest using the host's keychain.
+
+---
+
+## 14. Deployment Recommendations
+
+For private company-data beta:
+- Run on a dedicated machine or VM.
+- Use `localhost` binding only (no `0.0.0.0`) unless behind a reverse proxy.
+- Add a firewall to restrict access to the host.
+- Set `security_mode: governed` and create individual user accounts.
+- Use environment variables for all API keys.
+- Regularly audit the `.decision_system/` directory.
+- Backup `.decision_system/` for disaster recovery.
+- Consider full-disk encryption on the host.

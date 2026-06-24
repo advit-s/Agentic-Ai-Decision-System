@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from decision_system.workflow_engine.models import (
@@ -37,7 +37,16 @@ from decision_system.workflow_engine.stores.json_store import (
 from decision_system.workflow_engine.stores.version_store import JSONVersionStore
 from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
 from decision_system.workflow_engine.stream import emit_event
-
+from decision_system.identity.models import LocalUser, Permission, UserRole
+from decision_system.identity.permissions import (
+    get_current_user,
+    require_permission,
+    require_workspace_permission,
+    user_has_permission,
+    role_is_at_least,
+)
+from decision_system.identity.settings import load_settings
+from decision_system.security.audit import append_event, log_audit_event
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -803,7 +812,10 @@ async def receive_webhook(
 
 
 @router.get("/reviews")
-def list_reviews(status: str | None = None) -> dict[str, list[dict[str, Any]]]:
+def list_reviews(
+    status: str | None = None,
+    _user: LocalUser = Depends(require_permission(Permission.AUDIT_READ)),
+) -> dict[str, list[dict[str, Any]]]:
     """List review records, optionally filtered by status.
 
     Query params:
@@ -826,6 +838,9 @@ def list_reviews(status: str | None = None) -> dict[str, list[dict[str, Any]]]:
 def resolve_review_endpoint(review_id: str, req: ResolveReviewRequest) -> dict[str, Any]:
     """Approve, reject, or request changes on a pending review.
 
+    Requires review.resolve permission. Only users with reviewer or higher role
+    can resolve reviews when review_requires_reviewer_role is enabled (default).
+
     Body:
         action: "approve" | "reject" | "request_changes"
         notes: str
@@ -836,6 +851,28 @@ def resolve_review_endpoint(review_id: str, req: ResolveReviewRequest) -> dict[s
         resolve_review,
     )
 
+    # Check permission
+    current_user = get_current_user()
+    if not user_has_permission(current_user, Permission.REVIEW_RESOLVE):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "permission_denied",
+                "message": f"User '{current_user.user_id}' lacks review.resolve permission.",
+            },
+        )
+
+    # Check role requirement if enabled
+    if load_settings().review_requires_reviewer_role:
+        if not role_is_at_least(current_user.role, UserRole.REVIEWER):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "permission_denied",
+                    "message": f"Role '{current_user.role.value}' cannot resolve reviews. Reviewer or higher required.",
+                },
+            )
+
     valid_actions = {"approve", "reject", "request_changes"}
     if req.action not in valid_actions:
         raise HTTPException(
@@ -843,13 +880,16 @@ def resolve_review_endpoint(review_id: str, req: ResolveReviewRequest) -> dict[s
             detail=f"Invalid action '{req.action}'. Must be one of: {', '.join(sorted(valid_actions))}",
         )
 
+    # Record the actor in the review resolution
+    reviewer = req.reviewed_by or current_user.user_id
+
     try:
         result = resolve_review(
             review_id=review_id,
             action=req.action,
             notes=req.notes,
             modified_data=req.modified_data,
-            reviewed_by=req.reviewed_by,
+            reviewed_by=reviewer,
         )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
@@ -857,15 +897,14 @@ def resolve_review_endpoint(review_id: str, req: ResolveReviewRequest) -> dict[s
     if result is None:
         raise HTTPException(status_code=404, detail=f"Review '{review_id}' not found")
 
-    # Audit event for review resolution
+    # Audit event for review resolution with actor
     try:
-        from decision_system.security.audit import log_audit_event
         log_audit_event({
             "event_type": "review_resolved",
             "review_id": review_id,
             "action": req.action,
-            "reviewed_by": req.reviewed_by or "api",
-            "notes": req.notes,
+            "reviewed_by": reviewer,
+            "notes": req.notes or "",
         })
     except Exception:
         pass
