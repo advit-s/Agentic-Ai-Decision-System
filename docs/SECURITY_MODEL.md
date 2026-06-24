@@ -246,3 +246,38 @@ For private company-data beta:
 - Regularly audit the `.decision_system/` directory.
 - Backup `.decision_system/` for disaster recovery.
 - Consider full-disk encryption on the host.
+
+---
+
+## Connector Security
+
+Connectors follow strict security principles:
+
+### Read-only enforcement
+All connectors are enforced read-only at the model level (`ConnectorMode.READ_ONLY`).
+No connector can create, update, or delete data on external systems.
+
+### Token/handle handling
+- Token values are never stored in connector configurations.
+- The `GITHUB_TOKEN`, `NOTION_API_KEY`, and `GOOGLE_DRIVE_TOKEN` are referenced via environment variable names only.
+- API credential status endpoints return boolean presence indicators only.
+- Token values are redacted from all logs, audit events, and error messages via `redact_connector_token()`.
+
+### SSRF protection
+The URL Import connector blocks requests to private/internal network addresses:
+- `10.x.x.x`, `172.16-31.x.x`, `192.168.x.x`, `127.x.x.x`, `localhost`
+- Response size limited to 10 MB
+- Only HTTP/HTTPS URLs accepted
+
+### Path traversal protection
+The Local Folder connector:
+- Resolves and validates paths before access
+- Blocks absolute system directories and symlinks
+- Rejects `..` path components
+- Only imports supported file extensions
+
+### Audit
+All connector operations are recorded in the audit log:
+- Create, update, delete, test, list items, import, sync
+- Setup events (v1.30): setup started, tested, completed, failed, credentials missing
+- See `docs/CONNECTOR_SECURITY_REVIEW.md` for detailed review.

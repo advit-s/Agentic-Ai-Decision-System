@@ -82,28 +82,36 @@ _BUILTIN_CONNECTORS: list[ConnectorDefinition] = [
         connector_id="notion",
         name="Notion",
         connector_type=ConnectorType.NOTION,
-        status=ConnectorStatus.UNAVAILABLE,
-        description="Notion read-only connector (not implemented in v1.28).",
-        capabilities=[],
+        status=ConnectorStatus.STUB,
+        description=(
+            "Read-only Notion page/database import. "
+            "Requires NOTION_API_KEY env var. "
+            "Currently planned for a future milestone."
+        ),
+        capabilities=[ConnectorCapability.LIST, ConnectorCapability.IMPORT],
         requires_secrets=True,
         supports_dry_run=False,
-        supports_import=False,
-        supports_list=False,
-        supports_test=False,
+        supports_import=True,
+        supports_list=True,
+        supports_test=True,
         is_stub=True,
     ),
     ConnectorDefinition(
         connector_id="google-drive",
         name="Google Drive",
         connector_type=ConnectorType.GOOGLE_DRIVE,
-        status=ConnectorStatus.UNAVAILABLE,
-        description="Google Drive read-only connector (not implemented in v1.28).",
-        capabilities=[],
+        status=ConnectorStatus.STUB,
+        description=(
+            "Read-only Google Drive file import. "
+            "Requires GOOGLE_DRIVE_TOKEN or GOOGLE_APPLICATION_CREDENTIALS env var. "
+            "Currently planned for a future milestone."
+        ),
+        capabilities=[ConnectorCapability.LIST, ConnectorCapability.IMPORT],
         requires_secrets=True,
         supports_dry_run=False,
-        supports_import=False,
-        supports_list=False,
-        supports_test=False,
+        supports_import=True,
+        supports_list=True,
+        supports_test=True,
         is_stub=True,
     ),
 ]
@@ -155,3 +163,66 @@ def get_connector_definition(
 ) -> ConnectorDefinition | None:
     """Return a connector definition by id, or None if not registered."""
     return get_registry().get_definition(connector_id)
+
+
+def get_connector_with_schema(connector_id: str) -> dict | None:
+    """Return a connector definition merged with its setup schema, or None."""
+    from decision_system.connectors.setup_schemas import get_setup_schema
+    definition = get_connector_definition(connector_id)
+    if definition is None:
+        return None
+    schema = get_setup_schema(connector_id)
+    result = definition.model_dump(mode="json")
+    result["setup_schema"] = schema.model_dump(mode="json") if schema else None
+    return result
+
+
+def list_connectors_with_schemas() -> list[dict]:
+    """Return all connector definitions merged with setup schemas."""
+    result = []
+    for c in list_connectors():
+        merged = get_connector_with_schema(c.connector_id)
+        if merged:
+            result.append(merged)
+    return result
+
+
+def get_credential_status(connector_id: str) -> dict | None:
+    """Return safe credential status for a connector, or None if unknown."""
+    from decision_system.connectors.setup_schemas import get_setup_schema
+    schema = get_setup_schema(connector_id)
+    if schema is None:
+        return None
+    if not schema.credential_fields:
+        return {
+            "configured": True,
+            "token_present": False,
+            "env_var_name": "",
+            "missing_message": "",
+            "has_required": True,
+        }
+    import os
+    all_present = True
+    statuses = []
+    for field in schema.credential_fields:
+        env_name = field.env_var_hint
+        token_present = bool(os.environ.get(env_name, ""))
+        statuses.append({
+            "field": field.key,
+            "label": field.label,
+            "env_var_name": env_name,
+            "token_present": token_present,
+            "required": field.required,
+        })
+        if field.required and not token_present:
+            all_present = False
+    return {
+        "configured": all_present,
+        "token_present": all_present,
+        "has_required": all_present,
+        "fields": statuses,
+        "missing_message": (
+            "Set the required environment variable(s) to enable authenticated access."
+            if not all_present else ""
+        ),
+    }

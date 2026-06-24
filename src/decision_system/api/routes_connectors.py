@@ -124,6 +124,32 @@ def _reject_connector_path(path_str: str) -> str:
     return path_str
 
 
+@router.get("/connectors/schemas")
+def list_connector_schemas() -> dict[str, Any]:
+    """Return all connector setup schemas for UI rendering."""
+    from decision_system.connectors.setup_schemas import list_setup_schemas
+    schemas = list_setup_schemas()
+    return {"schemas": [s.model_dump(mode="json") for s in schemas]}
+
+
+@router.get("/connectors/{connector_id}/schema")
+def get_connector_schema(connector_id: str) -> dict[str, Any]:
+    """Return the setup schema for a specific connector type."""
+    from decision_system.connectors.setup_schemas import get_setup_schema
+    schema = get_setup_schema(connector_id)
+    if schema is None:
+        raise HTTPException(status_code=404, detail=f"No schema found for connector '{connector_id}'")
+    return {"schema": schema.model_dump(mode="json")}
+
+
+@router.get("/connectors/{connector_id}/credential-status")
+def get_connector_credential_status(connector_id: str) -> dict[str, Any]:
+    """Return safe credential status (no token values exposed)."""
+    from decision_system.connectors.registry import get_credential_status
+    status = get_credential_status(connector_id)
+    return {"credential_status": status or {}}
+
+
 # ---------------------------------------------------------------------------
 # Connector definition endpoints (read-only registry)
 # ---------------------------------------------------------------------------
@@ -463,7 +489,7 @@ def import_connector_v1(connector_id: str, request: ImportRequest) -> dict[str, 
 
 
 def _serialize_definition(definition: Any) -> dict[str, Any]:
-    return {
+    result = {
         "connector_id": definition.connector_id,
         "name": definition.name,
         "connector_type": definition.connector_type.value,
@@ -477,6 +503,17 @@ def _serialize_definition(definition: Any) -> dict[str, Any]:
         "supports_test": definition.supports_test,
         "is_stub": definition.is_stub,
     }
+    # Attach setup schema if available (v1.30)
+    try:
+        from decision_system.connectors.setup_schemas import get_setup_schema
+        schema = get_setup_schema(definition.connector_id)
+        if schema:
+            result["setup_schema"] = schema.model_dump(mode="json")
+        else:
+            result["setup_schema"] = None
+    except Exception:
+        result["setup_schema"] = None
+    return result
 
 
 # ---------------------------------------------------------------------------

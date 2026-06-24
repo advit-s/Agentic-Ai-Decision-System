@@ -14,7 +14,7 @@
 #   ./scripts/e2e-local-demo-smoke.sh
 #
 # Requirements:
-#   - Python virtual environment activated (source .venv/bin/activate)
+#   - Python virtual environment auto-detected (.venv/bin/python) or system python
 #   - Node.js and npm installed
 # ---------------------------------------------------------------------------
 set -euo pipefail
@@ -22,6 +22,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_DIR"
+
+# Auto-detect venv python
+if [ -f "$PROJECT_DIR/.venv/bin/python" ]; then
+  PYTHON="$PROJECT_DIR/.venv/bin/python"
+else
+  PYTHON="python"
+fi
 
 SUMMARY_MODE=false
 if [[ "${1:-}" == "--summarize" ]]; then
@@ -62,12 +69,16 @@ fi
 # ---------------------------------------------------------------------------
 # 2. Backend targeted tests
 # ---------------------------------------------------------------------------
-run_check "tests/test_security.py" python -m pytest tests/test_security.py -q
-run_check "tests/test_graph_api.py" python -m pytest tests/test_graph_api.py -q
-run_check "tests/test_data_sources/" python -m pytest tests/test_data_sources/ -q
-run_check "tests/test_verification" python -m pytest tests/test_verification -q
-run_check "tests/test_providers" python -m pytest tests/test_providers -q
-run_check "tests/test_workflow_engine/test_api.py" python -m pytest tests/test_workflow_engine/test_api.py -q
+run_check "tests/test_security.py" $PYTHON -m pytest tests/test_security.py -q
+run_check "tests/test_graph_api.py" $PYTHON -m pytest tests/test_graph_api.py -q
+run_check "tests/test_data_sources/" $PYTHON -m pytest tests/test_data_sources/ -q
+run_check "tests/test_verification" $PYTHON -m pytest tests/test_verification -q
+run_check "tests/test_providers" $PYTHON -m pytest tests/test_providers -q
+run_check "tests/test_workflow_engine/test_api.py" $PYTHON -m pytest tests/test_workflow_engine/test_api.py -q
+run_check "tests/test_connectors.py" $PYTHON -m pytest tests/test_connectors.py -q
+run_check "tests/test_connector_sync.py" $PYTHON -m pytest tests/test_connector_sync.py -q
+run_check "tests/test_api_connector.py" $PYTHON -m pytest tests/test_api_connector.py -q
+run_check "tests/test_connector_setup.py" $PYTHON -m pytest tests/test_connector_setup.py -q
 
 # ---------------------------------------------------------------------------
 # 3. Frontend tests

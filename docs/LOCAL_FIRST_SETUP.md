@@ -198,3 +198,35 @@ docker compose down -v
 # Re-seed demo data
 bash scripts/local-demo-seed.sh
 ```
+
+---
+
+## Connector Setup (v1.30+)
+
+Connectors allow you to import data from local folders, GitHub repositories, and URLs as read-only data sources. All connectors are:
+
+- **Read-only**: Data is copied locally; originals are never modified.
+- **Workspace-scoped**: Connector configurations and imported data are isolated per workspace.
+- **Audited**: All operations are logged to the audit trail.
+- **Permission-gated**: Configuring, importing, and syncing require appropriate RBAC permissions.
+
+### Setting up a connector
+
+1. Open the Connectors page in the React SPA.
+2. Choose a connector type (Local Folder, GitHub Repository, URL Import).
+3. Fill in the configuration fields (folder path, repository URL, or web page URL).
+4. For GitHub, optionally set the `GITHUB_TOKEN` environment variable for rate-limit increases.
+5. Test the connection to verify it works.
+6. List available items and select the ones to import.
+7. Import selected items into your workspace as local data sources.
+
+### Troubleshooting credentials
+
+- **GitHub token**: Set `GITHUB_TOKEN` as an environment variable before starting the application. Token values are never stored in configs or returned from API responses.
+- **Notion/Google Drive**: These connectors are planned for future milestones. The UI shows disabled connector cards with setup guidance.
+
+### Token safety
+
+- Token values are never exposed in API responses.
+- The credential status API returns boolean `token_present` indicators only.
+- Tokens are automatically redacted from logs, audit events, and error messages.

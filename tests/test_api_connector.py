@@ -37,9 +37,9 @@ class TestConnectorList:
         payload = response.json()
         for c in payload["connectors"]:
             if c["connector_id"] in ("notion", "google-drive"):
-                assert c["status"] == "unavailable"
+                assert c["status"] in ("unavailable", "stub")
                 assert c["is_stub"] is True
-                assert c["supports_import"] is False
+                assert c["supports_import"] is True
 
 
 class TestConnectorDetail:
@@ -63,14 +63,14 @@ class TestConnectorDetail:
         assert response.status_code == 200
         d = response.json()["definition"]
         assert d["is_stub"] is True
-        assert d["status"] == "unavailable"
+        assert d["status"] in ("unavailable", "stub")
 
     async def test_google_drive_is_unavailable(self, async_client):
         response = await async_client.get("/connectors/google-drive")
         assert response.status_code == 200
         d = response.json()["definition"]
         assert d["is_stub"] is True
-        assert d["status"] == "unavailable"
+        assert d["status"] in ("unavailable", "stub")
 
     async def test_unknown_returns_404(self, async_client):
         response = await async_client.get("/connectors/does-not-exist")

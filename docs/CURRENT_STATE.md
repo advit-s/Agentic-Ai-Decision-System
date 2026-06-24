@@ -1,8 +1,7 @@
-# Current State — Agentic Decision System
-> **Last updated:** 2026-06-24 (v1.27.2-dev — Test Harness + Release Baseline)
-> **Package version:** 1.28.0-dev
-> **Previous milestone:** v1.27.1 — Frontend Security UI + Permission-Aware Components
-> **Current milestone:** v1.28.0 — Connector Read-Only Imports + External Knowledge Sync
+> **Last updated:** 2026-06-24 (v1.30.0-dev — Connector Expansion + OAuth/Token Setup UX)
+> **Package version:** 1.30.0-dev
+> **Previous milestone:** v1.29.0 — Connector Scheduling + Incremental Sync
+> **Current milestone:** v1.30.0 — Connector Expansion + OAuth/Token Setup UX
 > **Python:** >=3.11
 
 ---

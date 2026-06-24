@@ -79,7 +79,7 @@ class TestRegistry:
             d = get_connector_definition(cid)
             assert d is not None
             assert d.is_stub is True
-            assert d.status == ConnectorStatus.UNAVAILABLE
+            assert d.status == ConnectorStatus.STUB
 
     def test_unknown_connector_returns_none(self):
         assert get_connector_definition("nonexistent") is None
@@ -97,11 +97,11 @@ class TestRegistry:
         assert d.supports_import is True
         assert d.requires_secrets is False
 
-    def test_stubs_have_no_secrets_and_no_real_import(self):
+    def test_stubs_have_secrets_and_planned_import(self):
         for cid in ("notion", "google-drive"):
             d = get_connector_definition(cid)
             assert d.requires_secrets is True
-            assert d.supports_import is False
+            assert d.supports_import is True
 
 
 # ---------------------------------------------------------------------------

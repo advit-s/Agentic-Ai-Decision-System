@@ -119,3 +119,72 @@ def record_schedules_due(
         "connector_schedules_due_count",
         float(count),
     )
+
+
+# ---------------------------------------------------------------------------
+# Setup metrics (v1.30)
+# ---------------------------------------------------------------------------
+
+
+def record_setup_duration(
+    connector_type: str,
+    duration_ms: float,
+    success: bool = True,
+) -> None:
+    """Record connector setup duration."""
+    _record(
+        "connector_setup_duration_ms",
+        duration_ms,
+        connector_type=connector_type,
+        success=str(success),
+    )
+
+
+def record_test_success(
+    connector_type: str,
+) -> None:
+    """Record a successful connector test."""
+    _record(
+        "connector_test_success_count",
+        1.0,
+        connector_type=connector_type,
+    )
+
+
+def record_test_failure(
+    connector_type: str,
+    error_type: str = "general",
+) -> None:
+    """Record a failed connector test."""
+    _record(
+        "connector_test_failure_count",
+        1.0,
+        connector_type=connector_type,
+        error_type=error_type,
+    )
+
+
+def record_preview_item_count(
+    connector_id: str,
+    count: int,
+) -> None:
+    """Record the number of items previewed before import."""
+    _record(
+        "connector_preview_item_count",
+        float(count),
+        connector_id=connector_id,
+    )
+
+
+def record_import_by_type(
+    connector_type: str,
+    item_type: str,
+    count: int = 1,
+) -> None:
+    """Record import by connector and item type."""
+    _record(
+        "connector_import_by_type_count",
+        float(count),
+        connector_type=connector_type,
+        item_type=item_type,
+    )

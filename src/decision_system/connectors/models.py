@@ -156,6 +156,29 @@ class ConnectorDefinition(BaseModel):
     supports_sync: bool = False
     is_stub: bool = False
 
+class ConnectorCredentialStatus(BaseModel):
+    """Safe credential status for a connector (no token values exposed)."""
+    configured: bool = Field(default=False, description="Whether credentials are configured")
+    token_present: bool = Field(default=False, description="Whether a token/env-var value is set")
+    env_var_name: str = Field(default="", description="Recommended environment variable name")
+    missing_message: str = Field(default="", description="User-friendly message if credentials are missing")
+    has_required: bool = Field(default=False, description="Whether all required credentials are present")
+
+
+class ConnectorTestDiagnostics(BaseModel):
+    """Structured test result for a connector connection."""
+    status: str = Field(default="unknown", description="Overall status: success, warning, error")
+    message: str = Field(default="", description="Human-readable result message")
+    checked_at: str = Field(default="", description="ISO timestamp of test")
+    connector_type: str = Field(default="", description="Connector type tested")
+    reachable: bool = Field(default=False, description="Whether the target is reachable")
+    auth_configured: bool = Field(default=False, description="Whether auth credentials are present")
+    permissions_summary: str = Field(default="", description="What permissions the connector has")
+    rate_limit_info: str | None = Field(default=None, description="Rate limit information if available")
+    sample_item_count: int | None = Field(default=None, description="Number of items found if tested")
+    warnings: list[str] = Field(default_factory=list, description="Non-fatal warnings")
+    errors: list[str] = Field(default_factory=list, description="Error messages")
+
 
 class ConnectorFetchedContent(BaseModel):
     """Fetched content from a connector runtime."""

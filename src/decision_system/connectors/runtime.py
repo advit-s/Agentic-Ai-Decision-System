@@ -81,9 +81,15 @@ class ConnectorRuntime(ABC):
 class FakeConnectorRuntime(ConnectorRuntime):
     """Fake runtime for testing. Returns canned data."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        connector_id: str | None = None,
+        label: str | None = None,
+    ) -> None:
         self._items: list[ConnectorRuntimeItem] = []
         self._content: dict[str, ConnectorFetchedContent] = {}
+        self._connector_id = connector_id or "fake"
+        self._label = label or "Fake Connector"
 
     def set_items(self, items: list[ConnectorRuntimeItem]) -> None:
         self._items = items

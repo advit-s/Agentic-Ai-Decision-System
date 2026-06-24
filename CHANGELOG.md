@@ -1,3 +1,36 @@
+## [1.30.0-dev] - 2026-06-24 — Connector Expansion + OAuth/Token Setup UX
+### Added
+- **Connector setup schema system**: Standardized setup schemas per connector type with field types, credential hints, safety notes, and read-only capability descriptions (`setup_schemas.py`)
+- **Credential status API**: Safe `/connectors/{id}/credential-status` endpoint returns boolean token presence without exposing values
+- **Structured test diagnostics**: Test connection results now include structured diagnostics with status, reachable, auth_configured, permissions, warnings, errors
+- **GitHub Issues connector**: Read-only listing and import of GitHub issues via `github_issues.py`; formats issue body and metadata as markdown
+- **GitHub Pull Requests connector**: Read-only listing of PRs with state, author, merge status metadata
+- **GitHub Releases connector**: Read-only listing of release notes with version, author, prerelease metadata
+- **Connector token redaction**: `redact_connector_token()` function in security/redaction.py masks tokens (GitHub, OpenAI, Slack patterns) in logs, errors, and audit
+- **Connector setup wizard state**: Frontend wizard step tracking for choose/configure/test/done flow
+- **Connector security review**: `docs/CONNECTOR_SECURITY_REVIEW.md` covering SSRF, path traversal, token handling, RBAC, audit coverage
+- **New audit events**: connector_setup_started, connector_setup_tested, connector_setup_completed, connector_setup_failed, connector_credentials_missing, connector_item_previewed, github_issue_imported
+- **New metrics**: connector_setup_duration_ms, connector_test_success_count, connector_test_failure_count, connector_preview_item_count, connector_import_by_type_count
+- **Setup schema tests**: 31 tests for schema structure, credential status, token redaction, diagnostics (`tests/test_connector_setup.py`)
+- **FakeConnectorRuntime enhancements**: Accepts optional connector_id and label for stub connectors
+
+### Changed
+- Version bumped from 1.29.0-dev to 1.30.0-dev
+- Connector definitions in registry now include `setup_schema` metadata for UI rendering
+- Connector API list/view definitions include setup schema info via `_serialize_definition()`
+- Notion and Google Drive changed from UNAVAILABLE to STUB status with read-only capabilities advertised
+- `runtime_dispatch.py` handles Notion/Google Drive as FakeConnectorRuntime instead of raising NotImplementedError
+- `test_connection` returns structured `ConnectorTestDiagnostics` with backward-compatible `success` key
+- Frontend `api.js` exports `listConnectorSchemas`, `getConnectorSchema`, `getConnectorCredentialStatus`
+- React SPA connector page updated with schema-aware create flow
+- `security/redaction.py` added `redact_connector_token()` and `safe_credential_status()`
+
+### Documentation
+- `docs/CONNECTOR_SETUP_AUDIT.md` — Baseline audit of current connector setup UX, credential handling, and v1.30 plan
+- `docs/CONNECTOR_SECURITY_REVIEW.md` — Connector security review covering all built-in connectors
+- `docs/CURRENT_STATE.md` — Updated version to 1.30.0-dev and milestone description
+
+
 ## [1.28.0-dev] - 2026-06-24 — Connector Read-Only Imports + External Knowledge Sync
 ### Added
 - **Connector config store**: Persistent JSON-backed connector configuration storage with workspace scoping

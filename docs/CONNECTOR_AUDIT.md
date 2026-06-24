@@ -182,3 +182,24 @@ full read-only import system with:
 - `tests/test_connectors.py` — Updated for new registry
 - `tests/test_api_connector.py` — Updated for new API
 See docs/CONNECTOR_SYNC_AUDIT.md for v1.29 sync audit details.
+See docs/CONNECTOR_SETUP_AUDIT.md for v1.30 setup UX audit details.
+
+## v1.30 Additions
+
+### New files
+- `src/decision_system/connectors/setup_schemas.py` — Connector setup schema models + built-in schemas
+- `src/decision_system/connectors/github_issues.py` — Read-only GitHub Issues, PRs, Releases connector
+- `docs/CONNECTOR_SETUP_AUDIT.md` — Connector setup audit document
+- `docs/CONNECTOR_SECURITY_REVIEW.md` — Connector security review document
+- `tests/test_connector_setup.py` — 57 tests for setup schemas, credentials, diagnostics
+
+### Enhanced security
+- Token redaction: `redact_connector_token()` masks tokens in logs/errors/audit
+- Safe credential status: API returns boolean presence only, never token values
+- Structured test diagnostics: status, reachable, auth_configured, warnings, errors
+- GitHub issues/PRs/releases: Read-only API, no write operations
+- Notion/Google Drive: Stub status with honest `disabled=true` and env-var guidance
+
+### Enhanced audit/metrics
+- New setup events: connector_setup_started, connector_setup_tested, connector_setup_completed, connector_setup_failed, connector_credentials_missing, connector_item_previewed, github_issue_imported
+- New metrics: connector_setup_duration_ms, connector_test_success/failure_count, connector_preview_item_count, connector_import_by_type_count

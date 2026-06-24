@@ -782,6 +782,18 @@ function getConnectorDefinition(connectorId) {
   return apiFetch(`/connectors/${connectorId}`);
 }
 
+function listConnectorSchemas() {
+  return apiFetch("/connectors/schemas");
+}
+
+function getConnectorSchema(connectorId) {
+  return apiFetch(`/connectors/${connectorId}/schema`);
+}
+
+function getConnectorCredentialStatus(connectorId) {
+  return apiFetch(`/connectors/${connectorId}/credential-status`);
+}
+
 function listConnectorConfigs(workspaceId) {
   return apiFetch(`/workspaces/${workspaceId}/connectors`);
 }
@@ -872,6 +884,9 @@ export {
   // Connectors
   listConnectorDefinitions,
   getConnectorDefinition,
+  listConnectorSchemas,
+  getConnectorSchema,
+  getConnectorCredentialStatus,
   listConnectorConfigs,
   createConnectorConfig,
   getConnectorConfig,

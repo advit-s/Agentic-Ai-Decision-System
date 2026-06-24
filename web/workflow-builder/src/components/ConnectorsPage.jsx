@@ -1,8 +1,12 @@
-// ConnectorsPage.jsx — Read-only connector manager for v1.28+v1.29
+// ConnectorsPage.jsx — Read-only connector manager for v1.28+v1.29+v1.30
+// Supports create/test/import (v1.28), sync/schedule (v1.29),
+// and setup wizard, credential UX, item preview (v1.30).
 // Supports create/test/import (v1.28) and sync/schedule (v1.29).
 import React, { useState, useEffect, useCallback } from "react";
 import {
   listConnectorDefinitions,
+  listConnectorSchemas,
+  getConnectorCredentialStatus,
   listConnectorConfigs,
   createConnectorConfig,
   getConnectorConfig,
@@ -33,16 +37,21 @@ const CONNECTOR_TYPES = [
 function ConnectorsPage({ workspaceId, onNavigate }) {
   const [definitions, setDefinitions] = useState([]);
   const [configs, setConfigs] = useState([]);
+  const [schemas, setSchemas] = useState([]);
+  const [credentialStatus, setCredentialStatus] = useState({});
   const { can } = usePermission();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [view, setView] = useState("list"); // list | create | detail | items | jobs | sync-state | schedules
+  const [wizardStep, setWizardStep] = useState(0); // 0=choose, 1=configure, 2=test, 3=done
+  const [selectedSchema, setSelectedSchema] = useState(null);
   const [selectedConfig, setSelectedConfig] = useState(null);
   const [items, setItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [importing, setImporting] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [syncState, setSyncState] = useState([]);

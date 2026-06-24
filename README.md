@@ -358,6 +358,15 @@ v1.1 adds a safe connector framework for controlled data intake. Only `local-fil
 **v1.29 connector sync (incremental):**
 - `POST /workspaces/{wid}/connectors/{cid}/sync` — trigger manual sync
 - `GET /workspaces/{wid}/connectors/{cid}/sync-state` — inspect sync state
+
+**v1.30 connector setup improvements:**
+- Connector setup schemas for UI rendering (field types, credential hints, safety notes)
+- Safe credential status API (boolean token_present only — no token values exposed)
+- Structured test diagnostics (status, reachable, auth_configured, warnings, errors)
+- GitHub Issues, PRs, and Releases read-only import
+- Token redaction in logs, errors, and audit events
+- Notion/Google Drive: planned/disabled stubs with env-var setup guidance
+- See `docs/CONNECTOR_SETUP_AUDIT.md` and `docs/CONNECTOR_SECURITY_REVIEW.md` for details
 - `GET /workspaces/{wid}/connectors/{cid}/sync-schedules` — list schedules
 - `POST /workspaces/{wid}/connectors/{cid}/sync-schedules` — create schedule
 - `PUT /workspaces/{wid}/connectors/{cid}/sync-schedules/{sid}` — update schedule

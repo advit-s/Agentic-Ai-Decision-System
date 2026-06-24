@@ -287,3 +287,25 @@ Built-in templates (no cloud keys required):
 | `src/components/WorkflowToolbar.jsx` | Toolbar with validate/import/export |
 | `src/styles/config-panel.css` | Config panel and catalog hint styles |
 | `scripts/local-demo-seed.sh` | Demo seed script |
+
+---
+
+## Connector Setup UI
+
+The Connectors page (available from the main navigation) provides a wizard-style
+setup experience:
+
+1. **Choose connector type** — Select from Local Folder, GitHub Repository, or URL Import.
+   Notion and Google Drive are shown as disabled/planned with setup guidance.
+2. **Review capabilities** — Each connector shows what data it can read (all read-only).
+3. **Configure fields** — Schema-driven forms adapt to the selected connector type.
+4. **Configure credentials** — Token/env-var fields show guidance on environment variable setup.
+5. **Test connection** — Test results include structured diagnostics (reachable, auth status, warnings).
+6. **Preview items** — Before import, you can see item titles, types, sizes, and source URLs.
+7. **Create connector** — Save the configuration to your workspace.
+8. **Import selected items** — Select items to import as local data sources.
+
+### Permission requirements
+- **Viewer**: Can view connectors and setup schemas only.
+- **Analyst**: Can import and sync if permission allows.
+- **Admin/Owner**: Full connector management including create, update, delete, and scheduling.

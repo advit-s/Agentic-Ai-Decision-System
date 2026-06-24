@@ -184,3 +184,46 @@ def redact(text: str) -> RedactionPreviewResult:
         findings=sorted(shifted, key=lambda f: f.start),
         finding_count=len(findings),
     )
+
+
+def redact_connector_token(text: str) -> str:
+    """Redact connector token values from text (logs, errors, audit).
+
+    Replaces common token patterns with [REDACTED].
+    Returns the text with tokens safely masked.
+    """
+    token_patterns = [
+        (r'(?i)(token|secret|api_key|password|auth)\s*[=:]\s*\S+', r'\1=[REDACTED]'),
+        (r'(?i)(github_token|notion_api_key|google_drive_token)\s*[=:]\s*\S+', r'\1=[REDACTED]'),
+        (r'(?i)(bearer\s+)\S+', r'\1[REDACTED]'),
+        (r'(?i)(Authorization:\s*Bearer\s+)\S+', r'\1[REDACTED]'),
+        (r'(?:ghp_|gho_|github_pat_|nvapi-)[A-Za-z0-9_\-]{10,}', '[REDACTED_TOKEN]'),
+        (r'(?:sk-[A-Za-z0-9]{10,})', '[REDACTED_TOKEN]'),
+        (r'(?:xox[bpsra]-)[A-Za-z0-9\-]{10,}', '[REDACTED_TOKEN]'),
+    ]
+
+    result = text
+    for pattern, replacement in token_patterns:
+        result = re.sub(pattern, replacement, result)
+    return result
+
+
+def safe_credential_status(env_var_name: str) -> dict:
+    """Return a safe credential status dict without exposing the token value.
+
+    Returns:
+        dict with keys: configured (bool), token_present (bool),
+        env_var_name (str), missing_message (str)
+    """
+    import os
+    token_value = os.environ.get(env_var_name, "")
+    token_present = bool(token_value)
+    return {
+        "configured": token_present,
+        "token_present": token_present,
+        "env_var_name": env_var_name,
+        "missing_message": (
+            f"Set the {env_var_name} environment variable to enable authenticated access."
+            if not token_present else ""
+        ),
+    }

@@ -23,8 +23,133 @@ EVENT_CONNECTOR_IMPORT_STARTED = "connector_import_started"
 EVENT_CONNECTOR_IMPORT_COMPLETED = "connector_import_completed"
 EVENT_CONNECTOR_IMPORT_FAILED = "connector_import_failed"
 EVENT_CONNECTOR_ITEM_IMPORTED = "connector_item_imported"
+EVENT_CONNECTOR_SCHEDULE_TOGGLED = "connector_schedule_toggled"
 
 
+# ---------------------------------------------------------------------------
+# Setup audit events (v1.30)
+# ---------------------------------------------------------------------------
+
+EVENT_CONNECTOR_SETUP_STARTED = "connector_setup_started"
+EVENT_CONNECTOR_SETUP_TESTED = "connector_setup_tested"
+EVENT_CONNECTOR_SETUP_COMPLETED = "connector_setup_completed"
+EVENT_CONNECTOR_SETUP_FAILED = "connector_setup_failed"
+EVENT_CONNECTOR_CREDENTIALS_MISSING = "connector_credentials_missing"
+EVENT_CONNECTOR_ITEM_PREVIEWED = "connector_item_previewed"
+EVENT_GITHUB_ISSUE_IMPORTED = "github_issue_imported"
+EVENT_CONNECTOR_PREVIEW_ITEM_COUNT = "connector_preview_item_count"
+
+
+def record_setup_started(
+    connector_type: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SETUP_STARTED,
+        f"Connector setup started for type '{connector_type}'",
+        connector_type=connector_type,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_setup_tested(
+    connector_type: str,
+    success: bool,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SETUP_TESTED,
+        f"Connector setup test for '{connector_type}' {'succeeded' if success else 'failed'}",
+        connector_type=connector_type,
+        success=success,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_setup_completed(
+    connector_type: str,
+    connector_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SETUP_COMPLETED,
+        f"Connector setup completed for '{connector_type}' (id={connector_id})",
+        connector_type=connector_type,
+        connector_id=connector_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_setup_failed(
+    connector_type: str,
+    error: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SETUP_FAILED,
+        f"Connector setup failed for '{connector_type}': {error}",
+        connector_type=connector_type,
+        error=error,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_credentials_missing(
+    connector_type: str,
+    env_var_name: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_CREDENTIALS_MISSING,
+        f"Credentials missing for '{connector_type}': set {env_var_name}",
+        connector_type=connector_type,
+        env_var_name=env_var_name,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_item_previewed(
+    connector_id: str,
+    item_count: int,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_ITEM_PREVIEWED,
+        f"Connector '{connector_id}' previewed {item_count} items",
+        connector_id=connector_id,
+        item_count=item_count,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_github_issue_imported(
+    connector_id: str,
+    issue_number: int,
+    issue_title: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_GITHUB_ISSUE_IMPORTED,
+        f"GitHub issue #{issue_number} '{issue_title}' imported via connector '{connector_id}'",
+        connector_id=connector_id,
+        issue_number=issue_number,
+        issue_title=issue_title,
+        workspace_id=workspace_id,
+        **extra,
+    )
 def _emit(event_type: str, message: str, **metadata: Any) -> None:
     """Emit a connector audit event."""
     try:
