@@ -12,6 +12,8 @@ from typing import Any
 
 from fastapi import APIRouter
 
+from dataclasses import asdict
+
 from decision_system.observability.store import (
     compute_metric_summary,
     list_metric_names,
@@ -20,6 +22,16 @@ from decision_system.observability.store import (
     load_quality_reports,
     load_traces,
 )
+
+
+def __dataclass_to_dict(obj):
+    """Convert a dataclass instance to a JSON-compatible dict."""
+    d = asdict(obj)
+    # Convert datetime objects to ISO strings
+    for k, v in d.items():
+        if hasattr(v, 'isoformat'):
+            d[k] = v.isoformat()
+    return d
 
 router = APIRouter(prefix="/observability", tags=["observability"])
 
@@ -33,8 +45,8 @@ def get_observability_metrics() -> dict[str, Any]:
         points = load_metric_points(name)
         summary = compute_metric_summary(name)
         metrics[name] = {
-            "points": [p.model_dump(mode="json") for p in points],
-            "summary": summary.model_dump(mode="json") if summary else None,
+            "points": [__dataclass_to_dict(p) for p in points],
+            "summary": __dataclass_to_dict(summary) if summary else None,
         }
     return {
         "metrics": metrics,

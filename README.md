@@ -574,7 +574,7 @@ chunker
    |
 deterministic graph extractor
    |
-.decision_system/graph/knowledge_graph.json
+.decision_system/graph/knowledge_graph.json (v1) + .decision_system/graph/workspaces/{ws_id}/*.json (v2)
    |
 graph inspection
 
@@ -701,8 +701,32 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 - `decision-system ask "..." --include-insights`: add relevant business/data insights
 - `decision-system ask "..." --orchestrated`: include orchestration context
 - `decision-system ask "..." --save-context`: save context JSON for inspection
-- `decision-system extract-graph`: extract entities and relationships into `.decision_system/graph/knowledge_graph.json`
-- `decision-system inspect-graph`: show entity counts, relationship counts, grouped types, and top connected entities
+- `decision-system extract-graph` (v1): extract entities and relationships into `.decision_system/graph/knowledge_graph.json`
+- `decision-system inspect-graph` (v1): show entity counts, relationship counts, grouped types, and top connected entities
+
+### Graph Extraction v2 (workspace-scoped, evidence-linked)
+
+The v2 graph system is accessed via the REST API (not CLI):
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /workspaces/{id}/graph/extract` | Extract entities, risks, metrics from text |
+| `GET /workspaces/{id}/graph` | Full workspace graph (nodes + edges) |
+| `GET /workspaces/{id}/graph/nodes` | List nodes (filter by type) |
+| `GET /workspaces/{id}/graph/edges` | List edges (filter by type) |
+| `GET /workspaces/{id}/graph/risks` | List risks (filter by severity/category) |
+| `GET /workspaces/{id}/graph/metrics` | List metrics |
+| `GET /workspaces/{id}/graph/summary` | Graph statistics |
+
+**Graph extraction workflow nodes:**
+- `GraphExtractionNodeV2` — Extract entities, relationships, risks, metrics
+- `RiskExtractionNode` — Extract risks only
+- `MetricExtractionNode` — Extract metrics only
+- `GraphSummaryNode` — Generate structured graph summary
+
+**Frontend:** Knowledge Graph page (entity/relationship/risk/metric tabs with extract button and search/filter) and Risk Dashboard (severity cards, top risks, categories) are available in the React SPA.
+
+All graph facts carry evidence references (source_ids, evidence_ids, chunk_ids) and are deterministic (no API keys required).
 - `decision-system init-data-catalog`: create `company_data/`, category folders, manifest, and fake demo CSVs
 - `decision-system seed-demo-data`: write the synthetic 10-category demo CSV starter pack
 - `decision-system profile-data`: profile local CSV files and save `.decision_system/data_profiles/profiles.json`

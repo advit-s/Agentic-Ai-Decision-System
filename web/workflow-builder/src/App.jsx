@@ -22,6 +22,8 @@ import AppNav from "./components/AppNav";
 import DataSourcesPage from "./components/DataSourcesPage";
 import EvidenceSearchPage from "./components/EvidenceSearchPage";
 import ClaimLedgerPage from "./components/ClaimLedgerPage";
+import GraphPage from "./components/GraphPage";
+import RiskDashboard from "./components/RiskDashboard";
 import ReportsPage from "./components/ReportsPage";
 import SettingsPage from "./components/SettingsPage";
 import DemoFlow from "./components/DemoFlow";

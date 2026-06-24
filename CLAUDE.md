@@ -2,7 +2,7 @@
 
 ## Product Vision
 
-This is a **Company Intelligence Engine** - a backend-first prototype that uses past and present company data to find hidden patterns, vulnerabilities, relationships, contradictions, and risks that are hard for humans to see. It helps stakeholders make future decisions through evidence-backed analysis.
+This is a **Company Intelligence Engine** - a local-first application with a React SPA frontend, FastAPI backend, and CLI tools. It uses past and present company data to find hidden patterns, vulnerabilities, relationships, contradictions, and risks that are hard for humans to see. It helps stakeholders make future decisions through evidence-backed analysis.
 
 The key design principle: **final reports come from verified claim ledger state, not uncontrolled agent chat**. Contradictions, unsupported claims, citations, confidence, and human-review flags must remain visible rather than smoothed away.
 
@@ -36,7 +36,7 @@ The ontology is the semantic layer. It helps future LLMs and tools reason over c
 
 ## Project State
 
-The project is a CLI/backend-first prototype with a v0.9 local static UI for artifact inspection. It currently supports local document indexing, retrieval, bounded decision workflows, claim verification, cited reports, inspectability commands, local evaluation cases, optional NVIDIA NIM and Ollama configuration, deterministic graph extraction, local CSV data profiling, deterministic ontology mapping, deterministic insight detection, offline orchestration, insight-aware decision contexts/reports, the v0.6 war-cabinet agent context protocol, the v0.7 provider experiment harness, the v0.7.1 provider evaluation hardening harness, the v0.8 local FastAPI backend, and the v0.9 mock-first web UI prototype.
+The project is a **local-first company intelligence application** with a React SPA frontend (`web/workflow-builder/`), a FastAPI backend, and CLI tools. It supports workspace-scoped document ingestion (PDF/DOCX/XLSX/MD/TXT/CSV/JSON with OCR), Chroma vector search, bounded LangGraph workflows, claim verification, cited trust reports, provider management, data source parsing, deterministic graph/entity extraction, CSV profiling, ontology mapping, insight/pattern detection, war-cabinet context protocol, workflow builder (30+ node types), review gates, scheduling, audit events, and observability metrics.
 
 Generated local state belongs under `.decision_system/` and should not be committed. Private company documents and private CSV files should remain local; only fake demo documents/data are safe to commit.
 
@@ -109,7 +109,9 @@ Common storage is a structured shared workspace for evidence references, finding
 - **FastAPI + Uvicorn** (local API backend)
 - **Rich** (CLI output)
 - **python-dotenv** (env config)
-- **Static HTML/CSS/JavaScript** (v0.9 local UI prototype only)
+- **React 18 + React Flow** (SPA at `web/workflow-builder/`, primary product UI)
+- **Vite** (frontend build tool)
+- **Vitest** (frontend testing)
 
 ### Key Sub-packages
 | Path | Purpose |
@@ -131,7 +133,13 @@ Common storage is a structured shared workspace for evidence references, finding
 | `src/decision_system/insights/` | Deterministic pattern and vulnerability detection |
 | `src/decision_system/orchestration/` | Offline problem analysis, planning, dispatch, sandbox, session, and judge summary |
 | `src/decision_system/war_room/` | War-cabinet context protocol, role dispatch, append-only workspace, judge interventions |
-| `web/` | Local mock-first static UI and lightweight JSON fixtures |
+| `src/decision_system/data_sources/` | Document parsing, OCR, indexing, evidence search |
+| `src/decision_system/verification/` | Claim verification v2, evidence resolver, contradiction detection |
+| `src/decision_system/workflow_engine/` | DAG workflow engine, execution, scheduling, webhooks |
+| `src/decision_system/providers/` | Provider CRUD, configuration, models |
+| `src/decision_system/storage/` | Workspace persistence, export/import |
+| `web/` | Legacy static UI (deprecated, historical only) |
+| `web/workflow-builder/` | **React SPA** — main product UI |
 
 ## Current CLI Commands
 
@@ -182,6 +190,86 @@ decision-system serve-api                       - Run the local FastAPI developm
 Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 
 ## Version History
+
+### v1.25.0 (2026-06-23)
+- End-to-End Demo Hardening + Local Beta Release Prep
+- OCR support for scanned PDFs and images via tesserocr
+- Demo sample data package (scanned contract, invoices, company overview)
+- Demo seed script (local-demo-seed.sh)
+- E2E smoke test (e2e-local-demo-smoke.sh)
+- Persistence validation (test-persistence-restart.sh)
+- 9-step Demo Flow in React SPA
+
+### v1.24.0 (2026-06-23)
+- Single App Integration — React SPA becomes main product UI
+- App shell with sidebar navigation (10 sections)
+- Workspace selector, Data Sources page, Evidence Search
+- Claim Ledger page, Trust Dashboard, Reports section
+- Provider Manager in main nav, Demo Flow guide
+- Legacy `web/` static UI deprecated
+
+### v1.23.0 (2026-06-23)
+- Document parsing expansion — PDF/DOCX/XLSX support
+- Parser registry architecture with BaseParser ABC
+- CSV profiling, ParseResult model, chunk/preview endpoints
+- File safety checks, audit events for document operations
+
+### v1.22.1 (2026-06-23)
+- Provider API route fix — removed duplicate routes, route ordering
+- Name uniqueness check (HTTP 409), backward-compat routes
+
+### v1.22.0 (2026-06-23)
+- Productized Workflow Builder with 30+ node types, 8 categories
+- Node catalog, config panels, workflow validation
+- Execution with live status, review gates, import/export
+- Demo templates, provider integration, first-run onboarding
+
+### v1.19.0 (2026-06-23)
+- Local Data Sources + Evidence Intelligence Layer
+- Data source management API, document parsing, dataset profiling
+- Evidence search with Chroma + keyword fallback
+- EvidenceSearchNode, claims with evidence references
+- Audit events for data operations
+
+### v1.16.0 (2026-06-23)
+- Backend Connection for React Workflow Builder
+- 4 New Specialist Nodes, Execution UX improvements
+- Visual polish, keyboard shortcuts
+
+### v1.15.0 (2026-06-23)
+- Claim Ledger DX, Human Review Gates, Execution History
+- Review-gate pause/resume with approve/reject
+
+### v1.14.0 (2026-06-23)
+- Data Analyst Node
+- CSV profiling, entity extraction in workflows
+
+### v1.13.0 (2026-06-23)
+- Bounded Specialist Agent Nodes: Researcher, Critic, Synthesizer
+
+### v1.7.0 (2026-06-XX)
+- Frontend product UI with 9 sections, mock-first design, API integration
+
+### v1.6.0 (2026-06-XX)
+- Final prototype hardening: CLI refactoring, hygiene checker, 1061 tests
+
+### v1.5.0 (2026-06-XX)
+- Enterprise readiness assessment and gap analysis
+
+### v1.4.0 (2026-06-XX)
+- Docker packaging, local deployment scripts, release verification
+
+### v1.3.0 (2026-06-XX)
+- Observability, metrics, evaluation history, quality reports, trace summaries
+
+### v1.2.0 (2026-06-XX)
+- Deterministic security, governance, and audit (secret scan, redaction, policy, approval)
+
+### v1.1.0 (2026-06-XX)
+- Safe connector framework (local-files real; GitHub/Jira/Slack/Email stubs)
+
+### v1.0.0 (2026-06-XX)
+- Local SQLite workspace persistence, CLI commands, JSON export/import
 
 ### v0.9.0 (2026-06-06)
 - Local mock-first web UI prototype under `web/`
@@ -295,36 +383,34 @@ Entry point: `decision_system.cli:app` in `src/decision_system/cli.py`.
 These are non-negotiable constraints that must be preserved in every change:
 
 1. **Fake/offline mode is the default.** `DECISION_PROVIDER=fake`. Tests must pass without any API key.
-2. **This is a CLI/backend project with one approved static UI exception.** The v0.9 `web/` prototype may inspect artifacts with mock JSON; do not expand it into a production frontend, auth surface, database app, or core decision engine.
-3. **No database yet.** Chroma + local JSON files are sufficient.
-4. **No auth yet.** No JWT, OAuth, RBAC.
-5. **No enterprise connectors yet.** (Slack, Jira, email, GitHub, Salesforce, etc.)
-6. **No new agents unless explicitly planned and approved.** Each agent requires explicit scoping and bounded inputs.
+2. **React SPA is the main UI.** The `web/workflow-builder/` React app is the primary product UI. Core logic remains backend/API owned — the SPA consumes the API, not the decision engine.
+3. **Local storage only.** Use `.decision_system/` for JSON/SQLite persistence. No PostgreSQL, MySQL, or ORM.
+4. **No auth yet.** No JWT, OAuth, RBAC until explicitly planned.
+5. **No enterprise connectors.** (Slack, Jira, email, GitHub, Salesforce, etc.)
+6. **No new unbounded agents.** Each agent requires explicit scoping and bounded inputs. Workflows are DAG-based, not free-form chat.
 7. **No additional real LLM providers without approval.** Only `fake` (default), `nvidia_nim`, and `ollama` are accepted.
-8. **Agents do not freely chat.** The LangGraph workflow is strictly linear: retrieve -> tech analyst -> risk analyst -> claim extraction -> verifier -> report writer.
+8. **Agents do not freely chat.** LangGraph workflows are bounded DAGs. War-cabinet uses structured, append-only artifacts.
 9. **Workflows remain bounded and testable.** No unbounded loops, no recursive agent calls.
 10. **All important claims go through the claim ledger.** Nothing skips the ledger.
 11. **Reports cite evidence and expose unsupported/contradicted claims.** The claim ledger drives the report; raw agent prose does not.
 12. **All new work must include tests.** Every feature or fix ships with tests.
 13. **Run `python -m pytest -q` before saying done.** This is the gating step.
-14. **Higher context is controlled.** Future lower-level agents/tools may read higher context but must not freely mutate it.
-15. **Shared storage is structured.** Use typed, inspectable artifacts instead of agent chat transcripts as coordination.
-16. **Judge/verifier remains separate.** Worker outputs need review before they influence final reports or high-risk recommendations.
+14. **Workspace isolation is required.** All data must be scoped to a workspace.
+15. **Evidence references are mandatory.** Every extracted fact must include source evidence IDs.
+16. **Higher context is controlled.** Lower-level agents/tools may read higher context but must not freely mutate it.
+17. **Shared storage is structured.** Use typed, inspectable artifacts instead of agent chat transcripts as coordination.
+18. **Judge/verifier remains separate.** Worker outputs need review before they influence final reports or high-risk recommendations.
 
 ## What Not To Add Without Approval
 
-- Production web frontend, saved workspace app, or dashboard beyond the approved v0.9 static prototype
-- PostgreSQL, SQLAlchemy, ORM, any database
-- JWT, OAuth, RBAC, any auth
-- Slack/Jira/email/GitHub/Salesforce connectors
-- Autonomous external actions (send emails, create tickets)
-- Semantic contradiction detection (beyond the simple markdown marker)
-- Hybrid search or reranking
-- PDF parsing
-- Additional LangGraph nodes or agent types without explicit design approval
+- PostgreSQL, SQLAlchemy, ORM, or any external database
+- JWT, OAuth, RBAC, any auth system
+- Slack/Jira/email/GitHub/Salesforce enterprise connectors
+- Autonomous external actions (send emails, create tickets, call external APIs)
 - New LLM providers beyond `fake`, `nvidia_nim`, and `ollama`
 - Unbounded war-room / war-cabinet agent debate
 - Model fine-tuning or training workflows unless explicitly scoped and approved
+- Cloud-only infrastructure or required external services
 
 ## Scope Guardrails
 
@@ -343,8 +429,9 @@ If the answer to any of these is "no," the change is out of scope for this phase
 
 | Version | Focus |
 |---------|-------|
-| **v1.0** | Carefully scoped bounded specialist roles/tools, if inputs/outputs/verification rules are clear |
-| **v1.1+** | Production frontend, database, auth, connectors, and saved workspaces after backend discipline is proven |
+| **v1.26** | Knowledge Graph + Entity/Risk Extraction v2 — workspace graph model, deterministic+AI extraction, risk/metric extraction, graph APIs, UI, report integration |
+| **v1.27** | Security, Auth, RBAC + Governance Foundation |
+| **v1.28+** | Production hardening, performance optimization, connector expansion |
 
 ## How Claude Should Work in This Repo
 

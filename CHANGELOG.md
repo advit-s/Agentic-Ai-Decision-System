@@ -1,3 +1,33 @@
+## [1.26.0] - 2026-06-23 — Knowledge Graph + Entity/Risk Extraction v2
+### Added
+- **Knowledge graph v2**: Unified workspace graph model with expanded node/edge types
+- **Local graph store**: Persistence under `.decision_system/graph/` with CRUD operations
+- **Deterministic entity extraction v2**: Company names, vendors, products, money amounts, percentages, dates, risk phrases
+- **Relationship extraction v2**: Evidence-linked edges with duplicate merging
+- **Risk extraction v2**: Severity-classified, evidence-linked risks with recommended actions
+- **Metric extraction v2**: Currency, percentages, counts with evidence references
+- **Graph extraction API**: Workspace-scoped endpoints for graph, nodes, edges, risks, metrics
+- **Workflow graph nodes**: GraphExtractionNode, RiskExtractionNode, MetricExtractionNode, GraphSummaryNode
+- **Graph UI**: Entity/relationship/risk/metric lists with search/filter, evidence links, extract button, and confidence/status display (GraphPage.jsx)
+- **Risk dashboard**: Risk count, severity breakdown (cards), top risks, categories, recommended actions, evidence links (RiskDashboard.jsx)
+- **Report integration**: Entity Summary, Key Relationships, Extracted Risks, Key Metrics sections in trust reports
+- **Audit events**: Graph extraction start/completed/failed, risk/metric extraction completed, graph_fact_created events; duration and count metrics via observability system
+- **Demo integration**: Graph extraction step added to DemoFlow; sample text with entities, risks, and metrics
+### Changed
+- Version bumped from 1.25.0-dev to 1.26.0-dev
+- Agent instructions updated to reflect current product direction
+- Graph model expanded with workspace-scoped nodes and evidence references
+- Existing `graphing/` modules integrated into unified graph system
+### Removed
+- No features removed
+- **Claim-graph integration**: Claims reference graph nodes, edges, risks, metrics via ref fields
+- **Observability bug fix**: MetricPoint dataclass serialization fixed in observability API
+### Known limitations
+- Graph extraction is deterministic and evidence-linked but does not prove business truth by itself
+- AI-assisted extraction is optional and remains unverified until evidence-linked
+- Workflow node tests added (29 tests); audit tests added (16 tests); total graph coverage: 113 tests
+- Large graphs may have performance implications for full-workspace extraction
+
 ## [1.25.0] - 2026-06-23 — End-to-End Demo Hardening + Local Beta Release Prep (with OCR support)
 ### Added
 - **OCR support**: Local OCR for scanned PDFs and images via tesserocr

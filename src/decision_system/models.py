@@ -79,6 +79,10 @@ class Claim(BaseModel):
     review_status: str | None = None
     evidence_quality: str | None = None
     verification_method: str | None = None
+    graph_node_refs: list[str] = Field(default_factory=list, description="Referenced graph entity node IDs")
+    graph_edge_refs: list[str] = Field(default_factory=list, description="Referenced graph relationship edge IDs")
+    risk_refs: list[str] = Field(default_factory=list, description="Referenced WorkspaceRisk IDs")
+    metric_refs: list[str] = Field(default_factory=list, description="Referenced WorkspaceMetric IDs")
     metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -163,6 +167,10 @@ class ReportClaimEntry(BaseModel):
     evidence_snippets: list[str] = Field(default_factory=list)
     contradicting_evidence_ids: list[str] = Field(default_factory=list)
     review_required: bool = False
+    graph_node_refs: list[str] = Field(default_factory=list)
+    graph_edge_refs: list[str] = Field(default_factory=list)
+    risk_refs: list[str] = Field(default_factory=list)
+    metric_refs: list[str] = Field(default_factory=list)
 
 
 class EvidenceTableEntry(BaseModel):

@@ -37,6 +37,7 @@ from decision_system.api import routes_data_sources
 from decision_system.api import routes_execution_reports
 from decision_system.api import routes_verification
 from decision_system.api import routes_providers
+from decision_system.api import routes_graph
 from decision_system.workflow_engine.api import router as routes_workflow
 
 # ---------------------------------------------------------------------------
@@ -114,6 +115,7 @@ def create_app() -> FastAPI:
     api.include_router(routes_execution_reports.router)
     api.include_router(routes_verification.router)
     api.include_router(routes_providers.router)
+    api.include_router(routes_graph.router)
     api.include_router(routes_workflow)
 
     # --- Heavy routes (lazy-loaded — skip silently if deps absent) ---

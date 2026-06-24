@@ -5,6 +5,8 @@ const NAV_ITEMS = [
   { id: "demo", label: "Demo Flow", icon: "🚀" },
   { id: "workflow", label: "Workflow Builder", icon: "⚡" },
   { id: "data-sources", label: "Data Sources", icon: "📁" },
+  { id: "graph", label: "Knowledge Graph", icon: "🔗" },
+  { id: "risk-dashboard", label: "Risk Dashboard", icon: "🛡️" },
   { id: "evidence", label: "Evidence Search", icon: "🔍" },
   { id: "executions", label: "Execution History", icon: "📊" },
   { id: "claims", label: "Claim Ledger", icon: "📋" },

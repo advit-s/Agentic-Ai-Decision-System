@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
- > **Last updated:** 2026-06-23 (v1.25.0-dev — End-to-End Demo Hardening + Local Beta Release Prep)
- > **Package version:** 1.25.0-dev
-> **Previous milestone:** v1.23.1 — Finish Document Ingestion Wiring + Test Reliability
-> **Current milestone:** v1.25.0 — End-to-End Demo Hardening + Local Beta Release Prep + Data Sources in React Workflow Builder
+ > **Last updated:** 2026-06-24 (v1.26.0-dev — End-to-End Demo Hardening + Local Beta Release Prep)
+ > **Package version:** 1.26.0-dev
+> **Previous milestone:** v1.25.0 — End-to-End Demo Hardening + Local Beta Release Prep
+> **Current milestone:** v1.26.0 — Knowledge Graph + Entity/Risk Extraction v2
 > **Python:** >=3.11
 
 ---
@@ -66,8 +66,19 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 | Contradiction UI | ✅ **Production** | Contradiction scanning, listing, and detail views |
 | Audit event wiring | ✅ **Production** | Verification/report actions emit scoped audit events |
 | Observability metrics | ✅ **Production** | Verification and report duration/count/confidence metrics |
-| Knowledge graph extraction | ✅ **Production** | Deterministic extraction from sentence patterns; JSON store |
+| Knowledge graph extraction (v1) | ✅ **Production** | Legacy deterministic extraction with single-file JSON store |
 | Ontology mapping | ✅ **Production** | Maps CSV columns to ontology concepts |
+| Knowledge graph extraction (v2) | ✅ **Production** | Workspace-scoped graph; 14 node types, 12 edge types, risks, metrics; evidence-linked; local JSON store |
+| Graph entity extraction | ✅ **Production** | Deterministic extraction: companies, vendors, products, people, money, percentages, dates, emails |
+| Graph relationship extraction | ✅ **Production** | 7 relationship types with evidence links and duplicate merging |
+| Graph risk extraction | ✅ **Production** | 12 risk categories with severity classification and recommended actions |
+| Graph metric extraction | ✅ **Production** | 30+ metric keywords with evidence references |
+| Graph extraction API | ✅ **Production** | 9 workspace-scoped endpoints for graph, nodes, edges, risks, metrics |
+| Workflow graph nodes | ✅ **Production** | GraphExtractionNodeV2, RiskExtractionNode, MetricExtractionNode, GraphSummaryNode |
+| Trust report graph sections | ✅ **Production** | Entity Summary, Key Relationships, Extracted Risks, Key Metrics in trust reports |
+| Claim-graph integration | ✅ **Production** | Claims reference graph nodes, edges, risks, metrics via ref fields |
+| Graph node tests | ✅ **Production** | 108+ tests covering store, extraction, API, and workflow nodes |
+| Graph audit/observability | ✅ **Production** | Graph extraction events and metrics via observability system (16 tests) |
 | CSV data profiling | ✅ **Production** | Profile company datasets with quality/detection stats |
 | Insight/risk detection | ✅ **Production** | Deterministic detectors for missing data, quality, concentration, revenue risk |
 | Orchestration dispatcher | ✅ **Production** | Bounded specialist agent dispatch with judge |

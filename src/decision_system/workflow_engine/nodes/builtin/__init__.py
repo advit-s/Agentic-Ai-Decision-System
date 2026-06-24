@@ -41,3 +41,18 @@ __all__ = [
     "VerificationSummaryNode",
     "EvidenceSynthesisNode",
 ]
+
+from decision_system.workflow_engine.nodes.builtin.graph_nodes import (
+    GraphExtractionNodeV2,
+    RiskExtractionNode,
+    MetricExtractionNode,
+    GraphSummaryNode,
+)
+
+# Update __all__
+__all__ += [
+    "GraphExtractionNodeV2",
+    "RiskExtractionNode",
+    "MetricExtractionNode",
+    "GraphSummaryNode",
+]

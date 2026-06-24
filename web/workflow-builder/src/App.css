@@ -1573,3 +1573,498 @@ button, input, select, textarea, .clickable {
   color: #4ade80;
   font-weight: 600;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GraphPage — Knowledge Graph entity/relationship/risk/metric views
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.graph-page {
+  padding: 20px;
+  max-width: 1200px;
+}
+
+.graph-page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.graph-page-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.graph-summary-badge {
+  font-size: 12px;
+  color: #888;
+  background: #1e1e2e;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.graph-extract-box {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.graph-extract-input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.graph-extract-btn {
+  padding: 10px 20px;
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  align-self: flex-end;
+}
+
+.graph-extract-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.graph-error {
+  background: #3d1f1f;
+  border: 1px solid #e53935;
+  color: #ef9a9a;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.graph-loading {
+  color: #888;
+  font-style: italic;
+  padding: 20px 0;
+}
+
+.graph-empty {
+  color: #666;
+  font-style: italic;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.graph-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0;
+}
+
+.graph-tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.graph-tab:hover {
+  color: #ccc;
+}
+
+.graph-tab-active {
+  color: #7c3aed;
+  border-bottom-color: #7c3aed;
+  font-weight: 600;
+}
+
+.graph-section {
+  min-height: 100px;
+}
+
+.graph-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.graph-filter-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 13px;
+}
+
+.graph-type-filters {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.graph-type-chip {
+  padding: 4px 10px;
+  background: #1e1e2e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.graph-type-chip-active {
+  background: #7c3aed;
+  color: #fff;
+  border-color: #7c3aed;
+}
+
+.graph-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.graph-list-item {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 8px;
+  padding: 12px;
+  transition: border-color 0.15s;
+}
+
+.graph-list-item:hover {
+  border-color: #7c3aed44;
+}
+
+.graph-list-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.graph-list-item-header strong {
+  font-size: 14px;
+}
+
+.graph-list-item-desc {
+  font-size: 12px;
+  color: #888;
+  margin: 4px 0;
+}
+
+.graph-list-item-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.graph-type-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #2a2a3e;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.graph-type-company { background: #1a3a2a; color: #4ade80; }
+.graph-type-person { background: #1a2a3a; color: #60a5fa; }
+.graph-type-vendor { background: #3a2a1a; color: #fbbf24; }
+.graph-type-product { background: #2a1a3a; color: #a78bfa; }
+.graph-type-risk { background: #3a1a1a; color: #ef4444; }
+.graph-type-metric { background: #1a2a2a; color: #34d399; }
+
+.graph-confidence {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.graph-confidence-high { background: #1a3a2a; color: #4ade80; }
+.graph-confidence-medium { background: #3a3a1a; color: #fbbf24; }
+.graph-confidence-low { background: #3a1a1a; color: #ef4444; }
+
+.graph-status {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.graph-status-verified { background: #1a3a2a; color: #4ade80; }
+.graph-status-contradicted { background: #3a1a1a; color: #ef4444; }
+.graph-status-uncertain { background: #3a3a1a; color: #fbbf24; }
+
+.graph-arrow {
+  color: #555;
+  font-size: 16px;
+  margin: 0 4px;
+}
+
+.graph-risk-icon {
+  font-size: 14px;
+}
+
+.graph-risk-severity {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.graph-risk-critical { background: #5a1a1a; color: #ef5350; }
+.graph-risk-high { background: #4a2a1a; color: #ff7043; }
+.graph-risk-medium { background: #3a3a1a; color: #ffca28; }
+.graph-risk-low { background: #1a2a1a; color: #66bb6a; }
+
+.graph-risk-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.graph-risk-action {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: #1e1e2e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #aaa;
+}
+
+.graph-metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.graph-metrics-table th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 2px solid #333;
+  color: #888;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.graph-metrics-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #222;
+}
+
+.graph-metrics-table tr:hover td {
+  background: #1a1a2e;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RiskDashboard — Risk overview, severity cards, top risks
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.risk-dashboard {
+  padding: 20px;
+  max-width: 1200px;
+}
+
+.risk-dashboard-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.risk-dashboard-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.risk-dashboard-count {
+  font-size: 12px;
+  color: #888;
+  background: #1e1e2e;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.risk-empty {
+  color: #666;
+  font-style: italic;
+  padding: 40px 0;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.risk-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.risk-summary-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.risk-summary-critical { border-left: 3px solid #ef5350; }
+.risk-summary-high { border-left: 3px solid #ff7043; }
+.risk-summary-medium { border-left: 3px solid #ffca28; }
+.risk-summary-low { border-left: 3px solid #66bb6a; }
+
+.risk-summary-count {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.risk-summary-label {
+  font-size: 12px;
+  color: #888;
+}
+
+.risk-section {
+  margin-bottom: 24px;
+}
+
+.risk-section h3 {
+  font-size: 15px;
+  margin: 0 0 12px 0;
+  color: #ccc;
+}
+
+.risk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.risk-item {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.risk-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.risk-item-header strong {
+  font-size: 14px;
+}
+
+.risk-description {
+  font-size: 12px;
+  color: #888;
+  margin: 4px 0;
+}
+
+.risk-category-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #2a2a3e;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.risk-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.risk-action-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: #1e1e2e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #aaa;
+}
+
+.risk-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: #666;
+  margin-top: 6px;
+}
+
+.risk-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 400px;
+}
+
+.risk-category-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 6px;
+}
+
+.risk-category-name {
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.risk-category-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7c3aed;
+}
+
+.risk-refresh-btn {
+  padding: 8px 16px;
+  background: #2a2a3e;
+  color: #ccc;
+  border: 1px solid #333;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.risk-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -15,12 +15,13 @@ describe("DemoFlow", () => {
     expect(screen.getByText(/Demo Flow/)).toBeDefined();
   });
 
-  it("renders all 9 demo steps", () => {
+  it("renders all 10 demo steps", () => {
     renderWithProviders(<DemoFlow />);
     // Use getAllByText since labels appear both in step header and button
     expect(screen.getAllByText("Create Demo Workspace").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Add Sample Data").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Parse/Index/OCR Data").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Extract Knowledge Graph").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Configure Fake Provider").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Load Demo Workflow").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Run Workflow").length).toBeGreaterThanOrEqual(1);
@@ -39,6 +40,6 @@ describe("DemoFlow", () => {
   it("shows pending status on non-current steps", () => {
     renderWithProviders(<DemoFlow />);
     const pendingLabels = screen.getAllByText("Pending");
-    expect(pendingLabels.length).toBeGreaterThanOrEqual(8);
+    expect(pendingLabels.length).toBeGreaterThanOrEqual(9);
   });
 });

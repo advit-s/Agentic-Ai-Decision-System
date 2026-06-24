@@ -19,6 +19,12 @@ from decision_system.models import (
     VerificationResult,
     VerificationSummary,
 )
+from decision_system.graphing.models import (
+    WorkspaceEdge,
+    WorkspaceMetric,
+    WorkspaceNode,
+    WorkspaceRisk,
+)
 
 
 def render_trust_report(
@@ -28,6 +34,11 @@ def render_trust_report(
     verification_summary: VerificationSummary | None = None,
     verification_results: list[VerificationResult] | None = None,
     contradictions: list[ContradictionRecord] | None = None,
+    workspace_id: str | None = None,
+    graph_nodes: list[WorkspaceNode] | None = None,
+    graph_edges: list[WorkspaceEdge] | None = None,
+    graph_risks: list[WorkspaceRisk] | None = None,
+    graph_metrics: list[WorkspaceMetric] | None = None,
 ) -> DecisionReport:
     """Render a trust-aware decision report with full verification sections.
 
@@ -130,6 +141,11 @@ def render_trust_report(
         risks=risks,
         confidence_level=confidence_level,
         human_review_required=human_review_required,
+        workspace_id=workspace_id,
+        graph_nodes=graph_nodes,
+        graph_edges=graph_edges,
+        graph_risks=graph_risks,
+        graph_metrics=graph_metrics,
     )
 
     return DecisionReport(
@@ -182,6 +198,10 @@ def _claim_to_entry(claim: Claim) -> ReportClaimEntry:
         evidence_snippets=claim.evidence_snippets,
         contradicting_evidence_ids=claim.contradicting_evidence_ids,
         review_required=claim.review_required,
+        graph_node_refs=getattr(claim, "graph_node_refs", []),
+        graph_edge_refs=getattr(claim, "graph_edge_refs", []),
+        risk_refs=getattr(claim, "risk_refs", []),
+        metric_refs=getattr(claim, "metric_refs", []),
     )
 
 
@@ -295,6 +315,11 @@ def _render_trust_markdown(
     risks: list[str],
     confidence_level: str,
     human_review_required: list[str],
+    workspace_id: str | None = None,
+    graph_nodes: list[WorkspaceNode] | None = None,
+    graph_edges: list[WorkspaceEdge] | None = None,
+    graph_risks: list[WorkspaceRisk] | None = None,
+    graph_metrics: list[WorkspaceMetric] | None = None,
 ) -> str:
     """Build the trust report Markdown body."""
     sections: list[str] = [
@@ -460,6 +485,22 @@ def _render_trust_markdown(
         sections.append("- **Do not base decisions solely on this report without human review of contradictory or missing evidence.**")
     sections.append("")
 
+    # ------------------------------------------------------------------
+    # Graph sections (if graph data provided)
+    # ------------------------------------------------------------------
+    if graph_nodes:
+        sections.extend(_render_entity_summary_section(graph_nodes))
+    if graph_edges:
+        sections.extend(_render_relationship_section(graph_edges, graph_nodes or []))
+    if graph_risks:
+        sections.extend(_render_risk_section(graph_risks))
+    if graph_metrics:
+        sections.extend(_render_metric_section(graph_metrics))
+    if any([graph_nodes, graph_edges, graph_risks, graph_metrics]):
+        sections.append("---")
+        sections.append("")
+
+
     # Recommended Next Actions
     sections.append("## Recommended Next Actions")
     sections.append("")
@@ -485,3 +526,175 @@ def _render_trust_markdown(
     sections.append("")
 
     return "\n".join(sections)
+# ---------------------------------------------------------------------------
+# Graph section renderers
+# ---------------------------------------------------------------------------
+
+
+def _render_entity_summary_section(nodes):
+    """Render Entity Summary section from workspace graph nodes."""
+    lines = ["## Entity Summary", ""]
+
+    # Count by type
+    type_counts = {}
+    for n in nodes:
+        t = str(n.node_type)
+        type_counts[t] = type_counts.get(t, 0) + 1
+
+    lines.append(f"**Total entities:** {len(nodes)}")
+    lines.append("")
+    if type_counts:
+        lines.append("**Entities by type:**")
+        for t, c in sorted(type_counts.items()):
+            lines.append(f"- **{t}** ({c})")
+        lines.append("")
+
+    # List top entities by confidence
+    conf_order = {"high": 3, "medium": 2, "low": 1}
+    sorted_nodes = sorted(nodes, key=lambda n: conf_order.get(n.confidence, 0), reverse=True)
+    display_nodes = sorted_nodes[:15]
+    if display_nodes:
+        lines.append("**Key entities:**")
+        for n in display_nodes:
+            status_marker = ""
+            if n.status == "verified":
+                status_marker = " ✅"
+            elif n.status == "contradicted":
+                status_marker = " ⚠️"
+            desc = f" — {n.description[:60]}" if n.description else ""
+            lines.append(f"- **{n.name}** ({n.node_type}) [{n.confidence}]{status_marker}{desc}")
+        lines.append("")
+        if len(nodes) > 15:
+            lines.append(f"*{len(nodes) - 15} more entities not shown.*")
+            lines.append("")
+
+    lines.append("*Entities are extracted by deterministic pattern matching and may contain errors.*")
+    lines.append("")
+    return lines
+
+
+def _render_relationship_section(edges, nodes):
+    """Render Key Relationships section from workspace graph edges."""
+    lines = ["## Key Relationships", ""]
+
+    # Build node name lookup
+    node_names = {}
+    for n in nodes:
+        node_names[n.node_id] = n.name
+
+    lines.append(f"**Total relationships:** {len(edges)}")
+    lines.append("")
+
+    # Group by edge type
+    type_counts = {}
+    for e in edges:
+        t = str(e.edge_type)
+        type_counts[t] = type_counts.get(t, 0) + 1
+
+    if type_counts:
+        lines.append("**Relationship types:**")
+        for t, c in sorted(type_counts.items()):
+            lines.append(f"- **{t}** ({c})")
+        lines.append("")
+
+    # List edges
+    display_edges = edges[:20]
+    if display_edges:
+        lines.append("**Relationships:**")
+        for e in display_edges:
+            src = node_names.get(e.source_node_id, e.source_node_id[:16])
+            tgt = node_names.get(e.target_node_id, e.target_node_id[:16])
+            label = f" ({e.label})" if e.label else ""
+            lines.append(f"- **{src}** → **{tgt}** [{e.edge_type}]{label} ({e.confidence})")
+        lines.append("")
+        if len(edges) > 20:
+            lines.append(f"*{len(edges) - 20} more relationships not shown.*")
+            lines.append("")
+
+    lines.append("*Relationships are extracted by deterministic pattern matching and may contain errors.*")
+    lines.append("")
+    return lines
+
+
+def _render_risk_section(risks):
+    """Render Extracted Risks section from workspace graph risks."""
+    lines = ["## Extracted Risks", ""]
+
+    lines.append(f"**Total risks:** {len(risks)}")
+    lines.append("")
+
+    # Severity breakdown
+    severity_counts = {}
+    for r in risks:
+        s = str(r.severity)
+        severity_counts[s] = severity_counts.get(s, 0) + 1
+
+    if severity_counts:
+        lines.append("**Risks by severity:**")
+        for s in ("critical", "high", "medium", "low"):
+            if s in severity_counts:
+                lines.append(f"- **{s}** ({severity_counts[s]})")
+        lines.append("")
+
+    # Category breakdown
+    category_counts = {}
+    for r in risks:
+        cat = str(r.category)
+        category_counts[cat] = category_counts.get(cat, 0) + 1
+
+    if category_counts:
+        lines.append("**Risks by category:**")
+        for cat, c in sorted(category_counts.items()):
+            lines.append(f"- **{cat}** ({c})")
+        lines.append("")
+
+    # Sort by severity (critical first) and list top risks
+    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    sorted_risks = sorted(risks, key=lambda r: severity_order.get(r.severity, 99))
+    display_risks = sorted_risks[:10]
+
+    if display_risks:
+        lines.append("**Risk details:**")
+        for r in display_risks:
+            markers = {"critical": "🔴", "high": "⚠️", "medium": "⚡", "low": "ℹ️"}
+            marker = markers.get(r.severity, "ℹ️")
+            desc = f" — {r.description[:100]}" if r.description else ""
+            lines.append(f"- {marker} **{r.title}** [{r.severity}/{r.category}] ({r.confidence}){desc}")
+            if r.recommended_actions:
+                for action in r.recommended_actions[:2]:
+                    lines.append(f"  - *Recommended:* {action}")
+        lines.append("")
+        if len(risks) > 10:
+            lines.append(f"*{len(risks) - 10} more risks not shown.*")
+            lines.append("")
+
+    lines.append("*Risks are flagged by keyword pattern matching and may include false positives.*")
+    lines.append("")
+    return lines
+
+
+def _render_metric_section(metrics):
+    """Render Key Metrics section from workspace graph metrics."""
+    lines = ["## Key Metrics", ""]
+
+    lines.append(f"**Total metrics extracted:** {len(metrics)}")
+    lines.append("")
+
+    if metrics:
+        lines.append("| Name | Value | Unit | Period | Entity | Confidence |")
+        lines.append("|------|-------|------|--------|--------|------------|")
+        for m in metrics[:20]:
+            name = (m.name[:40] if m.name else "*unnamed*")
+            value = (m.value[:20] if m.value else "-")
+            unit = m.unit or "-"
+            period = m.period or "-"
+            entity = ", ".join(m.entity_refs[:2]) if m.entity_refs else "-"
+            lines.append(f"| {name} | {value} | {unit} | {period} | {entity} | {m.confidence} |")
+        lines.append("")
+        if len(metrics) > 20:
+            lines.append(f"*{len(metrics) - 20} more metrics not shown.*")
+            lines.append("")
+
+    lines.append("*Metrics are extracted from text as found and may be out of context.*")
+    lines.append("")
+    return lines

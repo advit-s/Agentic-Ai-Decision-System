@@ -9,6 +9,8 @@ import {
   createProvider,
   setDefaultProvider,
   executeWorkflow,
+  extractGraph,
+  getGraph,
 } from "../api";
 import { useToast } from "./Toast";
 
@@ -16,6 +18,7 @@ const DEMO_STEPS = [
   { id: "workspace", label: "Create Demo Workspace", icon: "📁" },
   { id: "data", label: "Add Sample Data", icon: "📂" },
   { id: "parse", label: "Parse/Index/OCR Data", icon: "🔍" },
+  { id: "graph", label: "Extract Knowledge Graph", icon: "🔗" },
   { id: "provider", label: "Configure Fake Provider", icon: "🤖" },
   { id: "workflow", label: "Load Demo Workflow", icon: "⚡" },
   { id: "run", label: "Run Workflow", icon: "▶️" },
@@ -83,6 +86,33 @@ Recommendations:
       setCurrentStep(2);
     } catch (err) {
       showToast("Failed: " + (err.message || "unknown error"), "error");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleExtractGraph = async () => {
+    if (!workspaceId) {
+      addToast("Create workspace first", "warning");
+      return;
+    }
+    setRunning(true);
+    try {
+      const sampleTexts = [
+        {
+          text: "Acme Corporation provides CloudSync SaaS platform. Revenue: $5M annually. Profit margin: 20%. Customers: 500+.",
+          evidence_id: "demo-ev-1", source_id: "demo-src-1", chunk_id: "demo-ch-1",
+        },
+        {
+          text: "Risk of vendor lock-in with FastCloud Ltd. Security vulnerability in payment gateway. Compliance with GDPR.",
+          evidence_id: "demo-ev-2", source_id: "demo-src-2", chunk_id: "demo-ch-2",
+        },
+      ];
+      const result = await extractGraph(workspaceId, sampleTexts);
+      addToast(`Graph extracted: ${result.nodes_extracted} entities, ${result.risks_extracted} risks, ${result.metrics_extracted} metrics`, "success");
+      advanceStep();
+    } catch (err) {
+      addToast("Extraction failed: " + err.message, "error");
     } finally {
       setRunning(false);
     }
@@ -229,6 +259,7 @@ Recommendations:
     workspace: { action: handleCreateWorkspace, label: running ? "Creating..." : "Create Demo Workspace" },
     data: { action: handleAddSampleData, label: running ? "Adding..." : "Add Sample Data Files" },
     parse: { action: handleParseIndex, label: running ? "Parsing..." : "Parse, OCR & Index Files" },
+    graph: { action: handleExtractGraph, label: running ? "Extracting..." : "Extract Knowledge Graph" },
     provider: { action: handleSetupProvider, label: running ? "Configuring..." : "Configure Fake Provider" },
     workflow: { action: handleLoadWorkflow, label: "Load Demo Workflow" },
     run: { action: handleRunDemo, label: running ? "Running..." : "Run Workflow" },
@@ -241,7 +272,7 @@ Recommendations:
     <div className="section-page">
       <div className="section-header">
         <h2>🚀 Demo Flow</h2>
-        <p className="section-subtitle">Guided tour — no API keys or cloud services needed. 9 steps to a trust report.</p>
+        <p className="section-subtitle">Guided tour — no API keys or cloud services needed. 10 steps to a trust report.</p>
       </div>
       <div className="section-content">
         <div className="demo-steps">

@@ -831,4 +831,70 @@ export {
   createWorkspace,
   activateWorkspace,
   getActiveWorkspaceId,
+  // Graph
+  extractGraph,
+  getGraph,
+  listGraphNodes,
+  listGraphRisks,
+  listGraphMetrics,
+  getGraphSummary,
 };
+
+// --- Graph Extraction ---
+
+async function extractGraph(workspaceId, texts) {
+  if (isMockMode()) {
+    return {
+      workspace_id: workspaceId,
+      nodes_extracted: texts.length > 0 ? (texts[0].text ? texts[0].text.split(/\s+/).length : 0) : 0,
+      edges_extracted: 0,
+      risks_extracted: 0,
+      metrics_extracted: 0,
+      warnings: [],
+    };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/graph/extract`, {
+    method: "POST",
+    body: JSON.stringify({ texts }),
+  });
+}
+
+async function getGraph(workspaceId) {
+  if (isMockMode()) {
+    return { workspace_id: workspaceId, nodes: [], edges: [] };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/graph`);
+}
+
+async function listGraphNodes(workspaceId, nodeType) {
+  if (isMockMode()) {
+    return [];
+  }
+  const params = nodeType ? `?node_type=${encodeURIComponent(nodeType)}` : "";
+  return apiFetch(`/workspaces/${workspaceId}/graph/nodes${params}`);
+}
+
+async function listGraphRisks(workspaceId, severity, category) {
+  if (isMockMode()) {
+    return [];
+  }
+  const params = new URLSearchParams();
+  if (severity) params.set("severity", severity);
+  if (category) params.set("category", category);
+  const qs = params.toString();
+  return apiFetch(`/workspaces/${workspaceId}/graph/risks${qs ? "?" + qs : ""}`);
+}
+
+async function listGraphMetrics(workspaceId) {
+  if (isMockMode()) {
+    return [];
+  }
+  return apiFetch(`/workspaces/${workspaceId}/graph/metrics`);
+}
+
+async function getGraphSummary(workspaceId) {
+  if (isMockMode()) {
+    return { workspace_id: workspaceId, node_count: 0, edge_count: 0, risk_count: 0, metric_count: 0 };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/graph/summary`);
+}
