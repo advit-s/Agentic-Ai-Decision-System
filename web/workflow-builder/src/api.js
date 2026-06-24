@@ -1,6 +1,12 @@
 // api.js — HTTP + WebSocket client with mock data fallback
 
 import {
+  MOCK_IDENTITY,
+  MOCK_USERS,
+  MOCK_MEMBERSHIPS,
+  MOCK_SECURITY_SETTINGS,
+  MOCK_PERMISSION_MATRIX,
+  MOCK_AUDIT_EVENTS,
   MOCK_NODE_TYPES,
   MOCK_WORKFLOWS,
   MOCK_EXECUTION_STATE,
@@ -844,6 +850,21 @@ export {
   getGraphAuditEvents,
   getGraphMetricsAggregates,
   getEvidencePreview,
+  // Identity & Security
+  getCurrentIdentity,
+  listUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  listWorkspaceMemberships,
+  createWorkspaceMembership,
+  updateWorkspaceMembership,
+  deleteWorkspaceMembership,
+  getSecuritySettings,
+  updateSecuritySettings,
+  getPermissionMatrix,
+  getWorkspaceAuditEvents,
+  getWorkspaceAuditSummary,
 };
 
 // --- Graph Extraction ---
@@ -948,4 +969,183 @@ async function getEvidencePreview(workspaceId, evidenceId) {
     return null;
   }
   return apiFetch(`/workspaces/${workspaceId}/evidence/${evidenceId}`);
+}
+
+
+// --- Identity & Security API methods ---
+
+let _mockIdentityUsers = null;
+let _mockIdentityMemberships = null;
+let _mockIdentitySettings = null;
+
+function _getIdentityData() {
+  if (!_mockIdentityUsers) {
+    _mockIdentityUsers = JSON.parse(JSON.stringify(MOCK_USERS));
+    _mockIdentityMemberships = JSON.parse(JSON.stringify(MOCK_MEMBERSHIPS));
+    _mockIdentitySettings = JSON.parse(JSON.stringify(MOCK_SECURITY_SETTINGS));
+  }
+  return { users: _mockIdentityUsers, memberships: _mockIdentityMemberships, settings: _mockIdentitySettings };
+}
+
+async function getCurrentIdentity() {
+  if (isMockMode()) {
+    return Promise.resolve(JSON.parse(JSON.stringify(MOCK_IDENTITY)));
+  }
+  return apiFetch("/identity/me");
+}
+
+async function listUsers() {
+  if (isMockMode()) {
+    return Promise.resolve(JSON.parse(JSON.stringify([..._getIdentityData().users])));
+  }
+  return apiFetch("/identity/users");
+}
+
+async function createUser(displayName, role = "viewer", metadata = {}) {
+  if (isMockMode()) {
+    const user = {
+      user_id: "user-" + Date.now(),
+      display_name: displayName,
+      role,
+      created_at: new Date().toISOString(),
+      metadata,
+    };
+    _getIdentityData().users.push(user);
+    return Promise.resolve(JSON.parse(JSON.stringify(user)));
+  }
+  return apiFetch("/identity/users", {
+    method: "POST",
+    body: JSON.stringify({ display_name: displayName, role, metadata }),
+  });
+}
+
+async function updateUser(userId, updates) {
+  if (isMockMode()) {
+    const data = _getIdentityData();
+    const idx = data.users.findIndex((u) => u.user_id === userId);
+    if (idx < 0) return Promise.reject(new Error("User not found"));
+    Object.assign(data.users[idx], updates);
+    return Promise.resolve(JSON.parse(JSON.stringify(data.users[idx])));
+  }
+  return apiFetch(`/identity/users/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  });
+}
+
+async function deleteUser(userId) {
+  if (isMockMode()) {
+    if (userId === "local/system") return Promise.reject(new Error("Cannot delete the default local user"));
+    _getIdentityData().users = _getIdentityData().users.filter((u) => u.user_id !== userId);
+    return Promise.resolve({ status: "deleted", user_id: userId });
+  }
+  return apiFetch(`/identity/users/${userId}`, { method: "DELETE" });
+}
+
+async function listWorkspaceMemberships(workspaceId) {
+  if (isMockMode()) {
+    return Promise.resolve(JSON.parse(JSON.stringify(_getIdentityData().memberships[workspaceId] || [])));
+  }
+  return apiFetch(`/workspaces/${workspaceId}/memberships`);
+}
+
+async function createWorkspaceMembership(workspaceId, userId, role = "viewer") {
+  if (isMockMode()) {
+    const data = _getIdentityData();
+    if (!data.memberships[workspaceId]) data.memberships[workspaceId] = [];
+    const m = { workspace_id: workspaceId, user_id: userId, role, joined_at: new Date().toISOString() };
+    data.memberships[workspaceId].push(m);
+    return Promise.resolve(JSON.parse(JSON.stringify(m)));
+  }
+  return apiFetch(`/workspaces/${workspaceId}/memberships`, {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId, role }),
+  });
+}
+
+async function updateWorkspaceMembership(workspaceId, userId, role) {
+  if (isMockMode()) {
+    const data = _getIdentityData();
+    const list = data.memberships[workspaceId] || [];
+    const m = list.find((x) => x.user_id === userId);
+    if (!m) return Promise.reject(new Error("Membership not found"));
+    m.role = role;
+    return Promise.resolve(JSON.parse(JSON.stringify(m)));
+  }
+  return apiFetch(`/workspaces/${workspaceId}/memberships/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify({ role }),
+  });
+}
+
+async function deleteWorkspaceMembership(workspaceId, userId) {
+  if (isMockMode()) {
+    const data = _getIdentityData();
+    if (data.memberships[workspaceId]) {
+      data.memberships[workspaceId] = data.memberships[workspaceId].filter((x) => x.user_id !== userId);
+    }
+    return Promise.resolve({ status: "removed", workspace_id: workspaceId, user_id: userId });
+  }
+  return apiFetch(`/workspaces/${workspaceId}/memberships/${userId}`, { method: "DELETE" });
+}
+
+async function getSecuritySettings() {
+  if (isMockMode()) {
+    return Promise.resolve(JSON.parse(JSON.stringify(_getIdentityData().settings)));
+  }
+  return apiFetch("/identity/settings");
+}
+
+async function updateSecuritySettings(updates) {
+  if (isMockMode()) {
+    Object.assign(_getIdentityData().settings, updates);
+    return Promise.resolve(JSON.parse(JSON.stringify(_getIdentityData().settings)));
+  }
+  return apiFetch("/identity/settings", {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  });
+}
+
+async function getPermissionMatrix() {
+  if (isMockMode()) {
+    return Promise.resolve(JSON.parse(JSON.stringify(MOCK_PERMISSION_MATRIX)));
+  }
+  return apiFetch("/identity/permissions");
+}
+
+async function getWorkspaceAuditEvents(workspaceId, filters = {}) {
+  if (isMockMode()) {
+    let events = JSON.parse(JSON.stringify(MOCK_AUDIT_EVENTS));
+    if (filters.event_type) events = events.filter((e) => e.event_type === filters.event_type);
+    if (filters.actor) events = events.filter((e) => e.actor === filters.actor);
+    return Promise.resolve({ events, total: events.length, offset: 0, limit: 100 });
+  }
+  const params = new URLSearchParams();
+  if (filters.event_type) params.set("event_type", filters.event_type);
+  if (filters.actor) params.set("actor", filters.actor);
+  if (filters.artifact_type) params.set("artifact_type", filters.artifact_type);
+  if (filters.artifact_id) params.set("artifact_id", filters.artifact_id);
+  if (filters.limit) params.set("limit", String(filters.limit));
+  if (filters.offset) params.set("offset", String(filters.offset));
+  const qs = params.toString();
+  return apiFetch(`/workspaces/${workspaceId}/audit/events${qs ? "?" + qs : ""}`);
+}
+
+async function getWorkspaceAuditSummary(workspaceId) {
+  if (isMockMode()) {
+    const events = JSON.parse(JSON.stringify(MOCK_AUDIT_EVENTS));
+    const byType = {};
+    const byActor = {};
+    events.forEach((e) => {
+      byType[e.event_type] = (byType[e.event_type] || 0) + 1;
+      byActor[e.actor] = (byActor[e.actor] || 0) + 1;
+    });
+    return Promise.resolve({
+      total_events: events.length,
+      by_type: byType,
+      by_actor: byActor,
+    });
+  }
+  return apiFetch(`/workspaces/${workspaceId}/audit/summary`);
 }

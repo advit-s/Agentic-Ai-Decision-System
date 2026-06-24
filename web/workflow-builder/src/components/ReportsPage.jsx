@@ -1,6 +1,8 @@
 // ReportsPage.jsx — View, export, and manage decision trust reports
 import React, { useState, useEffect, useCallback } from "react";
 import { getReport, exportReport, getReportMarkdown } from "../api";
+import { usePermission } from "../hooks/usePermission";
+import { useToast } from "./Toast";
 
 function ReportsPage({ workspaceId }) {
   const [reports, setReports] = useState([]);
@@ -8,6 +10,7 @@ function ReportsPage({ workspaceId }) {
   const [error, setError] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
   const [reportContent, setReportContent] = useState(null);
+  const { can } = usePermission();
   const [exporting, setExporting] = useState(false);
 
   // For mock mode, we don't have a list reports endpoint directly,
@@ -29,6 +32,10 @@ function ReportsPage({ workspaceId }) {
   };
 
   const handleExport = async (reportId, format = "md") => {
+    if (!can("report.export")) {
+      showToast("Export permission denied", "error");
+      return;
+    }
     setExporting(true);
     try {
       const result = await exportReport(reportId, format);

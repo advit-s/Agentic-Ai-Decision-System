@@ -802,6 +802,30 @@
 - DOCX embedded images are not extracted
 - Data Sources UI is in the legacy static web app (`web/index.html`), not yet in the React workflow builder
 - API-level upload tests using ASGITransport may hang on Python 3.13 (environmental compatibility issue)
+## [1.27.1] - 2026-06-24 — Frontend Security UI + Permission-Aware Components
+### Added
+- **Permission context hook**: usePermission() provides current user, role, permissions, security mode, and can() permission check throughout the React app
+- **PermissionGuard component**: Wraps UI sections behind permission checks with fallback UI for unauthorized access
+- **ForbiddenPage component**: Shared 403 permission error page with role info and required permission display
+- **AuditLogPage component**: Workspace audit event viewer with event type/actor filters, summary stats, and sorted event list
+- **AppNav security status**: Sidebar displays current user, role label, and demo/governed mode indicator
+- **SettingsPage security tab**: Security mode toggle (demo vs governed), governance rule checkboxes, audit retention setting
+- **SettingsPage users tab**: User CRUD table with create/delete, workspace membership management with role assignment
+- **SettingsPage audit tab**: Full audit log viewer with summary cards and filterable event list
+- **ProviderManager key display**: Shows env-var name (api_key_env) and redaction notice for provider API keys
+- **Mock identity data**: MOCK_IDENTITY, MOCK_USERS, MOCK_MEMBERSHIPS, MOCK_SECURITY_SETTINGS, MOCK_PERMISSION_MATRIX, MOCK_AUDIT_EVENTS
+- **API client identity methods**: getCurrentIdentity, listUsers, createUser, updateUser, deleteUser, workspace membership CRUD, security settings, permission matrix, audit events
+### Changed
+- Version bumped from 1.27.0-dev to 1.27.1-dev
+- App root wrapped with PermissionProvider context
+- SettingsPage receives onNavigate prop and has full tab-based UI
+- AppNav shows security status (user, role, mode) in sidebar footer
+### Fixed
+- mockData.js duplicate export block removed to fix frontend build
+- SettingsPage now properly loads security settings and users from API
+### Known limitations
+- Frontend permission UI requires the identity API backend to be running in governed mode for real enforcement
+- In demo mode, all permissions are granted (can() returns true)
 ## [1.27.0] - 2026-06-24 — Security, Auth, RBAC + Governance Foundation
 ### Added
 - **Local identity model**: User model with roles (owner, admin, analyst, reviewer, viewer)

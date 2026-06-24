@@ -3,6 +3,7 @@
 
 import React, { useState, useMemo } from "react";
 import "../styles/execution-panel.css";
+import { usePermission } from "../hooks/usePermission";
 
 /* ── Helper ──────────────────────────────────────────────────────── */
 
@@ -152,14 +153,16 @@ function ReviewActionBar({ review, onApprove, onReject, onRequestChanges }) {
       <button
         className="rp-btn rp-btn-green"
         onClick={() => { setActionType("approve"); setShowNotes(true); }}
-        title="Approve and continue"
+        disabled={!can("review.resolve")}
+        title={!can("review.resolve") ? "You need review.resolve permission" : "Approve"}
       >
         ✓ Approve
       </button>
       <button
         className="rp-btn rp-btn-red"
         onClick={() => { setActionType("reject"); setShowNotes(true); }}
-        title="Reject and stop"
+        disabled={!can("review.resolve")}
+        title={!can("review.resolve") ? "You need review.resolve permission" : "Reject"}
       >
         ✕ Reject
       </button>
@@ -177,6 +180,7 @@ function ReviewActionBar({ review, onApprove, onReject, onRequestChanges }) {
 /* ── Main component ─────────────────────────────────────────────── */
 
 function ReviewPanel({ reviews, onApprove, onReject, onRequestChanges, onClose }) {
+  const { can } = usePermission();
   const [tab, setTab] = useState("pending");
   const [selectedReview, setSelectedReview] = useState(null);
 

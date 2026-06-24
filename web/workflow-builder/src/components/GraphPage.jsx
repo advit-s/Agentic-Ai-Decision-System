@@ -11,9 +11,11 @@ import {
   getGraphAuditEvents,
   getGraphMetricsAggregates,
 } from "../api";
+import { usePermission } from "../hooks/usePermission";
 import { useToast } from "./Toast";
 
 function GraphPage({ workspaceId }) {
+    const { can } = usePermission();
   const [activeTab, setActiveTab] = useState("entities");
   const [loading, setLoading] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -66,6 +68,10 @@ function GraphPage({ workspaceId }) {
   }, [loadGraph]);
 
   const handleExtract = async () => {
+    if (!can("graph.extract")) {
+      showToast("Graph extraction permission denied", "error");
+      return;
+    }
     if (!sourceText.trim()) {
       addToast("Enter source text first", "warning");
       return;

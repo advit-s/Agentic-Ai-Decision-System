@@ -5,9 +5,11 @@ import {
   verifyWorkspaceClaims,
   scanWorkspaceContradictions,
 } from "../api";
+import { usePermission } from "../hooks/usePermission";
 import { useToast } from "./Toast";
 
 function ClaimLedgerPage({ workspaceId }) {
+    const { can } = usePermission();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -35,6 +37,10 @@ function ClaimLedgerPage({ workspaceId }) {
   }, [loadSummary]);
 
   const handleVerifyAll = async () => {
+    if (!can("claim.verify")) {
+      showToast("Claim verification permission denied", "error");
+      return;
+    }
     setVerifying(true);
     try {
       const result = await verifyWorkspaceClaims(workspaceId);

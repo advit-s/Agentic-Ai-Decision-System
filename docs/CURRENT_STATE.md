@@ -1,9 +1,8 @@
 # Current State — Agentic Decision System
-
- > **Last updated:** 2026-06-24 (v1.27.0-dev — Security, Auth, RBAC + Governance Foundation)
- > **Package version:** 1.27.0-dev
- > **Previous milestone:** v1.26.1 — Graph UI, Audit Metrics API + Extraction Quality Hardening
- > **Current milestone:** v1.27.0 — Security, Auth, RBAC + Governance Foundation
+> **Last updated:** 2026-06-24 (v1.27.1-dev — Frontend Security UI + Permission-Aware Components)
+> **Package version:** 1.27.1-dev
+> **Previous milestone:** v1.27.0 — Security, Auth, RBAC + Governance Foundation
+> **Current milestone:** v1.27.1 — Frontend Security UI + Permission-Aware Components
 > **Python:** >=3.11
 
 ---

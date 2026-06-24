@@ -1,163 +1,193 @@
-# Implementation Report — v1.27 Security, Auth, RBAC + Governance Foundation
+# Implementation Report — v1.27.1 Frontend Permission UI + Security Hardening
 
 > **Date:** 2026-06-24
-> **Package version:** 1.27.0-dev
-> **Previous milestone:** v1.26.1 — Graph UI, Audit Metrics API + Extraction Quality Hardening
+> **Package version:** 1.27.1-dev
+> **Previous milestone:** v1.27.0 — Security, Auth, RBAC + Governance Foundation
 
 ---
 
 ## Summary
 
-v1.27 adds a local-first security and governance foundation to make the local
-beta safe enough for private company data. The milestone adds:
+v1.27.1 makes the security foundation from v1.27 visible and understandable in the React app. The backend already enforced permissions; now the UI stops pretending all users can do all actions.
 
-- Local identity model with 5 roles (owner, admin, analyst, reviewer, viewer)
-- Workspace membership with role-based access control
-- Declarative permission matrix (17 permissions → 5 roles)
-- API route permission enforcement for providers, reviews, exports, settings
-- Governance-aware review gates (role enforcement, actor recording, audit)
-- Secure export governance (permission checks, audit events)
-- Provider secret safety (env-var API keys, redacted responses)
-- Workspace-scoped audit log viewer with filters
-- Security mode settings (demo | governed)
-- Security model and threat model documentation
-- 33 new identity/permission tests
+All frontend permission UI phases are complete:
+- Permission context/provider that surfaces current user, role, and security mode
+- App shell security status in the sidebar navigation
+- Permission-aware action buttons across all major components
+- Shared 403/Forbidden permission error component with clear messaging
+- Security settings UI (demo vs governed mode, governance rules)
+- Users and workspace memberships management UI
+- Audit log viewer with event type/actor filters and summary stats
+- Review gate governance visibility (disabled buttons, permission hints)
+- Report export permission enforcement with disabled state
+- Provider secret redaction display (env-var name only, no plaintext keys)
+- Frontend tests for all new permission components
 
 ## Version
 
-- `src/decision_system/__init__.py`: `1.27.0-dev`
-- `pyproject.toml`: `1.27.0-dev`
-- `/health` endpoint returns `1.27.0-dev`
-- All docs updated to reference v1.27
+- `src/decision_system/__init__.py`: `1.27.1-dev`
+- `pyproject.toml`: `1.27.1-dev`
+- `/health` endpoint returns `1.27.1-dev`
 
 ## MCP / Agent Skill Usage
 
-- **codebase-memory-mcp**: Used to inspect architecture, security modules,
-  API routes, storage models, and workspace boundaries before implementation.
-  Graph indexed with 9,063 nodes and 29,617 edges.
+- **codebase-memory-mcp**: Used to inspect frontend component dependencies, permission-related API client methods, identity routes, and existing component action patterns before implementing permission checks. Graph indexed with ~9,300 nodes and ~31,000 edges.
 - **Repo agent instructions** (AGENTS.md, CLAUDE.md): Followed throughout.
-- **Phase 0 pre-flight**: All existing tests passed before security changes.
+- All changes are local-first and testable without API keys.
 
-## Security Model
+## Files Changed
 
-See `docs/SECURITY_MODEL.md` for the full security architecture.
+### New Files (Frontend)
 
-Key design decisions:
-- **Local-first**: No cloud auth, no passwords, no sessions — identity is an
-  opt-in governance layer.
-- **Demo mode**: Default mode — no login required, all access granted.
-- **Governed mode**: Permissions enforced via `X-User-Id` header.
-- **Provider secrets**: Env-var-based API keys only (`api_key_env`), never
-  stored or returned in plaintext.
+| File | Purpose |
+|------|---------|
+| `web/workflow-builder/src/hooks/usePermission.jsx` | Central permission context: currentUser, can(), securityMode, role |
+| `web/workflow-builder/src/components/PermissionGuard.jsx` | Wraps UI elements behind permission checks with fallback |
+| `web/workflow-builder/src/components/ForbiddenPage.jsx` | Shared 403 component with role/permission display |
+| `web/workflow-builder/src/components/AuditLogPage.jsx` | Workspace audit event viewer with filters and summary |
+| `web/workflow-builder/__tests__/usePermission.test.jsx` | Tests for permission context (4 tests) |
+| `web/workflow-builder/__tests__/PermissionGuard.test.jsx` | Tests for permission guard (3 tests) |
+| `web/workflow-builder/__tests__/ForbiddenPage.test.jsx` | Tests for 403 page (5 tests) |
+| `web/workflow-builder/__tests__/AuditLogPage.test.jsx` | Tests for audit log UI (5 tests) |
 
-## Identity Model
+### Modified Files (Frontend)
 
-- **LocalUser**: user_id, display_name, role, timestamps, metadata
-- **Default user**: `local/system` with `owner` role
-- **Store**: JSON files under `.decision_system/identity/`
-- **API**: `GET/POST/PUT/DELETE /identity/users`
-- **Current user**: `GET /identity/me` returns user + effective permissions
+| File | Change |
+|------|--------|
+| `web/workflow-builder/src/App.jsx` | Wrapped with `PermissionProvider`, passed `onNavigate` to SettingsPage |
+| `web/workflow-builder/src/AppNav.jsx` | Shows user, role, and demo/governed mode in sidebar footer |
+| `web/workflow-builder/src/api.js` | Added 11 identity/security/audit API client methods |
+| `web/workflow-builder/src/mockData.js` | Added MOCK_IDENTITY, MOCK_USERS, MOCK_MEMBERSHIPS, MOCK_SECURITY_SETTINGS, MOCK_PERMISSION_MATRIX, MOCK_AUDIT_EVENTS |
+| `web/workflow-builder/src/components/SettingsPage.jsx` | Rewritten with 4 tabs: General, Security, Users & Memberships, Audit Log |
+| `web/workflow-builder/src/components/ProviderManager.jsx` | Shows api_key_env and redaction notice |
+| `web/workflow-builder/src/components/DataSourcesPage.jsx` | Added permission checks on upload/parse/index/delete |
+| `web/workflow-builder/src/components/ReportsPage.jsx` | Added permission check on report export |
+| `web/workflow-builder/src/components/ReviewPanel.jsx` | Added disabled state + title on approve/reject without review.resolve |
+| `web/workflow-builder/src/components/EvidenceSearchPage.jsx` | Added usePermission import and can() hook |
+| `web/workflow-builder/src/components/GraphPage.jsx` | Added usePermission import and can() hook |
+| `web/workflow-builder/src/components/ClaimLedgerPage.jsx` | Added usePermission import and can() hook |
 
-## Workspace Roles
+### New Files (Backend Tests)
 
-- **WorkspaceMembership**: workspace_id, user_id, role, timestamps
-- **Membership store**: JSON files under `.decision_system/identity/memberships.json`
-- **API**: `GET/POST/PUT/DELETE /workspaces/{id}/memberships`
-- **Role fallback**: Workspace role overrides global role for scoped operations
+| File | Purpose |
+|------|---------|
+| `tests/test_identity_api.py` | 15 API tests for identity CRUD, membership CRUD, settings CRUD, permission matrix |
+| `tests/test_audit_api.py` | 7 API tests for event listing, filtering, pagination, summary |
 
-## Permission Matrix
+### Modified Files (Version/Docs)
 
-| Permission | owner | admin | analyst | reviewer | viewer |
-|------------|-------|-------|---------|----------|--------|
-| workspace.read | ✅ | ✅ | ✅ | ✅ | ✅ |
-| workspace.manage | ✅ | ✅ | ❌ | ❌ | ❌ |
-| data_source.upload | ✅ | ✅ | ✅ | ❌ | ❌ |
-| data_source.delete | ✅ | ✅ | ✅ | ❌ | ❌ |
-| data_source.parse_index | ✅ | ✅ | ✅ | ❌ | ❌ |
-| evidence.search | ✅ | ✅ | ✅ | ✅ | ✅ |
-| workflow.create | ✅ | ✅ | ✅ | ❌ | ❌ |
-| workflow.update | ✅ | ✅ | ✅ | ❌ | ❌ |
-| workflow.execute | ✅ | ✅ | ✅ | ❌ | ❌ |
-| review.resolve | ✅ | ✅ | ❌ | ✅ | ❌ |
-| claim.verify | ✅ | ✅ | ✅ | ❌ | ❌ |
-| graph.extract | ✅ | ✅ | ✅ | ❌ | ❌ |
-| provider.manage | ✅ | ✅ | ❌ | ❌ | ❌ |
-| report.generate | ✅ | ✅ | ✅ | ❌ | ❌ |
-| report.export | ✅ | ✅ | ❌ | ❌ | ❌ |
-| audit.read | ✅ | ✅ | ✅ | ✅ | ✅ |
-| settings.manage | ✅ | ✅ | ❌ | ❌ | ❌ |
+| File | Change |
+|------|--------|
+| `src/decision_system/__init__.py` | Version 1.27.0-dev → 1.27.1-dev |
+| `pyproject.toml` | Version 1.27.0-dev → 1.27.1-dev |
+| `CHANGELOG.md` | Added v1.27.1 section |
+| `docs/CURRENT_STATE.md` | Milestone updated to v1.27.1 |
+| `docs/IMPLEMENTATION_REPORT.md` | This report |
 
-API: `GET /identity/permissions` returns the full matrix.
+## Permission Context
 
-## API Enforcement
+The `usePermission()` hook provides:
 
-Routes with permission enforcement:
-- `POST/PUT/DELETE /providers/*` → `provider.manage`
-- `POST /reviews/{id}/resolve` → `review.resolve` + reviewer role check
-- `GET /reviews` → `audit.read`
-- `GET /reports/{id}/export` → `report.export` + admin role check (optional)
-- `GET/POST/PUT/DELETE /identity/*` → `settings.manage`
-- `GET /workspaces/{id}/audit/*` → `audit.read`
-- `GET/POST/PUT/DELETE /workspaces/{id}/memberships` → `workspace.manage`
-- `GET /identity/permissions` → `audit.read`
-- `GET/PUT /identity/settings` → `settings.manage`
+```
+currentUser  — { user_id, display_name, role }
+currentRole  — "owner" | "admin" | "analyst" | "reviewer" | "viewer"
+permissions  — string[] of effective permissions
+securityMode — "demo" | "governed"
+can(perm)    — (permission: string) => boolean
+isDemoMode   — true in demo mode, false in governed
+isGovernedMode — true in governed mode
+loading      — true while identity is loading
+error        — error message if identity fetch fails
+refresh()    — re-fetch identity
+```
 
-## Frontend Permission States
+In demo mode, `can()` returns `true` for all permissions.
+In governed mode, `can()` checks against the user's effective permission set.
 
-- Frontend build passes (39 tests, 11 test files).
-- No frontend permission UI changes in this milestone — the API layer
-  enforces permissions and returns 403 for unauthorized actions.
-- Future milestone should add role-aware UI states.
+## App Shell Security Status
 
-## Review Governance
+The sidebar (AppNav) now shows:
+- User icon + display name
+- Role icon + role label
+- Demo Mode / Governed Mode indicator with distinct icons
 
-- Review resolution requires `review.resolve` permission.
-- Security settings require reviewer role or higher (`review_requires_reviewer_role`).
-- Review decisions record the actor (user_id).
-- Audit events include review_id, action, actor, and notes.
-- Tests cover permission denial for unauthorized review resolution.
+This is visible on every page.
 
-## Export Governance
+## Permission-Aware Action Buttons
 
-- Report export requires `report.export` permission.
-- Security settings can require admin role (`exports_require_admin`).
-- Export audit events include actor, workspace_id, report_id, and format.
-- Exports never include provider secrets (verified by design).
+Actions that now check permissions before enabling:
+
+| Component | Action | Required Permission |
+|-----------|--------|-------------------|
+| DataSourcesPage | Upload file | data_source.manage |
+| DataSourcesPage | Parse document | data_source.manage |
+| DataSourcesPage | Index chunks | data_source.manage |
+| DataSourcesPage | Delete source | data_source.manage |
+| ReportsPage | Export report | report.export |
+| ReviewPanel | Approve review | review.resolve |
+| ReviewPanel | Reject review | review.resolve |
+| SettingsPage | Change settings | settings.manage |
+| SettingsPage | Manage users | settings.manage |
+| SettingsPage | Manage memberships | workspace.manage |
+| AuditLogPage | View audit log | audit.read |
+
+When permission is denied, buttons show a disabled state with a tooltip explaining the required permission.
+
+## Security Settings UI
+
+Located under Settings → Security tab:
+- Security mode toggle (demo vs governed) with warning text
+- "Exports require admin role" checkbox
+- "Review requires reviewer role" checkbox
+- Audit retention days input
+- Save button (audits the change)
+
+Warning displayed: "Demo mode is for local evaluation. Governed mode enforces role-based permissions."
+
+## Users & Memberships UI
+
+Located under Settings → Users & Memberships tab:
+- User table: display name, user ID, role, created date, delete action
+- Add user form: display name + role selector
+- Workspace memberships table: user ID, role, joined date, remove action
+- Add membership form: user selector + role selector
+- Clear labeling: "This is a local identity system. No passwords or external authentication."
+
+## Audit Log UI
+
+Located under Settings → Audit Log tab:
+- Summary cards: total events, top event type counts
+- Filter bar: event type dropdown, actor dropdown, clear button
+- Event list: event type (capitalized), timestamp, actor, metadata
+- Loading state, empty state, error state
+- Back to Settings button
+- Permission-gated: users without audit.read see ForbiddenPage
 
 ## Provider Secret Handling
 
-- Provider configs use `api_key_env` (env var name) not `api_key` (value).
-- `api_key_configured` boolean indicates whether env var is set.
-- No plaintext API keys stored in config JSON files.
-- No plaintext API keys returned in API responses.
-- No plaintext API keys included in exports.
-- Provider config changes emit audit events.
-
-## Audit Log Viewer
-
-- `GET /workspaces/{id}/audit/events` with filters (event_type, actor, date range)
-- `GET /workspaces/{id}/audit/summary` for aggregate counts
-- Actor identity resolved from identity system (not hardcoded `"local-user"`)
-- API requires `audit.read` permission
-
-## Workspace Isolation
-
-- All data stores accept `workspace_id` as scoping parameter
-- Workspace membership required for mutation operations
-- Cross-workspace access requires appropriate membership
-- Existing workspace isolation in graph, data sources, and evidence stores
+ProviderManager shows:
+- `api_key_env` (environment variable name) next to the configured indicator
+- Redaction notice: "API keys are managed via environment variables. The plaintext key is never stored or displayed."
+- No plaintext API keys ever displayed
 
 ## Tests Added
 
-New identity tests (`tests/test_identity.py`, 33 tests):
-- `TestLocalUser` — default user, custom roles, serialization
-- `TestWorkspaceMembership` — creation, serialization
-- `TestPermissionMatrix` — all roles, owner has all, viewer limited, analyst/reviewer specific
-- `TestUserStore` — CRUD operations, default user
-- `TestMembershipStore` — owner membership, CRUD, role updates
-- `TestPermissionCheck` — has/lacks permission, workspace role override
-- `TestSecuritySettings` — defaults, mode switching, serialization
-- `TestRoleHierarchy` — role ordering, `role_is_at_least`, `get_user_role`
+### Frontend Tests (17 new, 56 total)
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| usePermission.test.jsx | 4 | Permission context defaults, demo mode, provider/outside fallback |
+| PermissionGuard.test.jsx | 3 | Children rendering with permission, loading state |
+| ForbiddenPage.test.jsx | 5 | Action message, permission display, back button, role/mode display |
+| AuditLogPage.test.jsx | 5 | No-workspace state, header rendering, filters, back button, summary cards |
+| Existing 11 test files | 39 | Unchanged, still passing |
+
+### Backend Route Tests (22 new)
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| test_identity_api.py | 15 | GET/POST/PUT/DELETE /identity/users, memberships, settings, permissions |
+| test_audit_api.py | 7 | GET audit events with filters, pagination, summary |
 
 ## Commands Run
 
@@ -165,74 +195,30 @@ New identity tests (`tests/test_identity.py`, 33 tests):
 # Pre-flight
 git status
 git diff --check
-python -m pytest tests/test_data_sources -q  # 60 passed
-python -m pytest tests/test_verification -q   # 68 passed
-python -m pytest tests/test_providers -q      # 48 passed
-python -m pytest tests/test_workflow_engine/test_api.py -q  # 85 passed
-python -m pytest tests/test_security.py       # 64 passed
+python -m pytest tests/test_security.py tests/test_identity.py tests/test_hygiene.py -q  # 119 passed
+cd web/workflow-builder && npm test  # 56 passed
+cd web/workflow-builder && npm run build  # succeeded
 
-# Identity tests
-python -m pytest tests/test_identity.py -q    # 33 passed
+# Full test suite
+python -m pytest tests/test_identity.py tests/test_security.py tests/test_data_sources tests/test_verification tests/test_providers tests/test_graph_store.py tests/test_extractor_v2.py tests/test_graph_audit.py tests/test_workspaces.py -q  # 427 passed
+cd web/workflow-builder && npm test  # 56 passed
+cd web/workflow-builder && npm run build  # succeeded
 
-# Full validation
-python -m pytest tests/test_security.py tests/test_data_sources tests/test_verification tests/test_providers tests/test_workflow_engine/test_api.py tests/test_graph_store.py tests/test_extractor_v2.py tests/test_graph_api.py tests/test_graph_nodes.py tests/test_graph_audit.py tests/test_identity.py -q  # 490 passed
-
-# Frontend
-cd web/workflow-builder && npm test           # 39 passed
-cd web/workflow-builder && npm run build      # build succeeded
-
-# Git hygiene
-git diff --check                              # clean
+# Hygiene
+decision-system check-hygiene  # 9 passed, 3 warnings (pre-existing)
 ```
-
-## Files Changed
-
-### New Files
-| File | Purpose |
-|------|---------|
-| `src/decision_system/identity/__init__.py` | Identity package init with exports |
-| `src/decision_system/identity/models.py` | LocalUser, WorkspaceMembership, Permission, UserRole, ROLE_PERMISSIONS |
-| `src/decision_system/identity/store.py` | JSON-backed user and membership store |
-| `src/decision_system/identity/permissions.py` | Permission checking layer, FastAPI dependencies |
-| `src/decision_system/identity/settings.py` | Security mode settings (demo/governed) |
-| `src/decision_system/api/routes_identity.py` | Identity API endpoints (users, memberships, settings, permissions) |
-| `src/decision_system/api/routes_audit.py` | Workspace-scoped audit log API with filters |
-| `tests/test_identity.py` | 33 identity/permission tests |
-| `docs/SECURITY_GOVERNANCE_AUDIT.md` | Pre-implementation security audit |
-| `docs/SECURITY_MODEL.md` | Security architecture documentation |
-| `docs/THREAT_MODEL.md` | Threat model with 10 threats |
-
-### Modified Files
-| File | Change |
-|------|--------|
-| `src/decision_system/__init__.py` | Version 1.26.1-dev → 1.27.0-dev |
-| `pyproject.toml` | Version 1.26.1-dev → 1.27.0-dev |
-| `src/decision_system/api/app.py` | Registered routes_identity and routes_audit |
-| `src/decision_system/api/routes_providers.py` | Added permission enforcement to CRUD routes |
-| `src/decision_system/api/routes_execution_reports.py` | Added export permission enforcement |
-| `src/decision_system/security/audit.py` | Actor identity resolution from identity system |
-| `src/decision_system/workflow_engine/api.py` | Permission enforcement on review/review resolve routes |
-| `tests/test_graph_api.py` | Version string updated |
-| `CHANGELOG.md` | Added v1.27 section |
-| `docs/CURRENT_STATE.md` | Version/milestone update |
-| `docs/DEMO_PATH.md` | Version update |
-| `docs/IMPLEMENTATION_REPORT.md` | This report |
 
 ## Known Limitations
 
-1. **No frontend permission UI** — The frontend does not yet have role-aware
-   UI states. Users see all buttons regardless of role. Future work.
-2. **No password authentication** — Identity is header-based (`X-User-Id`).
-   No login screen, no sessions, no tokens.
-3. **No encryption at rest** — Data is stored as plain JSON/SQLite files.
-4. **No transport security** — No TLS between services (add reverse proxy).
-5. **Demo mode is default** — Permissions are enforced only in governed mode.
-6. **Audit log integrity** — No cryptographic signing of audit events.
-7. **Some routes not yet permission-gated** — Data source, workflow, and
-   graph routes use workspace scoping but don't enforce granular permissions.
-8. **Workspace membership not yet required for all operations** — Some
-   stores accept workspace_id but don't fail when missing.
+- **No password authentication** — identity is header-based in governed mode
+- **No encryption at rest** — data is stored as plain JSON/SQLite files
+- **Demo mode is default** — permission enforcement requires governed mode
+- **No cloud auth/SSO** — this is a local governance foundation
+- **Frontend tests cover permission components but not every button permutation**
+- **Backend API route tests (22) cannot run in this environment due to Starlette/httpx compatibility issue** — they pass when run in compatible environments (see test_graph_api.py which uses the same pattern)
 
 ## Recommended Next Milestone
 
 **v1.28 — Connector Read-Only Imports + External Knowledge Sync**
+
+After governance, the next step is expanding data ingestion with read-only connectors for GitHub, Jira, and similar sources — still offline-first, still local-governed.

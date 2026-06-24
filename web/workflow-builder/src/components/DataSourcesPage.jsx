@@ -11,6 +11,7 @@ import {
   getDataSourceChunks,
   getDataSourcePreview,
 } from "../api";
+import { usePermission } from "../hooks/usePermission";
 import { useToast } from "./Toast";
 
 const SUPPORTED_TYPES = ["pdf", "docx", "xlsx", "csv", "json", "txt", "md"];
@@ -18,6 +19,7 @@ const SUPPORTED_EXTENSIONS = [".pdf", ".docx", ".xlsx", ".csv", ".json", ".txt",
 
 function DataSourcesPage({ workspaceId, onNavigate }) {
   const [sources, setSources] = useState([]);
+  const { can } = usePermission();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSource, setSelectedSource] = useState(null);
@@ -47,6 +49,10 @@ function DataSourcesPage({ workspaceId, onNavigate }) {
   }, [loadSources]);
 
   const handleUpload = async (file) => {
+    if (!can("data_source.manage")) {
+      showToast("Upload permission denied", "error");
+      return;
+    }
     const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
     if (!SUPPORTED_EXTENSIONS.includes(ext)) {
       showToast(`Unsupported file type: ${ext}. Supported: ${SUPPORTED_EXTENSIONS.join(", ")}`, "error");
@@ -85,16 +91,28 @@ function DataSourcesPage({ workspaceId, onNavigate }) {
   };
 
   const handleParse = async (sourceId) => {
+    if (!can("data_source.manage")) {
+      showToast("Parse permission denied", "error");
+      return;
+    }
     try {
       const result = await parseDataSource(workspaceId, sourceId);
       showToast(`Parsed: ${result.chunk_count || 0} chunks`, "success");
       await loadSources();
     } catch (err) {
       showToast(`Parse failed: ${err.message}`, "error");
+    if (!can("data_source.manage")) {
+      showToast("Index permission denied", "error");
+      return;
+    }
     }
   };
 
   const handleIndex = async (sourceId) => {
+    if (!can("data_source.manage")) {
+      showToast("Index permission denied", "error");
+      return;
+    }
     try {
       const result = await indexDataSource(workspaceId, sourceId);
       showToast(`Indexed (${result.retrieval_mode || "keyword"})`, "success");
@@ -105,6 +123,10 @@ function DataSourcesPage({ workspaceId, onNavigate }) {
   };
 
   const handleDelete = async (sourceId) => {
+    if (!can("data_source.manage")) {
+      showToast("Delete permission denied", "error");
+      return;
+    }
     if (!window.confirm("Delete this data source?")) return;
     try {
       await deleteDataSource(workspaceId, sourceId);

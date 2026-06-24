@@ -252,6 +252,15 @@ function ProviderManager({ onClose }) {
                 <span className={p.api_key_configured ? "key-configured" : "key-missing"}>
                   {p.api_key_configured ? "✓ Configured" : "✗ Not set"}
                 </span>
+                {p.api_key_env && (
+                  <span style={{ marginLeft: "8px", fontSize: "12px", color: "#888" }}>
+                    (env: {p.api_key_env})
+                  </span>
+                )}
+              </div>
+              <div className="provider-detail" style={{ fontSize: "12px", color: "#999" }}>
+                <strong>Redacted:</strong> API keys are managed via environment variables.
+                The plaintext key is never stored or displayed.
               </div>
 
               <div className="provider-test-row">

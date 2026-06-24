@@ -1,5 +1,6 @@
-// AppNav.jsx — Sidebar navigation for main app sections
+// AppNav.jsx — Sidebar navigation for main app sections with security status
 import React from "react";
+import { usePermission } from "../hooks/usePermission";
 
 const NAV_ITEMS = [
   { id: "demo", label: "Demo Flow", icon: "🚀" },
@@ -17,6 +18,11 @@ const NAV_ITEMS = [
 ];
 
 function AppNav({ activeSection, onNavigate, workspaceName, backendMode }) {
+  const { currentUser, currentRole, roleLabel, securityMode, isDemoMode, isGovernedMode } = usePermission();
+
+  const modeLabel = isGovernedMode ? "Governed" : "Demo";
+  const modeIcon = isGovernedMode ? "🟢" : "🟡";
+
   return (
     <aside className="app-nav">
       <div className="app-nav-brand">
@@ -48,6 +54,21 @@ function AppNav({ activeSection, onNavigate, workspaceName, backendMode }) {
       </nav>
 
       <div className="app-nav-footer">
+        {/* Security status */}
+        <div className="app-nav-security" style={{ padding: "8px 12px", borderTop: "1px solid #eee", fontSize: "12px", lineHeight: 1.6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span>👤</span>
+            <span title={currentUser?.user_id}>{currentUser?.display_name || "Unknown"}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span>🎭</span>
+            <span>{roleLabel} ({currentRole})</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span>{modeIcon}</span>
+            <span>{modeLabel} Mode</span>
+          </div>
+        </div>
         <div className={`app-nav-mode app-nav-mode-${backendMode}`}>
           {backendMode === "mock" && "🟡 Mock Mode"}
           {backendMode === "live" && "🟢 Live"}

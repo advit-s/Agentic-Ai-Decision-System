@@ -27,6 +27,7 @@ import RiskDashboard from "./components/RiskDashboard";
 import ReportsPage from "./components/ReportsPage";
 import SettingsPage from "./components/SettingsPage";
 import DemoFlow from "./components/DemoFlow";
+import { PermissionProvider, usePermission } from "./hooks/usePermission";
 import { ToastProvider, useToast } from "./components/Toast";
 import useKeyboardShortcuts from "./hooks/useKeyboardShortcuts";
 import {
@@ -1028,8 +1029,9 @@ function App() {
         return <DemoFlow workspaceId={workspaceId} workspaceName={workspaceName} onWorkspaceChange={handleWorkspaceChange} onNavigate={handleNavigate} />;
       case "settings":
         return (
-          <SettingsPage
+                    <SettingsPage
             workspaceId={workspaceId}
+            onNavigate={handleNavigate}
             onWorkspaceChange={handleWorkspaceChange}
           />
         );
@@ -1039,6 +1041,7 @@ function App() {
   };
 
   return (
+    <PermissionProvider>
     <div className="app-root">
       <AppNav
         activeSection={activeSection}
@@ -1055,6 +1058,7 @@ function App() {
         </ReactFlowProvider>
       </div>
     </div>
+    </PermissionProvider>
   );
 }
 

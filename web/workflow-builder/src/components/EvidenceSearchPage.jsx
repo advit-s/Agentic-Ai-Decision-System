@@ -5,6 +5,7 @@ import { searchEvidence } from "../api";
 const FILE_TYPE_OPTIONS = ["", "pdf", "docx", "xlsx", "csv", "json", "txt", "md"];
 
 function EvidenceSearchPage({ workspaceId }) {
+    const { can } = usePermission();
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(10);
   const [fileType, setFileType] = useState("");
@@ -13,6 +14,10 @@ function EvidenceSearchPage({ workspaceId }) {
   const [error, setError] = useState(null);
 
   const handleSearch = useCallback(async () => {
+    if (!can("evidence.search")) {
+      showToast("Search permission denied", "error");
+      return;
+    }
     if (!query.trim()) return;
     setLoading(true);
     setError(null);

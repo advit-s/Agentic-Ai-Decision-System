@@ -1348,6 +1348,87 @@ const MOCK_WORKFLOW_VERSIONS = [
   },
 ];
 
+// Identity & Security mock data
+const MOCK_IDENTITY = {
+  user: {
+    user_id: "local/system",
+    display_name: "Local Owner",
+    role: "owner",
+    created_at: "2026-01-01T00:00:00Z",
+    metadata: {},
+  },
+  permissions: [
+    "audit.read",
+    "claim.manage",
+    "claim.verify",
+    "data_source.manage",
+    "evidence.search",
+    "export.report",
+    "graph.manage",
+    "provider.manage",
+    "report.generate",
+    "review.manage",
+    "settings.manage",
+    "workflow.manage",
+    "workspace.manage",
+  ],
+  security_mode: "demo",
+};
+
+const MOCK_USERS = [
+  { user_id: "local/system", display_name: "Local Owner", role: "owner", created_at: "2026-01-01T00:00:00Z", metadata: {} },
+  { user_id: "user-analyst-1", display_name: "Analyst Alice", role: "analyst", created_at: "2026-03-15T00:00:00Z", metadata: {} },
+  { user_id: "user-reviewer-1", display_name: "Reviewer Bob", role: "reviewer", created_at: "2026-04-01T00:00:00Z", metadata: {} },
+  { user_id: "user-viewer-1", display_name: "Viewer Carol", role: "viewer", created_at: "2026-05-01T00:00:00Z", metadata: {} },
+  { user_id: "user-admin-1", display_name: "Admin Dave", role: "admin", created_at: "2026-02-01T00:00:00Z", metadata: {} },
+];
+
+const MOCK_MEMBERSHIPS = {
+  "ws-1": [
+    { workspace_id: "ws-1", user_id: "local/system", role: "owner", joined_at: "2026-01-01T00:00:00Z" },
+    { workspace_id: "ws-1", user_id: "user-analyst-1", role: "analyst", joined_at: "2026-03-15T00:00:00Z" },
+    { workspace_id: "ws-1", user_id: "user-reviewer-1", role: "reviewer", joined_at: "2026-04-01T00:00:00Z" },
+    { workspace_id: "ws-1", user_id: "user-viewer-1", role: "viewer", joined_at: "2026-05-01T00:00:00Z" },
+    { workspace_id: "ws-1", user_id: "user-admin-1", role: "admin", joined_at: "2026-02-01T00:00:00Z" },
+  ],
+  "ws-2": [
+    { workspace_id: "ws-2", user_id: "local/system", role: "owner", joined_at: "2026-01-01T00:00:00Z" },
+  ],
+};
+
+const MOCK_SECURITY_SETTINGS = {
+  security_mode: "demo",
+  default_role: "viewer",
+  exports_require_admin: false,
+  review_requires_reviewer_role: true,
+  audit_retention_days: 90,
+};
+
+const MOCK_PERMISSION_MATRIX = {
+  roles: ["owner", "admin", "analyst", "reviewer", "viewer"],
+  permissions: [
+    "audit.read", "claim.manage", "claim.verify", "data_source.manage",
+    "evidence.search", "export.report", "graph.manage", "provider.manage",
+    "report.generate", "review.manage", "settings.manage", "workflow.manage", "workspace.manage",
+  ],
+  matrix: {
+    owner: ["audit.read", "claim.manage", "claim.verify", "data_source.manage", "evidence.search", "export.report", "graph.manage", "provider.manage", "report.generate", "review.manage", "settings.manage", "workflow.manage", "workspace.manage"],
+    admin: ["audit.read", "claim.manage", "claim.verify", "data_source.manage", "evidence.search", "export.report", "graph.manage", "provider.manage", "report.generate", "review.manage", "workflow.manage", "workspace.manage"],
+    analyst: ["claim.manage", "claim.verify", "data_source.manage", "evidence.search", "graph.manage", "report.generate", "review.manage", "workflow.manage"],
+    reviewer: ["claim.manage", "claim.verify", "evidence.search", "report.generate", "review.manage"],
+    viewer: ["claim.manage", "evidence.search"],
+  },
+};
+
+const MOCK_AUDIT_EVENTS = [
+  { event_id: "audit-001", event_type: "workflow_executed", actor: "local/system", created_at: "2026-06-20T14:30:00Z", metadata: { workspace_id: "ws-1", workflow_id: "wf-sample-1", artifact_type: "workflow" } },
+  { event_id: "audit-002", event_type: "data_source_uploaded", actor: "user-analyst-1", created_at: "2026-06-19T10:15:00Z", metadata: { workspace_id: "ws-1", artifact_id: "ds-mock-001", artifact_type: "data_source" } },
+  { event_id: "audit-003", event_type: "report_exported", actor: "user-reviewer-1", created_at: "2026-06-18T16:45:00Z", metadata: { workspace_id: "ws-1", report_id: "rpt-mock-001", artifact_type: "report", format: "md" } },
+  { event_id: "audit-004", event_type: "settings_changed", actor: "local/system", created_at: "2026-06-17T09:00:00Z", metadata: { workspace_id: "ws-1", setting: "security_mode", old_value: "governed", new_value: "demo", artifact_type: "settings" } },
+  { event_id: "audit-005", event_type: "provider_created", actor: "user-admin-1", created_at: "2026-06-16T11:20:00Z", metadata: { workspace_id: "ws-1", provider_name: "Fake Provider", artifact_type: "provider" } },
+];
+
+
 export {
   MOCK_NODE_TYPES,
   MOCK_WORKFLOWS,
@@ -1365,4 +1446,10 @@ export {
   MOCK_CONTRADICTIONS,
   MOCK_TRUST_REPORT,
   MOCK_WORKFLOW_VERSIONS,
+  MOCK_IDENTITY,
+  MOCK_USERS,
+  MOCK_MEMBERSHIPS,
+  MOCK_SECURITY_SETTINGS,
+  MOCK_PERMISSION_MATRIX,
+  MOCK_AUDIT_EVENTS,
 };
