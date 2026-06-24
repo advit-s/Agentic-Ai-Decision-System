@@ -154,12 +154,12 @@ def test_package_relative_web_dir_exists():
     assert (web_dir / "styles.css").exists()
 
 
-def test_fastapi_ui_route_returns_page_if_api_module_exists():
+async def test_fastapi_ui_route_returns_page_if_api_module_exists():
     spec = importlib.util.find_spec("decision_system.api")
     if spec is None:
         pytest.skip("No FastAPI API package exists in this branch.")
 
-    testclient = pytest.importorskip("fastapi.testclient")
+    pytest.importorskip("httpx")
     api_module = importlib.import_module("decision_system.api")
 
     app = getattr(api_module, "app", None)
@@ -168,19 +168,22 @@ def test_fastapi_ui_route_returns_page_if_api_module_exists():
     if app is None:
         pytest.skip("decision_system.api exists but exposes no app/create_app.")
 
-    client = testclient.TestClient(app)
-    response = client.get("/")
+    from httpx import ASGITransport
+    import httpx
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/")
 
     assert response.status_code == 200
     assert "Intelligence Console" in response.text or "Company Intelligence" in response.text
 
 
-def test_new_api_endpoints_exist():
+async def test_new_api_endpoints_exist():
     spec = importlib.util.find_spec("decision_system.api")
     if spec is None:
         pytest.skip("No FastAPI API package exists in this branch.")
 
-    testclient = pytest.importorskip("fastapi.testclient")
+    pytest.importorskip("httpx")
     api_module = importlib.import_module("decision_system.api")
 
     app = getattr(api_module, "app", None)
@@ -189,28 +192,30 @@ def test_new_api_endpoints_exist():
     if app is None:
         pytest.skip("decision_system.api exists but exposes no app/create_app.")
 
-    client = testclient.TestClient(app)
+    from httpx import ASGITransport
+    import httpx
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        # Test enterprise-readiness endpoint
+        er_response = await client.get("/enterprise-readiness")
+        assert er_response.status_code == 200
+        er_payload = er_response.json()
+        assert "readiness_level" in er_payload
+        assert er_payload["prototype_ready"] is True
 
-    # Test enterprise-readiness endpoint
-    er_response = client.get("/enterprise-readiness")
-    assert er_response.status_code == 200
-    er_payload = er_response.json()
-    assert "readiness_level" in er_payload
-    assert er_payload["prototype_ready"] is True
+        # Test observability endpoints
+        obs_metrics = await client.get("/observability/metrics")
+        assert obs_metrics.status_code == 200
+        assert "metrics" in obs_metrics.json()
 
-    # Test observability endpoints
-    obs_metrics = client.get("/observability/metrics")
-    assert obs_metrics.status_code == 200
-    assert "metrics" in obs_metrics.json()
+        obs_evals = await client.get("/observability/eval-history")
+        assert obs_evals.status_code == 200
 
-    obs_evals = client.get("/observability/eval-history")
-    assert obs_evals.status_code == 200
+        obs_quality = await client.get("/observability/quality-report")
+        assert obs_quality.status_code == 200
 
-    obs_quality = client.get("/observability/quality-report")
-    assert obs_quality.status_code == 200
-
-    obs_traces = client.get("/observability/traces")
-    assert obs_traces.status_code == 200
+        obs_traces = await client.get("/observability/traces")
+        assert obs_traces.status_code == 200
 
 
 # Root and package web assets must stay byte-for-byte identical.

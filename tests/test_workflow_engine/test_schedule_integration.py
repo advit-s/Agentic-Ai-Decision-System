@@ -10,13 +10,23 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
-from decision_system.api.app import create_app
 from decision_system.workflow_engine.cli import app as workflow_cli
 from decision_system.workflow_engine.models import WorkflowDefinition
 from decision_system.workflow_engine.stores.json_store import JSONWorkflowStore
+
+
+@pytest.fixture()
+def async_client():
+    """Create an async HTTP client for API tests."""
+    from httpx import ASGITransport
+    import httpx
+    from decision_system.api.app import create_app
+    app = create_app()
+    transport = ASGITransport(app=app)
+    client = httpx.AsyncClient(transport=transport, base_url="http://testserver")
+    return client
 
 
 class TestScheduleIntegration:
@@ -24,13 +34,10 @@ class TestScheduleIntegration:
 
     # ── API Integration ─────────────────────────────────────────────────
 
-    def test_api_full_lifecycle(self):
+    async def test_api_full_lifecycle(self, async_client):
         """API: create workflow -> auto-schedule -> list -> toggle -> delete."""
-        app = create_app()
-        client = TestClient(app)
-
         # Create a workflow with a cron trigger node
-        wf_resp = client.post("/workflows", json={
+        wf_resp = await async_client.post("/workflows", json={
             "name": "Integration WF",
             "nodes": [{
                 "id": "trigger1",
@@ -42,7 +49,7 @@ class TestScheduleIntegration:
         wf_id = wf_resp.json()["id"]
 
         # Verify auto-schedule
-        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        sched_resp = await async_client.get(f"/schedules?workflow_id={wf_id}")
         assert sched_resp.status_code == 200
         schedules = sched_resp.json()["schedules"]
         assert len(schedules) == 1
@@ -52,47 +59,44 @@ class TestScheduleIntegration:
         assert s["enabled"] is True
 
         # Toggle schedule
-        toggle_resp = client.post(f"/schedules/{s['id']}/toggle")
+        toggle_resp = await async_client.post(f"/schedules/{s['id']}/toggle")
         assert toggle_resp.status_code == 200
         assert toggle_resp.json()["enabled"] is False
 
         # Toggle back
-        toggle_resp = client.post(f"/schedules/{s['id']}/toggle")
+        toggle_resp = await async_client.post(f"/schedules/{s['id']}/toggle")
         assert toggle_resp.status_code == 200
         assert toggle_resp.json()["enabled"] is True
 
         # Update schedule config
-        update_resp = client.put(f"/schedules/{s['id']}", json={
+        update_resp = await async_client.put(f"/schedules/{s['id']}", json={
             "trigger_config": {"expression": "0 12 * * *", "_node_id": "trigger1"},
         })
         assert update_resp.status_code == 200
         assert update_resp.json()["trigger_config"]["expression"] == "0 12 * * *"
 
         # Delete schedule
-        del_resp = client.delete(f"/schedules/{s['id']}")
+        del_resp = await async_client.delete(f"/schedules/{s['id']}")
         assert del_resp.status_code == 200
 
-        get_resp = client.get(f"/schedules/{s['id']}")
+        get_resp = await async_client.get(f"/schedules/{s['id']}")
         assert get_resp.status_code == 404
 
-    def test_auto_schedule_updates_on_workflow_change(self):
+    async def test_auto_schedule_updates_on_workflow_change(self, async_client):
         """API: updating a workflow syncs schedules (create + remove)."""
-        app = create_app()
-        client = TestClient(app)
-
         # Create a workflow with a manual trigger (no auto-schedule)
-        wf_resp = client.post("/workflows", json={
+        wf_resp = await async_client.post("/workflows", json={
             "name": "Auto Sync WF",
             "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
         })
         assert wf_resp.status_code == 200
         wf_id = wf_resp.json()["id"]
 
-        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        sched_resp = await async_client.get(f"/schedules?workflow_id={wf_id}")
         assert len(sched_resp.json()["schedules"]) == 0
 
         # Update: add a cron trigger node
-        wf_resp = client.put(f"/workflows/{wf_id}", json={
+        wf_resp = await async_client.put(f"/workflows/{wf_id}", json={
             "name": "Auto Sync WF",
             "nodes": [
                 {"id": "n1", "type": "decision_system.trigger_manual"},
@@ -103,27 +107,24 @@ class TestScheduleIntegration:
         })
         assert wf_resp.status_code == 200
 
-        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        sched_resp = await async_client.get(f"/schedules?workflow_id={wf_id}")
         assert len(sched_resp.json()["schedules"]) == 1
 
         # Update: remove the cron trigger
-        wf_resp = client.put(f"/workflows/{wf_id}", json={
+        wf_resp = await async_client.put(f"/workflows/{wf_id}", json={
             "name": "Auto Sync WF",
             "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
             "connections": [],
         })
         assert wf_resp.status_code == 200
 
-        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        sched_resp = await async_client.get(f"/schedules?workflow_id={wf_id}")
         assert len(sched_resp.json()["schedules"]) == 0
 
-    def test_webhook_end_to_end(self):
+    async def test_webhook_end_to_end(self, async_client):
         """API: webhook receiver triggers workflow execution."""
-        app = create_app()
-        client = TestClient(app)
-
         # Create workflow with webhook trigger node
-        wf_resp = client.post("/workflows", json={
+        wf_resp = await async_client.post("/workflows", json={
             "name": "Webhook E2E WF",
             "nodes": [{
                 "id": "wh1",
@@ -135,30 +136,25 @@ class TestScheduleIntegration:
         wf_id = wf_resp.json()["id"]
 
         # Verify schedule was auto-created
-        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        sched_resp = await async_client.get(f"/schedules?workflow_id={wf_id}")
         assert len(sched_resp.json()["schedules"]) == 1
 
         # Fire webhook
-        wh_resp = client.post("/webhook/e2e-test-hook", json={"event": "test"})
+        wh_resp = await async_client.post("/webhook/e2e-test-hook", json={"event": "test"})
         assert wh_resp.status_code == 200
         data = wh_resp.json()
         assert data["triggered"] == 1
         assert data["executions"][0]["status"] == "completed"
         assert data["executions"][0]["workflow_id"] == wf_id
 
-    def test_webhook_no_match_returns_404(self):
+    async def test_webhook_no_match_returns_404(self, async_client):
         """API: webhook with no matching schedule returns 404."""
-        app = create_app()
-        client = TestClient(app)
-        resp = client.post("/webhook/nonexistent-hook", json={})
+        resp = await async_client.post("/webhook/nonexistent-hook", json={})
         assert resp.status_code == 404
 
-    def test_multiple_trigger_types_in_one_workflow(self):
+    async def test_multiple_trigger_types_in_one_workflow(self, async_client):
         """API: workflow with multiple trigger nodes creates multiple schedules."""
-        app = create_app()
-        client = TestClient(app)
-
-        wf_resp = client.post("/workflows", json={
+        wf_resp = await async_client.post("/workflows", json={
             "name": "Multi Trigger WF",
             "nodes": [
                 {"id": "c1", "type": "decision_system.trigger_cron",
@@ -172,7 +168,7 @@ class TestScheduleIntegration:
         assert wf_resp.status_code == 200
         wf_id = wf_resp.json()["id"]
 
-        sched_resp = client.get(f"/schedules?workflow_id={wf_id}")
+        sched_resp = await async_client.get(f"/schedules?workflow_id={wf_id}")
         schedules = sched_resp.json()["schedules"]
         assert len(schedules) == 3
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentic-decision-system"
- version = "1.27.1-dev"
+ version = "1.27.2-dev"
 description = "Backend-first agentic decision brief prototype with LangGraph, Chroma, RAG, and a claim ledger."
 readme = "README.md"
 license = { file = "LICENSE" }

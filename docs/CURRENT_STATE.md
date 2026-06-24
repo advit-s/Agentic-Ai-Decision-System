@@ -1,8 +1,8 @@
 # Current State — Agentic Decision System
-> **Last updated:** 2026-06-24 (v1.27.1-dev — Frontend Security UI + Permission-Aware Components)
-> **Package version:** 1.27.1-dev
-> **Previous milestone:** v1.27.0 — Security, Auth, RBAC + Governance Foundation
-> **Current milestone:** v1.27.1 — Frontend Security UI + Permission-Aware Components
+> **Last updated:** 2026-06-24 (v1.27.2-dev — Test Harness + Release Baseline)
+> **Package version:** 1.27.2-dev
+> **Previous milestone:** v1.27.1 — Frontend Security UI + Permission-Aware Components
+> **Current milestone:** v1.27.2 — Test Harness + Docker Smoke + Release Baseline
 > **Python:** >=3.11
 
 ---
@@ -204,24 +204,61 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 ## Test commands
 
 ```bash
-# All backend tests
-python -m pytest -q
+# Local validation script (runs all baseline checks)
+./scripts/validate-local.sh          # stop on first failure
+./scripts/validate-local.sh --summarize  # run all, then summarize
 
-# Workflow engine API tests (67 tests)
+# Backend targeted tests (v1.27.2 baseline)
+python -m pytest tests/test_security.py -q
+python -m pytest tests/test_graph_api.py -q
+python -m pytest tests/test_data_sources/ -q
+python -m pytest tests/test_verification -q
+python -m pytest tests/test_providers -q
 python -m pytest tests/test_workflow_engine/test_api.py -q
 
-# Core tests
-python -m pytest tests/test_config.py tests/test_claim_ledger.py tests/test_cli.py -q
-
-# Workflow engine unit tests
-python -m pytest tests/test_workflow_engine/test_scheduler.py -q
-python -m pytest tests/test_workflow_engine/test_stores.py -q
-python -m pytest tests/test_workflow_engine/test_dag.py -q
+# All backend tests
+python -m pytest -q
 
 # Frontend tests
 cd web/workflow-builder
 npm test
 npm run build
+
+# Docker smoke (requires Docker)
+docker compose up --build
+./scripts/local-smoke-test.sh
+./scripts/e2e-local-demo-smoke.sh
+```
+
+## Environment notes
+
+- **Docker**: Not available in this sandbox environment. To run Docker smoke, use:
+  ```bash
+  docker compose up --build
+  ./scripts/local-smoke-test.sh
+  ./scripts/e2e-local-demo-smoke.sh
+  ```
+- **Python venv**: Always activate `.venv` before running Python tests:
+  `source .venv/bin/activate`
+- **pytest-asyncio**: Required for async API route tests. Installed as dev dependency.
+- **npm**: Frontend tests require `cd web/workflow-builder && npm install` first.
+
+## Known limitations
+
+1. **Frontend requires npm build.** The React workflow builder needs `npm install && npm run build` before Docker Compose will serve it.
+2. **No password authentication** — identity is header-based in governed mode
+3. **No encryption at rest** — data is stored as plain JSON/SQLite files
+4. **Demo mode is default** — permission enforcement requires governed mode
+5. **Docker not available in sandbox** — smoke tests cannot be verified here
+6. **pytest-asyncio event loop issues** may occur when running all workflow engine tests together; run individual test files
+7. **CodeNode is disabled by default.** Set `DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true` to enable (unsafe)
+8. **This is a local governance foundation**, not enterprise auth
+
+## Next milestone
+
+**v1.28 — Connector Read-Only Imports + External Knowledge Sync**
+
+After establishing a clean release baseline, the next step is expanding data ingestion with read-only connectors for GitHub, Jira, Slack, and email — still offline-first, still local-governed.
 ```
 
 ## Local app commands

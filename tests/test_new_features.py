@@ -520,47 +520,55 @@ class TestProviderSafety:
 class TestNewFeatureAPIEndpoints:
     """Tests for new v1.8 API endpoints."""
 
-    def test_coverage_api(self):
+    async def test_coverage_api(self):
         """Coverage endpoint should work even with no runs."""
-        from fastapi.testclient import TestClient
+        from httpx import ASGITransport
+        import httpx
         from decision_system.api.app import app
 
-        client = TestClient(app)
-        response = client.get("/reports/coverage")
+        transport = ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            response = await client.get("/reports/coverage")
         assert response.status_code in (200, 404)
         if response.status_code == 200:
             data = response.json()
             assert "total_claims" in data
 
-    def test_audit_timeline_api(self):
+    async def test_audit_timeline_api(self):
         """Audit timeline endpoint should return valid data."""
-        from fastapi.testclient import TestClient
+        from httpx import ASGITransport
+        import httpx
         from decision_system.api.app import app
 
-        client = TestClient(app)
-        response = client.get("/reports/audit-timeline")
+        transport = ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            response = await client.get("/reports/audit-timeline")
         assert response.status_code == 200
         data = response.json()
         assert "events" in data
 
-    def test_provider_safety_api(self):
+    async def test_provider_safety_api(self):
         """Provider safety endpoint should return current status."""
-        from fastapi.testclient import TestClient
+        from httpx import ASGITransport
+        import httpx
         from decision_system.api.app import app
 
-        client = TestClient(app)
-        response = client.get("/reports/provider-safety")
+        transport = ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            response = await client.get("/reports/provider-safety")
         assert response.status_code == 200
         data = response.json()
         assert "configured_provider" in data
 
-    def test_export_api(self):
+    async def test_export_api(self):
         """Report export endpoint should handle empty state gracefully."""
-        from fastapi.testclient import TestClient
+        from httpx import ASGITransport
+        import httpx
         from decision_system.api.app import app
 
-        client = TestClient(app)
-        response = client.post("/reports/export", json={"format": "json"})
+        transport = ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            response = await client.post("/reports/export", json={"format": "json"})
         # Should give 404 since no report data yet
         assert response.status_code in (404, 200)
 

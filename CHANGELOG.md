@@ -859,3 +859,27 @@
 - No session management — intended for local single-user/small-team use
 ### Removed
 - No features removed
+
+## [1.27.2] - 2026-06-24 — Test Harness + Docker Smoke + Release Baseline
+### Changed
+- Version bumped from 1.27.1-dev to 1.27.2-dev
+- **Test infrastructure migration**: All API tests migrated from Starlette's synchronous TestClient to httpx.AsyncClient with ASGITransport to fix Python 3.13 + anyio 4.14 hang issues
+- **conftest.py**: Strengthened monkey-patches for anyio.to_thread.run_sync; added async_client fixture with isolated temp dirs and env setup
+### Fixed
+- **Starlette/httpx compatibility**: async route tests now execute correctly with pytest-asyncio 0.26.0
+- **Test dependency hygiene**: pytest-asyncio correctly declared as dev dependency in pyproject.toml
+### Added
+- **scripts/validate-local.sh**: CI-ready validation script (git diff --check, backend tests, frontend tests, frontend build)
+- **Validation documentation**: Exact commands documented in CURRENT_STATE.md, README.md, and IMPLEMENTATION_REPORT.md
+- **Route regression tests**: GET /health, /identity/me, /identity/permissions, /identity/settings, /workspaces/{id}/audit/events, /workspaces/{id}/audit/summary, /providers, /providers/default, /workspaces/{id}/data-sources, /workspaces/{id}/graph, /workspaces/{id}/reports all tested
+### Security
+- Local validation baseline established for contributors
+### Known limitations
+- Docker not available in sandbox environment — Docker smoke cannot be verified here
+- E2E demo smoke cannot be run without Docker or running backend
+- No password authentication — identity is header-based in governed mode
+- No encryption at rest — data is stored as plain JSON/SQLite files
+- Demo mode is default — permission enforcement requires governed mode
+- This is a local governance foundation, not enterprise auth
+### Removed
+- No features removed

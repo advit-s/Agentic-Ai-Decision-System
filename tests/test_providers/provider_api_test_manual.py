@@ -7,7 +7,6 @@ import shutil
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
 # Disable scheduler before importing app
 from decision_system.api.app import set_scheduler_enabled
