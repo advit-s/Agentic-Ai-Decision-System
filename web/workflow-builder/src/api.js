@@ -555,10 +555,231 @@ function getReportMarkdown(reportId) {
   return exportReport(reportId, "md").then(r => r.content || r);
 }
 
+
+
+// --- Workspaces ---
+let _mockWorkspaces = [
+  { workspace_id: "ws-1", name: "Demo Workspace", description: "Sample workspace with demo data", active: true },
+];
+let _mockActiveWs = "ws-1";
+
+async function listWorkspaces() {
+  if (isMockMode()) {
+    return { status: "ok", workspaces: [..._mockWorkspaces], active_workspace_id: _mockActiveWs };
+  }
+  return apiFetch("/workspaces");
+}
+
+async function getWorkspaceStatus() {
+  if (isMockMode()) {
+    const ws = _mockWorkspaces.find(w => w.workspace_id === _mockActiveWs);
+    if (!ws) return { status: "no_active_workspace", workspace: null, artifact_counts: {} };
+    return {
+      status: "ok",
+      workspace: { ...ws },
+      data_source_count: 0,
+      document_count: 0,
+      dataset_count: 0,
+      indexed_document_count: 0,
+      chunk_count: 0,
+      claim_count: 0,
+      report_count: 0,
+      database_path: ".decision_system/workspaces/workspaces.sqlite",
+    };
+  }
+  return apiFetch("/workspaces/status");
+}
+
+async function createWorkspace(name, description = "", activate = true) {
+  if (isMockMode()) {
+    const wsId = name.toLowerCase().replace(/\s+/g, "-").replace(/_/g, "-");
+    const existing = _mockWorkspaces.find(w => w.workspace_id === wsId);
+    if (existing) {
+      if (activate) { _mockActiveWs = wsId; existing.active = true; }
+      return { status: "exists", workspace: existing };
+    }
+    const ws = { workspace_id: wsId, name, description, active: activate };
+    _mockWorkspaces.push(ws);
+    if (activate) _mockActiveWs = wsId;
+    _mockWorkspaces.forEach(w => w.active = w.workspace_id === wsId);
+    return { status: "created", workspace: ws };
+  }
+  return apiFetch("/workspaces", {
+    method: "POST",
+    body: JSON.stringify({ name, description, activate }),
+  });
+}
+
+async function activateWorkspace(name) {
+  if (isMockMode()) {
+    const ws = _mockWorkspaces.find(w => w.name === name);
+    if (!ws) throw new Error("Workspace not found");
+    _mockActiveWs = ws.workspace_id;
+    _mockWorkspaces.forEach(w => w.active = w.workspace_id === ws.workspace_id);
+    return { status: "ok", workspace: ws };
+  }
+  return apiFetch(`/workspaces/${encodeURIComponent(name)}/activate`, { method: "POST" });
+}
+
+async function getActiveWorkspaceId() {
+  if (isMockMode()) return _mockActiveWs;
+  try {
+    const data = await getWorkspaceStatus();
+    return data.workspace?.workspace_id || null;
+  } catch { return null; }
+}
+
+
+
+// --- Data Sources ---
+let _mockDataSources = {};
+
+function _getMockSources(wsId) {
+  if (!_mockDataSources[wsId]) _mockDataSources[wsId] = [];
+  return _mockDataSources[wsId];
+}
+
+async function listDataSources(workspaceId) {
+  if (isMockMode()) {
+    return { data_sources: [..._getMockSources(workspaceId)] };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/data-sources`);
+}
+
+async function uploadDataSource(workspaceId, filename, content, fileType) {
+  if (isMockMode()) {
+    const sourceId = `ds-mock-${Date.now()}`;
+    const ds = {
+      source_id: sourceId,
+      workspace_id: workspaceId,
+      name: filename,
+      file_type: fileType || "unknown",
+      source_type: "document",
+      status: "uploaded",
+      original_filename: filename,
+      size_bytes: content.length || 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    _getMockSources(workspaceId).push(ds);
+    return { status: "uploaded", data_source: ds };
+  }
+  // Multipart or direct content upload
+  const resp = await fetch(`${getBaseUrl().replace(/\/+$/, "")}/workspaces/${workspaceId}/data-sources/upload?filename=${encodeURIComponent(filename)}`, {
+    method: "POST",
+    body: content,
+  });
+  if (!resp.ok) throw new Error(`Upload failed: HTTP ${resp.status}`);
+  return resp.json();
+}
+
+async function getDataSource(workspaceId, sourceId) {
+  if (isMockMode()) {
+    const ds = _getMockSources(workspaceId).find(s => s.source_id === sourceId);
+    if (!ds) throw new Error("Data source not found");
+    return { data_source: { ...ds } };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/data-sources/${sourceId}`);
+}
+
+async function deleteDataSource(workspaceId, sourceId) {
+  if (isMockMode()) {
+    _mockDataSources[workspaceId] = _getMockSources(workspaceId).filter(s => s.source_id !== sourceId);
+    return { status: "deleted" };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/data-sources/${sourceId}`, { method: "DELETE" });
+}
+
+async function parseDataSource(workspaceId, sourceId) {
+  if (isMockMode()) {
+    const sources = _getMockSources(workspaceId);
+    const ds = sources.find(s => s.source_id === sourceId);
+    if (!ds) throw new Error("Data source not found");
+    ds.status = "parsed";
+    ds.chunks = [{ chunk_id: "mock-chunk-1", text: "Mock parsed content for " + ds.name, chunk_index: 0 }];
+    return { status: "parsed", source_id: sourceId, chunk_count: 1 };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/data-sources/${sourceId}/parse`, { method: "POST" });
+}
+
+async function indexDataSource(workspaceId, sourceId) {
+  if (isMockMode()) {
+    const sources = _getMockSources(workspaceId);
+    const ds = sources.find(s => s.source_id === sourceId);
+    if (!ds) throw new Error("Data source not found");
+    ds.status = "indexed";
+    return { status: "indexed", source_id: sourceId, chunk_count: 1, retrieval_mode: "keyword" };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/data-sources/${sourceId}/index`, { method: "POST" });
+}
+
+async function getDataSourceStatus(workspaceId, sourceId) {
+  if (isMockMode()) {
+    const ds = _getMockSources(workspaceId).find(s => s.source_id === sourceId);
+    if (!ds) throw new Error("Data source not found");
+    return { status: ds.status, source_id: sourceId, workspace_id: workspaceId };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/data-sources/${sourceId}/status`);
+}
+
+async function getDataSourceProfile(workspaceId, sourceId) {
+  if (isMockMode()) {
+    return { profile: null, source_id: sourceId };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/data-sources/${sourceId}/profile`);
+}
+
+async function getDataSourceChunks(workspaceId, sourceId) {
+  if (isMockMode()) {
+    const ds = _getMockSources(workspaceId).find(s => s.source_id === sourceId);
+    return { chunks: ds?.chunks || [], source_id: sourceId };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/data-sources/${sourceId}/chunks`);
+}
+
+async function getDataSourcePreview(workspaceId, sourceId) {
+  if (isMockMode()) {
+    const ds = _getMockSources(workspaceId).find(s => s.source_id === sourceId);
+    return { chunks: ds?.chunks || [], source_id: sourceId };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/data-sources/${sourceId}/preview`);
+}
+
+async function searchEvidence(workspaceId, query, limit = 10, sourceFilter, fileTypeFilter) {
+  if (isMockMode()) {
+    return {
+      results: [],
+      query,
+      limit,
+      total_results: 0,
+      retrieval_mode: "keyword",
+    };
+  }
+  const body = { query, limit };
+  if (sourceFilter) body.source_id = sourceFilter;
+  if (fileTypeFilter) body.file_type = fileTypeFilter;
+  return apiFetch(`/workspaces/${workspaceId}/evidence/search`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 /** Exposed for test use only — overrides mock mode detection */
 function _setMockOverride(v) { _testMockOverride = v; }
 
 export {
+  // Data Sources
+  listDataSources,
+  uploadDataSource,
+  getDataSource,
+  deleteDataSource,
+  parseDataSource,
+  indexDataSource,
+  getDataSourceStatus,
+  getDataSourceProfile,
+  getDataSourceChunks,
+  getDataSourcePreview,
+  searchEvidence,
   // Verification
   verifyClaim,
   verifyExecutionClaims,
@@ -604,4 +825,10 @@ export {
   listWorkflowVersions,
   getWorkflowVersion,
   streamReplayEvents,
+  // Workspaces
+  listWorkspaces,
+  getWorkspaceStatus,
+  createWorkspace,
+  activateWorkspace,
+  getActiveWorkspaceId,
 };

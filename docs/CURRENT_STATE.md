@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
- > **Last updated:** 2026-06-23 (v1.23.1 stabilization patch)
- > **Package version:** 1.23.1-dev
-> **Previous milestone:** v1.22.1 — Provider API Route Fix + Release Stabilization
-> **Current milestone:** v1.23.1 — Finish Document Ingestion Wiring + Test Reliability
+ > **Last updated:** 2026-06-23 (v1.24.0-dev — Single App Integration)
+ > **Package version:** 1.24.0-dev
+> **Previous milestone:** v1.23.1 — Finish Document Ingestion Wiring + Test Reliability
+> **Current milestone:** v1.24.0 — Single App Integration + Data Sources in React Workflow Builder
 > **Python:** >=3.11
 
 ---
@@ -113,14 +113,20 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Frontend live-mode | 🔴 **Mock** | Frontend uses mock data by default; can switch to live backend |
- | Frontend live-mode | ✅ **Live** | Auto-detects backend on localhost:3000 (Docker); mock still available |
-| Execution history UI | 🔴 **Mock** | ExecutionHistory component uses mock data without live backend |
-| Execution detail UI | 🔴 **Mock** | ExecutionPanel expects real detail endpoint (exists now) |
-| Claim ledger panel | 🔴 **Mock** | Panel exists; requires claim API endpoints |
-| Report panel | 🔴 **Mock** | Not yet connected to report generation API |
-| Execution compare | 🔴 **Mock** | Component exists; mock data only |
-| Workflow diff | 🔴 **Mock** | Component exists; mock data only |
+| Workspace CRUD | ✅ **Live** | Mock fallback when backend unavailable |
+| Data Sources upload | ✅ **Live** | Upload, parse, index via API; mock fallback |
+| Evidence Search | ✅ **Live** | Backend evidence search; mock fallback |
+| Provider Manager | ✅ **Live** | CRUD, health checks; mock fallback |
+| Execution history | ✅ **Live** | Backend connected; mock fallback |
+| Claim verification | ✅ **Live** | Backend verification; mock fallback |
+| Trust Dashboard | ✅ **Live** | Backend connected; mock fallback |
+| Report generation | ✅ **Live** | Backend report generation/export; mock fallback |
+| Schedule management | ✅ **Live** | Backend CRUD; mock fallback |
+| Review gates | ✅ **Live** | Backend review resolution; mock fallback |
+| Workflow versions/diff | 🔴 **Mock** | Mock data when backend unavailable |
+
+> **Note:** All features work in mock mode (no backend needed) or live mode
+> (backed by FastAPI). The React app auto-detects backend availability.
 
 ## What is live-backend connected
 
@@ -171,7 +177,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 
 ## Known limitations
 
-1. **Frontend requires npm build.** The React workflow builder needs `npm install && npm run build` before Docker Compose will serve it. Until built, the simpler static frontend at `web/` is served instead.
+1. **Frontend requires npm build.** The React workflow builder needs `npm install && npm run build` before Docker Compose will serve it.
 2. **Running all workflow engine tests together** can cause pytest-asyncio event loop issues. Run individual test files.
 3. **CodeNode is disabled by default.** Set `DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true` to enable (unsafe).
 4. **PDF/DOCX/XLSX parsing** is not yet supported.

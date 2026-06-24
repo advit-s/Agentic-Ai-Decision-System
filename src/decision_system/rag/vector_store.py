@@ -73,6 +73,7 @@ def index_chunks(
                     "source_path": chunk.source_path,
                     "source_filename": chunk.source_filename,
                     "chunk_id": chunk.chunk_id,
+                    "workspace_id": chunk.workspace_id or "",
                 }
                 for chunk in chunks
             ],

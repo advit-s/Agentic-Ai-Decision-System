@@ -17,6 +17,7 @@ def retrieve_evidence(
     store_dir: Path | str,
     collection_name: str,
     top_k: int = 6,
+    workspace_id: str | None = None,
 ) -> list[EvidenceChunk]:
     """Retrieve citation-ready evidence chunks for a question.
 
@@ -44,10 +45,12 @@ def retrieve_evidence(
         if chunk_count == 0:
             return []
 
+        where_filter = {"workspace_id": workspace_id} if workspace_id else None
         result = collection.query(
             query_texts=[query],
             n_results=min(top_k, chunk_count),
             include=["documents", "metadatas", "distances"],
+            where=where_filter,
         )
 
         ids = result.get("ids", [[]])[0]
@@ -65,6 +68,7 @@ def retrieve_evidence(
                     source_path=str(metadata["source_path"]),
                     source_filename=str(metadata["source_filename"]),
                     chunk_id=str(metadata["chunk_id"]),
+                    workspace_id=str(metadata.get("workspace_id", "")) or None,
                     text=documents[index],
                     score=float(distances[index]) if index < len(distances) else None,
                 )

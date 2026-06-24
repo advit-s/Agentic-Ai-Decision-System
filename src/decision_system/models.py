@@ -30,6 +30,7 @@ class EvidenceChunk(BaseModel):
     chunk_id: str
     text: str
     score: float | None = None
+    workspace_id: str | None = None
 
 
 class AgentMemo(BaseModel):

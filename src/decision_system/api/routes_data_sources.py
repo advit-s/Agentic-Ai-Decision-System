@@ -394,14 +394,7 @@ def index_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
                 source_filename=source.original_filename or source.name,
                 chunk_id=c.chunk_id,
                 text=c.text,
-                metadata={
-                    "workspace_id": workspace_id,
-                    "source_id": source_id,
-                    "file_type": source.file_type,
-                    "chunk_index": c.chunk_index,
-                    "content_hash": source.content_hash,
-                    "created_at": source.created_at.isoformat() if source.created_at else "",
-                },
+                workspace_id=workspace_id,
             )
             for c in chunks
         ]

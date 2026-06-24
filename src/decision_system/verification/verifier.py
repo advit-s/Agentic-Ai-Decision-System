@@ -292,6 +292,7 @@ class ClaimVerifier:
                 store_dir=settings.store_dir,
                 collection_name=settings.collection_name,
                 top_k=5,
+                workspace_id=workspace_id,
             )
             for c in chunks:
                 results.append({

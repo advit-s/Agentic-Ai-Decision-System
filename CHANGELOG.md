@@ -1,3 +1,36 @@
+## [1.24.0] - 2026-06-23 — Single App Integration + Data Sources in React Workflow Builder
+### Added
+- **App shell navigation**: Sidebar with 10 sections (Demo Flow, Workflow Builder, Data Sources, Evidence Search, Execution History, Claim Ledger, Trust Dashboard, Reports, Providers, Settings)
+- **Workspace selector**: Create, select, and manage workspaces with stats display
+- **Data Sources page**: Upload (drag-drop + browse), parse, index, preview chunks, view CSV/XLSX profiles, delete sources
+- **Evidence Search page**: Query with file type filter, result limit, evidence metadata display
+- **Claim Ledger page**: Claim status summary, verify all claims, scan contradictions
+- **Reports section**: View and export trust reports
+- **Provider Manager section**: Reachable from main navigation
+- **Execution History section**: View past workflow runs from main nav
+- **Trust Dashboard section**: Full verification dashboard from main nav
+- **Demo Flow**: Guided 6-step local demo (workspace → data → provider → workflow → run → report)
+- **Workspace isolation fix**: Added workspace_id to EvidenceChunk model, Chroma metadata, and retriever filtering so evidence queries respect workspace boundaries
+### Changed
+- Version bumped from 1.23.1-dev to 1.24.0-dev
+- React Workflow Builder is now the clear main product UI with app-wide navigation
+- Legacy static `web/` UI labeled as deprecated prototype
+- Updated docs reflecting single-app integration
+- Frontend test suite expanded with new imports and navigation coverage
+### Fixed
+- Chroma vector search now filters by workspace_id when provided
+- Verification tests no longer fail due to cross-workspace Chroma data leakage
+- Test suite isolation: Chroma query respects workspace boundaries
+### Removed
+- No features removed
+### Known limitations
+- Legacy static `web/` UI is preserved as historical reference only
+- Some backend API endpoints require workspace context (no anonymous queries)
+- Demo flow uses mock data emulation when backend is unavailable
+- Chroma re-indexing required for existing data to have workspace_id metadata
+
+---
+
 ## [1.22.1] - 2026-06-23 — Provider API Route Fix + Release Stabilization
 ### Fixed
 - **Provider API route conflict**: Removed duplicate old provider CRUD routes from workflow_engine/api.py

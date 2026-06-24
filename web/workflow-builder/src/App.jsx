@@ -18,6 +18,13 @@ import ResizablePanel from "./components/ResizablePanel";
 import ShortcutsHelp from "./components/ShortcutsHelp";
 import ValidationDialog from "./components/ValidationDialog";
 import OnboardingPanel from "./components/OnboardingPanel";
+import AppNav from "./components/AppNav";
+import DataSourcesPage from "./components/DataSourcesPage";
+import EvidenceSearchPage from "./components/EvidenceSearchPage";
+import ClaimLedgerPage from "./components/ClaimLedgerPage";
+import ReportsPage from "./components/ReportsPage";
+import SettingsPage from "./components/SettingsPage";
+import DemoFlow from "./components/DemoFlow";
 import { ToastProvider, useToast } from "./components/Toast";
 import useKeyboardShortcuts from "./hooks/useKeyboardShortcuts";
 import {
@@ -31,6 +38,9 @@ import {
   listExecutionHistory,
   listWorkflowVersions,
   getWorkflowVersion,
+  getBackendMode,
+  getWorkspaceStatus,
+  getActiveWorkspaceId,
 } from "./api";
 import { getNodeCategoryConfig } from "./nodeTypes";
 import { validateWorkflow } from "./workflowValidation";
@@ -949,13 +959,167 @@ function useWorkflowState() {
 }
 
 function App() {
+  const [activeSection, setActiveSection] = useState("workflow");
+  const [workspaceId, setWorkspaceId] = useState(null);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [backendMode, setBackendMode] = useState("mock");
+
+  // Load workspace on mount
+  useEffect(() => {
+    async function init() {
+      try {
+        const wsId = await getActiveWorkspaceId();
+        if (wsId) {
+          setWorkspaceId(wsId);
+        }
+        const status = await getWorkspaceStatus();
+        if (status.workspace) {
+          setWorkspaceId(status.workspace.workspace_id);
+          setWorkspaceName(status.workspace.name || "");
+        }
+      } catch {
+        // Workspace API not available — use defaults
+        if (!workspaceId) {
+          setWorkspaceId("ws-1");
+          setWorkspaceName("Default Workspace");
+        }
+      }
+      try {
+        const { getBackendMode: gbm } = await import("./api");
+        setBackendMode(gbm());
+      } catch {}
+    }
+    init();
+  }, []);
+
+  const handleNavigate = (section) => {
+    setActiveSection(section);
+  };
+
+  const handleWorkspaceChange = (newWsId) => {
+    setWorkspaceId(newWsId);
+    // Reload workspace name from state
+    getWorkspaceStatus().then((status) => {
+      if (status.workspace) {
+        setWorkspaceName(status.workspace.name || "");
+      }
+    }).catch(() => {});
+  };
+
+  const renderSection = () => {
+    switch (activeSection) {
+      case "data-sources":
+        return <DataSourcesPage workspaceId={workspaceId} onNavigate={handleNavigate} />;
+      case "evidence":
+        return <EvidenceSearchPage workspaceId={workspaceId} />;
+      case "executions":
+        return <ExecutionHistoryWrapper workspaceId={workspaceId} onNavigate={handleNavigate} />;
+      case "claims":
+        return <ClaimLedgerPage workspaceId={workspaceId} />;
+      case "trust":
+        return <TrustDashboardWrapper workspaceId={workspaceId} onNavigate={handleNavigate} />;
+      case "reports":
+        return <ReportsPage workspaceId={workspaceId} />;
+      case "providers":
+        return <ProviderManagerWrapper onNavigate={handleNavigate} />;
+      case "demo":
+        return <DemoFlow workspaceId={workspaceId} workspaceName={workspaceName} onWorkspaceChange={handleWorkspaceChange} onNavigate={handleNavigate} />;
+      case "settings":
+        return (
+          <SettingsPage
+            workspaceId={workspaceId}
+            onWorkspaceChange={handleWorkspaceChange}
+          />
+        );
+      default:
+        return <CanvasInner onNavigate={handleNavigate} workspaceId={workspaceId} />;
+    }
+  };
+
   return (
-    <ReactFlowProvider>
-      <ToastProvider>
-        <CanvasInner />
-      </ToastProvider>
-    </ReactFlowProvider>
+    <div className="app-root">
+      <AppNav
+        activeSection={activeSection}
+        onNavigate={handleNavigate}
+        workspaceName={workspaceName}
+        backendMode={backendMode}
+      />
+      <div className="app-content">
+        <ReactFlowProvider>
+          <ToastProvider>
+            {renderSection()}
+            <ShortcutsHelpGlobal />
+          </ToastProvider>
+        </ReactFlowProvider>
+      </div>
+    </div>
   );
+}
+
+// Wrappers for cross-section components with consistent close behavior
+function ExecutionHistoryWrapper({ workspaceId, onNavigate }) {
+  return (
+    <div className="section-page">
+      <div className="section-header">
+        <h2>📊 Execution History</h2>
+        <p className="section-subtitle">View past workflow executions and their results</p>
+        <button className="toolbar-btn" onClick={() => onNavigate("workflow")} style={{ marginLeft: "auto" }}>
+          ← Back to Workflow
+        </button>
+      </div>
+      <ExecutionHistory
+        onClose={() => {}}
+        onSelectRun={() => {}}
+        onCompare={() => {}}
+        onCompareVersions={() => {}}
+      />
+    </div>
+  );
+}
+
+function TrustDashboardWrapper({ workspaceId, onNavigate }) {
+  return (
+    <div className="section-page">
+      <div className="section-header">
+        <h2>🛡️ Trust Dashboard</h2>
+        <p className="section-subtitle">Verification summary, evidence coverage, and recommended actions</p>
+        <button className="toolbar-btn" onClick={() => onNavigate("workflow")} style={{ marginLeft: "auto" }}>
+          ← Back to Workflow
+        </button>
+      </div>
+      <TrustDashboard workspaceId={workspaceId} onClose={() => {}} />
+    </div>
+  );
+}
+
+function ProviderManagerWrapper({ onNavigate }) {
+  return (
+    <div className="section-page">
+      <div className="section-header">
+        <h2>🤖 Providers</h2>
+        <p className="section-subtitle">Manage LLM provider connections</p>
+        <button className="toolbar-btn" onClick={() => onNavigate("workflow")} style={{ marginLeft: "auto" }}>
+          ← Back to Workflow
+        </button>
+      </div>
+      <ProviderManager onClose={() => {}} />
+    </div>
+  );
+}
+
+// ShortcutsHelp rendered at app level listens for ? key anywhere
+function ShortcutsHelpGlobal() {
+  const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "?" && !e.target.closest("input, textarea")) {
+        setIsOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+  return <ShortcutsHelp isOpen={isOpen} onClose={() => setIsOpen(false)} />;
 }
 
 export default App;
