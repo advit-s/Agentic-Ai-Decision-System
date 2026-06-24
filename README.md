@@ -717,6 +717,21 @@ Never commit `.env` or real API keys. The fake provider remains the default for 
 
 ## CLI Commands
 
+### v1.32 — Local beta packaging
+
+```bash
+./scripts/setup-local.sh              # One-command local setup
+./scripts/start-local.sh              # Start backend API
+./scripts/start-local.sh --all        # Start backend + frontend
+./scripts/stop-local.sh               # Stop all local processes
+./scripts/doctor-local.sh             # Diagnostics
+./scripts/validate-local.sh           # CI-ready validation
+./scripts/reset-local-data.sh         # Safe data reset (with prompt)
+./scripts/reset-local-data.sh --yes   # Reset without prompt
+./scripts/backup-local-data.sh        # Backup data directory
+curl http://localhost:8000/system/status  # System diagnostics
+```
+
 - `decision-system index`: index local documents from `company_docs/`
 - `decision-system inspect-index`: show collection name, chunk count, and source filenames
 - `decision-system ask "..."`: run the decision workflow and print Markdown
@@ -920,7 +935,19 @@ Completed:
 - v1.15: Claim Ledger DX, Human Review Gates, Execution History
 - v1.16: Backend Connection, 4 New Specialists, Execution UX, Visual Polish
 
- **v1.31 connector reliability (large imports + rate limits):**
+**v1.32 beta packaging and release polish:**
+- One-command local setup (`scripts/setup-local.sh`)
+- Start/stop scripts (`scripts/start-local.sh`, `scripts/stop-local.sh`)
+- Doctor diagnostics script (`scripts/doctor-local.sh`)
+- Safe data reset and backup scripts
+- Environment template (`.env.example`) with all documented variables
+- System status endpoint (`GET /system/status`)
+- Frontend beta label, version display, and backend status
+- Docker Compose frontend healthcheck
+- 3 pre-existing test failures fixed
+- See [CHANGELOG](CHANGELOG.md) for full details
+
+**v1.31 connector reliability (large imports + rate limits):**
  - Enhanced import with batch processing (`POST /workspaces/{wid}/connectors/{cid}/import-v3`)
  - Paginated item listing (`GET /workspaces/{wid}/connectors/{cid}/items-paginated?page=&page_size=`)
  - Cancel/resume/pause job endpoints (`POST /workspaces/{wid}/connector-jobs/{job_id}/cancel|resume|pause`)

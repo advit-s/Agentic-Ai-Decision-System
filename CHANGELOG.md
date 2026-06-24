@@ -1000,3 +1000,32 @@
 
 ### Changed
 - Version bumped from 1.28.0-dev to 1.29.0-dev
+
+## [1.32.0-dev] - 2026-06-24 — Beta Packaging, Installer Scripts + Local Release Polish
+### Added
+- **Packaging audit**: `docs/BETA_PACKAGING_AUDIT.md` — Baseline audit of current install/startup/validation paths before packaging improvements
+- **Environment template**: Hardened `.env.example` with all documented variables including `DECISION_SYSTEM_DATA_DIR`, `DECISION_SYSTEM_SECURITY_MODE`, connector tokens, and optional provider keys
+- **Local setup script**: `scripts/setup-local.sh` — One-command local setup checking Python/Node, creating `.env`, installing backend+frontend deps, creating data dir
+- **Local start/stop scripts**: `scripts/start-local.sh` (backend, frontend, or both) and `scripts/stop-local.sh` (stops using saved PIDs or pkill fallback)
+- **Doctor diagnostics script**: `scripts/doctor-local.sh` — Checks Python, Node, Docker, backend/frontend health, data dir, .env, OCR availability, doc parsing deps, frontend build
+- **Data reset/backup scripts**: `scripts/reset-local-data.sh` (safe reset with confirmation prompt) and `scripts/backup-local-data.sh` (timestamped tar.gz backups)
+- **System status endpoint**: `GET /system/status` — Returns version, data_dir, security_mode, provider/connector/workspace counts, OCR/doc parsing availability, warnings. Never leaks secrets.
+- **Frontend beta polish**: AppNav sidebar shows version, LOCAL BETA label, backend connection status, and security mode
+- **Frontend healthcheck**: Docker Compose frontend service now has `/healthz` endpoint via nginx with healthcheck configuration
+- **Nginx proxy update**: Added `/system` route proxy to backend in nginx.conf
+
+### Changed
+- Version bumped from 1.31.0-dev to 1.32.0-dev
+- `pyproject.toml` version updated
+- `src/decision_system/__init__.py` version updated
+- `scripts/validate-local.sh` — Added `test_connector_cli.py` and `test_connector_reliability.py` to validation suite, added optional doctor check
+
+### Fixed
+- **3 pre-existing CLI test failures**: Updated `test_connector_cli.py` to use current registry connectors (github is now real, not stub). Tests now use "notion" for stub tests.
+
+### Documentation
+- `docs/BETA_PACKAGING_AUDIT.md` — Baseline packaging audit
+- `docs/CURRENT_STATE.md` — Updated version to 1.32.0-dev and milestone description
+- `docs/LOCAL_FIRST_SETUP.md` — Updated with new scripts, setup/start/stop/doctor/reset/backup commands
+- `docs/DEMO_PATH.md` — Updated version to 1.32.0-dev
+- `README.md` — Updated version and added new scripts to command list

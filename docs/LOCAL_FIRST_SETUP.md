@@ -1,14 +1,80 @@
 # Local-First Setup — Provider Runtime & AI-Assisted Evidence Synthesis
 
+> **Version:** 1.32.0-dev
+> **Last updated:** 2026-06-24
+
 ## Overview
 
-v1.25 adds OCR capability and a hardened end-to-end demo flow. The project
-runs fully offline with:
+v1.32 adds beta packaging — one-command setup, start/stop scripts, diagnostics,
+data reset/backup, and Docker Compose hardening.
+
+The project runs fully offline with:
 
 - **Fake provider** — built-in, deterministic, no network needed (default)
 - **Local OCR** — Tesseract-based text extraction for scanned PDFs and images
 - **Local vector store** — Chroma (in-memory, file-backed)
 - **No cloud API keys required**
+
+> **This is a local MVP beta candidate.** It is not production-ready and does not
+> yet include enterprise authentication, encryption at rest, or hosted deployment support.
+
+Fake provider is pre-configured for development. No setup required.
+
+---
+
+## Quick start (v1.32)
+
+### Option A: Docker (recommended)
+
+```bash
+docker compose up --build
+# Open http://localhost:3000
+```
+
+### Option B: Local setup script
+
+```bash
+# One-command setup:
+./scripts/setup-local.sh
+
+# Start everything:
+./scripts/start-local.sh --all
+# Open http://localhost:5173 (frontend) or http://localhost:8000 (API)
+```
+
+### Option C: Manual
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+python -m pip install -e ".[dev,doc-parsing,ocr]"
+cd web/workflow-builder && npm install && cd ../..
+decision-system serve-api --host 0.0.0.0 --port 8000
+# Open http://localhost:8000 (API) or http://localhost:5173 (if frontend running)
+```
+
+---
+
+## All commands
+
+| Command | Description |
+|---------|-------------|
+| `./scripts/setup-local.sh` | One-command setup (checks deps, installs, creates .env) |
+| `./scripts/start-local.sh --all` | Start backend API + frontend dev server |
+| `./scripts/start-local.sh` | Start backend only |
+| `./scripts/start-local.sh --frontend` | Start frontend only |
+| `./scripts/stop-local.sh` | Stop all local processes |
+| `./scripts/doctor-local.sh` | Diagnostics (Python, Node, Docker, health, OCR, deps) |
+| `./scripts/validate-local.sh` | CI-ready validation (tests + build + git hygiene) |
+| `bash scripts/local-demo-seed.sh` | Seed demo workspace, data, providers, workflow |
+| `bash scripts/e2e-local-demo-smoke.sh` | End-to-end demo verification |
+| `./scripts/local-smoke-test.sh` | Quick backend/frontend/proxy checks |
+| `./scripts/reset-local-data.sh` | Safely delete all local data (with confirmation) |
+| `./scripts/backup-local-data.sh` | Backup .decision_system to timestamped archive |
+| `decision-system serve-api` | Start the backend API server directly |
+| `python -m pytest` | Run all backend tests |
+| `cd web/workflow-builder && npm test` | Run frontend tests |
+
+---
 
 ## Quick start (no API key needed)
 
@@ -29,7 +95,10 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 ```bash
 # After starting the backend:
 curl http://localhost:8000/health
-# → {"status":"ok","version":"1.26.1-dev","provider":"fake"}
+# → {"status":"ok","version":"1.32.0-dev","provider":"fake"}
+
+# Check system status:
+curl http://localhost:8000/system/status
 
 # Run the demo seed:
 bash scripts/local-demo-seed.sh
@@ -41,6 +110,29 @@ bash scripts/e2e-local-demo-smoke.sh
 ## Demo Walkthrough
 
 See [DEMO_PATH.md](DEMO_PATH.md) for a complete step-by-step walkthrough.
+
+## Environment Setup
+
+Copy the environment template and edit as needed:
+
+```bash
+cp .env.example .env
+```
+
+Key variables:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DECISION_PROVIDER` | No | `fake` | Provider type: `fake`, `openai`, `anthropic`, `ollama` |
+| `DECISION_SYSTEM_DATA_DIR` | No | `.decision_system` | Persistent data directory |
+| `DECISION_SYSTEM_SECURITY_MODE` | No | `demo` | Security mode: `demo` or `governed` |
+| `DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE` | No | `false` | Enable unsafe code execution node |
+| `DECISION_SYSTEM_ENABLE_LOCAL_DEV_CONNECTOR_PATHS` | No | `false` | Allow arbitrary local connector paths |
+| `OPENAI_API_KEY` | For OpenAI | — | OpenAI API key |
+| `ANTHROPIC_API_KEY` | For Anthropic | — | Anthropic API key |
+| `GITHUB_TOKEN` | For GitHub | — | GitHub personal access token |
+
+Never commit `.env` files. The gitignore already covers them.
 
 ## OCR Setup
 
@@ -98,6 +190,11 @@ Default locations searched:
 - `/usr/local/share/tessdata`
 - `~/.local/share/tessdata`
 
+Check OCR availability:
+```bash
+./scripts/doctor-local.sh
+```
+
 ## Providers
 
 ### Fake provider (default)
@@ -149,12 +246,27 @@ Data is stored in `.decision_system/`:
 │       └── workflows/
 ├── providers/           # Provider configurations
 ├── data_sources/        # Uploaded files
-└── reports/             # Generated reports
+├── reports/             # Generated reports
+├── connectors/          # Imported connector data
+├── logs/                # Application logs
+└── backups/             # Data backups
 ```
 
-Data survives restarts (including Docker restarts).
+Data survives restarts (including Docker restarts) and is gitignored.
 
-To reset:
+### Reset
+
+Fresh reset (with confirmation prompt):
+```bash
+./scripts/reset-local-data.sh
+```
+
+Quick reset (no confirmation):
+```bash
+./scripts/reset-local-data.sh --yes
+```
+
+Manual reset:
 ```bash
 # Docker:
 docker compose down -v
@@ -163,13 +275,60 @@ docker compose down -v
 rm -rf .decision_system/
 ```
 
+### Backup
+
+```bash
+./scripts/backup-local-data.sh
+```
+
+Creates a timestamped archive in `.decision_system/backups/`.
+Custom output directory:
+```bash
+./scripts/backup-local-data.sh /path/to/backup/dir
+```
+
+## Validate the install
+
+```bash
+./scripts/validate-local.sh
+```
+
+Runs git hygiene checks, backend tests, frontend tests, and frontend build.
+Use `--summarize` to run all checks even if some fail.
+
+## Docker Compose details
+
+The `docker-compose.yml` starts two services:
+
+- **backend**: FastAPI on port 8000, with persistent data volume and healthcheck
+- **frontend**: nginx serving the built React SPA on port 80 (mapped to 3000), with proxy to backend
+
+All API routes, WebSocket streams, and static assets are proxied through nginx.
+The frontend build is included in the Docker image — no manual build step needed.
+
+```bash
+docker compose up --build
+# Open http://localhost:3000
+docker compose down     # Stop (data persists)
+docker compose down -v  # Stop and delete data volume
+```
+
+## System status endpoint
+
+```bash
+curl http://localhost:8000/system/status
+```
+
+Returns version, data directory, security mode, provider/connector/workspace
+counts, OCR availability, and warnings. No secrets leaked.
+
 ## Error Handling
 
-Common issues and their solutions:
+Run `./scripts/doctor-local.sh` for automated diagnostics.
 
 | Issue | Likely Cause | Fix |
 |-------|-------------|-----|
-| Backend unreachable | Backend not started | `decision-system serve-api` |
+| Backend unreachable | Backend not started | `decision-system serve-api` or `./scripts/start-local.sh` |
 | "OCR not supported" | Tesseract not installed | Install `tesseract-ocr` |
 | "No extractable text" | Scanned PDF without OCR | Install Tesseract and retry |
 | Upload fails | File too large | Max upload is 50MB |
@@ -177,27 +336,16 @@ Common issues and their solutions:
 | Workflow fails | Missing provider | Configure fake provider first |
 | Chroma search empty | Documents not indexed | Parse and index files first |
 
-## Known Limitations (v1.25)
+## Known Limitations (v1.32)
 
-1. **OCR quality**: Tesseract accuracy depends on image quality.
-2. **English only**: Only English language data is bundled.
-3. **Single-user**: No multi-user support.
-4. **Sequential workflows**: No parallel node execution.
-5. **Chroma in-memory**: Vector store loaded at startup from disk.
-6. **Local MVP**: Not production-ready.
-
-## Reset instructions
-
-```bash
-# Remove all local data
-rm -rf .decision_system/
-
-# For Docker:
-docker compose down -v
-
-# Re-seed demo data
-bash scripts/local-demo-seed.sh
-```
+1. **OCR quality**: Tesseract accuracy depends on image quality. Low-resolution or highly stylized documents may produce errors.
+2. **English only**: Only English (`eng`) language data is bundled.
+3. **Single-user**: No multi-user support — RBAC is demo-only.
+4. **Sequential workflows**: No parallel node execution in workflow engine.
+5. **Chroma in-memory**: Vector store is in-memory (file-based but loaded at startup).
+6. **Local MVP beta**: Not production-ready. No enterprise auth, no encryption at rest.
+7. **Docker**: Docker smoke may be environment-dependent.
+8. **No parallel branches**: Workflow execution is sequential only.
 
 ---
 

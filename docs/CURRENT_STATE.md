@@ -1,7 +1,7 @@
- > **Last updated:** 2026-06-24 (v1.31.0-dev — Connector Reliability, Rate Limits + Large Import Handling)
- > **Package version:** 1.31.0-dev
- > **Previous milestone:** v1.30.0 — Connector Expansion + OAuth/Token Setup UX
- > **Current milestone:** v1.31.0 — Connector Reliability, Rate Limits + Large Import Handling
+> **Last updated:** 2026-06-24 (v1.32.0-dev — Beta Packaging, Installer Scripts + Local Release Polish)
+> **Package version:** 1.32.0-dev
+> **Previous milestone:** v1.31.0 — Connector Reliability, Rate Limits + Large Import Handling
+> **Current milestone:** v1.32.0 — Beta Packaging, Installer Scripts + Local Release Polish
 > **Python:** >=3.11
 
 ---

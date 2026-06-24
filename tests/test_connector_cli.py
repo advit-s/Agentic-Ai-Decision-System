@@ -31,9 +31,9 @@ class TestConnectorsList:
         result = runner.invoke(connectors_app, ["list"])
         assert "local-files" in result.output
 
-    def test_list_shows_stubs(self):
+    def test_list_shows_available_connectors(self):
         result = runner.invoke(connectors_app, ["list"])
-        for name in ("github", "jira", "slack", "email"):
+        for name in ("github", "url-import", "notion", "google-drive"):
             assert name in result.output
 
     def test_list_has_table_format(self):
@@ -92,9 +92,9 @@ class TestConnectorsDryRun:
             )
             assert "Would import: 1" in result.output
 
-    def test_dry_run_stub_exits_nonzero(self):
+    def test_dry_run_notion_stub_exits_nonzero(self):
         result = runner.invoke(
-            connectors_app, ["dry-run", "github", "--path", "/tmp"]
+            connectors_app, ["dry-run", "notion", "--path", "/tmp"]
         )
         assert result.exit_code != 0
         assert "stub" in result.output.lower()
@@ -143,9 +143,9 @@ class TestConnectorsImport:
             finally:
                 os.chdir(old_cwd)
 
-    def test_import_stub_exits_nonzero(self):
+    def test_import_notion_stub_exits_nonzero(self):
         result = runner.invoke(
-            connectors_app, ["import", "github", "--path", "/tmp"]
+            connectors_app, ["import", "notion", "--path", "/tmp"]
         )
         assert result.exit_code != 0
         assert "stub" in result.output.lower()

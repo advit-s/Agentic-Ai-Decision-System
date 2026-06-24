@@ -855,6 +855,7 @@ function getConnectorJob(workspaceId, jobId) {
 function _setMockOverride(v) { _testMockOverride = v; }
 
 export {
+  getSystemStatus,
   // Data Sources
   listDataSources,
   uploadDataSource,
@@ -1320,4 +1321,24 @@ export async function runDueSyncSchedules() {
     return { results: [], count: 0 };
   }
   return apiFetch("/connector-sync/run-due", { method: "POST" });
+}
+// --- System Status (v1.32 beta packaging) ---
+
+async function getSystemStatus() {
+  if (isMockMode()) {
+    return Promise.resolve({
+      version: "1.32.0-dev",
+      data_dir: ".decision_system",
+      security_mode: "demo",
+      provider_type: "fake",
+      provider_count: 0,
+      connector_count: 5,
+      workspace_count: 1,
+      demo_data_available: true,
+      ocr_available: false,
+      doc_parsing_available: false,
+      warnings: ["Mock mode — system status is simulated."],
+    });
+  }
+  return apiFetch("/system/status");
 }

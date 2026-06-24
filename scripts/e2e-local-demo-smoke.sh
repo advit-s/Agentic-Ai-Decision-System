@@ -6,6 +6,9 @@
 #   health → workspace → upload → parse → index → search → provider
 #   → workflow → execute → claims → contradictions → report → export
 #
+#
+# v1.32 — Beta packaging milestone
+# This smoke test validates the full product loop:
 # No cloud API keys required. Run against local backend (Docker or native).
 #
 # Usage:

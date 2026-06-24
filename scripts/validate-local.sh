@@ -37,6 +37,7 @@ fi
 
 PASS=0
 FAIL=0
+SKIP=0
 FAIL_CMDS=""
 
 run_check() {
@@ -57,13 +58,20 @@ run_check() {
   fi
 }
 
+skip_check() {
+  local name="$1"
+  shift
+  echo "  ⏭️  SKIP: $name"
+  SKIP=$((SKIP + 1))
+}
+
 # ---------------------------------------------------------------------------
 # 1. Git hygiene
 # ---------------------------------------------------------------------------
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   run_check "git diff --check" git diff --check
 else
-  echo "  ⏭️  SKIP: git diff --check (not in a git repository)"
+  skip_check "git diff --check" "not in a git repository"
 fi
 
 # ---------------------------------------------------------------------------
@@ -79,20 +87,33 @@ run_check "tests/test_connectors.py" $PYTHON -m pytest tests/test_connectors.py 
 run_check "tests/test_connector_sync.py" $PYTHON -m pytest tests/test_connector_sync.py -q
 run_check "tests/test_api_connector.py" $PYTHON -m pytest tests/test_api_connector.py -q
 run_check "tests/test_connector_setup.py" $PYTHON -m pytest tests/test_connector_setup.py -q
+run_check "tests/test_connector_reliability.py" $PYTHON -m pytest tests/test_connector_reliability.py -q
+run_check "tests/test_connector_cli.py" $PYTHON -m pytest tests/test_connector_cli.py -q
 
 # ---------------------------------------------------------------------------
 # 3. Frontend tests
 # ---------------------------------------------------------------------------
 if [ -d "$PROJECT_DIR/web/workflow-builder/node_modules" ]; then
-  run_check "npm test (frontend)" bash -c "cd web/workflow-builder && npm test 2>&1 | tail -5"
+  run_check "npm test (frontend)" bash -c "cd web/workflow-builder && npm test 2>&1 | tail -10"
 else
-  echo "  ⏭️  SKIP: npm test (node_modules not found — run 'npm install' first)"
+  skip_check "npm test (frontend)" "node_modules not found — run 'npm install' first"
 fi
 
 # ---------------------------------------------------------------------------
 # 4. Frontend build
 # ---------------------------------------------------------------------------
-run_check "npm run build" bash -c "cd web/workflow-builder && npm run build 2>&1 | tail -5"
+run_check "npm run build" bash -c "cd web/workflow-builder && npm run build 2>&1 | tail -10"
+
+# ---------------------------------------------------------------------------
+# 5. Doctor check (optional — won't fail on warnings)
+# ---------------------------------------------------------------------------
+if $SUMMARY_MODE; then
+  echo ""
+  echo "=== Optional: doctor-local.sh ==="
+  if [ -f "$SCRIPT_DIR/doctor-local.sh" ]; then
+    bash "$SCRIPT_DIR/doctor-local.sh" --quiet || true
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # Summary
@@ -102,6 +123,7 @@ echo "========================================="
 echo "  Validation complete"
 echo "  Passed: $PASS"
 echo "  Failed: $FAIL"
+echo "  Skipped: $SKIP"
 if [ "$FAIL" -gt 0 ]; then
   echo ""
   echo "  Failed checks:"

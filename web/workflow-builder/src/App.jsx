@@ -32,6 +32,7 @@ import { PermissionProvider, usePermission } from "./hooks/usePermission";
 import { ToastProvider, useToast } from "./components/Toast";
 import useKeyboardShortcuts from "./hooks/useKeyboardShortcuts";
 import {
+  getSystemStatus,
   fetchNodeTypes,
   listWorkflows,
   getWorkflow,
@@ -967,6 +968,8 @@ function App() {
   const [workspaceId, setWorkspaceId] = useState(null);
   const [workspaceName, setWorkspaceName] = useState("");
   const [backendMode, setBackendMode] = useState("mock");
+  const [systemStatus, setSystemStatus] = useState(null);
+  const [backendConnected, setBackendConnected] = useState(false);
 
   // Load workspace on mount
   useEffect(() => {
@@ -991,6 +994,14 @@ function App() {
       try {
         const { getBackendMode: gbm } = await import("./api");
         setBackendMode(gbm());
+        // Try to fetch system status from the backend
+        try {
+          const status = await import("./api").then(m => m.getSystemStatus());
+          setSystemStatus(status);
+          setBackendConnected(true);
+        } catch {
+          // System status endpoint not available
+        }
       } catch {}
     }
     init();
@@ -1049,6 +1060,8 @@ function App() {
         onNavigate={handleNavigate}
         workspaceName={workspaceName}
         backendMode={backendMode}
+        systemStatus={systemStatus}
+        backendConnected={backendConnected}
       />
       <div className="app-content">
         <ReactFlowProvider>

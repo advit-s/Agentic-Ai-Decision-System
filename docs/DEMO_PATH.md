@@ -1,7 +1,7 @@
 # Demo Path — End-to-End Walkthrough
 
- > **Version:** 1.27.0-dev
-> **Last updated:** 2026-06-23
+> **Version:** 1.32.0-dev
+> **Last updated:** 2026-06-24
 
 This document describes the complete demo path a reviewer follows to understand
 the product in 10 minutes without reading source code.

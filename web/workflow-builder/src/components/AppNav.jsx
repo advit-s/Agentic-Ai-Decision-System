@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { id: "settings", label: "Settings", icon: "⚙️" },
 ];
 
-function AppNav({ activeSection, onNavigate, workspaceName, backendMode }) {
+function AppNav({ activeSection, onNavigate, workspaceName, backendMode, systemStatus, backendConnected }) {
   const { currentUser, currentRole, roleLabel, securityMode, isDemoMode, isGovernedMode } = usePermission();
 
   const modeLabel = isGovernedMode ? "Governed" : "Demo";
@@ -55,6 +55,10 @@ function AppNav({ activeSection, onNavigate, workspaceName, backendMode }) {
       </nav>
 
       <div className="app-nav-footer">
+        {/* Beta label */}
+        <div className="app-nav-beta" style={{ padding: "4px 12px", background: "#fff3cd", color: "#856404", fontSize: "11px", fontWeight: 600, textAlign: "center", letterSpacing: "0.5px" }}>
+          ⚡ LOCAL BETA {systemStatus?.version ? `v${systemStatus.version}` : "v1.32.0-dev"}
+        </div>
         {/* Security status */}
         <div className="app-nav-security" style={{ padding: "8px 12px", borderTop: "1px solid #eee", fontSize: "12px", lineHeight: 1.6 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -69,11 +73,26 @@ function AppNav({ activeSection, onNavigate, workspaceName, backendMode }) {
             <span>{modeIcon}</span>
             <span>{modeLabel} Mode</span>
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span>📂</span>
+            <span title={systemStatus?.data_dir || ".decision_system"}>Data: {systemStatus?.data_dir || ".decision_system"}</span>
+          </div>
+          {systemStatus?.warnings && systemStatus.warnings.length > 0 && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "4px", marginTop: "4px", padding: "4px", background: "#fff8e1", borderRadius: "4px", fontSize: "10px", color: "#856404" }}>
+              <span>⚠️</span>
+              <span>{systemStatus.warnings[0]}</span>
+            </div>
+          )}
         </div>
         <div className={`app-nav-mode app-nav-mode-${backendMode}`}>
           {backendMode === "mock" && "🟡 Mock Mode"}
           {backendMode === "live" && "🟢 Live"}
           {backendMode === "unavailable" && "🔴 Offline"}
+          {backendConnected && systemStatus?.security_mode && (
+            <span style={{ marginLeft: "4px", fontSize: "10px", opacity: 0.7 }}>
+              | {systemStatus.security_mode === "demo" ? "Demo" : "Governed"}
+            </span>
+          )}
         </div>
       </div>
     </aside>

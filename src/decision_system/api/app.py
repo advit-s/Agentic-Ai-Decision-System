@@ -41,6 +41,7 @@ from decision_system.api import routes_graph
 from decision_system.workflow_engine.api import router as routes_workflow
 from decision_system.api import routes_identity
 from decision_system.api import routes_audit
+from decision_system.api import routes_system
 
 # ---------------------------------------------------------------------------
 # Scheduler control — tests can disable the background scheduler loop to
@@ -125,6 +126,7 @@ def create_app() -> FastAPI:
 
     api.include_router(routes_identity.router)
     api.include_router(routes_audit.router)
+    api.include_router(routes_system.router)
     # --- Heavy routes (lazy-loaded — skip silently if deps absent) ---
     _lazy_router(api, "decision_system.api.routes_documents")
     _lazy_router(api, "decision_system.api.routes_context")
