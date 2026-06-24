@@ -1,3 +1,29 @@
+## [1.35.0-dev] - 2026-06-24 — Public Beta Release Candidate + Demo Video Script
+### Added
+- **Version identity**: Updated to 1.35.0-dev across pyproject.toml, __init__.py, CURRENT_STATE.md, CHANGELOG.md
+- **Public beta release notes**: `docs/PUBLIC_BETA_RELEASE_CANDIDATE.md` — comprehensive release candidate documentation
+- **Demo video script**: `docs/DEMO_VIDEO_SCRIPT.md` — 5-8 minute walkthrough with narration and screen actions
+- **Screenshot capture guide**: `docs/SCREENSHOT_GUIDE.md` — consistent screenshot checklist for beta visuals
+- **Release checklist**: `docs/RELEASE_CHECKLIST.md` — pre-release verification checklist for future releases
+- **Reviewer handoff**: `docs/REVIEWER_HANDOFF.md` — concise guide for handing off to outside reviewers
+- **SECURITY.md**: Security reporting policy with local beta scope and responsible disclosure guidance
+- **CONTRIBUTING.md**: Contributor guidelines with PR workflow, code standards, and testing requirements
+### Changed
+- Version bumped from 1.34.0-dev to 1.35.0-dev
+- **README.md** — Complete public-beta polish: clear product explanation, screenshots section, quickstart, demo path, known limitations, feedback links
+- **First-run copy polish** — Frontend empty states, beta label, local-first explanation, read-only connector copy, verification trust language
+- **Demo scripts** — `local-demo-seed.sh`, `e2e-local-demo-smoke.sh`, `doctor-local.sh` copy polish
+- `docs/BETA_RELEASE_NOTES.md` — Updated for v1.35 public beta release candidate
+- `docs/CURRENT_STATE.md` — Updated version to 1.35.0-dev and milestone description
+- `docs/IMPLEMENTATION_REPORT.md` — v1.35 final report
+### Documentation
+- `docs/PUBLIC_BETA_RELEASE_CANDIDATE.md` — Public-facing release candidate notes
+- `docs/DEMO_VIDEO_SCRIPT.md` — Scripted video walkthrough for recording
+- `docs/SCREENSHOT_GUIDE.md` — Screenshot capture checklist for release visuals
+- `docs/RELEASE_CHECKLIST.md` — Reusable release verification checklist
+- `docs/REVIEWER_HANDOFF.md` — Reviewer onboarding and handoff guide
+- `SECURITY.md` — Security reporting policy
+- `CONTRIBUTING.md` — Contributor guidelines
 ## [1.34.0-dev] - 2026-06-24 — Local Beta Feedback Loop + Issue Templates
 ### Added
 - **Version identity**: Updated to 1.34.0-dev across pyproject.toml, __init__.py, CURRENT_STATE.md, CHANGELOG.md

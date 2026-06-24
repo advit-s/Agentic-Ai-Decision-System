@@ -7,7 +7,7 @@
 #   → workflow → execute → claims → contradictions → report → export
 #
 #
-# v1.32 — Beta packaging milestone
+# v1.35 — Public Beta Release Candidate
 # This smoke test validates the full product loop:
 # No cloud API keys required. Run against local backend (Docker or native).
 #

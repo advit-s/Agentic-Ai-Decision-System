@@ -34,7 +34,7 @@ BASE_URL="${BACKEND_URL:-http://localhost:8000}"
 SAMPLE_DIR="demo/sample-data"
 
 echo "============================================"
-echo "  Local Demo Seed Script — v1.32"
+echo "  Local Demo Seed Script — v1.35"
 echo "  (Beta Packaging, Installer Scripts + Local Release Polish)"
 echo "============================================"
 echo ""

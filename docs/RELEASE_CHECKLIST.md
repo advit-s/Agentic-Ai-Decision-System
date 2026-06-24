@@ -1,199 +1,96 @@
-# Release Checklist
+# Release Checklist — v1.35.0-dev
 
-Use this checklist before cutting any milestone release (vX.Y.Z).
+> **Version:** 1.35.0-dev
+> **Milestone:** Public Beta Release Candidate + Demo Video Script
+> **Date:** 2026-06-24
+> **Category:** Release Process
 
-## Install
+This checklist is reusable for all future beta releases. Check each item before tagging a release.
 
-- [ ] `python -m venv .venv && .venv\Scripts\activate` (Windows)
-- [ ] `python -m venv .venv && source .venv/bin/activate` (macOS/Linux)
-- [ ] `python -m pip install -e ".[dev]"`
-- [ ] No dependency resolution errors.
+---
 
-## Tests
+## Pre-Release
 
-- [ ] `python -m pytest -q` - all tests pass, exit code 0.
-- [ ] No warnings about missing API keys or excluded skips.
+### Version
+- [ ] `pyproject.toml` version is updated
+- [ ] `src/decision_system/__init__.py` version matches
+- [ ] Frontend fallback version is updated (AppNav.jsx, api.js)
+- [ ] `docs/CURRENT_STATE.md` header reflects current version
+- [ ] `CHANGELOG.md` has entry for this version
 
-## Smoke Commands
+### Git Hygiene
+- [ ] `git status --short` — working tree is clean
+- [ ] `git diff --check` — no whitespace errors
+- [ ] All new files are tracked
+- [ ] Generated artifacts are gitignored
 
-Run these offline with no API key configured:
+### Backend Tests
+- [ ] `python -m pytest -q` — all tests pass
+- [ ] Targeted test suites pass individually:
+  - [ ] `tests/test_security.py`
+  - [ ] `tests/test_graph_api.py`
+  - [ ] `tests/test_data_sources/`
+  - [ ] `tests/test_verification`
+  - [ ] `tests/test_providers`
+  - [ ] `tests/test_workflow_engine/test_api.py`
+  - [ ] `tests/test_connectors.py`
+  - [ ] `tests/test_connector_sync.py`
+  - [ ] `tests/test_connector_reliability.py`
 
-- [ ] `decision-system index`
-- [ ] `decision-system inspect-index`
-- [ ] `decision-system ask "Should we migrate billing?"`
-- [ ] `decision-system extract-graph`
-- [ ] `decision-system inspect-graph`
+### Frontend
+- [ ] `cd web/workflow-builder && npm test` — all tests pass
+- [ ] `cd web/workflow-builder && npm run build` — builds without errors
+- [ ] No new console errors or warnings in app shell
 
-## Evaluation
+### Scripts
+- [ ] `bash -n scripts/*.sh` — all shell scripts parse without syntax errors
+- [ ] `./scripts/doctor-local.sh` — 0 failures
+- [ ] `./scripts/validate-local.sh` — all checks pass
+- [ ] `./scripts/collect-diagnostics.sh` — output is safe (no secrets)
 
-- [ ] `decision-system eval`
-- [ ] `decision-system eval-war-room`
-- [ ] `decision-system eval-providers`
-- [ ] `decision-system eval --json` (formatted output)
-- [ ] `decision-system eval-war-room --json` (formatted output)
-- [ ] `decision-system eval-providers --json` (formatted output)
-- [ ] All eval cases pass.
+### Docker (if available)
+- [ ] `docker compose up --build` — both containers start
+- [ ] Frontend loads at `http://localhost:3000`
+- [ ] Backend responds at `http://localhost:8000/health`
+- [ ] `./scripts/local-smoke-test.sh` passes
+- [ ] `./scripts/e2e-local-demo-smoke.sh` passes
 
-## Repo Hygiene
+### Documentation
+- [ ] README is accurate and up to date
+- [ ] Known limitations are current
+- [ ] Issue templates reference current version
+- [ ] PR template is up to date
+- [ ] Docs links are not broken
+- [ ] Version references are consistent across docs
 
-- [ ] `git status --short` - working tree is clean (no accidental changes).
-- [ ] `.env` is not tracked by Git (should NOT appear in `git ls-files`).
-- [ ] `.decision_system/` is not tracked by Git.
-- [ ] `__pycache__/` and `*.pyc` are not tracked by Git.
-- [ ] `.pytest_cache/` is not tracked by Git.
-- [ ] `evals/results/*.json` generated files are not tracked by Git.
-- [ ] `.decision_system/provider_evals/` provider evaluation results are not tracked by Git.
-- [ ] `datasets/` (raw public dataset downloads) is not tracked by Git.
-- [ ] `company_data/**/imported_*.csv` files are not tracked by Git.
-- [ ] `.decision_system/` directories (graph, profiles, ontology, insights, contexts, evals, provider_evals, orchestration, war_room, workspaces) are all in `.gitignore`.
-## Connector Integrity (v1.1)
+### Feedback Flow
+- [ ] README links to reviewer guide
+- [ ] Reviewer guide links to issue templates
+- [ ] Issue templates ask for diagnostics
+- [ ] Diagnostics script redacts secrets
+- [ ] Known limitations linked from all relevant docs
 
-- [ ] `.decision_system/connectors/` is in `.gitignore` and ignored by Git.
-- [ ] No connector secrets or OAuth tokens are stored or committed.
-- [ ] Connector stubs (GitHub, Jira, Slack, Email) do not perform network calls.
-- [ ] `connectors dry-run` works offline with no external I/O.
-- [ ] `connectors import` works offline and only writes to generated paths.
-- [ ] Connector imports skip protected files (`.env`, keys, cache directories).
-- [ ] Connector imports skip unsupported files with a clear reason.
-- [ ] Duplicate job saves do not corrupt existing connector job state.
-- [ ] Exported zip has no `__pycache__/` or `*.pyc` files.
-- [ ] `decision-system connectors list` shows 5 connectors with correct stub flags.
+## Release
 
-## Security Integration (v1.2)
+### Tag
+- [ ] Git tag created (e.g., `v1.35.0-dev`)
+- [ ] Tag pushed to origin
+- [ ] Release notes drafted (use `docs/PUBLIC_BETA_RELEASE_CANDIDATE.md`)
 
-- [ ] `.decision_system/security/` is in `.gitignore` and ignored by Git.
-- [ ] `decision-system security scan-secrets` runs offline and returns a finding summary.
-- [ ] `decision-system security scan-secrets --json` returns structured findings.
-- [ ] Secret scanner never prints full secret values (masked preview only).
-- [ ] `decision-system redact-preview "..."` returns redacted text and findings without modifying files.
-- [ ] `decision-system redact-preview "..." --json` returns structured redaction result.
-- [ ] `decision-system audit-log` reads `.decision_system/security/audit/audit_log.jsonl` and handles missing log.
-- [ ] `decision-system policy-check` runs all 7 checks and reports OK/WARN/FAIL.
-- [ ] `decision-system policy-check --json` returns structured policy result.
-- [ ] `decision-system approval request --reason "..."` creates a local approval record.
-- [ ] `decision-system approval list` shows pending requests.
-- [ ] `decision-system approval inspect <id>` handles missing ID gracefully.
-- [ ] `GET /security/policy`, `POST /security/redact-preview`, and `GET /security/audit` return structured responses via TestClient.
-- [ ] All security tests pass with synthetic data only (no real API keys).
-- [ ] No external service calls in `decision_system/security/` modules.
-- [ ] Web UI security section renders policy status, audit summary, and approvals from mock data.
+### Validation (Post-Release)
+- [ ] Fresh clone + setup works end-to-end
+- [ ] Docker compose up works from clean state
+- [ ] Demo path is walkable from fresh install
 
-## Observability Integration (v1.3)
+## Environment-Blocked Checks
 
-- [ ] `.decision_system/observability/` is in `.gitignore` and ignored by Git.
-- [ ] `decision-system metrics` lists collected metric names or shows "No metrics collected yet."
-- [ ] `decision-system metrics --json` returns structured JSON with count and metric summaries.
-- [ ] `decision-system eval-history` shows recent evaluation runs.
-- [ ] `decision-system eval-history --json` returns structured eval run data.
-- [ ] `decision-system quality-report` generates a report with score and recommendations.
-- [ ] `decision-system quality-report --json` returns structured quality report JSON.
-- [ ] `decision-system trace-summary` shows recent workflow trace summaries.
-- [ ] `decision-system trace-summary --json` returns structured trace data.
-- [ ] All observability CLI commands work via both top-level (`decision-system metrics`) and sub-app (`decision-system observability metrics`) paths.
-- [ ] 28 observability tests pass offline.
-- [ ] Note: The observability module has working tests and CLI plumbing but is NOT populated by the core workflow. This is a known standalone foundation — data recording hooks are not yet wired into `ask`, `run-war-room`, or other workflow commands.
+If Docker is unavailable, note:
+```
+Docker smoke — environment-blocked (Docker not available)
+E2E demo smoke — environment-blocked (requires running backend)
+```
 
-## Docker and Deployment (v1.4)
-
-- [ ] `Dockerfile` exists at repo root and builds successfully: `docker build -t decision-system .`
-- [ ] `docker-compose.yml` exists and starts the service: `docker compose up` (exit cleanly with Ctrl+C).
-- [ ] `.dockerignore` excludes `.venv`, `__pycache__`, `.decision_system/`, `.env`, `datasets/`.
-- [ ] `scripts/dev.sh` and `scripts/dev.ps1` provide install, test, api, smoke, and hygiene commands.
-- [ ] `scripts/release-check.sh` and `scripts/release-check.ps1` verify generated file hygiene and run dry-clean by default.
-- [ ] Release check scripts require `--force` to actually clean generated state.
-- [ ] `docs/DEPLOYMENT.md` documents Docker build, compose, and volume mount instructions.
-
-## Enterprise Readiness (v1.5)
-
-- [ ] `decision-system enterprise-readiness` prints prototype-ready assessment with 13 pass + 11 gap items.
-- [ ] `decision-system enterprise-readiness --json` returns structured JSON with readiness level and missing items.
-- [ ] Assessment does not contact external services or require provider keys.
-- [ ] `docs/ENTERPRISE_READINESS.md` documents the full gap analysis.
-
-## Final Prototype Hardening (v1.6)
-
-- [ ] All 50 CLI commands verified working offline with fake provider.
-- [ ] CLI refactoring complete: `cli_security.py`, `cli_observability.py`, `cli_enterprise.py` are separate modules with registration functions.
-- [ ] CLI import speed is under 3.0 seconds (no slow imports at module level).
-- [ ] `decision-system check-hygiene` passes (warnings acceptable, failures require action).
-- [ ] `decision-system check-hygiene --json` returns valid structured JSON.
-- [ ] `clean-generated.sh` and `clean-generated.ps1` exist and are dry-run by default.
-- [ ] 700+ tests pass offline with no API keys.
-- [ ] No tracked generated state in the working tree.
-- [ ] All CHANGELOG.md entries are up to date for v1.6.
-
-## Frontend Product UI (v1.7)
-
-- [ ] `web/index.html` contains all 9 sections: dashboard, ask, data, war-room, workspaces, connectors, security, observability, enterprise.
-- [ ] `web/app.js` renders all 9 sections with API integration and mock fallback.
-- [ ] `web/styles.css` provides responsive styling for all sections.
-- [ ] Navigation sidebar has buttons for all 9 sections.
-- [ ] Dashboard shows system readiness, provider status, document index state, workspace state, overview metrics, and quick links.
-- [ ] Decision Brief section includes offline mode notice, Ask form, and claim status summary.
-- [ ] Data & Ontology section has tabbed sub-views: profiles, ontology, insights, knowledge graph.
-- [ ] War Room section shows roles, judge interventions, and artifacts with protocol explanation.
-- [ ] Workspaces section shows active workspace, artifact type counts, and recent artifacts.
-- [ ] Connectors section shows all 5 connectors with real/stub labeling and no token input fields.
-- [ ] Security & Governance section shows policy check status, audit log events, and approval requests.
-- [ ] Observability section shows metrics, eval history, quality reports, and trace summaries.
-- [ ] Enterprise Readiness section shows readiness level badge, pass/fail counts, and detailed gap list.
-- [ ] Mock data fixtures exist for all sections under `web/mock-data/`.
-- [ ] `FALLBACK_DATA.security` is defined (fixes v0.9 Security view crash).
-- [ ] `GET /enterprise-readiness` API endpoint returns static readiness assessment.
-- [ ] `GET /observability/metrics`, `/eval-history`, `/quality-report`, `/traces` API endpoints exist.
-- [ ] Root `web/` and package `src/decision_system/web/` assets are byte-for-byte identical.
-- [ ] 700+ tests pass offline with no API keys.
-- [ ] All CHANGELOG.md entries are up to date for v1.7.
-
-## Configuration Defaults
-
-- [ ] `.env.example` has `DECISION_PROVIDER=fake`.
-- [ ] `pyproject.toml` has the `decision-system = "decision_system.cli:app"` entry point.
-- [ ] No real API keys or secrets in any committed file (grep for `sk-`, `api_key`, `token`).
-
-## Documentation
-
-- [ ] `README.md` reflects current CLI commands and all v1.x sections.
-- [ ] `CHANGELOG.md` has an entry for the new version.
-- [ ] `CLAUDE.md` version history or task list reflects the milestone.
-- [ ] `docs/ARCHITECTURE.md` covers all subsystems through the current release.
-- [ ] `docs/DECISIONS.md` has ADRs for all versions through the current release.
-- [ ] `docs/RELEASE_CHECKLIST.md` itself is up to date.
-- [ ] Any new CLI commands are documented in README.md.
-- [ ] Architecture diagram or section in `docs/ARCHITECTURE.md` is current.
-
-## Git Hygiene
-
-- [ ] All tracked files in `.decision_system/` are removed from the index (use `git rm --cached -r .decision_system/` if needed).
-- [ ] All tracked `__pycache__/` files are removed from the index.
-- [ ] All tracked `.pyc` files are removed from the index.
-- [ ] All tracked `.pytest_cache/` files are removed from the index.
-- [ ] `.gitignore` covers all generated paths listed above.
-- [ ] No generated demo data (`company_data/**/imported_*`) is in the index.
-
-## Generated File Cleanup
-
-Before cutting a release, use the safe cleanup helper (`scripts/clean-generated.sh --force` / `scripts/clean-generated.ps1 -Force`) which is dry-run by default. It protects `datasets/`, `.env`, `company_docs/`, and `company_data/`. Two convenience scripts are provided:
-
-- macOS/Linux: `scripts/clean-generated.sh`
-- Windows/PowerShell: `scripts/clean-generated.ps1`
-
-Or run the equivalent commands directly:
-
-- [ ] Bash: `find . -type d -name __pycache__ -prune -exec rm -rf {} + && rm -rf .pytest_cache .decision_system`
-- [ ] PowerShell: `Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force; Remove-Item .pytest_cache -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item .decision_system -Recurse -Force -ErrorAction SilentlyContinue`
-- [ ] Verify `git status --short` shows no generated files after cleanup.
-
-## Skills Directory Audit
-
-The following skills directories may exist in the repo:
-
-| Directory | Description | Action |
-|--- |--- |--- |
-| `~/.claude/skills/` or `.claude/skills/` | Claude Code user-level skills (canonical for Claude Code) | Keep; add to `.gitignore` if local |
-| `\.agents\skills\` | Possibly stow from an older agent installer | Verify intent; ignore or clean up as needed |
-| `\.local-skill-pack\` | Temporary skill pack (canonical for Claude Code) | Verify intent; ignore or clean up as needed |
-
-- [ ] `~/.claude/skills/` (global user scope for Claude Code) is canonical - do not modify under project root.
-- [ ] If any skill directories under the project root are duplicates or temporary, document intent in this section.
-- [ ] Do not delete skill directories without explicit approval.
+If Tesseract is unavailable, note:
+```
+OCR tests — environment-dependent (Tesseract not installed)
+```

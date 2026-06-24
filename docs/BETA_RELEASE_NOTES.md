@@ -1,7 +1,7 @@
-# Beta Release Notes — v1.34.0-dev
+# Beta Release Notes — v1.35.0-dev
 
-> **Version:** 1.34.0-dev
-> **Milestone:** Local Beta Feedback Loop + Issue Templates
+> **Version:** 1.35.0-dev
+> **Milestone:** Public Beta Release Candidate + Demo Video Script
 > **Date:** 2026-06-24
 > **Status:** Local MVP Beta — Not Production Ready
 
@@ -210,7 +210,7 @@ For reviewers, follow this order:
 
 ---
 
-## v1.34 — Local Beta Feedback Loop + Issue Templates
+## v1.35 — Public Beta Release Candidate + Demo Video Script
 
 ### What's New
 

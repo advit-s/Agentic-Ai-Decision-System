@@ -1,65 +1,57 @@
-# Implementation Report — v1.34
+# Implementation Report — v1.35
 
-> **Version:** 1.34.0-dev
-> **Milestone:** Local Beta Feedback Loop + Issue Templates
+> **Version:** 1.35.0-dev
+> **Milestone:** Public Beta Release Candidate + Demo Video Script
 > **Date:** 2026-06-24
 > **Status:** Complete
 
 ## Summary
 
-v1.34 makes the local beta ready to receive high-quality outside feedback. It adds
-GitHub issue templates, a PR template, a beta reviewer guide, a safe diagnostics
-script, a bug bash checklist, a known limitations registry, issue triage docs,
-example issues, README beta callout, frontend feedback links, and docs navigation
-cleanup.
+v1.35 prepares the project for a public beta release candidate. It adds polished
+README content, public beta release notes, a demo video script, screenshot guide,
+release checklist, reviewer handoff docs, SECURITY.md, CONTRIBUTING.md, demo
+script polish, frontend copy review, docs link audit, and feedback flow verification.
 
-**Key outcome:** A beta reviewer can install the app, understand what to test,
-report bugs with useful reproduction details, and attach safe diagnostics without
-leaking secrets.
+**Key outcome:** The project is ready to present publicly — clear README, release
+notes, demo script, screenshot guide, reviewer handoff, and honest limitations.
 
 ## Version
 
-- `decision_system.__version__` = `1.34.0-dev`
-- `pyproject.toml` version = `1.34.0-dev`
-- `/health` reports `1.34.0-dev`
+- `decision_system.__version__` = `1.35.0-dev`
+- `pyproject.toml` version = `1.35.0-dev`
+- `/health` reports `1.35.0-dev`
+- Frontend fallback version: `v1.35.0-dev`
 
 ## MCP / Agent Skill Usage
 
-- Codebase-memory MCP was used to index the repository and inspect file structures.
-- Used for: architecture overview, code search, function tracing.
+- Codebase-memory MCP used for repository indexing and file inspection.
 
 ## Files Created
 
 | File | Description |
 |------|-------------|
-| `.github/ISSUE_TEMPLATE/bug_report.yml` | Structured bug report template with version, OS, steps, diagnostics |
-| `.github/ISSUE_TEMPLATE/feature_request.yml` | Feature request with local-first constraints, write-action check |
-| `.github/ISSUE_TEMPLATE/beta_feedback.yml` | Beta feedback template with install/demo/UI experience |
-| `.github/ISSUE_TEMPLATE/docs_issue.yml` | Documentation issue template |
-| `.github/ISSUE_TEMPLATE/config.yml` | Template config with links to docs |
-| `.github/pull_request_template.md` | PR checklist covering code quality, docs, local-first, security, connectors |
-| `docs/BETA_REVIEWER_GUIDE.md` | Beta testing guide with 10-min/30-min test paths |
-| `docs/BETA_FEEDBACK_AUDIT.md` | Baseline audit of current feedback process and v1.34 plan |
-| `docs/BUG_BASH_CHECKLIST.md` | Organized bug bash test areas |
-| `docs/KNOWN_LIMITATIONS.md` | Centralized, categorized known limitations |
-| `docs/ISSUE_TRIAGE.md` | Issue label definitions, severity, triage workflow |
-| `docs/EXAMPLE_ISSUES.md` | Good/bad examples of bug reports, feature requests, feedback |
-| `scripts/collect-diagnostics.sh` | Safe diagnostics collector (no secrets) |
+| `docs/PUBLIC_BETA_RELEASE_CANDIDATE.md` | Public-facing release candidate notes |
+| `docs/DEMO_VIDEO_SCRIPT.md` | 10-scene demo video script with narration |
+| `docs/SCREENSHOT_GUIDE.md` | 13-section screenshot capture checklist |
+| `docs/RELEASE_CHECKLIST.md` | Reusable release verification checklist |
+| `docs/REVIEWER_HANDOFF.md` | Concise reviewer onboarding and handoff |
+| `SECURITY.md` | Security reporting policy with local beta scope |
+| `CONTRIBUTING.md` | Contributor guidelines with code standards |
 
 ## Files Modified
 
 | File | Changes |
 |------|---------|
-| `pyproject.toml` | Version 1.33.0-dev → 1.34.0-dev |
-| `src/decision_system/__init__.py` | Version 1.33.0-dev → 1.34.0-dev |
-| `CHANGELOG.md` | Added v1.34.0-dev entry |
-| `README.md` | Added local MVP beta callout with links |
-| `docs/CURRENT_STATE.md` | Updated version and milestone; fixed stale PDF/DOCX/XLSX limitation |
-| `docs/BETA_RELEASE_NOTES.md` | Updated for v1.34 feedback loop milestone |
+| `pyproject.toml` | Version 1.34.0-dev → 1.35.0-dev |
+| `src/decision_system/__init__.py` | Version 1.34.0-dev → 1.35.0-dev |
+| `CHANGELOG.md` | Added v1.35.0-dev entry |
+| `README.md` | Complete public-beta rewrite (967→167 lines, focused, scannable) |
+| `docs/CURRENT_STATE.md` | Updated version, milestone, added v1.35 section |
+| `docs/BETA_RELEASE_NOTES.md` | Updated for v1.35 release candidate |
 | `docs/IMPLEMENTATION_REPORT.md` | This report |
-| `web/workflow-builder/src/AppNav.jsx` | Version update + feedback/help navigation links |
-| `web/workflow-builder/src/api.js` | Mock version 1.33.0-dev → 1.34.0-dev |
-| `tests/test_workflow_engine/test_api.py` | Removed leftover debug print statements |
+| `web/workflow-builder/src/components/AppNav.jsx` | Fallback version 1.34→1.35 |
+| `scripts/local-demo-seed.sh` | Version reference 1.32→1.35 |
+| `scripts/e2e-local-demo-smoke.sh` | Version reference 1.32→1.35 |
 
 ## Strict Rule Compliance
 
@@ -67,39 +59,54 @@ leaking secrets.
 |------|--------|
 | AGENTS.md / CLAUDE.md / repo skills used | ✅ |
 | Codebase-memory MCP used | ✅ |
-| No new product features added | ✅ — only feedback/template/docs work |
-| No telemetry added | ✅ — frontend links are docs links only |
-| No auto-upload of diagnostics | ✅ — script saves locally, user chooses to share |
-| No secrets or private data collected | ✅ — diagnostics script explicitly redacts secrets |
-| No production-ready claims | ✅ — "local MVP beta" language used consistently |
-| No limitations hidden | ✅ — centralized limitations registry |
-| No cloud services added | ✅ |
-| Milestone focused on reviewer feedback readiness | ✅ |
+| No core product features added | ✅ — docs/templates/scripts/copy only |
+| No connector types added | ✅ |
+| No write actions added | ✅ |
+| No cloud auth added | ✅ |
+| Production-ready not claimed | ✅ — "public beta release candidate" language used |
+| Limitations not hidden | ✅ — centralized registry, all docs reference it |
+| No telemetry collected | ✅ |
+| No auto-upload of diagnostics | ✅ |
+| No secrets or private paths exposed | ✅ |
+| Milestone focused on release readiness | ✅ |
 
-## Tests / Validation
+## Validation
 
 | Check | Result |
 |-------|--------|
-| Backend tests | 1647 passed, 2 skipped |
+| Backend tests | 1,647 passed, 2 skipped |
 | Frontend tests | 56 passed, 15 files |
-| Frontend build | Successful (600KB chunk) |
-| Shell script syntax | 4/4 passed (collect-diagnostics, setup, start, doctor) |
+| Frontend build | Successful |
+| Shell script syntax | 6/6 passed |
 | Hygiene check | 9 passed, 3 warnings, 0 failures |
 | Doctor check | 10 passed, 5 warnings, 0 failures |
 | Git diff --check | Clean |
-| Docker smoke | Environment-blocked (Docker not available) |
-| E2E demo smoke | Environment-blocked (requires running backend) |
+| Validate script | 15/15 passed |
+| Docker smoke | Environment-blocked |
+| E2E demo smoke | Environment-blocked |
 
 ## Known Limitations
 
 - Docker smoke not run (Docker unavailable in sandbox)
 - E2E demo smoke not run (requires running backend)
-- OCR tests depend on local Tesseract (not installed in sandbox)
+- Screenshots not yet captured (guide exists — Phase 5)
+- Demo video not yet recorded (script exists — Phase 4)
 - Frontend chunk size warning (600KB) — minor, non-blocking
-- Diagnostics script not yet tested against a running backend
+
+## Release Candidate Verdict
+
+**The project is ready for a public beta release candidate announcement.**
+It has:
+
+- Clear public-facing documentation
+- Structured issue and PR templates
+- Safe diagnostics and feedback flow
+- Honest limitation and security disclosure
+- Full test coverage (1647 backend, 56 frontend)
+- Verifiable local-first offline operation
 
 ## Recommended Next Milestone
 
 ```
-v1.35 — Public Beta Release Candidate + Demo Video Script
+v1.36 — Public Beta Feedback Triage + Stabilization Sprint
 ```

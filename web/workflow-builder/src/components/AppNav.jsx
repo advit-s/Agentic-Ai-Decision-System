@@ -63,7 +63,7 @@ function AppNav({ activeSection, onNavigate, workspaceName, backendMode, systemS
         </div>
         {/* Beta label */}
         <div className="app-nav-beta" style={{ padding: "4px 12px", background: "#fff3cd", color: "#856404", fontSize: "11px", fontWeight: 600, textAlign: "center", letterSpacing: "0.5px" }}>
-          ⚡ LOCAL BETA {systemStatus?.version ? `v${systemStatus.version}` : "v1.34.0-dev"}
+          ⚡ LOCAL BETA {systemStatus?.version ? `v${systemStatus.version}` : "v1.35.0-dev"}
         </div>
         {/* Security status */}
         <div className="app-nav-security" style={{ padding: "8px 12px", borderTop: "1px solid #eee", fontSize: "12px", lineHeight: 1.6 }}>

@@ -1,7 +1,7 @@
-> **Last updated:** 2026-06-24 (v1.34.0-dev — Local Beta Feedback Loop + Issue Templates)
-> **Package version:** 1.34.0-dev
-> **Previous milestone:** v1.33.0-dev — End-to-End Beta QA + Bug Bash
-> **Current milestone:** v1.34.0-dev — Local Beta Feedback Loop + Issue Templates
+> **Last updated:** 2026-06-24 (v1.35.0-dev — Public Beta Release Candidate + Demo Video Script)
+> **Package version:** 1.35.0-dev
+> **Previous milestone:** v1.34.0-dev — Local Beta Feedback Loop + Issue Templates
+> **Current milestone:** v1.35.0-dev — Public Beta Release Candidate + Demo Video Script
 > **Python:** >=3.11
 
 ---
@@ -255,9 +255,44 @@ docker compose up --build
 
 ## Next milestone
 
-**v1.35 — Public Beta Release Candidate + Demo Video Script**
+**v1.36 — Public Beta Feedback Triage + Stabilization Sprint**
 
-After the beta feedback loop, the next step is preparing a public beta release candidate with demo video and polish.
+After the public beta release candidate, the next step is triaging incoming feedback, fixing critical/high issues, and stabilizing the codebase.
+
+
+## v1.35.0-dev — Public Beta Release Candidate + Demo Video Script
+
+### Completed
+- Version bumped from 1.34.0-dev to 1.35.0-dev
+- README rewritten for public beta (167 lines, focused, scannable)
+- Public beta release candidate notes (docs/PUBLIC_BETA_RELEASE_CANDIDATE.md)
+- Demo video script with 10 scenes and narration (docs/DEMO_VIDEO_SCRIPT.md)
+- Screenshot capture guide with 13-section checklist (docs/SCREENSHOT_GUIDE.md)
+- Release checklist for future releases (docs/RELEASE_CHECKLIST.md)
+- Reviewer handoff guide (docs/REVIEWER_HANDOFF.md)
+- SECURITY.md with responsible disclosure policy
+- CONTRIBUTING.md with code standards and PR workflow
+- Frontend copy verified: honest beta label, read-only connector text, verification disclaimer
+- Demo script version references updated (local-demo-seed.sh, e2e-local-demo-smoke.sh)
+- Docs link audit: 21 docs/templates confirmed, cross-links verified
+- Feedback flow: README → reviewer guide → templates → diagnostics → safety verified
+- All 6 shell scripts parse without syntax errors
+
+### Validation
+- Backend tests: 1647 passed, 2 skipped
+- Frontend tests: 56 passed, 15 files
+- Frontend build: Successful
+- Shell scripts: 6/6 parse clean
+- Hygiene: 9 passed, 3 warnings, 0 failures
+- Git hygiene: clean diff
+
+### Read-only guarantee
+No connectors, write actions, or external write endpoints were added. All changes are documentation, scripts, templates, and copy polish.
+
+### Known limitations
+- Docker smoke not run (unavailable in sandbox)
+- E2E demo smoke not run (requires running backend)
+- Screenshots not yet captured (guide exists)
 
 
 ## v1.34.0-dev — Local Beta Feedback Loop + Issue Templates
