@@ -1,9 +1,17 @@
-"""Connector job orchestration: validate definition, run dry-run or real import."""
+"""Connector job orchestration: validate definition, run dry-run or real import.
+
+Supports local-files, GitHub, and URL connectors for v1.28.
+Import jobs are persisted with rich tracking fields.
+"""
 
 from __future__ import annotations
 
 import json
+import time
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
+from uuid import uuid4
 
 from decision_system.connectors.local_files import (
     run_dry_run as _run_local_dry_run,
@@ -12,12 +20,32 @@ from decision_system.connectors.local_files import (
 from decision_system.connectors.models import (
     ConnectorDefinition,
     ConnectorDryRunResult,
+    ConnectorImportJob,
     ConnectorImportResult,
+    ConnectorType,
 )
 from decision_system.connectors.stubs import ExternalConnectorError
 from decision_system.connectors.stubs import run_stub_dry_run
 from decision_system.connectors.stubs import run_stub_import
 from decision_system.connectors.store import save_job
+from decision_system.connectors.audit import (
+    record_import_started,
+    record_import_completed,
+    record_import_failed,
+    record_item_imported,
+)
+from decision_system.connectors.metrics import (
+    record_import_duration,
+    record_items_found,
+    record_items_imported,
+    record_items_failed,
+)
+from decision_system.connectors.runtime_dispatch import (
+    test_connection,
+    list_items,
+    sync,
+)
+from decision_system.connectors.config_store import get_config_store
 
 
 def _store_connector_job_as_artifact(job, settings) -> None:
@@ -65,8 +93,9 @@ def _store_connector_job_as_artifact(job, settings) -> None:
                 metadata={
                     "connector_id": job.connector_id,
                     "status": job.status,
-                    "imported_count": len(job.imported_files),
-                    "skipped_count": len(job.skipped_files),
+                    "imported_count": job.items_imported,
+                    "skipped_count": job.items_skipped,
+                    "failed_count": job.items_failed,
                     "created_at": job.created_at.isoformat()
                     if job.created_at
                     else None,
@@ -99,6 +128,8 @@ def validate_connector_id(
             f"Available connectors: {available}."
         )
     return definition
+
+
 def run_dry_run(
     connector_id: str,
     source_path: str | Path,
@@ -155,6 +186,170 @@ def run_import(
     )
 
 
+def run_import_v2(
+    connector_id: str,
+    config_id: str | None = None,
+    workspace_id: str | None = None,
+    item_ids: list[str] | None = None,
+) -> ConnectorImportResult:
+    """v1.28 import using connector config store and runtime dispatch.
+
+    Loads the connector config from the store, dispatches to the right
+    runtime, and persists the import job with rich tracking fields.
+    """
+    store = get_config_store()
+    cfg = store.load(workspace_id, connector_id)
+    if cfg is None and config_id:
+        cfg = store.load(workspace_id, config_id)
+    if cfg is None:
+        raise ValueError(f"Connector config not found: {connector_id}")
+
+    definition = validate_connector_id(cfg.connector_type.value)
+    if definition.is_stub:
+        raise ExternalConnectorError(
+            f"Connector '{cfg.connector_type.value}' is not available in v1.28."
+        )
+
+    job_id = str(uuid4())
+    start_time = time.time()
+    started_at = datetime.now(timezone.utc)
+
+    record_import_started(
+        connector_id=cfg.connector_id,
+        workspace_id=workspace_id,
+        config_name=cfg.name,
+    )
+
+    job = ConnectorImportJob(
+        job_id=job_id,
+        workspace_id=workspace_id,
+        connector_id=cfg.connector_id,
+        status="running",
+        started_at=started_at,
+        created_at=started_at,
+    )
+
+    try:
+        result = sync(cfg, item_ids=item_ids)
+
+        duration_ms = (time.time() - start_time) * 1000
+
+        items_found = result.get("items_found", 0)
+        items_imported = len(result.get("content_list", []))
+        items_skipped = result.get("items_skipped", 0)
+        items_failed = result.get("items_failed", 0)
+
+        # Record each imported item
+        for content in result.get("content_list", []):
+            record_item_imported(
+                connector_id=cfg.connector_id,
+                external_id=getattr(content, "external_id", ""),
+                title=getattr(content, "title", ""),
+                workspace_id=workspace_id,
+            )
+
+        # Record metrics
+        record_import_duration(
+            cfg.connector_id, duration_ms,
+            items_imported=items_imported, items_failed=items_failed,
+        )
+        record_items_found(cfg.connector_id, items_found)
+        record_items_imported(cfg.connector_id, items_imported)
+        if items_failed:
+            record_items_failed(cfg.connector_id, items_failed)
+
+        # Build output paths
+        output_paths = []
+        for content in result.get("content_list", []):
+            fname = getattr(content, "filename", "unknown.txt")
+            output_paths.append(f".decision_system/connectors/imported/{job_id}/{fname}")
+
+        completed_at = datetime.now(timezone.utc)
+        job.status = "completed"
+        job.items_found = items_found
+        job.items_imported = items_imported
+        job.items_skipped = items_skipped
+        job.items_failed = items_failed
+        job.output_paths = output_paths
+        job.completed_at = completed_at
+
+        save_job(job)
+        _store_connector_job_as_artifact(job, None)
+
+        record_import_completed(
+            connector_id=cfg.connector_id,
+            items_imported=items_imported,
+            items_skipped=items_skipped,
+            items_failed=items_failed,
+            job_id=job_id,
+            workspace_id=workspace_id,
+        )
+
+        return ConnectorImportResult(
+            job=job,
+            dry_run=False,
+            imported_count=items_imported,
+            skipped_count=items_skipped,
+            failed_count=items_failed,
+        )
+
+    except Exception as e:
+        duration_ms = (time.time() - start_time) * 1000
+        record_import_duration(cfg.connector_id, duration_ms)
+        record_error(cfg.connector_id, type(e).__name__)
+        record_import_failed(
+            connector_id=cfg.connector_id,
+            error=str(e),
+            workspace_id=workspace_id,
+        )
+
+        job.status = "failed"
+        job.errors = [str(e)]
+        job.completed_at = datetime.now(timezone.utc)
+        save_job(job)
+
+        return ConnectorImportResult(
+            job=job,
+            dry_run=False,
+            imported_count=0,
+            skipped_count=0,
+            failed_count=1,
+        )
+
+
+def run_test_connection(
+    connector_id: str,
+    config_id: str | None = None,
+    workspace_id: str | None = None,
+) -> dict[str, Any]:
+    """Test connection for a connector config."""
+    store = get_config_store()
+    cfg = store.load(workspace_id, connector_id)
+    if cfg is None and config_id:
+        cfg = store.load(workspace_id, config_id)
+    if cfg is None:
+        return {"success": False, "message": f"Connector config not found: {connector_id}"}
+
+    return test_connection(cfg)
+
+
+def run_list_items(
+    connector_id: str,
+    path: str = "",
+    config_id: str | None = None,
+    workspace_id: str | None = None,
+) -> list[Any]:
+    """List items for a connector config."""
+    store = get_config_store()
+    cfg = store.load(workspace_id, connector_id)
+    if cfg is None and config_id:
+        cfg = store.load(workspace_id, config_id)
+    if cfg is None:
+        return []
+
+    return list_items(cfg, path)
+
+
 def resolve_tags(connector_id: str) -> str:
     """Return a human-readable tag set for a connector (used in CLI output)."""
     from decision_system.connectors.registry import get_connector_definition
@@ -165,3 +360,7 @@ def resolve_tags(connector_id: str) -> str:
     if definition.is_stub:
         return "stub"
     return "real"
+
+
+# Import record_error used in exception handler
+from decision_system.connectors.metrics import record_error

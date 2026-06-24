@@ -75,11 +75,11 @@ class TestRegistry:
         assert d.is_stub is False
 
     def test_external_connectors_are_stubs(self):
-        for cid in ("github", "jira", "slack", "email"):
+        for cid in ("notion", "google-drive"):
             d = get_connector_definition(cid)
             assert d is not None
             assert d.is_stub is True
-            assert d.status == ConnectorStatus.STUB
+            assert d.status == ConnectorStatus.UNAVAILABLE
 
     def test_unknown_connector_returns_none(self):
         assert get_connector_definition("nonexistent") is None
@@ -98,9 +98,9 @@ class TestRegistry:
         assert d.requires_secrets is False
 
     def test_stubs_have_no_secrets_and_no_real_import(self):
-        for cid in ("github", "jira", "slack", "email"):
+        for cid in ("notion", "google-drive"):
             d = get_connector_definition(cid)
-            assert d.requires_secrets is False
+            assert d.requires_secrets is True
             assert d.supports_import is False
 
 
@@ -126,28 +126,28 @@ class TestValidateConnectorId:
 
 class TestStubs:
     def test_stub_dry_run_returns_warning(self):
-        d = get_connector_definition("github")
-        result = run_stub_dry_run("github", d)
+        d = get_connector_definition("notion")
+        result = run_stub_dry_run("notion", d)
         assert result.would_import_count == 0
         assert len(result.files) == 0
         assert len(result.warnings) > 0
         assert "stub" in result.warnings[0].lower()
 
     def test_stub_import_raises_external_connector_error(self):
-        d = get_connector_definition("jira")
+        d = get_connector_definition("notion")
         with pytest.raises(ExternalConnectorError, match="stub"):
-            run_stub_import("jira", d)
+            run_stub_import("notion", d)
 
     def test_all_stubs_reject_import(self):
-        for cid in ("github", "jira", "slack", "email"):
+        for cid in ("notion", "google-drive"):
             d = get_connector_definition(cid)
             with pytest.raises(ExternalConnectorError):
                 run_stub_import(cid, d)
 
     def test_stub_dry_run_preserves_connector_id(self):
-        d = get_connector_definition("slack")
-        result = run_stub_dry_run("slack", d)
-        assert result.connector_id == "slack"
+        d = get_connector_definition("notion")
+        result = run_stub_dry_run("notion", d)
+        assert result.connector_id == "notion"
 
 
 # ---------------------------------------------------------------------------

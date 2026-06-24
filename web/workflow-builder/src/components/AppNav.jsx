@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { id: "demo", label: "Demo Flow", icon: "🚀" },
   { id: "workflow", label: "Workflow Builder", icon: "⚡" },
   { id: "data-sources", label: "Data Sources", icon: "📁" },
+  { id: "connectors", label: "Connectors", icon: "🔌" },
   { id: "graph", label: "Knowledge Graph", icon: "🔗" },
   { id: "risk-dashboard", label: "Risk Dashboard", icon: "🛡️" },
   { id: "evidence", label: "Evidence Search", icon: "🔍" },

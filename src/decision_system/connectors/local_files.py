@@ -1,18 +1,24 @@
 """Real local-files connector: dry-run scan and safe copy-based import."""
 from __future__ import annotations
 
+import os
 import shutil
+from typing import Any
 from datetime import datetime, timezone
 from pathlib import Path
 
 from decision_system.connectors.models import (
+    ConnectorConfig,
     ConnectorDefinition,
     ConnectorDryRunFile,
     ConnectorDryRunResult,
+    ConnectorFetchedContent,
     ConnectorImportJob,
     ConnectorImportResult,
+    ConnectorRuntimeItem,
     ConnectorType,
 )
+from decision_system.connectors.runtime import ConnectorRuntime
 from decision_system.connectors.store import save_job
 
 _SUPPORTED_EXTENSIONS: set[str] = {".md", ".txt", ".csv", ".json"}
@@ -314,3 +320,167 @@ def _copy_safe(src: Path, dst: Path, warnings: list[str]) -> None:
 
 def _make_job_id() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
+
+
+# ---------------------------------------------------------------------------
+# v1.28 ConnectorRuntime implementation for local folder connector
+# ---------------------------------------------------------------------------
+
+
+class LocalFolderConnectorRuntime(ConnectorRuntime):
+    """Read-only local folder connector runtime.
+
+    Scans a local directory, lists supported files, and imports them
+    as data sources. Original files are never modified.
+    """
+
+    def test_connection(self, config: ConnectorConfig) -> dict[str, Any]:
+        """Test that a local folder path is accessible."""
+        folder_path = config.config.get("folder_path", "")
+        if not folder_path:
+            return {"success": False, "message": "No folder path configured"}
+
+        path = Path(folder_path)
+        if not path.exists():
+            return {"success": False, "message": f"Folder does not exist: {folder_path}"}
+        if not path.is_dir():
+            return {"success": False, "message": f"Path is not a directory: {folder_path}"}
+        if not os.access(str(path), os.R_OK):
+            return {"success": False, "message": f"Folder is not readable: {folder_path}"}
+
+        return {
+            "success": True,
+            "message": f"Folder is accessible: {folder_path}",
+            "path": str(path.resolve()),
+            "is_absolute": path.is_absolute(),
+        }
+
+    def list_items(
+        self, config: ConnectorConfig, path: str = ""
+    ) -> list[ConnectorRuntimeItem]:
+        """List supported files in the configured folder."""
+        folder_path = config.config.get("folder_path", "")
+        base_path = Path(folder_path)
+        if not base_path.exists() or not base_path.is_dir():
+            return []
+
+        # If path is provided, use it as sub-path
+        search_path = base_path
+        if path:
+            search_path = base_path / path
+            # Prevent path traversal
+            try:
+                search_path = search_path.resolve()
+                search_path.relative_to(base_path.resolve())
+            except (ValueError, OSError):
+                return []
+
+        included, skipped = _collect_files(search_path)
+
+        items: list[ConnectorRuntimeItem] = []
+        for fp, category in included:
+            rel_path = str(fp.relative_to(base_path)) if fp != base_path else fp.name
+            items.append(
+                ConnectorRuntimeItem(
+                    external_id=rel_path,
+                    title=fp.name,
+                    item_type="file",
+                    content_type=f"text/{fp.suffix.lstrip('.')}" if fp.suffix else "text/plain",
+                    size_bytes=fp.stat().st_size,
+                    metadata={
+                        "category": category,
+                        "relative_path": rel_path,
+                        "source_path": str(fp),
+                    },
+                )
+            )
+        return items
+
+    def fetch_item(
+        self, config: ConnectorConfig, item: ConnectorRuntimeItem
+    ) -> ConnectorFetchedContent:
+        """Read the content of a local file."""
+        folder_path = config.config.get("folder_path", "")
+        base_path = Path(folder_path)
+
+        if not base_path.exists():
+            return ConnectorFetchedContent(
+                external_id=item.external_id,
+                title=item.title,
+                filename=item.title,
+                content_text="",
+                content_type="text/plain",
+                metadata={"error": "Source folder not found"},
+            )
+
+        # Resolve file path safely
+        file_path = (base_path / item.external_id).resolve()
+        try:
+            file_path.relative_to(base_path.resolve())
+        except ValueError:
+            return ConnectorFetchedContent(
+                external_id=item.external_id,
+                title=item.title,
+                filename=item.title,
+                content_text="",
+                content_type="text/plain",
+                metadata={"error": "Path traversal detected"},
+            )
+
+        if not file_path.exists() or not file_path.is_file():
+            return ConnectorFetchedContent(
+                external_id=item.external_id,
+                title=item.title,
+                filename=item.title,
+                content_text="",
+                content_type="text/plain",
+                metadata={"error": "File not found"},
+            )
+
+        try:
+            content_bytes = file_path.read_bytes()
+            content_text = content_bytes.decode("utf-8", errors="replace")
+            return ConnectorFetchedContent(
+                external_id=item.external_id,
+                title=item.title,
+                filename=item.title,
+                content_text=content_text,
+                content_type=item.content_type or "text/plain",
+                metadata={
+                    "size_bytes": len(content_bytes),
+                    "source_path": str(file_path),
+                },
+            )
+        except Exception as e:
+            return ConnectorFetchedContent(
+                external_id=item.external_id,
+                title=item.title,
+                filename=item.title,
+                content_text="",
+                content_type="text/plain",
+                metadata={"error": str(e)},
+            )
+
+    def sync(
+        self,
+        config: ConnectorConfig,
+        path: str = "",
+        item_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """List all supported files and read their content."""
+        items = self.list_items(config, path)
+        if item_ids is not None:
+            items = [i for i in items if i.external_id in item_ids]
+
+        content_list = []
+        for item in items:
+            content = self.fetch_item(config, item)
+            content_list.append(content)
+
+        return {
+            "items_found": len(items),
+            "items_imported": len(content_list),
+            "items_skipped": 0,
+            "items_failed": 0,
+            "content_list": content_list,
+        }

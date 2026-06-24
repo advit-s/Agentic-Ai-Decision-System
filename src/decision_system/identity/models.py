@@ -64,6 +64,9 @@ class Permission(StrEnum):
     REPORT_EXPORT = "report.export"
     AUDIT_READ = "audit.read"
     SETTINGS_MANAGE = "settings.manage"
+    CONNECTOR_READ = "connector.read"
+    CONNECTOR_MANAGE = "connector.manage"
+    CONNECTOR_IMPORT = "connector.import"
 
 
 ALL_PERMISSIONS: list[Permission] = list(Permission)
@@ -78,6 +81,9 @@ ALL_PERMISSIONS: list[Permission] = list(Permission)
 
 ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
     UserRole.OWNER: {
+        Permission.CONNECTOR_READ,
+        Permission.CONNECTOR_MANAGE,
+        Permission.CONNECTOR_IMPORT,
         Permission.WORKSPACE_READ,
         Permission.WORKSPACE_MANAGE,
         Permission.DATA_SOURCE_UPLOAD,
@@ -97,6 +103,9 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
         Permission.SETTINGS_MANAGE,
     },
     UserRole.ADMIN: {
+        Permission.CONNECTOR_READ,
+        Permission.CONNECTOR_MANAGE,
+        Permission.CONNECTOR_IMPORT,
         Permission.WORKSPACE_READ,
         Permission.WORKSPACE_MANAGE,
         Permission.DATA_SOURCE_UPLOAD,
@@ -116,6 +125,8 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
         Permission.SETTINGS_MANAGE,
     },
     UserRole.ANALYST: {
+        Permission.CONNECTOR_READ,
+        Permission.CONNECTOR_IMPORT,
         Permission.WORKSPACE_READ,
         Permission.DATA_SOURCE_UPLOAD,
         Permission.DATA_SOURCE_DELETE,
@@ -130,12 +141,14 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
         Permission.AUDIT_READ,
     },
     UserRole.REVIEWER: {
+        Permission.CONNECTOR_READ,
         Permission.WORKSPACE_READ,
         Permission.EVIDENCE_SEARCH,
         Permission.REVIEW_RESOLVE,
         Permission.AUDIT_READ,
     },
     UserRole.VIEWER: {
+        Permission.CONNECTOR_READ,
         Permission.WORKSPACE_READ,
         Permission.EVIDENCE_SEARCH,
         Permission.AUDIT_READ,

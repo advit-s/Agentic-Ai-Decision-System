@@ -26,6 +26,7 @@ import GraphPage from "./components/GraphPage";
 import RiskDashboard from "./components/RiskDashboard";
 import ReportsPage from "./components/ReportsPage";
 import SettingsPage from "./components/SettingsPage";
+import ConnectorsPage from "./components/ConnectorsPage";
 import DemoFlow from "./components/DemoFlow";
 import { PermissionProvider, usePermission } from "./hooks/usePermission";
 import { ToastProvider, useToast } from "./components/Toast";

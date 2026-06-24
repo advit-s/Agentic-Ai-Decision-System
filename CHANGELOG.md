@@ -1,3 +1,29 @@
+## [1.28.0-dev] - 2026-06-24 — Connector Read-Only Imports + External Knowledge Sync
+### Added
+- **Connector config store**: Persistent JSON-backed connector configuration storage with workspace scoping
+- **Connector runtime interface**: Abstract base class (test_connection, list_items, fetch_item, sync) with fake runtime for testing
+- **Local Folder Connector**: Read-only import from local directories with path traversal protection, file type filtering, and content hash tracking
+- **GitHub Repository Connector**: List public repo files and fetch content via GitHub API (optional GITHUB_TOKEN for rate limits)
+- **URL / Web Page Import Connector**: HTTP fetch with HTML title/text extraction, SSRF protection (blocks private/internal addresses), content-type validation
+- **Connector audit events**: Typed audit events for create/update/delete/test/import operations
+- **Connector metrics**: Import duration, items found/imported/failed, error count metrics
+- **Connector RBAC permissions**: connector.read, connector.manage, connector.import permissions with role matrix
+- **Full connector CRUD API**: Workspace-scoped endpoints for create, read, update, delete, test, list items, import
+- **Connector import jobs**: Rich job tracking with items_found/imported/skipped/failed counts and error/warning recording
+- **Frontend Connector Manager**: React component with connector list, create form, detail view, test, import workflow, job history
+- **Connector audit document**: docs/CONNECTOR_AUDIT.md covering existing architecture, security assumptions, v1.28 additions
+### Changed
+- Version bumped from 1.27.2-dev to 1.28.0-dev
+- Connector registry: github now real (was stub), url-import added, notion/google-drive as unavailable
+- Enhanced ConnectorConfig model with workspace_id, mode=read_only, secret_refs, status tracking
+- Local files connector: added LocalFolderConnectorRuntime implementing ConnectorRuntime interface
+- Import jobs: richer tracking fields (items_found/imported/skipped/failed, errors, metadata)
+- API routes: full CRUD for workspace-scoped connector configs + backward-compatible v1.1 endpoints
+- Identity permissions: added connector.read, connector.manage, connector.import
+### Fixed
+- Updated connector tests for new registry (github is real, notion/google-drive are stubs)
+- Fixed route ordering in connector API (/connectors/jobs before /connectors/{connector_id})
+
 ## [1.26.1] - 2026-06-24 — Graph UI, Audit Metrics API + Extraction Quality Hardening
 ### Added
 - **Graph audit/metrics API**: GET endpoints for workspace-scoped audit events, metrics, and extraction runs

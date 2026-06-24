@@ -1,8 +1,8 @@
 # Current State — Agentic Decision System
 > **Last updated:** 2026-06-24 (v1.27.2-dev — Test Harness + Release Baseline)
-> **Package version:** 1.27.2-dev
+> **Package version:** 1.28.0-dev
 > **Previous milestone:** v1.27.1 — Frontend Security UI + Permission-Aware Components
-> **Current milestone:** v1.27.2 — Test Harness + Docker Smoke + Release Baseline
+> **Current milestone:** v1.28.0 — Connector Read-Only Imports + External Knowledge Sync
 > **Python:** >=3.11
 
 ---

@@ -24,63 +24,86 @@ _BUILTIN_CONNECTORS: list[ConnectorDefinition] = [
             ConnectorCapability.IMPORT,
             ConnectorCapability.LIST,
             ConnectorCapability.INSPECT,
+            ConnectorCapability.TEST,
         ],
-          # Fixed: stubs don't need real secrets since they never call external APIs
-    requires_secrets=False,
+        requires_secrets=False,
         supports_dry_run=True,
         supports_import=True,
+        supports_list=True,
+        supports_test=True,
         is_stub=False,
     ),
     ConnectorDefinition(
         connector_id="github",
-        name="GitHub",
+        name="GitHub Repository",
         connector_type=ConnectorType.GITHUB,
-        status=ConnectorStatus.STUB,
-        description="GitHub connector (not implemented in v1.1).",
+        status=ConnectorStatus.REAL,
+        description=(
+            "Read-only import of public GitHub repository files. "
+            "Optional token via GITHUB_TOKEN env var for rate-limit increases. "
+            "Lists repo files and imports selected files as local data sources."
+        ),
+        capabilities=[
+            ConnectorCapability.LIST,
+            ConnectorCapability.IMPORT,
+            ConnectorCapability.TEST,
+            ConnectorCapability.INSPECT,
+        ],
+        requires_secrets=False,
+        supports_dry_run=False,
+        supports_import=True,
+        supports_list=True,
+        supports_test=True,
+        is_stub=False,
+    ),
+    ConnectorDefinition(
+        connector_id="url-import",
+        name="URL / Web Page Import",
+        connector_type=ConnectorType.URL_IMPORT,
+        status=ConnectorStatus.REAL,
+        description=(
+            "Import a single URL or web page as a local data source. "
+            "Extracts title and text content from HTML pages. "
+            "Blocks private/internal network addresses by default."
+        ),
+        capabilities=[
+            ConnectorCapability.IMPORT,
+            ConnectorCapability.TEST,
+            ConnectorCapability.INSPECT,
+        ],
+        requires_secrets=False,
+        supports_dry_run=False,
+        supports_import=True,
+        supports_list=False,
+        supports_test=True,
+        is_stub=False,
+    ),
+    ConnectorDefinition(
+        connector_id="notion",
+        name="Notion",
+        connector_type=ConnectorType.NOTION,
+        status=ConnectorStatus.UNAVAILABLE,
+        description="Notion read-only connector (not implemented in v1.28).",
         capabilities=[],
-          # Fixed: stubs don't need real secrets since they never call external APIs
-    requires_secrets=False,
+        requires_secrets=True,
         supports_dry_run=False,
         supports_import=False,
+        supports_list=False,
+        supports_test=False,
         is_stub=True,
     ),
     ConnectorDefinition(
-        connector_id="jira",
-        name="Jira",
-        connector_type=ConnectorType.JIRA,
-        status=ConnectorStatus.STUB,
-        description="Jira connector (not implemented in v1.1).",
+        connector_id="google-drive",
+        name="Google Drive",
+        connector_type=ConnectorType.GOOGLE_DRIVE,
+        status=ConnectorStatus.UNAVAILABLE,
+        description="Google Drive read-only connector (not implemented in v1.28).",
         capabilities=[],
-          # Fixed: stubs don't need real secrets since they never call external APIs
-    requires_secrets=False,
+        requires_secrets=True,
         supports_dry_run=False,
         supports_import=False,
-        is_stub=True,
-    ),
-    ConnectorDefinition(
-        connector_id="slack",
-        name="Slack",
-        connector_type=ConnectorType.SLACK,
-        status=ConnectorStatus.STUB,
-        description="Slack connector (not implemented in v1.1).",
-        capabilities=[],
-          # Fixed: stubs don't need real secrets since they never call external APIs
-    requires_secrets=False,
-        supports_dry_run=False,
-        supports_import=False,
-        is_stub=True,
-    ),
-    ConnectorDefinition(
-        connector_id="email",
-        name="Email",
-        connector_type=ConnectorType.EMAIL,
-        status=ConnectorStatus.STUB,
-        description="Email connector (not implemented in v1.1).",
-        capabilities=[],
-          # Fixed: stubs don't need real secrets since they never call external APIs
-    requires_secrets=False,
-        supports_dry_run=False,
-        supports_import=False,
+        supports_list=False,
+        supports_test=False,
         is_stub=True,
     ),
 ]
@@ -113,7 +136,7 @@ class ConnectorRegistry:
         return bool(definition and definition.is_stub)
 
 
-# Module-level singleton (safe, avoids NameError patterns).
+# Module-level singleton
 _registry_inst = ConnectorRegistry()
 
 

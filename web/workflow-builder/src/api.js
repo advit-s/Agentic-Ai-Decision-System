@@ -770,6 +770,75 @@ async function searchEvidence(workspaceId, query, limit = 10, sourceFilter, file
   });
 }
 
+// ---------------------------------------------------------------------------
+// Connector API (v1.28 read-only connector framework)
+// ---------------------------------------------------------------------------
+
+function listConnectorDefinitions() {
+  return apiFetch("/connectors");
+}
+
+function getConnectorDefinition(connectorId) {
+  return apiFetch(`/connectors/${connectorId}`);
+}
+
+function listConnectorConfigs(workspaceId) {
+  return apiFetch(`/workspaces/${workspaceId}/connectors`);
+}
+
+function createConnectorConfig(workspaceId, data) {
+  return apiFetch(`/workspaces/${workspaceId}/connectors`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+function getConnectorConfig(workspaceId, connectorId) {
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}`);
+}
+
+function updateConnectorConfig(workspaceId, connectorId, data) {
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+function deleteConnectorConfig(workspaceId, connectorId) {
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}`, {
+    method: "DELETE",
+  });
+}
+
+function testConnector(workspaceId, connectorId) {
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/test`, {
+    method: "POST",
+  });
+}
+
+function listConnectorItems(workspaceId, connectorId, path = "") {
+  const params = path ? `?path=${encodeURIComponent(path)}` : "";
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/items${params}`);
+}
+
+function importConnectorItems(workspaceId, connectorId, itemIds = null) {
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/import`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ item_ids: itemIds }),
+  });
+}
+
+function listConnectorJobs(workspaceId) {
+  return apiFetch(`/workspaces/${workspaceId}/connector-jobs`);
+}
+
+function getConnectorJob(workspaceId, jobId) {
+  return apiFetch(`/workspaces/${workspaceId}/connector-jobs/${jobId}`);
+}
+
 /** Exposed for test use only — overrides mock mode detection */
 function _setMockOverride(v) { _testMockOverride = v; }
 
@@ -800,6 +869,19 @@ export {
   getReport,
   exportReport,
   getReportMarkdown,
+  // Connectors
+  listConnectorDefinitions,
+  getConnectorDefinition,
+  listConnectorConfigs,
+  createConnectorConfig,
+  getConnectorConfig,
+  updateConnectorConfig,
+  deleteConnectorConfig,
+  testConnector,
+  listConnectorItems,
+  importConnectorItems,
+  listConnectorJobs,
+  getConnectorJob,
   getBaseUrl,
   _setMockOverride,
   isMockMode,
