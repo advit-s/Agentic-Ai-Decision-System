@@ -1,0 +1,68 @@
+name: Feature Request
+description: Suggest an idea for improving the local beta
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature!
+        **This is a local MVP beta candidate.** The project focuses on local-first, offline-capable intelligence.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem are you trying to solve? What is missing or frustrating?
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case
+      description: Describe a concrete scenario where this feature would help.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed Behavior
+      description: What should the feature do? Be as specific as possible.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Local-First Constraints
+      options:
+        - label: Must work offline without API keys
+        - label: Must not require cloud infrastructure
+        - label: Must not upload user documents to external services
+        - label: Must keep data under local `.decision_system/` storage
+
+  - type: dropdown
+    id: write_actions
+    attributes:
+      label: External Write Actions
+      description: Does this feature require writing to external systems (APIs, databases, file systems)?
+      options:
+        - "No — local-only"
+        - "Yes — read-only external access"
+        - "Yes — writes to external systems"
+        - "Uncertain"
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternative solutions or workarounds have you considered?
+
+  - type: textarea
+    id: security
+    attributes:
+      label: Security / Privacy Impact
+      description: Could this feature expose sensitive data, require new permissions, or change the security model?

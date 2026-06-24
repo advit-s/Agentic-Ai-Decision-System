@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Local Beta Documentation
+    url: https://github.com/DeusData/Agentic-Ai-Decision-System/tree/master/docs
+    about: Check the docs for setup guides, known limitations, and walkthroughs
+  - name: Beta Reviewer Guide
+    url: https://github.com/DeusData/Agentic-Ai-Decision-System/blob/master/docs/BETA_REVIEWER_GUIDE.md
+    about: Start here if you're a new beta tester
+  - name: Known Limitations
+    url: https://github.com/DeusData/Agentic-Ai-Decision-System/blob/master/docs/KNOWN_LIMITATIONS.md
+    about: Review known limitations before reporting

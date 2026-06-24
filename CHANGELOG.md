@@ -1,3 +1,32 @@
+## [1.34.0-dev] - 2026-06-24 — Local Beta Feedback Loop + Issue Templates
+### Added
+- **Version identity**: Updated to 1.34.0-dev across pyproject.toml, __init__.py, CURRENT_STATE.md, CHANGELOG.md
+- **GitHub issue templates**: bug_report.yml, feature_request.yml, beta_feedback.yml, docs_issue.yml, config.yml
+- **Pull request template**: Standardized PR checklist with local-first, security, and connector impact sections
+- **Beta reviewer guide**: `docs/BETA_REVIEWER_GUIDE.md` — 30-min/10-min test paths, what to test, how to report bugs
+- **Safe diagnostics script**: `scripts/collect-diagnostics.sh` — collects version, OS, test results without secrets
+- **Bug bash checklist**: `docs/BUG_BASH_CHECKLIST.md` — organized test areas for structured bug bashes
+- **Known limitations registry**: `docs/KNOWN_LIMITATIONS.md` — centralized, categorized limitation docs
+- **Issue triage doc**: `docs/ISSUE_TRIAGE.md` — label definitions, severity levels, triage process
+- **Example issues**: `docs/EXAMPLE_ISSUES.md` — good/bad bug report, feature request, beta feedback examples
+- **Beta feedback audit**: `docs/BETA_FEEDBACK_AUDIT.md` — baseline audit of current feedback process
+- **Frontend feedback links**: Help/Feedback, Known Limitations, Diagnostics links in app navigation
+- **README beta callout**: Clear local MVP beta status with links to reviewer guide and issue templates
+### Changed
+- Version bumped from 1.33.0-dev to 1.34.0-dev
+- `docs/CURRENT_STATE.md` — Updated version to 1.34.0-dev and milestone description
+- `docs/IMPLEMENTATION_REPORT.md` — Will be updated with v1.34 summary
+- `docs/BETA_RELEASE_NOTES.md` — Updated for v1.34 feedback loop milestone
+- `README.md` — Added beta callout and links to reviewer docs
+- `web/workflow-builder/src/components/AppNav.jsx` — Added feedback/help navigation links
+- `web/workflow-builder/src/api.js` — Updated mock version to 1.34.0-dev
+### Documentation
+- `docs/BETA_FEEDBACK_AUDIT.md` — Current feedback process, gaps, and v1.34 plan
+- `docs/BETA_REVIEWER_GUIDE.md` — Complete beta testing guide for outside reviewers
+- `docs/BUG_BASH_CHECKLIST.md` — Organized bug bash test areas
+- `docs/KNOWN_LIMITATIONS.md` — Centralized, categorized known limitations
+- `docs/ISSUE_TRIAGE.md` — Issue label definitions, severity, and triage workflow
+- `docs/EXAMPLE_ISSUES.md` — Sample good/bad issue reports
  ## [1.31.0-dev] - 2026-06-24 — Connector Reliability, Rate Limits + Large Import Handling
  ### Added
  - **Import job progress model**: Enhanced `ConnectorImportJob` with `total_items`, `processed_items`, `changed_items`, `unchanged_items`, `rate_limited_items`, `current_item_id`, `duration_ms` fields and `queued`, `completed_with_warnings`, `cancelled`, `paused` statuses

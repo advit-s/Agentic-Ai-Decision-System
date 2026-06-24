@@ -54,10 +54,16 @@ function AppNav({ activeSection, onNavigate, workspaceName, backendMode, systemS
         ))}
       </nav>
 
-      <div className="app-nav-footer">
+        <div className="app-nav-footer">
+        {/* Feedback & help links */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "2px", padding: "8px 12px 4px", borderTop: "1px solid #eee", marginTop: "4px", fontSize: "11px" }}>
+          <a href="https://github.com/DeusData/Agentic-Ai-Decision-System/issues/new/choose" target="_blank" rel="noopener noreferrer" style={{ color: "#555", textDecoration: "none" }}>📬 Feedback / Report Bug</a>
+          <a href="https://github.com/DeusData/Agentic-Ai-Decision-System/blob/master/docs/KNOWN_LIMITATIONS.md" target="_blank" rel="noopener noreferrer" style={{ color: "#555", textDecoration: "none" }}>⚠️ Known Limitations</a>
+          <a href="https://github.com/DeusData/Agentic-Ai-Decision-System/blob/master/docs/BETA_REVIEWER_GUIDE.md" target="_blank" rel="noopener noreferrer" style={{ color: "#555", textDecoration: "none" }}>📖 Reviewer Guide</a>
+        </div>
         {/* Beta label */}
         <div className="app-nav-beta" style={{ padding: "4px 12px", background: "#fff3cd", color: "#856404", fontSize: "11px", fontWeight: 600, textAlign: "center", letterSpacing: "0.5px" }}>
-          ⚡ LOCAL BETA {systemStatus?.version ? `v${systemStatus.version}` : "v1.33.0-dev"}
+          ⚡ LOCAL BETA {systemStatus?.version ? `v${systemStatus.version}` : "v1.34.0-dev"}
         </div>
         {/* Security status */}
         <div className="app-nav-security" style={{ padding: "8px 12px", borderTop: "1px solid #eee", fontSize: "12px", lineHeight: 1.6 }}>

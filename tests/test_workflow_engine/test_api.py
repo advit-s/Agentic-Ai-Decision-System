@@ -910,22 +910,16 @@ class TestReviewGatePauseResume:
         assert resolve_resp.status_code == 200
 
         # Resume the execution
-        print(f"DEBUG: Resuming execution {exec_id}")
         resume_resp = await client.post(
             f"/executions/{exec_id}/resume",
             json={"action": "resume"},
         )
-        print(f"DEBUG: Resume status={resume_resp.status_code}")
         assert resume_resp.status_code == 200
         resume_data = resume_resp.json()
-        print(f"DEBUG: Resume response status={resume_data.get('status')}")
 
         # Execution should now be completed
         state_resp = await client.get(f"/executions/{exec_id}")
         state = state_resp.json()
-        print(f"DEBUG: State after resume status={state.get('status')}")
-        if state.get('error'):
-            print(f"DEBUG: Error={state.get('error')}")
         assert state["status"] == "completed"
 
         # Downstream node should have run

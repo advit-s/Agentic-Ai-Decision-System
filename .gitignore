@@ -84,3 +84,6 @@ logs/
 tmp/
 _build/
 *.tmp
+
+# Diagnostics output (from collect-diagnostics.sh)
+diagnostics/

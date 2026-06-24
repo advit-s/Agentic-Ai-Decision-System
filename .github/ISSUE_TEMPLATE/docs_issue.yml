@@ -1,0 +1,46 @@
+name: Documentation Issue
+description: Report a problem with documentation — missing, incorrect, or unclear docs
+title: "[Docs]: "
+labels: ["docs"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation!
+
+  - type: input
+    id: doc_location
+    attributes:
+      label: Document Location
+      description: Which file or page has the issue?
+      placeholder: "docs/BETA_REVIEWER_GUIDE.md"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Issue Type
+      options:
+        - Missing documentation
+        - Incorrect information
+        - Unclear or confusing
+        - Outdated (stale version/link)
+        - Broken link
+        - Typo or formatting
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is wrong or missing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Fix
+      description: How should this be fixed or improved?

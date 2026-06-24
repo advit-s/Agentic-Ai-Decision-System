@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
-    "commit": "d925167b66ea5af6d4b011e687b848deff0aef3d",
-    "indexed_at": "2026-06-24T14:09:35Z",
+    "commit": "2fc984bfb5ead2441014558766efc51d49ffdfbb",
+    "indexed_at": "2026-06-24T15:08:23Z",
     "project": "home-kali-Desktop-Agentic-Ai-Decision-System",
-    "nodes": 0,
-    "edges": 0,
-    "original_size": 102400,
-    "compressed_size": 1396,
+    "nodes": 494,
+    "edges": 828,
+    "original_size": 3014656,
+    "compressed_size": 304446,
     "compression_level": 3
 }

@@ -992,11 +992,11 @@ function App() {
         }
       }
       try {
-        const { getBackendMode: gbm } = await import("./api");
+        const gbm = getBackendMode;
         setBackendMode(gbm());
         // Try to fetch system status from the backend
         try {
-          const status = await import("./api").then(m => m.getSystemStatus());
+          const status = await getSystemStatus();
           setSystemStatus(status);
           setBackendConnected(true);
         } catch {

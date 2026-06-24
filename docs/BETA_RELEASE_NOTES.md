@@ -1,7 +1,7 @@
-# Beta Release Notes — v1.33.0-dev
+# Beta Release Notes — v1.34.0-dev
 
-> **Version:** 1.33.0-dev
-> **Milestone:** End-to-End Beta QA + Bug Bash
+> **Version:** 1.34.0-dev
+> **Milestone:** Local Beta Feedback Loop + Issue Templates
 > **Date:** 2026-06-24
 > **Status:** Local MVP Beta — Not Production Ready
 
@@ -207,3 +207,77 @@ For reviewers, follow this order:
 
 *These release notes are for v1.33.0-dev, the End-to-End Beta QA + Bug Bash milestone.*
 *This software is provided as-is for local evaluation purposes.*
+
+---
+
+## v1.34 — Local Beta Feedback Loop + Issue Templates
+
+### What's New
+
+**GitHub Issue Templates**
+- Bug report template with structured fields (version, OS, steps, logs)
+- Feature request template with local-first constraint checklist
+- Beta feedback template for structured tester feedback
+- Documentation issue template
+- Issue template config with links to docs/KNOWN_LIMITATIONS.md
+
+**Pull Request Template**
+- Standardized PR checklist covering code quality, docs, local-first, security, connectors, and UI
+
+**Beta Reviewer Guide** (`docs/BETA_REVIEWER_GUIDE.md`)
+- Who the beta is for, what to test, quickstart
+- 10-minute smoke test and 30-minute test path
+- How to report bugs and collect diagnostics
+- What not to upload (sensitive data warning)
+
+**Safe Diagnostics Script** (`scripts/collect-diagnostics.sh`)
+- Collects version, OS, Python/Node/Docker info without secrets
+- Does not capture API keys, tokens, uploaded documents, or report contents
+- Outputs to `diagnostics/<timestamp>/diagnostics.txt`
+
+**Bug Bash Checklist** (`docs/BUG_BASH_CHECKLIST.md`)
+- Organized test areas: install, startup, workspace, data upload, OCR, search, connectors, sync, providers, workflows, claims, graph, reports, RBAC, audit, backup
+
+**Known Limitations Registry** (`docs/KNOWN_LIMITATIONS.md`)
+- Centralized, categorized limitations (beta status, setup, OCR, connectors, security, performance, UI, Docker, future features)
+- Single source of truth — stale limitations removed from other docs
+
+**Issue Triage Process** (`docs/ISSUE_TRIAGE.md`)
+- Label taxonomy (type, area, status, priority)
+- Severity definitions (critical/high/medium/low)
+- Triage workflow from initial review to close
+
+**Example Issues** (`docs/EXAMPLE_ISSUES.md`)
+- Good and bad bug report examples
+- Good feature request example
+- Good beta feedback example
+- Diagnostics attachment example
+
+**README Beta Callout**
+- Clear local MVP beta status banner at top of README
+- Links to reviewer guide, known limitations, issue templates
+- Sensitive data upload warning
+
+**Frontend Feedback Links**
+- Small non-invasive links in AppNav sidebar: Feedback/Report Bug, Known Limitations, Reviewer Guide
+
+**Docs Navigation Cleanup**
+- 13 docs now link together coherently
+- No broken internal doc links
+- Version references updated to 1.34.0-dev
+
+### Changed
+- Version bumped from 1.33.0-dev to 1.34.0-dev
+- Frontend mock version updated
+
+### Validation
+- Backend tests: 1647 passed, 2 skipped
+- Frontend tests: 56 passed, 15 files
+- Frontend build: Successful (600KB chunk)
+- Shell scripts: All parse without errors
+- Hygiene: 9 passed, 3 expected warnings, 0 failures
+
+### Known Limitations
+- Docker smoke not run (Docker unavailable in sandbox)
+- E2E demo smoke not run (requires running backend)
+- OCR tests depend on local Tesseract (not installed in sandbox)

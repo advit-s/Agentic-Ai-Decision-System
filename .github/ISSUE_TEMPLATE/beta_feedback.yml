@@ -1,0 +1,70 @@
+name: Beta Feedback
+description: Share your experience testing the local beta
+title: "[Feedback]: "
+labels: ["beta-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing the local beta! Your feedback helps shape the product.
+        Please be honest — both positive and negative feedback is valuable.
+
+  - type: dropdown
+    id: install_experience
+    attributes:
+      label: Install Experience
+      options:
+        - Smooth — everything worked
+        - Minor issues — got through with workarounds
+        - Blocked — could not complete setup
+        - Did not test install
+
+  - type: dropdown
+    id: demo_path
+    attributes:
+      label: Demo Path Experience
+      options:
+        - Smooth — completed the full demo
+        - Partial — some steps worked
+        - Blocked — could not complete
+        - Did not follow demo path
+
+  - type: dropdown
+    id: ui_clarity
+    attributes:
+      label: UI Clarity
+      options:
+        - Clear and intuitive
+        - Mostly clear
+        - Confusing in places
+        - Hard to navigate
+
+  - type: textarea
+    id: confusing_parts
+    attributes:
+      label: Confusing Parts
+      description: Which parts of the app or docs were confusing or hard to follow?
+
+  - type: textarea
+    id: missing_docs
+    attributes:
+      label: Missing Documentation
+      description: What documentation would have helped you?
+
+  - type: textarea
+    id: product_value
+    attributes:
+      label: Overall Product Value
+      description: Does this tool feel useful? What would make it more valuable to you?
+
+  - type: textarea
+    id: what_worked
+    attributes:
+      label: What Worked Well
+      description: What did you like? What felt smooth or polished?
+
+  - type: textarea
+    id: suggestions
+    attributes:
+      label: Suggestions
+      description: Any other suggestions, ideas, or observations?

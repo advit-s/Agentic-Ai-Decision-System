@@ -1,7 +1,7 @@
-> **Last updated:** 2026-06-24 (v1.33.0-dev — End-to-End Beta QA + Bug Bash)
-> **Package version:** 1.33.0-dev
-> **Previous milestone:** v1.32.0-dev — Beta Packaging, Installer Scripts + Local Release Polish
-> **Current milestone:** v1.33.0-dev — End-to-End Beta QA + Bug Bash
+> **Last updated:** 2026-06-24 (v1.34.0-dev — Local Beta Feedback Loop + Issue Templates)
+> **Package version:** 1.34.0-dev
+> **Previous milestone:** v1.33.0-dev — End-to-End Beta QA + Bug Bash
+> **Current milestone:** v1.34.0-dev — Local Beta Feedback Loop + Issue Templates
 > **Python:** >=3.11
 
 ---
@@ -186,7 +186,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 
 | Area | Notes |
 |------|-------|
-| PDF/DOCX/XLSX parsing | Only txt, md, csv, json supported |
+| PDF/DOCX/XLSX parsing | Supported via pypdf, python-docx, openpyxl; OCR requires Tesseract |
 | Vector search with fallback | Vector search requires Chroma; keyword fallback works without it |
 | Workspace export/import | Exists in prototype; not fully reliable |
 | Frontend Data Sources page | Basic implementation; needs real API connection for full demo |
@@ -253,11 +253,48 @@ docker compose up --build
 7. **CodeNode is disabled by default.** Set `DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true` to enable (unsafe)
 8. **This is a local governance foundation**, not enterprise auth
 
- ## Next milestone
+## Next milestone
 
- **v1.32 — Beta Packaging, Installer Scripts + Local Release Polish**
+**v1.35 — Public Beta Release Candidate + Demo Video Script**
 
- After connector reliability, the next step is improving the local deployment experience with better packaging, installer scripts, and release polish.
+After the beta feedback loop, the next step is preparing a public beta release candidate with demo video and polish.
+
+
+## v1.34.0-dev — Local Beta Feedback Loop + Issue Templates
+
+### Completed
+- Version bumped from 1.33.0-dev to 1.34.0-dev
+- GitHub issue templates: bug_report.yml, feature_request.yml, beta_feedback.yml, docs_issue.yml, config.yml
+- Pull request template with comprehensive checklist
+- Beta reviewer guide (docs/BETA_REVIEWER_GUIDE.md)
+- Safe diagnostics script (scripts/collect-diagnostics.sh)
+- Bug bash checklist (docs/BUG_BASH_CHECKLIST.md)
+- Known limitations registry (docs/KNOWN_LIMITATIONS.md)
+- Issue triage doc (docs/ISSUE_TRIAGE.md)
+- Example issues doc (docs/EXAMPLE_ISSUES.md)
+- Beta feedback audit (docs/BETA_FEEDBACK_AUDIT.md)
+- README beta callout with links to reviewer docs and issue templates
+- Frontend feedback links in sidebar navigation
+- Docs navigation cleanup (13 docs linked consistently)
+- Stale documentation fixes (PDF/DOCX/XLSX limitation)
+- Removed debug print statements from tests
+- Fixed frontend build warning (redundant dynamic imports)
+
+### Validation
+- Backend tests: 1647 passed, 2 skipped
+- Frontend tests: 56 passed, 15 files
+- Frontend build: Successful
+- Shell scripts: All parse without errors
+- Hygiene: 9 passed, 3 warnings, 0 failures
+- 5 modified files, 13 new files created
+
+### Read-only guarantee
+No connectors, write actions, or external write endpoints were added. All changes are documentation, templates, scripts, and cleanup.
+
+### Known limitations
+- Docker smoke not run (unavailable in sandbox)
+- E2E demo smoke not run (requires running backend)
+- Frontend chunk size warning (600KB minified)
 
  ## Local app commands
 

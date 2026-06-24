@@ -1,5 +1,13 @@
 # Agentic AI Decision System
 
+> **⚠️ LOCAL MVP BETA CANDIDATE** — v1.34.0-dev
+> This is a **local MVP beta** for evaluation purposes. Not production-ready.
+> Best tested with [sample/demo data](./demo/sample-data/) first.
+> **Do not upload sensitive production data** unless you understand the [local storage model](./docs/LOCAL_FIRST_SETUP.md) and current [security limitations](./docs/KNOWN_LIMITATIONS.md).
+> Use [issue templates](.github/ISSUE_TEMPLATE/) for feedback and bug reports.
+> See the [Beta Reviewer Guide](./docs/BETA_REVIEWER_GUIDE.md) to get started.
+
+
 Backend-first Company Intelligence Engine for local evidence, bounded analysis, claim verification, cited decision reports, and early entity relationship mapping.
 
 ## What This Project Does
