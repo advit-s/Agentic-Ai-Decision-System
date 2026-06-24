@@ -14,6 +14,8 @@ import "../styles/provider-manager.css";
 function ProviderManager({ onClose }) {
   const [providers, setProviders] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [addingFake, setAddingFake] = useState(false);
+  const [fakeResult, setFakeResult] = useState(null);
   const [form, setForm] = useState({
     name: "",
     base_url: "",
@@ -47,6 +49,36 @@ function ProviderManager({ onClose }) {
     setForm({ name: "", base_url: "", api_key_env: "", default_model: "" });
     setError(null);
     setTestResult(null);
+  }
+
+  async function handleAddFake() {
+    setAddingFake(true);
+    setFakeResult(null);
+    try {
+      // Check if fake provider already exists
+      const existing = providers.find(p => p.provider_type === 'fake' || p.name.toLowerCase() === 'fake');
+      if (existing) {
+        setFakeResult({ success: true, message: `Fake provider "${existing.name}" already exists` });
+        await loadProviders();
+        setAddingFake(false);
+        return;
+      }
+      await createProvider({
+        name: 'Fake Provider',
+        provider_type: 'fake',
+        base_url: '',
+        default_model: 'fake-model',
+        api_key_env: '',
+      });
+      // Set as default
+      try { await setDefaultProvider('Fake Provider'); } catch {}
+      await loadProviders();
+      setFakeResult({ success: true, message: 'Fake provider created and set as default' });
+    } catch (err) {
+      setFakeResult({ success: false, message: err.message || 'Failed to create fake provider' });
+    } finally {
+      setAddingFake(false);
+    }
   }
 
   async function handleAdd() {
@@ -134,7 +166,40 @@ function ProviderManager({ onClose }) {
 
       <div className="provider-list">
         {providers.length === 0 && !showAdd && (
-          <div className="provider-empty">No providers configured</div>
+          <div className="provider-empty">
+            <p>No providers configured</p>
+            <button
+              onClick={handleAddFake}
+              disabled={addingFake}
+              className="toolbar-btn toolbar-btn-primary"
+              style={{ marginTop: 12, padding: '8px 24px' }}
+            >
+              {addingFake ? '⏳ Adding...' : '⚡ Add Fake Provider (one-click)'}
+            </button>
+            {fakeResult && (
+              <div className={`provider-test-result ${fakeResult.success ? 'ok' : 'error'}`}>
+                {fakeResult.success ? '✓' : '✗'} {fakeResult.message}
+              </div>
+            )}
+          </div>
+        )}
+
+        {providers.length > 0 && (
+          <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              onClick={handleAddFake}
+              disabled={addingFake}
+              className="toolbar-btn toolbar-btn-secondary"
+              style={{ padding: '4px 12px', fontSize: 13 }}
+            >
+              {addingFake ? '⏳...' : '⚡ Add Fake Provider'}
+            </button>
+            {fakeResult && (
+              <span style={{ fontSize: 12, color: fakeResult.success ? '#4ade80' : '#f87171' }}>
+                {fakeResult.success ? '✓' : '✗'} {fakeResult.message}
+              </span>
+            )}
+          </div>
         )}
 
         {providers.map((p, i) => {

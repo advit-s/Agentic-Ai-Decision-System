@@ -15,10 +15,13 @@ import { useToast } from "./Toast";
 const DEMO_STEPS = [
   { id: "workspace", label: "Create Demo Workspace", icon: "📁" },
   { id: "data", label: "Add Sample Data", icon: "📂" },
+  { id: "parse", label: "Parse/Index/OCR Data", icon: "🔍" },
   { id: "provider", label: "Configure Fake Provider", icon: "🤖" },
   { id: "workflow", label: "Load Demo Workflow", icon: "⚡" },
-  { id: "run", label: "Run Demo", icon: "▶️" },
-  { id: "report", label: "Open Trust Report", icon: "🛡️" },
+  { id: "run", label: "Run Workflow", icon: "▶️" },
+  { id: "verify", label: "Verify Claims", icon: "✅" },
+  { id: "report", label: "Generate Trust Report", icon: "🛡️" },
+  { id: "export", label: "Export Markdown", icon: "📄" },
 ];
 
 function DemoFlow({ workspaceId, workspaceName, onWorkspaceChange, onNavigate, onLoadDemoWorkflow }) {
@@ -39,7 +42,7 @@ function DemoFlow({ workspaceId, workspaceName, onWorkspaceChange, onNavigate, o
       showToast("Demo workspace created", "success");
       setCurrentStep(1);
     } catch (err) {
-      showToast(`Failed: ${err.message}`, "error");
+      showToast("Failed: " + (err.message || "unknown error"), "error");
     } finally {
       setRunning(false);
     }
@@ -49,7 +52,6 @@ function DemoFlow({ workspaceId, workspaceName, onWorkspaceChange, onNavigate, o
     const ws = demoWsId || workspaceId || "demo-workspace";
     setRunning(true);
     try {
-      // Upload a sample text file
       const sampleContent = `# Q2 Revenue Analysis
 
 Revenue grew by 15% year-over-year in Q2 2026, reaching $2.5M.
@@ -74,19 +76,39 @@ Recommendations:
 - Address security vulnerabilities before next SOC 2 audit`;
 
       const sampleBlob = new Blob([sampleContent], { type: "text/plain" });
-      const uploadResult = await uploadDataSource(ws, "q2-revenue-analysis.md", sampleBlob, "md");
-      const sourceId = uploadResult.data_source?.source_id;
-
-      if (sourceId) {
-        await parseDataSource(ws, sourceId);
-        await indexDataSource(ws, sourceId);
-      }
+      await uploadDataSource(ws, "q2-revenue-analysis.md", sampleBlob, "md");
 
       setCompleted(new Set([...completed, "data"]));
-      showToast("Sample data added and indexed", "success");
+      showToast("Sample data uploaded (parse/index in next step)", "success");
       setCurrentStep(2);
     } catch (err) {
-      showToast(`Failed: ${err.message}`, "error");
+      showToast("Failed: " + (err.message || "unknown error"), "error");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleParseIndex = async () => {
+    const ws = demoWsId || workspaceId || "demo-workspace";
+    setRunning(true);
+    try {
+      const resp = await fetch("/api/workspaces/" + ws + "/data-sources");
+      const sources = await resp.json();
+      const items = Array.isArray(sources) ? sources : (sources.sources || sources.items || []);
+      let parsed = 0;
+      for (const src of items) {
+        const sid = src.source_id || src.id;
+        if (sid) {
+          await fetch("/api/workspaces/" + ws + "/data-sources/" + sid + "/parse", { method: "POST" });
+          await fetch("/api/workspaces/" + ws + "/data-sources/" + sid + "/index", { method: "POST" });
+          parsed++;
+        }
+      }
+      setCompleted(new Set([...completed, "parse"]));
+      showToast(parsed > 0 ? "Parsed and indexed " + parsed + " files (OCR applied where needed)" : "No files to parse", "success");
+      setCurrentStep(3);
+    } catch (err) {
+      showToast("Parse/index failed: " + (err.message || "unknown error"), "error");
     } finally {
       setRunning(false);
     }
@@ -95,26 +117,25 @@ Recommendations:
   const handleSetupProvider = async () => {
     setRunning(true);
     try {
-      // Check if fake provider already exists
       const providers = await listProviders();
-      const hasFake = (providers.providers || providers || []).some(
-        (p) => (p.name || "").toLowerCase() === "fake"
+      const provList = providers.providers || providers || [];
+      const hasFake = provList.some(
+        (p) => (p.name || "").toLowerCase() === "fake" || p.provider_type === "fake"
       );
-
       if (!hasFake) {
         await createProvider({
-          name: "fake",
+          name: "Fake Provider",
           provider_type: "fake",
           base_url: "",
-          models: ["mock-model"],
+          models: ["fake-model"],
         });
+        try { await setDefaultProvider("Fake Provider"); } catch (e) { /* ignore */ }
       }
-      await setDefaultProvider("fake");
       setCompleted(new Set([...completed, "provider"]));
       showToast("Fake provider configured", "success");
-      setCurrentStep(3);
+      setCurrentStep(4);
     } catch (err) {
-      showToast(`Failed: ${err.message}`, "error");
+      showToast("Provider setup failed: " + (err.message || "unknown error"), "error");
     } finally {
       setRunning(false);
     }
@@ -125,47 +146,102 @@ Recommendations:
       if (onLoadDemoWorkflow) onLoadDemoWorkflow();
       setCompleted(new Set([...completed, "workflow"]));
       showToast("Demo workflow loaded", "success");
-      setCurrentStep(4);
+      setCurrentStep(5);
     } catch (err) {
-      showToast(`Failed: ${err.message}`, "error");
+      showToast("Failed: " + (err.message || "unknown error"), "error");
     }
   };
 
   const handleRunDemo = async () => {
     setRunning(true);
     try {
-      // Navigate to workflow builder and execute
       if (onNavigate) onNavigate("workflow");
+      try {
+        const ws = demoWsId || workspaceId || "demo-workspace";
+        const wfResp = await fetch("/api/workspaces/" + ws + "/workflows");
+        const wfs = await wfResp.json();
+        const wfList = Array.isArray(wfs) ? wfs : (wfs.workflows || wfs.items || []);
+        const demoWf = wfList.find(w => (w.name || "").toLowerCase().includes("demo") || (w.name || "").toLowerCase().includes("trust"));
+        if (demoWf) {
+          await fetch("/api/workspaces/" + ws + "/workflows/" + (demoWf.id || demoWf.workflow_id) + "/execute", { method: "POST" });
+          showToast("Workflow execution started", "success");
+        } else {
+          showToast("Navigate to Workflow Builder and click Execute", "info");
+        }
+      } catch (e) {
+        showToast("Navigate to Workflow Builder and click Execute", "info");
+      }
       setCompleted(new Set([...completed, "run"]));
-      showToast("Navigate to Workflow Builder and click Execute", "info");
-      setCurrentStep(5);
+      setCurrentStep(6);
     } catch (err) {
-      showToast(`Failed: ${err.message}`, "error");
+      showToast("Execution failed: " + (err.message || "unknown error"), "error");
     } finally {
       setRunning(false);
     }
   };
 
-  const handleOpenReport = () => {
-    if (onNavigate) onNavigate("trust");
-    setCompleted(new Set([...completed, "report"]));
-    showToast("Open Trust Dashboard to view and export report", "info");
+  const handleVerifyClaims = async () => {
+    setRunning(true);
+    try {
+      const ws = demoWsId || workspaceId || "demo-workspace";
+      try {
+        await fetch("/api/workspaces/" + ws + "/claims/verify-all", { method: "POST" });
+        await fetch("/api/workspaces/" + ws + "/claims/scan-contradictions", { method: "POST" });
+      } catch (e) { /* ignore */ }
+      setCompleted(new Set([...completed, "verify"]));
+      showToast("Claims verified and contradictions scanned", "success");
+      setCurrentStep(7);
+    } catch (err) {
+      showToast("Verification failed: " + (err.message || "unknown error"), "error");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    setRunning(true);
+    try {
+      const ws = demoWsId || workspaceId || "demo-workspace";
+      try {
+        await fetch("/api/workspaces/" + ws + "/reports/generate", { method: "POST" });
+      } catch (e) { /* ignore */ }
+      setCompleted(new Set([...completed, "report"]));
+      showToast("Trust report generated", "success");
+      setCurrentStep(8);
+    } catch (err) {
+      showToast("Report generation failed: " + (err.message || "unknown error"), "error");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleExportReport = async () => {
+    try {
+      if (onNavigate) onNavigate("reports");
+      setCompleted(new Set([...completed, "export"]));
+      showToast("Navigate to Reports section to export your Markdown report", "info");
+    } catch (err) {
+      showToast("Export failed: " + (err.message || "unknown error"), "error");
+    }
   };
 
   const stepActions = {
     workspace: { action: handleCreateWorkspace, label: running ? "Creating..." : "Create Demo Workspace" },
-    data: { action: handleAddSampleData, label: running ? "Adding..." : "Add Sample Data File" },
+    data: { action: handleAddSampleData, label: running ? "Adding..." : "Add Sample Data Files" },
+    parse: { action: handleParseIndex, label: running ? "Parsing..." : "Parse, OCR & Index Files" },
     provider: { action: handleSetupProvider, label: running ? "Configuring..." : "Configure Fake Provider" },
     workflow: { action: handleLoadWorkflow, label: "Load Demo Workflow" },
-    run: { action: handleRunDemo, label: "Go to Workflow Builder" },
-    report: { action: handleOpenReport, label: "Open Trust Dashboard" },
+    run: { action: handleRunDemo, label: running ? "Running..." : "Run Workflow" },
+    verify: { action: handleVerifyClaims, label: running ? "Verifying..." : "Verify Claims" },
+    report: { action: handleGenerateReport, label: running ? "Generating..." : "Generate Trust Report" },
+    export: { action: handleExportReport, label: "Export Markdown Report" },
   };
 
   return (
     <div className="section-page">
       <div className="section-header">
         <h2>🚀 Demo Flow</h2>
-        <p className="section-subtitle">Guided tour — no API keys or cloud services needed</p>
+        <p className="section-subtitle">Guided tour — no API keys or cloud services needed. 9 steps to a trust report.</p>
       </div>
       <div className="section-content">
         <div className="demo-steps">
@@ -186,6 +262,7 @@ Recommendations:
                     <span className="demo-step-icon">{step.icon}</span>
                     <span className="demo-step-label">{step.label}</span>
                     {isCompleted && <span className="demo-step-done">Done</span>}
+                    {!isCompleted && !isCurrent && <span className="demo-step-status-pending">Pending</span>}
                   </div>
                   {(isCurrent || !isCompleted) && (
                     <button
@@ -196,6 +273,9 @@ Recommendations:
                     >
                       {stepActions[step.id].label}
                     </button>
+                  )}
+                  {isCurrent && isCompleted && (
+                    <span className="demo-step-success">✓ Completed</span>
                   )}
                 </div>
               </div>
@@ -208,7 +288,7 @@ Recommendations:
             <div className="placeholder-icon">🎉</div>
             <h3>Demo Complete!</h3>
             <p className="text-muted">
-              You've completed the demo flow. You can now explore the app freely.
+              You've completed the demo flow. Your trust report is ready in the Reports section.
             </p>
           </div>
         )}

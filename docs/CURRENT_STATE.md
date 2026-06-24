@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
- > **Last updated:** 2026-06-23 (v1.24.0-dev — Single App Integration)
- > **Package version:** 1.24.0-dev
+ > **Last updated:** 2026-06-23 (v1.25.0-dev — End-to-End Demo Hardening + Local Beta Release Prep)
+ > **Package version:** 1.25.0-dev
 > **Previous milestone:** v1.23.1 — Finish Document Ingestion Wiring + Test Reliability
-> **Current milestone:** v1.24.0 — Single App Integration + Data Sources in React Workflow Builder
+> **Current milestone:** v1.25.0 — End-to-End Demo Hardening + Local Beta Release Prep + Data Sources in React Workflow Builder
 > **Python:** >=3.11
 
 ---
@@ -37,7 +37,8 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 |------|--------|-------|
 | CLI framework | ✅ **Production** | Typer-based CLI; all documented commands work offline |
 | Document indexing | ✅ **Production** | Chroma-based chunking, loading, and retrieval |
-| Document parsing (PDF/DOCX/XLSX) | ✅ **Production** | Local text extraction via pypdf, python-docx, openpyxl; no OCR; data_only formulas |
+| Document parsing (PDF/DOCX/XLSX) | ✅ **Production** | Local text extraction via pypdf, python-docx, openpyxl; OCR fallback via tesserocr for scanned PDFs |
+| Image OCR (PNG/JPG/TIFF) | ✅ **Production** | Local OCR for scanned images via tesserocr; automatic fallback for textless PDFs |
 | Claim ledger | ✅ **Production** | Create/store/query claims; statuses (supported, contradicted, unsupported, uncertain, needs_review) |
 | Verifier | ✅ **Production** | Check claims against evidence; deterministic local verifier with keyword/contradiction detection |
 | Decision report generation | ✅ **Production** | Trust report format with verification summary, evidence quality, contradictions, and clear status separation |

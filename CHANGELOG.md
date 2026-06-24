@@ -1,3 +1,12 @@
+## [1.25.0] - 2026-06-23 — End-to-End Demo Hardening + Local Beta Release Prep (with OCR support)
+### Added
+- **OCR support**: Local OCR for scanned PDFs and images via tesserocr
+- **Demo sample data**: demo/sample-data/ with scanned contract and invoices
+- **Demo seed script**: Hardened scripts/local-demo-seed.sh for repeatable demo setup
+- **E2E smoke test**: scripts/e2e-local-demo-smoke.sh for full demo validation
+- **Persistence validation**: scripts/test-persistence-restart.sh
+- **DEMO_PATH.md**: Complete demo walkthrough documentation
+
 ## [1.24.0] - 2026-06-23 — Single App Integration + Data Sources in React Workflow Builder
 ### Added
 - **App shell navigation**: Sidebar with 10 sections (Demo Flow, Workflow Builder, Data Sources, Evidence Search, Execution History, Claim Ledger, Trust Dashboard, Reports, Providers, Settings)

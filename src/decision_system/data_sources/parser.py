@@ -596,6 +596,13 @@ def _init_registry():
         DocxParser(),
         XlsxParser(),
     ]
+    # Conditionally add OCR parsers for images
+    try:
+        from decision_system.data_sources.ocr_parser import ImageOcrParser
+        for ext in ImageOcrParser.supported_extensions:
+            _registry[ext.lower()] = ImageOcrParser()
+    except ImportError:
+        pass
     for parser in parsers:
         for ext in parser.supported_extensions:
             _registry[ext.lower()] = parser
@@ -673,6 +680,20 @@ def _do_parse(
         result = parser.parse(path, source_id, workspace_id)
     except Exception as e:
         result.warnings.append(f"Parsing error: {e}")
+
+    # OCR fallback: if PDF produced no text, try scanned PDF OCR
+    if ext_lower == ".pdf" and result and not result.text.strip():
+        try:
+            from decision_system.data_sources.ocr_parser import ScannedPdfParser
+            ocr_parser = ScannedPdfParser()
+            ocr_result = ocr_parser.parse(path, source_id, workspace_id)
+            if ocr_result and ocr_result.text.strip():
+                result = ocr_result
+                result.warnings.append("Text extracted via OCR (scanned PDF)")
+        except ImportError:
+            pass
+        except Exception as e:
+            result.warnings.append(f"OCR fallback attempted but failed: {e}")
 
     return result.chunks, result.warnings, result.metadata
 

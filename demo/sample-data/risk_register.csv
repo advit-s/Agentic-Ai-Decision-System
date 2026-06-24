@@ -1,0 +1,9 @@
+risk_id,description,category,likelihood,impact,status,owner
+RISK-001,Customer data migration may cause temporary billing disruptions,operations,Medium,High,open,cto
+RISK-002,Staff retraining needed for new billing system,people,Medium,Medium,open,hr
+RISK-003,Legacy system decommissioning overlaps with peak billing period,operations,Low,High,open,cto
+RISK-004,Security compliance gap during migration,security,Low,Critical,mitigated,ciso
+RISK-005,Cloud provider outage affects SaaS availability,infrastructure,Low,Critical,open,cto
+RISK-006,Budget overrun on migration project,financial,Medium,Medium,open,cfo
+RISK-007,Key personnel departure during critical phase,people,Medium,High,open,hr
+RISK-008,Third-party integration failure,technical,Low,High,open,engineering

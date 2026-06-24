@@ -49,4 +49,6 @@ __all__ = [
     "parse_document_from_content",
     "profile_csv",
     "profile_json_content",
+    "ImageOcrParser",
+    "ScannedPdfParser",
 ]

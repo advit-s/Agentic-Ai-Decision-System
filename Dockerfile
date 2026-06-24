@@ -9,6 +9,8 @@ WORKDIR /app
 # System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy project files
@@ -21,7 +23,7 @@ COPY tests/ tests/
 COPY web/ web/
 
 # Install in dev mode (includes test deps)
-RUN pip install --no-cache-dir -e ".[dev,doc-parsing]"
+RUN pip install --no-cache-dir -e ".[dev,doc-parsing,ocr]"
 
 # Create .decision_system/ dir (generated at runtime, ignored by git)
 RUN mkdir -p .decision_system
@@ -29,6 +31,7 @@ RUN mkdir -p .decision_system
 # Default environment: fake/offline mode
 ENV DECISION_PROVIDER=fake
 ENV PYTHONUNBUFFERED=1
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 
 # Default port for FastAPI
 EXPOSE 8000
