@@ -1,7 +1,7 @@
 # Graph Intelligence Audit — v1.26 Baseline
 
 > **Date:** 2026-06-23
-> **Version:** 1.26.0-dev
+> **Version:** 1.26.1-dev
 > **Audit scope:** Existing graph, ontology, insight, data-source, and workflow modules
 
 ---

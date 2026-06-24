@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+  <!-- ⚠️ DEPRECATED LEGACY PROTOTYPE ⚠️
+       This static UI is a v1.7 prototype and is no longer the main product surface.
+       The main app is the React Workflow Builder at web/workflow-builder/,
+       served by Docker on port 3000.
+       See docs/FRONTEND_SURFACE_AUDIT.md for details. -->
+
     <div class="app-shell">
       <!-- Sidebar -->
       <aside class="sidebar" aria-label="Primary navigation">
@@ -24,6 +30,7 @@
           <button class="nav-item" type="button" data-view="war-room">War Room</button>
           <button class="nav-item" type="button" data-view="workflows">⚡ Workflows</button>
           <button class="nav-item" type="button" data-view="workspaces">Workspaces</button>
+          <button class="nav-item" type="button" data-view="data-sources">📁 Data Sources</button>
           <button class="nav-item" type="button" data-view="connectors">Connectors</button>
           <button class="nav-item" type="button" data-view="security">Security &amp; Governance</button>
           <button class="nav-item" type="button" data-view="observability">Observability</button>
@@ -153,6 +160,54 @@
         </section>
 
         <!-- ===== 3. Data & Ontology ===== -->
+<section id="data-sources" class="view" aria-labelledby="data-sources-title">
+  <div class="section-heading">
+    <h2 id="data-sources-title">📁 Data Sources</h2>
+    <p class="section-description">Upload, manage, and index workspace data sources.</p>
+  </div>
+
+  <div class="section-subhead">
+    <h3>Upload File</h3>
+  </div>
+  <div id="uploadForm" class="card">
+    <div class="card-row">
+      <input type="text" id="dsWorkspaceId" placeholder="Workspace ID" value="demo" class="input" />
+      <input type="text" id="dsFilename" placeholder="filename.ext" class="input" />
+      <textarea id="dsFileContent" rows="4" placeholder="File content..." class="input" style="flex: 2;"></textarea>
+      <button class="btn primary" onclick="uploadDataSource()">Upload</button>
+    </div>
+    <p id="uploadStatus" class="small-muted"></p>
+  </div>
+
+  <div class="section-subhead">
+    <h3>Workspace Data Sources</h3>
+  </div>
+  <div id="dataSourceList" class="card">
+    <p class="small-muted">No data sources loaded. Enter a workspace ID and click "List".</p>
+  </div>
+  <div class="card-row">
+    <input type="text" id="dsListWorkspaceId" placeholder="Workspace ID" value="demo" class="input" />
+    <button class="btn" onclick="listDataSources()">List</button>
+    <button class="btn primary" onclick="searchEvidence()">Search Evidence</button>
+    <input type="text" id="dsSearchQuery" placeholder="Search query..." class="input" />
+  </div>
+
+  <div id="evidenceResults" class="card" style="display:none;">
+    <h4>Evidence Results</h4>
+    <div id="evidenceResultsContent"></div>
+  </div>
+
+  <div class="section-subhead">
+    <h3>About Local Storage</h3>
+  </div>
+  <div class="card">
+    <p class="small-muted">Files are stored locally under <code>.decision_system/</code>.
+    Supported types: <code>.txt</code>, <code>.md</code>, <code>.json</code>, <code>.csv</code>, <code>.pdf</code>, <code>.docx</code>, <code>.xlsx</code>.
+    PDF uses text extraction (no OCR). DOCX parses paragraphs, headings, and tables. XLSX sheets are profiled and searchable.</p>
+  </div>
+</section>
+
+
         <section id="data" class="view" aria-labelledby="data-title">
           <div class="section-heading">
             <div>

@@ -56,6 +56,12 @@ class GraphExtractionNodeV2(WorkflowNode):
         raw_texts = inputs.get("texts") or []
 
         if not raw_texts:
+            from decision_system.graphing.store import record_extraction_run
+            record_extraction_run(
+                workspace_id=workspace_id,
+                status="failed",
+                errors=["No texts provided for extraction"],
+            )
             return {
                 "error": "No texts provided for extraction",
                 "nodes_extracted": 0,
@@ -77,6 +83,12 @@ class GraphExtractionNodeV2(WorkflowNode):
         ]
 
         if not text_tuples:
+            from decision_system.graphing.store import record_extraction_run
+            record_extraction_run(
+                workspace_id=workspace_id,
+                status="failed",
+                errors=["All provided texts were empty"],
+            )
             return {
                 "error": "All provided texts were empty",
                 "warnings": ["No non-empty texts found"],
@@ -122,6 +134,20 @@ class GraphExtractionNodeV2(WorkflowNode):
             audit_risk_extraction_completed(workspace_id, risks_count=len(result.risks))
         if result.metrics:
             audit_metric_extraction_completed(workspace_id, metrics_count=len(result.metrics))
+
+        # Record extraction run
+        from decision_system.graphing.store import record_extraction_run
+        record_extraction_run(
+            workspace_id=workspace_id,
+            status="completed",
+            mode="deterministic",
+            nodes_created=len(result.nodes),
+            edges_created=len(result.edges),
+            risks_created=len(result.risks),
+            metrics_created=len(result.metrics),
+            warnings=result.warnings,
+            duration_ms=_duration_ms,
+        )
 
         return {
             "nodes_extracted": len(result.nodes),

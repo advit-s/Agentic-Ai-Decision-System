@@ -29,7 +29,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 ```bash
 # After starting the backend:
 curl http://localhost:8000/health
-# → {"status":"ok","version":"1.26.0-dev","provider":"fake"}
+# → {"status":"ok","version":"1.26.1-dev","provider":"fake"}
 
 # Run the demo seed:
 bash scripts/local-demo-seed.sh

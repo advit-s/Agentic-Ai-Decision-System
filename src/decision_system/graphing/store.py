@@ -431,3 +431,145 @@ def load_knowledge_graph(path: Path | str = DEFAULT_GRAPH_PATH) -> "KnowledgeGra
     if not graph_path.exists():
         return KnowledgeGraph()
     return KnowledgeGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
+
+
+# ---------------------------------------------------------------------------
+# Extraction Run Records
+# ---------------------------------------------------------------------------
+
+
+def _workspace_runs_path(workspace_id: str, data_root: Path | None = None) -> Path:
+    """Return path to the extraction runs JSONL for a workspace."""
+    root = data_root or DEFAULT_DATA_ROOT
+    return _workspace_dir(root, workspace_id) / "runs.jsonl"
+
+
+def save_extraction_run(run: "ExtractionRunRecord", data_root: Path | None = None) -> "ExtractionRunRecord":
+    """Append an extraction run record to the workspace runs file."""
+    from decision_system.graphing.models import ExtractionRunRecord
+    path = _workspace_runs_path(run.workspace_id, data_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(run.model_dump_json(exclude_none=True) + "\n")
+    return run
+
+
+def list_extraction_runs(workspace_id: str, data_root: Path | None = None) -> list["ExtractionRunRecord"]:
+    """List all extraction run records for a workspace, newest first."""
+    from decision_system.graphing.models import ExtractionRunRecord
+    path = _workspace_runs_path(workspace_id, data_root)
+    if not path.exists():
+        return []
+    runs: list[ExtractionRunRecord] = []
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                runs.append(ExtractionRunRecord.model_validate_json(line))
+            except Exception:
+                continue
+    # Sort by started_at descending (newest first); empty strings sort last
+    runs.sort(key=lambda r: r.started_at, reverse=True)
+    return runs
+
+
+def get_extraction_run(workspace_id: str, run_id: str, data_root: Path | None = None) -> "ExtractionRunRecord | None":
+    """Get a specific extraction run by ID."""
+    runs = list_extraction_runs(workspace_id, data_root)
+    for r in runs:
+        if r.run_id == run_id:
+            return r
+    return None
+
+
+def get_latest_extraction_run(workspace_id: str, data_root: Path | None = None) -> "ExtractionRunRecord | None":
+    """Get the most recent extraction run for a workspace."""
+    runs = list_extraction_runs(workspace_id, data_root)
+    return runs[0] if runs else None
+
+
+def record_extraction_run(
+    workspace_id: str,
+    *,
+    status: str = "completed",
+    mode: str = "deterministic",
+    include_ai: bool = False,
+    source_ids: list[str] | None = None,
+    chunks_processed: int = 0,
+    nodes_created: int = 0,
+    edges_created: int = 0,
+    risks_created: int = 0,
+    metrics_created: int = 0,
+    warnings: list[str] | None = None,
+    errors: list[str] | None = None,
+    duration_ms: float = 0.0,
+    data_root: Path | None = None,
+) -> "ExtractionRunRecord":
+    """Create and persist an extraction run record.
+
+    Returns the saved ExtractionRunRecord.
+    """
+    from datetime import datetime, timezone
+    from decision_system.graphing.models import ExtractionRunRecord
+
+    now = datetime.now(timezone.utc).isoformat()
+    run = ExtractionRunRecord(
+        workspace_id=workspace_id,
+        started_at=now,
+        completed_at=now,
+        status=status,
+        mode=mode,
+        include_ai=include_ai,
+        source_ids=source_ids or [],
+        chunks_processed=chunks_processed,
+        nodes_created=nodes_created,
+        edges_created=edges_created,
+        risks_created=risks_created,
+        metrics_created=metrics_created,
+        warnings=warnings or [],
+        errors=errors or [],
+        duration_ms=duration_ms,
+    )
+    return save_extraction_run(run, data_root)
+
+
+# ---------------------------------------------------------------------------
+# Graph-to-Claim Store
+# ---------------------------------------------------------------------------
+
+
+def _workspace_claims_path(workspace_id: str, data_root: Path | None = None) -> Path:
+    """Return path to the workspace claims JSONL file."""
+    root = data_root or DEFAULT_DATA_ROOT
+    return _workspace_dir(root, workspace_id) / "claims.jsonl"
+
+
+def save_workspace_claim(claim: dict) -> dict:
+    """Append a claim record to the workspace claims file and return it."""
+    from decision_system.graphing.models import ExtractionRunRecord
+    ws_id = claim.get("workspace_id", claim.get("workspaceId", "default"))
+    path = _workspace_claims_path(ws_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(claim, default=str) + "\n")
+    return claim
+
+
+def list_workspace_claims(workspace_id: str, data_root: Path | None = None) -> list[dict]:
+    """List all claims for a workspace."""
+    path = _workspace_claims_path(workspace_id, data_root)
+    if not path.exists():
+        return []
+    claims: list[dict] = []
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                claims.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return claims

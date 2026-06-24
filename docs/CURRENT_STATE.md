@@ -1,9 +1,9 @@
 # Current State — Agentic Decision System
 
- > **Last updated:** 2026-06-24 (v1.26.0-dev — End-to-End Demo Hardening + Local Beta Release Prep)
- > **Package version:** 1.26.0-dev
+ > **Last updated:** 2026-06-24 (v1.26.1-dev — Graph UI, Audit Metrics API + Extraction Quality Hardening)
+ > **Package version:** 1.26.1-dev
 > **Previous milestone:** v1.25.0 — End-to-End Demo Hardening + Local Beta Release Prep
-> **Current milestone:** v1.26.0 — Knowledge Graph + Entity/Risk Extraction v2
+> **Current milestone:** v1.26.1 — Graph UI, Audit Metrics API + Extraction Quality Hardening
 > **Python:** >=3.11
 
 ---
@@ -78,6 +78,12 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 | Trust report graph sections | ✅ **Production** | Entity Summary, Key Relationships, Extracted Risks, Key Metrics in trust reports |
 | Claim-graph integration | ✅ **Production** | Claims reference graph nodes, edges, risks, metrics via ref fields |
 | Graph node tests | ✅ **Production** | 108+ tests covering store, extraction, API, and workflow nodes |
+| Graph audit/metrics API | ✅ **Production** | GET endpoints for workspace-scoped audit events, metrics/aggregates, extraction runs |
+| Graph extraction run records | ✅ **Production** | Persistent run records with status, counts, duration, warnings, errors; wired into API and workflow nodes |
+| Graph UI extraction history | ✅ **Production** | Extraction status display, last run summary, run history modal in GraphPage |
+| Graph evidence preview | ✅ **Production** | Clickable evidence links on entities, risks, metrics with detail modal |
+| Graph extraction deduplication | ✅ **Production** | Stopword filtering, duplicate risk/metric merging, normalized name dedup |
+| Graph-to-claim action | ✅ **Production** | POST /claims endpoint creates pending claims from risks, metrics, relationships |
 | Graph audit/observability | ✅ **Production** | Graph extraction events and metrics via observability system (16 tests) |
 | CSV data profiling | ✅ **Production** | Profile company datasets with quality/detection stats |
 | Insight/risk detection | ✅ **Production** | Deterministic detectors for missing data, quality, concentration, revenue risk |
@@ -240,10 +246,10 @@ npm run dev
 
 ## Next milestone
 
-Continuing from v1.22
+v1.27 — Security, Auth, RBAC + Governance Foundation
 
-1. **PDF/DOCX/XLSX parsing support** — Broader file type coverage
-2. **Frontend Data Sources page polish** — Rich data source management UI
-3. **Workspace export/import** — Reliable backup/restore
-4. **Frontend live-mode polish** — Wire mock-only components to real API
-5. **Docker Compose v2** — Improved Docker startup and networking
+1. **Authentication & RBAC** — User roles, workspace-level access control
+2. **Audit logging governance** — Tamper-evident audit trails, compliance exports
+3. **Secrets management** — Encrypted provider credentials, key rotation
+4. **Multi-tenant workspace isolation** — Hard separation between workspace data
+5. **Governance dashboards** — Compliance status, access reviews, audit export

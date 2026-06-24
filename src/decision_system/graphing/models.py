@@ -260,3 +260,29 @@ class KnowledgeGraph(BaseModel):
 
     entities: list[Entity] = Field(default_factory=list)
     relationships: list[Relationship] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# v2 — Extraction Run Record
+# ---------------------------------------------------------------------------
+
+
+class ExtractionRunRecord(BaseModel):
+    """Record of a single graph extraction run."""
+
+    run_id: str = Field(default_factory=lambda: __import__("uuid").uuid4().hex)
+    workspace_id: str = ""
+    started_at: str = ""
+    completed_at: str = ""
+    status: str = "running"
+    mode: str = "deterministic"
+    include_ai: bool = False
+    source_ids: list[str] = Field(default_factory=list)
+    chunks_processed: int = 0
+    nodes_created: int = 0
+    edges_created: int = 0
+    risks_created: int = 0
+    metrics_created: int = 0
+    warnings: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+    duration_ms: float = 0.0

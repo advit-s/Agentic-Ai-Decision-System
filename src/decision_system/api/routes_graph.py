@@ -8,7 +8,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from decision_system.graphing.audit import (
     graph_extraction_completed,
@@ -22,6 +22,8 @@ from decision_system.graphing.models import NodeType
 from decision_system.graphing.store import (
     DEFAULT_DATA_ROOT,
     get_edge,
+    get_extraction_run,
+    get_latest_extraction_run,
     get_node,
     get_workspace_meta,
     list_edges,
@@ -29,12 +31,12 @@ from decision_system.graphing.store import (
     list_metrics,
     list_nodes,
     list_risks,
+    record_extraction_run,
     upsert_edge,
     upsert_metric,
     upsert_node,
     upsert_risk,
 )
-
 router = APIRouter(prefix="/workspaces/{workspace_id}/graph", tags=["graph"])
 
 # ---------------------------------------------------------------------------
@@ -42,6 +44,10 @@ router = APIRouter(prefix="/workspaces/{workspace_id}/graph", tags=["graph"])
 # ---------------------------------------------------------------------------
 
 from pydantic import BaseModel, Field
+from datetime import datetime
+
+from decision_system.graphing.models import ExtractionRunRecord
+from decision_system.observability.store import list_metric_names, load_metric_points
 
 
 class TextSource(BaseModel):
@@ -140,6 +146,22 @@ def extract_graph(
         if result.metrics:
             audit_metric_extraction_completed(workspace_id, metrics_count=len(result.metrics))
 
+        # Record extraction run
+        record_extraction_run(
+            workspace_id=workspace_id,
+            status="completed",
+            mode=request.mode,
+            include_ai=request.include_ai,
+            source_ids=[t.source_id for t in request.texts if t.source_id],
+            chunks_processed=len(request.texts),
+            nodes_created=len(result.nodes),
+            edges_created=len(result.edges),
+            risks_created=len(result.risks),
+            metrics_created=len(result.metrics),
+            warnings=result.warnings,
+            duration_ms=duration_ms,
+        )
+
         return ExtractionResponse(
             workspace_id=workspace_id,
             nodes_extracted=len(result.nodes),
@@ -151,6 +173,17 @@ def extract_graph(
     except Exception as exc:
         duration_ms = (time.monotonic() - start_time) * 1000.0
         graph_extraction_failed(workspace_id, str(exc))
+        # Record failed extraction run
+        record_extraction_run(
+            workspace_id=workspace_id,
+            status="failed",
+            mode=request.mode,
+            include_ai=request.include_ai,
+            source_ids=[t.source_id for t in request.texts if t.source_id],
+            chunks_processed=len(request.texts),
+            errors=[str(exc)],
+            duration_ms=duration_ms,
+        )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
@@ -235,3 +268,264 @@ def get_graph_edge(workspace_id: str, edge_id: str) -> dict | None:
     if edge is None:
         raise HTTPException(status_code=404, detail=f"Edge not found: {edge_id}")
     return edge.model_dump(mode="json")
+
+
+# ---------------------------------------------------------------------------
+# Audit / Metrics / Extraction Run response models
+# ---------------------------------------------------------------------------
+
+_GRAPH_EVENT_NAMES = frozenset({
+    "graph_extraction_started",
+    "graph_extraction_completed",
+    "graph_extraction_failed",
+    "risk_extraction_completed",
+    "metric_extraction_completed",
+    "graph_fact_created",
+})
+
+_GRAPH_METRIC_NAMES = frozenset({
+    "graph_extraction_duration_ms",
+    "entities_extracted_count",
+    "edges_extracted_count",
+    "risks_extracted_count",
+    "metrics_extracted_count",
+    "graph_extraction_failure_count",
+})
+
+
+@router.get("/audit-events")
+def list_graph_audit_events(
+    workspace_id: str,
+    event_type: str | None = Query(None, description="Filter by event type"),
+    limit: int = Query(100, ge=1, le=1000),
+) -> dict:
+    """List graph audit events for a workspace, filtering by workspace_id label."""
+    all_events: list[dict] = []
+    metric_names = list_metric_names()
+    for name in metric_names:
+        if name not in _GRAPH_EVENT_NAMES:
+            continue
+        if event_type and name != event_type:
+            continue
+        points = load_metric_points(name)
+        for p in points:
+            labels = p.labels or {}
+            if labels.get("workspace_id") != workspace_id:
+                continue
+            all_events.append({
+                "event_type": name,
+                "timestamp": p.timestamp.isoformat(),
+                "value": p.value,
+                "labels": labels,
+            })
+    all_events.sort(key=lambda e: e["timestamp"], reverse=True)
+    return {
+        "workspace_id": workspace_id,
+        "events": all_events[:limit],
+        "total_count": len(all_events),
+    }
+
+
+@router.get("/metrics/aggregates")
+def list_graph_metrics_aggregated(workspace_id: str) -> dict:
+    """List aggregated graph observability metrics for a workspace."""
+    result: dict = {
+        "workspace_id": workspace_id,
+        "metrics": {},
+        "last_extraction_at": None,
+    }
+    metric_names = list_metric_names()
+    for name in _GRAPH_METRIC_NAMES:
+        if name not in metric_names:
+            continue
+        points = load_metric_points(name)
+        ws_points = [p for p in points if (p.labels or {}).get("workspace_id") == workspace_id]
+        if not ws_points:
+            continue
+        values = [p.value for p in ws_points]
+        last_ts = max(p.timestamp for p in ws_points)
+        result["metrics"][name] = {
+            "count": len(values),
+            "sum": sum(values),
+            "avg": sum(values) / len(values),
+            "min": min(values),
+            "max": max(values),
+            "last_value": values[-1],
+            "last_timestamp": last_ts.isoformat(),
+        }
+        if name == "graph_extraction_duration_ms":
+            result["last_extraction_at"] = last_ts.isoformat()
+    return result
+
+
+@router.get("/extraction-runs")
+def list_graph_extraction_runs(
+    workspace_id: str,
+    limit: int = Query(50, ge=1, le=500),
+) -> dict:
+    """List extraction run records for a workspace."""
+    from decision_system.graphing.store import list_extraction_runs as _list_runs
+    runs = _list_runs(workspace_id)
+    run_dicts = [r.model_dump(mode="json") for r in runs[:limit]]
+    return {
+        "workspace_id": workspace_id,
+        "runs": run_dicts,
+        "total_count": len(runs),
+    }
+
+
+@router.get("/extraction-runs/{run_id}")
+def get_graph_extraction_run(workspace_id: str, run_id: str) -> dict:
+    """Get a single extraction run by ID."""
+    from decision_system.graphing.store import get_extraction_run as _get_run
+    run = _get_run(workspace_id, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Extraction run not found: {run_id}")
+    return run.model_dump(mode="json")
+
+
+@router.get("/latest-extraction")
+def get_latest_extraction(workspace_id: str) -> dict | None:
+    """Get the most recent extraction run for a workspace."""
+    from decision_system.graphing.store import get_latest_extraction_run as _get_latest
+    run = _get_latest(workspace_id)
+    if run is None:
+        return None
+    return run.model_dump(mode="json")
+
+
+# ---------------------------------------------------------------------------
+# Graph-to-Claim
+# ---------------------------------------------------------------------------
+
+
+@router.post("/claims", status_code=201)
+def create_claim_from_graph_fact(
+    workspace_id: str,
+    request: dict,
+) -> dict:
+    """Create a pending claim from a graph fact (risk, metric, or relationship).
+
+    Request body:
+    {
+        "fact_type": "risk" | "metric" | "relationship",
+        "fact_id": "the graph object ID",
+        "claim_text": "Optional override text",
+        "source_ids": ["src1"],
+        "evidence_ids": ["ev1"]
+    }
+    """
+    fact_type = request.get("fact_type", "")
+    fact_id = request.get("fact_id", "")
+    claim_text = request.get("claim_text", "")
+    source_ids = request.get("source_ids", [])
+    evidence_ids = request.get("evidence_ids", [])
+
+    if not fact_type or not fact_id:
+        raise HTTPException(status_code=400, detail="fact_type and fact_id are required")
+
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    # Build graph refs based on fact_type
+    node_refs: list[str] = []
+    edge_refs: list[str] = []
+    risk_refs: list[str] = []
+    metric_refs: list[str] = []
+
+    if fact_type == "risk":
+        risk_refs = [fact_id]
+        # Also look up the risk to build claim text
+        from decision_system.graphing.store import list_risks
+        risks = list_risks(workspace_id)
+        for r in risks:
+            if r.risk_id == fact_id:
+                if not claim_text:
+                    claim_text = r.title or f"Risk: {r.description[:200]}"
+                source_ids = source_ids or r.source_ids
+                evidence_ids = evidence_ids or r.evidence_ids
+                break
+    elif fact_type == "metric":
+        metric_refs = [fact_id]
+        from decision_system.graphing.store import list_metrics
+        metrics = list_metrics(workspace_id)
+        for m in metrics:
+            if m.metric_id == fact_id:
+                if not claim_text:
+                    claim_text = f"Metric: {m.name} = {m.value} {m.unit or ''}"
+                source_ids = source_ids or m.source_ids
+                evidence_ids = evidence_ids or m.evidence_ids
+                break
+    elif fact_type == "relationship":
+        edge_refs = [fact_id]
+        from decision_system.graphing.store import list_edges
+        edges = list_edges(workspace_id)
+        for e in edges:
+            if e.edge_id == fact_id:
+                if not claim_text:
+                    claim_text = f"Relationship: {e.source_node_id} {e.edge_type} {e.target_node_id}"
+                source_ids = source_ids or e.source_ids
+                evidence_ids = evidence_ids or e.evidence_ids
+                break
+    elif fact_type == "entity":
+        node_refs = [fact_id]
+        from decision_system.graphing.store import list_nodes
+        nodes = list_nodes(workspace_id)
+        for n in nodes:
+            if n.node_id == fact_id:
+                if not claim_text:
+                    claim_text = f"Entity: {n.name} ({n.node_type})"
+                source_ids = source_ids or n.source_ids
+                evidence_ids = evidence_ids or n.evidence_ids
+                break
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown fact_type: {fact_type}")
+
+    if not claim_text:
+        claim_text = f"Claim from {fact_type} {fact_id[:20]}"
+
+    claim = {
+        "claim_id": str(uuid4()),
+        "workspace_id": workspace_id,
+        "claim_text": claim_text,
+        "status": "pending",
+        "confidence": "medium",
+        "graph_node_refs": node_refs,
+        "graph_edge_refs": edge_refs,
+        "risk_refs": risk_refs,
+        "metric_refs": metric_refs,
+        "source_ids": source_ids,
+        "evidence_ids": evidence_ids,
+        "fact_type": fact_type,
+        "fact_id": fact_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    from decision_system.graphing.store import save_workspace_claim
+    save_workspace_claim(claim)
+
+    # Also emit audit event
+    from decision_system.graphing.audit import graph_fact_created
+    graph_fact_created(workspace_id, fact_type=fact_type, fact_id=fact_id)
+
+    return claim
+
+
+@router.get("/claims")
+def list_workspace_claims(
+    workspace_id: str,
+    status: str | None = Query(None, description="Filter by status"),
+) -> dict:
+    """List claims created from graph facts for a workspace."""
+    from decision_system.graphing.store import list_workspace_claims as _list_claims
+    claims = _list_claims(workspace_id)
+
+    if status:
+        claims = [c for c in claims if c.get("status") == status]
+
+    return {
+        "workspace_id": workspace_id,
+        "claims": claims,
+        "total_count": len(claims),
+    }
+

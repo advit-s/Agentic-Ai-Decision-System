@@ -112,6 +112,9 @@ def create_app() -> FastAPI:
     api.include_router(routes_enterprise.router)
     api.include_router(routes_observability.router)
     api.include_router(routes_data_sources.router)
+    # Specific report routes must be registered before catch-all /reports/{report_id}
+    # in routes_execution_reports to avoid shadowing.
+    _lazy_router(api, "decision_system.api.routes_reports")
     api.include_router(routes_execution_reports.router)
     api.include_router(routes_verification.router)
     api.include_router(routes_providers.router)
@@ -120,7 +123,6 @@ def create_app() -> FastAPI:
 
     # --- Heavy routes (lazy-loaded — skip silently if deps absent) ---
     _lazy_router(api, "decision_system.api.routes_documents")
-    _lazy_router(api, "decision_system.api.routes_reports")
     _lazy_router(api, "decision_system.api.routes_context")
     _lazy_router(api, "decision_system.api.routes_orchestration")
     _lazy_router(api, "decision_system.api.routes_war_room")

@@ -6,6 +6,10 @@ import {
   listGraphNodes,
   listGraphRisks,
   listGraphMetrics,
+  getLatestExtraction,
+  getGraphRuns,
+  getGraphAuditEvents,
+  getGraphMetricsAggregates,
 } from "../api";
 import { useToast } from "./Toast";
 
@@ -20,6 +24,11 @@ function GraphPage({ workspaceId }) {
   const [sourceText, setSourceText] = useState("");
   const [nodeFilter, setNodeFilter] = useState("");
   const [error, setError] = useState(null);
+  const [latestRun, setLatestRun] = useState(null);
+  const [extractionRuns, setExtractionRuns] = useState([]);
+  const [showRuns, setShowRuns] = useState(false);
+  const [auditEvents, setAuditEvents] = useState([]);
+  const [showEvidenceModal, setShowEvidenceModal] = useState(null);
   const { addToast } = useToast();
 
   const loadGraph = useCallback(async () => {
@@ -39,6 +48,12 @@ function GraphPage({ workspaceId }) {
       // Also load edges from full graph
       const graphData = await getGraph(workspaceId);
       setEdges(Array.isArray(graphData?.edges) ? graphData.edges : []);
+
+      // Load latest extraction run
+      try {
+        const run = await getLatestExtraction(workspaceId);
+        setLatestRun(run);
+      } catch (_) { /* not available */ }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -106,7 +121,49 @@ function GraphPage({ workspaceId }) {
         >
           {extracting ? "Extracting..." : "Extract Graph"}
         </button>
+        <span className="graph-ai-notice">AI-assisted extraction is not yet available. Using deterministic extraction only.</span>
       </div>
+
+      {/* Extraction status */}
+      {latestRun && (
+        <div className="graph-extraction-status">
+          <span className={`graph-status-badge graph-status-${latestRun.status}`}>
+            {latestRun.status === "completed" ? "✓" : latestRun.status === "failed" ? "✗" : "⋯"} Last extraction: {latestRun.status}
+          </span>
+          <span className="graph-extraction-time">
+            {latestRun.completed_at ? new Date(latestRun.completed_at).toLocaleString() : ""}
+          </span>
+          <span className="graph-extraction-counts">
+            {latestRun.nodes_created > 0 && <span>{latestRun.nodes_created} entities</span>}
+            {latestRun.edges_created > 0 && <span> · {latestRun.edges_created} relationships</span>}
+            {latestRun.risks_created > 0 && <span> · {latestRun.risks_created} risks</span>}
+            {latestRun.metrics_created > 0 && <span> · {latestRun.metrics_created} metrics</span>}
+            {latestRun.duration_ms > 0 && <span> · {Math.round(latestRun.duration_ms)}ms</span>}
+          </span>
+          {latestRun.warnings?.length > 0 && (
+            <span className="graph-extraction-warnings" title={latestRun.warnings.join("; ")}>
+              ⚠ {latestRun.warnings.length} warnings
+            </span>
+          )}
+          {latestRun.errors?.length > 0 && (
+            <span className="graph-extraction-errors" title={latestRun.errors.join("; ")}>
+              ✗ {latestRun.errors.length} errors
+            </span>
+          )}
+          <button className="graph-runs-btn" onClick={() => {
+            getGraphRuns(workspaceId).then(r => setExtractionRuns(r.runs || [])).catch(() => {});
+            setShowRuns(true);
+          }}>
+            View Runs
+          </button>
+        </div>
+      )}
+
+      {!latestRun && !loading && (
+        <div className="graph-extraction-status graph-extraction-status-empty">
+          <span>No extraction runs yet. Paste text and click "Extract Graph" above.</span>
+        </div>
+      )}
 
       {error && <div className="graph-error">Error: {error}</div>}
 
@@ -167,7 +224,11 @@ function GraphPage({ workspaceId }) {
                     </div>
                     {node.description && <p className="graph-list-item-desc">{node.description}</p>}
                     <div className="graph-list-item-meta">
-                      {node.evidence_ids?.length > 0 && <span>Evidence: {node.evidence_ids.length} refs</span>}
+                      {node.evidence_ids?.length > 0 && (
+                        <span className="graph-evidence-link" onClick={() => setShowEvidenceModal({type: "entity", data: node})}>
+                          Evidence: {node.evidence_ids.length} refs
+                        </span>
+                      )}
                       {node.source_ids?.length > 0 && <span>Sources: {node.source_ids.length}</span>}
                     </div>
                   </div>
@@ -224,7 +285,11 @@ function GraphPage({ workspaceId }) {
                     </div>
                     {risk.description && <p className="graph-list-item-desc">{risk.description}</p>}
                     <div className="graph-list-item-meta">
-                      {risk.evidence_ids?.length > 0 && <span>Evidence: {risk.evidence_ids.length} refs</span>}
+                      {risk.evidence_ids?.length > 0 && (
+                        <span className="graph-evidence-link" onClick={() => setShowEvidenceModal({type: "risk", data: risk})}>
+                          Evidence: {risk.evidence_ids.length} refs
+                        </span>
+                      )}
                       {risk.related_entity_ids?.length > 0 && <span>Related entities: {risk.related_entity_ids.length}</span>}
                     </div>
                     {risk.recommended_actions?.length > 0 && (
@@ -265,7 +330,13 @@ function GraphPage({ workspaceId }) {
                       <td>{m.unit || "-"}</td>
                       <td>{m.period || "-"}</td>
                       <td><span className={`graph-confidence graph-confidence-${m.confidence}`}>{m.confidence}</span></td>
-                      <td>{m.evidence_ids?.length || 0}</td>
+                      <td>
+                        {m.evidence_ids?.length > 0 ? (
+                          <span className="graph-evidence-link" onClick={() => setShowEvidenceModal({type: "metric", data: m})}>
+                            {m.evidence_ids.length} refs
+                          </span>
+                        ) : 0}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -274,6 +345,81 @@ function GraphPage({ workspaceId }) {
           </div>
         )}
       </div>
+      {/* Evidence preview modal */}
+      {showEvidenceModal && (
+        <div className="graph-modal-overlay" onClick={() => setShowEvidenceModal(null)}>
+          <div className="graph-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="graph-modal-header">
+              <h3>Evidence: {showEvidenceModal.type}</h3>
+              <button className="graph-modal-close" onClick={() => setShowEvidenceModal(null)}>✕</button>
+            </div>
+            <div className="graph-modal-body">
+              <p><strong>Name:</strong> {showEvidenceModal.data.name || showEvidenceModal.data.title || showEvidenceModal.data.metric_id}</p>
+              {showEvidenceModal.data.description && <p><strong>Description:</strong> {showEvidenceModal.data.description}</p>}
+              <p><strong>Evidence refs:</strong> {showEvidenceModal.data.evidence_ids?.length || 0}</p>
+              {showEvidenceModal.data.evidence_ids?.length > 0 && (
+                <div>
+                  <p><strong>Evidence IDs:</strong></p>
+                  <ul className="graph-evidence-list">
+                    {showEvidenceModal.data.evidence_ids.map((eid, i) => (
+                      <li key={i}><code>{eid}</code></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p><strong>Source refs:</strong> {showEvidenceModal.data.source_ids?.length || 0}</p>
+              <p><strong>Confidence:</strong> {showEvidenceModal.data.confidence || "N/A"}</p>
+              <p><strong>Status:</strong> {showEvidenceModal.data.status || "extracted"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Extraction runs modal */}
+      {showRuns && (
+        <div className="graph-modal-overlay" onClick={() => setShowRuns(false)}>
+          <div className="graph-modal graph-modal-wide" onClick={(e) => e.stopPropagation()}>
+            <div className="graph-modal-header">
+              <h3>Extraction Runs ({extractionRuns.length})</h3>
+              <button className="graph-modal-close" onClick={() => setShowRuns(false)}>✕</button>
+            </div>
+            <div className="graph-modal-body">
+              {extractionRuns.length === 0 ? (
+                <p className="graph-empty">No extraction runs recorded.</p>
+              ) : (
+                <table className="graph-runs-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Status</th>
+                      <th>Entities</th>
+                      <th>Edges</th>
+                      <th>Risks</th>
+                      <th>Metrics</th>
+                      <th>Duration</th>
+                      <th>Warnings</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {extractionRuns.slice(0, 20).map((run) => (
+                      <tr key={run.run_id}>
+                        <td>{run.completed_at ? new Date(run.completed_at).toLocaleString() : "-"}</td>
+                        <td><span className={`graph-status-badge graph-status-${run.status}`}>{run.status}</span></td>
+                        <td>{run.nodes_created}</td>
+                        <td>{run.edges_created}</td>
+                        <td>{run.risks_created}</td>
+                        <td>{run.metrics_created}</td>
+                        <td>{run.duration_ms ? Math.round(run.duration_ms) + "ms" : "-"}</td>
+                        <td>{run.warnings?.length || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

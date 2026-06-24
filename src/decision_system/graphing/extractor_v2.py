@@ -37,6 +37,36 @@ from decision_system.graphing.models import (
 DEFAULT_CONFIDENCE = "medium"
 DEFAULT_EXTRACTION_METHOD = "deterministic"
 
+# Stopwords that should not be treated as entity names
+STOPWORDS = frozenset({
+    "the", "a", "an", "this", "that", "these", "those", "it", "its", "they",
+    "them", "their", "we", "our", "you", "your", "he", "she", "his", "her",
+    "and", "or", "but", "if", "because", "as", "until", "while", "of", "at",
+    "by", "for", "with", "about", "against", "between", "into", "through",
+    "during", "before", "after", "above", "below", "to", "from", "up", "down",
+    "in", "out", "on", "off", "over", "under", "again", "further", "then",
+    "once", "here", "there", "when", "where", "why", "how", "all", "each",
+    "every", "both", "few", "more", "most", "other", "some", "such", "no",
+    "nor", "not", "only", "own", "same", "so", "than", "too", "very",
+    "just", "also", "has", "had", "have", "been", "being", "do", "does",
+    "did", "doing", "would", "could", "should", "may", "might", "shall",
+    "will", "can", "need", "dare", "must", "is", "am", "are", "was", "were",
+    "be", "get", "got", "getting", "go", "goes", "went", "gone", "going",
+    "make", "makes", "made", "making", "take", "takes", "took", "taken",
+    "taking", "know", "knows", "knew", "known", "see", "sees", "saw", "seen",
+    "thing", "things", "something", "nothing", "anything", "everything",
+    "one", "two", "three", "first", "second", "third", "last", "next",
+    "previous", "current", "new", "old", "top", "bottom", "high", "low",
+    "big", "small", "large", "long", "short", "full", "empty", "good",
+    "bad", "better", "best", "worst", "worse", "right", "wrong", "true",
+    "false", "real", "actual", "possible", "whole", "certain", "various",
+    "different", "important", "significant", "major", "minor", "key",
+    "main", "primary", "secondary", "additional", "single", "multiple",
+    "simple", "complex", "open", "closed", "public", "private", "direct",
+    "indirect", "total", "partial", "annual", "monthly", "weekly", "daily",
+    "quarterly", "current", "previous", "upcoming", "recent", "latest",
+})
+
 # ---------------------------------------------------------------------------
 # Regex patterns
 # ---------------------------------------------------------------------------

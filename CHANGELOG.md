@@ -1,3 +1,31 @@
+## [1.26.1] - 2026-06-24 — Graph UI, Audit Metrics API + Extraction Quality Hardening
+### Added
+- **Graph audit/metrics API**: GET endpoints for workspace-scoped audit events, metrics, and extraction runs
+- **Graph extraction run records**: Persistent run records with status, counts, duration, warnings, errors
+- **Graph UI extraction history**: Last extraction time, status, warnings, extract-again action, run inspection
+- **Graph evidence preview**: View evidence sources, file types, chunk snippets, confidence from graph UI
+- **Extraction quality rules**: Deduplication, stopword filtering, metric/entity separation, idempotent re-runs
+- **Confidence/status calibration**: Bounded 0.0-1.0 confidence, consistent statuses (extracted, verified, etc.)
+- **AI extraction clarity**: Honest labeling in UI/API for optional/stubbed AI-assisted extraction
+- **Graph-to-claim action**: Create pending claims from risks, metrics, entity relationships
+- **Graph report section quality**: Top entities, relationships, risks, metrics with evidence/confidence/limitations
+- **Risk dashboard quality**: Severity cards, categories, risk-to-claim links, evidence-backed top risks
+- **Demo flow graph reliability**: Sample-text extraction works reliably; report includes graph insights
+### Changed
+- Version bumped from 1.26.0-dev to 1.26.1-dev
+- Route registration order: `/reports/` specific paths registered before catch-all to fix shadowing
+- Web assets synced: `web/index.html` → `src/decision_system/web/`
+- Agent instructions updated to reflect current milestone
+### Fixed
+- **3 pre-existing test failures resolved**: `test_audit_timeline_api`, `test_provider_safety_api` (route ordering bug), `test_root_and_package_web_assets_match` (asset sync)
+- **Extractor v2 regex escaping**: f-string brace escaping for quantifiers in metric extraction
+### Known limitations
+- Graph extraction is deterministic and evidence-linked but does not prove business truth by itself
+- AI-assisted extraction remains optional/stubbed; labeled as such in UI
+- Large graphs may have performance implications for full-workspace extraction
+### Removed
+- No features removed
+
 ## [1.26.0] - 2026-06-23 — Knowledge Graph + Entity/Risk Extraction v2
 ### Added
 - **Knowledge graph v2**: Unified workspace graph model with expanded node/edge types

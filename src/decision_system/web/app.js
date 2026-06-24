@@ -597,3 +597,222 @@ bindNavigation();
 bindDataTabs();
 bindControls();
 loadAllData();
+
+/* =========================================================================
+   Data Sources — upload, list, parse, index, search
+   ========================================================================= */
+
+async function uploadDataSource() {
+  const ws = el("dsWorkspaceId").value.trim();
+  const filename = el("dsFilename").value.trim();
+  const content = el("dsFileContent").value;
+  const status = el("uploadStatus");
+
+  if (!ws || !filename || !content) {
+    status.textContent = "Please fill in workspace ID, filename, and content.";
+    return;
+  }
+
+  const base = getApiBaseUrl();
+  try {
+    const resp = await fetch(`${base}/workspaces/${ws}/data-sources/upload?filename=${encodeURIComponent(filename)}`, {
+      method: "POST",
+      headers: {"Content-Type": "application/octet-stream"},
+      body: content,
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      status.textContent = `✅ Uploaded: ${data.data_source.name} (${data.data_source.source_id})`;
+      status.className = "small-muted";
+      listDataSources();
+    } else {
+      status.textContent = `❌ Error: ${JSON.stringify(data.detail || data)}`;
+      status.className = "small-muted error";
+    }
+  } catch (err) {
+    status.textContent = `❌ Network error: ${err.message}`;
+    status.className = "small-muted error";
+  }
+}
+
+async function listDataSources() {
+  const ws = el("dsListWorkspaceId").value.trim() || el("dsWorkspaceId").value.trim();
+  const container = el("dataSourceList");
+  if (!ws) {
+    container.innerHTML = '<p class="small-muted">Enter a workspace ID.</p>';
+    return;
+  }
+
+  const base = getApiBaseUrl();
+  container.innerHTML = '<p class="small-muted">Loading...</p>';
+
+  try {
+    const resp = await fetch(`${base}/workspaces/${ws}/data-sources`);
+    const data = await resp.json();
+    if (!resp.ok || data.status === "error") {
+      container.innerHTML = `<p class="small-muted error">Error: ${JSON.stringify(data)}</p>`;
+      return;
+    }
+
+    const sources = data.data_sources || [];
+    if (sources.length === 0) {
+      container.innerHTML = '<p class="small-muted">No data sources in this workspace.</p>';
+      return;
+    }
+
+    container.innerHTML = sources.map(s => `
+      <div class="card-row" style="border-bottom:1px solid var(--border-color);padding:8px 0;">
+        <div style="flex:1;">
+          <strong>${safe(s.name)}</strong>
+          <span class="pill">${s.file_type}</span>
+          <span class="pill status-${s.status}">${s.status}</span>
+          <br/>
+          <span class="small-muted">${s.source_id}</span>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${s.status === "uploaded" ? `<button class="btn small" onclick="parseDataSource('${ws}','${s.source_id}')">Parse</button>` : ""}
+          ${s.status === "parsed" ? `<button class="btn small" onclick="indexDataSource('${ws}','${s.source_id}')">Index</button>` : ""}
+          ${s.file_type === "csv" || s.file_type === "json" ? `<button class="btn small" onclick="viewProfile('${ws}','${s.source_id}')">Profile</button>` : ""}
+          <button class="btn small danger" onclick="deleteDataSource('${ws}','${s.source_id}')">Delete</button>
+        </div>
+      </div>
+    `).join("");
+  } catch (err) {
+    container.innerHTML = `<p class="small-muted error">Network error: ${err.message}</p>`;
+  }
+}
+
+async function parseDataSource(ws, sourceId) {
+  const base = getApiBaseUrl();
+  try {
+    const resp = await fetch(`${base}/workspaces/${ws}/data-sources/${sourceId}/parse`, {method: "POST"});
+    const data = await resp.json();
+    if (resp.ok) {
+      const msg = data.chunk_count ? `Parsed: ${data.chunk_count} chunks` : `Profiled: ${data.profile?.row_count || 0} rows`;
+      showToast(`✅ ${msg}`);
+      listDataSources();
+    } else {
+      showToast(`❌ Parse error: ${JSON.stringify(data.detail || data)}`);
+    }
+  } catch (err) {
+    showToast(`❌ ${err.message}`);
+  }
+}
+
+async function indexDataSource(ws, sourceId) {
+  const base = getApiBaseUrl();
+  try {
+    const resp = await fetch(`${base}/workspaces/${ws}/data-sources/${sourceId}/index`, {method: "POST"});
+    const data = await resp.json();
+    if (resp.ok) {
+      showToast(`✅ Indexed (${data.retrieval_mode}) — ${data.chunk_count} chunks`);
+      listDataSources();
+    } else {
+      showToast(`❌ Index error: ${JSON.stringify(data.detail || data)}`);
+    }
+  } catch (err) {
+    showToast(`❌ ${err.message}`);
+  }
+}
+
+async function deleteDataSource(ws, sourceId) {
+  if (!confirm("Delete this data source?")) return;
+  const base = getApiBaseUrl();
+  try {
+    const resp = await fetch(`${base}/workspaces/${ws}/data-sources/${sourceId}`, {method: "DELETE"});
+    if (resp.ok) {
+      showToast("✅ Deleted");
+      listDataSources();
+    } else {
+      showToast("❌ Delete failed");
+    }
+  } catch (err) {
+    showToast(`❌ ${err.message}`);
+  }
+}
+
+async function viewProfile(ws, sourceId) {
+  const base = getApiBaseUrl();
+  try {
+    const resp = await fetch(`${base}/workspaces/${ws}/data-sources/${sourceId}/profile`);
+    const data = await resp.json();
+    if (resp.ok && data.profile) {
+      const p = data.profile;
+      showToast(`📊 ${p.row_count} rows, ${p.column_count} columns`);
+    } else {
+      showToast("❌ No profile available");
+    }
+  } catch (err) {
+    showToast(`❌ ${err.message}`);
+  }
+}
+
+async function searchEvidence() {
+  const ws = el("dsListWorkspaceId").value.trim() || el("dsWorkspaceId").value.trim();
+  const query = el("dsSearchQuery").value.trim();
+  const container = el("evidenceResults");
+  const content = el("evidenceResultsContent");
+
+  if (!ws || !query) {
+    showToast("Enter workspace ID and search query.");
+    return;
+  }
+
+  const base = getApiBaseUrl();
+  container.style.display = "block";
+  content.innerHTML = '<p class="small-muted">Searching...</p>';
+
+  try {
+    const resp = await fetch(`${base}/workspaces/${ws}/evidence/search`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({query, limit: 10}),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      content.innerHTML = `<p class="small-muted error">Error: ${JSON.stringify(data)}</p>`;
+      return;
+    }
+
+    const results = data.results || [];
+    if (results.length === 0) {
+      content.innerHTML = '<p class="small-muted">No results found.</p>';
+      return;
+    }
+
+    content.innerHTML = `
+      <p class="small-muted">Mode: ${data.retrieval_mode} | ${data.total_results} results</p>
+      ${results.map(r => `
+        <div class="card-row" style="border-bottom:1px solid var(--border-color);padding:4px 0;">
+          <div>
+            <strong>${safe(r.source_name)}</strong>
+            <span class="pill">score: ${r.score.toFixed(2)}</span>
+            <br/>
+            <span class="small-muted">${safe(r.text.substring(0, 200))}</span>
+          </div>
+        </div>
+      `).join("")}
+    `;
+  } catch (err) {
+    content.innerHTML = `<p class="small-muted error">Network error: ${err.message}</p>`;
+  }
+}
+
+function showToast(msg) {
+  const toast = document.getElementById("toast") || (() => {
+    const t = document.createElement("div");
+    t.id = "toast";
+    t.style.cssText = "position:fixed;bottom:20px;right:20px;background:var(--color-bg-card);border:1px solid var(--border-color);border-radius:8px;padding:12px 20px;z-index:9999;max-width:400px;box-shadow:0 4px 12px rgba(0,0,0,0.3);";
+    document.body.appendChild(t);
+    return t;
+  })();
+  toast.textContent = msg;
+  toast.style.display = "block";
+  setTimeout(() => { toast.style.display = "none"; }, 3000);
+}
+
+/* Helper to get API base URL */
+function getApiBaseUrl() {
+  const stored = localStorage.getItem(API_STORAGE_KEY);
+  return stored || "";
+}

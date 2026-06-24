@@ -838,6 +838,12 @@ export {
   listGraphRisks,
   listGraphMetrics,
   getGraphSummary,
+  getGraphRuns,
+  getGraphRun,
+  getLatestExtraction,
+  getGraphAuditEvents,
+  getGraphMetricsAggregates,
+  getEvidencePreview,
 };
 
 // --- Graph Extraction ---
@@ -897,4 +903,49 @@ async function getGraphSummary(workspaceId) {
     return { workspace_id: workspaceId, node_count: 0, edge_count: 0, risk_count: 0, metric_count: 0 };
   }
   return apiFetch(`/workspaces/${workspaceId}/graph/summary`);
+}
+
+async function getGraphRuns(workspaceId, limit = 50) {
+  if (isMockMode()) {
+    return { workspace_id: workspaceId, runs: [], total_count: 0 };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/graph/extraction-runs?limit=${limit}`);
+}
+
+async function getGraphRun(workspaceId, runId) {
+  if (isMockMode()) {
+    return null;
+  }
+  return apiFetch(`/workspaces/${workspaceId}/graph/extraction-runs/${runId}`);
+}
+
+async function getLatestExtraction(workspaceId) {
+  if (isMockMode()) {
+    return null;
+  }
+  return apiFetch(`/workspaces/${workspaceId}/graph/latest-extraction`);
+}
+
+async function getGraphAuditEvents(workspaceId, eventType, limit = 100) {
+  if (isMockMode()) {
+    return { workspace_id: workspaceId, events: [], total_count: 0 };
+  }
+  const params = new URLSearchParams();
+  if (eventType) params.set("event_type", eventType);
+  params.set("limit", String(limit));
+  return apiFetch(`/workspaces/${workspaceId}/graph/audit-events?${params.toString()}`);
+}
+
+async function getGraphMetricsAggregates(workspaceId) {
+  if (isMockMode()) {
+    return { workspace_id: workspaceId, metrics: {}, last_extraction_at: null };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/graph/metrics/aggregates`);
+}
+
+async function getEvidencePreview(workspaceId, evidenceId) {
+  if (isMockMode()) {
+    return null;
+  }
+  return apiFetch(`/workspaces/${workspaceId}/evidence/${evidenceId}`);
 }
