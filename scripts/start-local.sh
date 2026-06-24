@@ -73,19 +73,13 @@ case "$MODE" in
             fi
             sleep 1
         done
-
-        echo ""
-        echo "  Running. PIDs saved to .decision_system/pids"
+        mkdir -p .decision_system/pids
 
         # Save PIDs for stop script
-        echo "$BACKEND_PID" > .decision_system/pids/backend.pid 2>/dev/null || true
-        echo "$FRONTEND_PID" > .decision_system/pids/frontend.pid 2>/dev/null || true
-        mkdir -p .decision_system/pids
         echo "$BACKEND_PID" > .decision_system/pids/backend.pid
         echo "$FRONTEND_PID" > .decision_system/pids/frontend.pid
-
         echo ""
-        echo "  Press Ctrl+C to stop both services."
+        echo "  Running. Press Ctrl+C to stop both services."
         wait
         ;;
 

@@ -1,11 +1,11 @@
 # Local-First Setup — Provider Runtime & AI-Assisted Evidence Synthesis
 
-> **Version:** 1.32.0-dev
+> **Version:** 1.33.0-dev
 > **Last updated:** 2026-06-24
 
 ## Overview
 
-v1.32 adds beta packaging — one-command setup, start/stop scripts, diagnostics,
+v1.33 adds beta packaging — one-command setup, start/stop scripts, diagnostics,
 data reset/backup, and Docker Compose hardening.
 
 The project runs fully offline with:
@@ -22,7 +22,7 @@ Fake provider is pre-configured for development. No setup required.
 
 ---
 
-## Quick start (v1.32)
+## Quick start (v1.33)
 
 ### Option A: Docker (recommended)
 
@@ -95,7 +95,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 ```bash
 # After starting the backend:
 curl http://localhost:8000/health
-# → {"status":"ok","version":"1.32.0-dev","provider":"fake"}
+# → {"status":"ok","version":"1.33.0-dev","provider":"fake"}
 
 # Check system status:
 curl http://localhost:8000/system/status
@@ -336,7 +336,7 @@ Run `./scripts/doctor-local.sh` for automated diagnostics.
 | Workflow fails | Missing provider | Configure fake provider first |
 | Chroma search empty | Documents not indexed | Parse and index files first |
 
-## Known Limitations (v1.32)
+## Known Limitations (v1.33)
 
 1. **OCR quality**: Tesseract accuracy depends on image quality. Low-resolution or highly stylized documents may produce errors.
 2. **English only**: Only English (`eng`) language data is bundled.

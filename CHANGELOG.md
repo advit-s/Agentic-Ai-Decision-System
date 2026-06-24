@@ -1029,3 +1029,17 @@
 - `docs/LOCAL_FIRST_SETUP.md` — Updated with new scripts, setup/start/stop/doctor/reset/backup commands
 - `docs/DEMO_PATH.md` — Updated version to 1.32.0-dev
 - `README.md` — Updated version and added new scripts to command list
+
+## [1.33.0-dev] - 2026-06-24 — End-to-End Beta QA + Bug Bash
+### Added
+- **Version identity**: Updated to 1.33.0-dev across pyproject.toml, __init__.py, CURRENT_STATE.md, CHANGELOG.md
+
+### Changed
+- Version bumped from 1.32.0-dev to 1.33.0-dev
+- `pyproject.toml` version updated
+- `src/decision_system/__init__.py` version updated
+- `docs/CURRENT_STATE.md` — Updated version to 1.33.0-dev and milestone description
+
+### Documentation
+- `docs/BETA_QA_CHECKLIST.md` — Beta QA checklist for fresh clone setup through security/governance
+- `docs/DEMO_PATH.md` — Updated version to 1.33.0-dev and verified demo path

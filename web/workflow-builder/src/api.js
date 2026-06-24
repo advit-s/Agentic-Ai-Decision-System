@@ -1327,7 +1327,7 @@ export async function runDueSyncSchedules() {
 async function getSystemStatus() {
   if (isMockMode()) {
     return Promise.resolve({
-      version: "1.32.0-dev",
+      version: "1.33.0-dev",
       data_dir: ".decision_system",
       security_mode: "demo",
       provider_type: "fake",

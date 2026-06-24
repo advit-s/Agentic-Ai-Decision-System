@@ -1,225 +1,262 @@
 # Demo Path — End-to-End Walkthrough
 
-> **Version:** 1.32.0-dev
+> **Version:** 1.33.0-dev
 > **Last updated:** 2026-06-24
 
 This document describes the complete demo path a reviewer follows to understand
-the product in 10 minutes without reading source code.
+the product without reading source code. Each step details the user action,
+expected UI state, backend API involved, artifact created, failure modes, and
+recovery guidance.
 
 ---
 
-## Quick Start (Docker)
+## Demo Flow: 18-Step Walkthrough
 
-```bash
-# From a fresh clone:
-docker compose up --build
-```
+### Step 1 — Open App and Confirm Backend Status
 
-Then open **http://localhost:3000**
-
----
-
-## Demo Flow Steps
-
-### 1. Create or Use Demo Workspace
-
-**UI:** Workspace selector in sidebar
-
-**What happens:**
-- User clicks "Workspaces" or uses the workspace dropdown
-- Clicks "Create Workspace" or selects existing "Demo Workspace"
-- Backend: `POST /workspaces` creates workspace in `.decision_system/workspaces/`
-- Data stored: `{workspace_id}/meta.json`
-
-**Can fail if:** Backend unavailable, disk full
+| Item | Details |
+|------|---------|
+| **User action** | Open `http://localhost:3000` in browser |
+| **Expected UI state** | App loads with sidebar showing version (`1.33.0-dev`), `LOCAL BETA` label, backend status (green/connected), security mode badge |
+| **Backend API** | `GET /health` → `{"status":"ok","version":"1.33.0-dev"}` |
+| **Artifact created** | None |
+| **What can fail** | Backend not started, port conflict, frontend build missing |
+| **How to recover** | Run `./scripts/doctor-local.sh` to check; start backend with `./scripts/start-local.sh`; rebuild frontend with `cd web/workflow-builder && npm run build` |
 
 ---
 
-### 2. Load Sample Business Documents
+### Step 2 — Create or Use Demo Workspace
 
-**UI:** Data Sources → Upload
-
-**What happens:**
-- User navigates to Data Sources page
-- Uploads files from `demo/sample-data/`:
-  - `company_overview.md` — plain text (no OCR needed)
-  - `risk_register.csv` — structured data (no OCR needed)
-  - `scanned_contract.pdf` — image-based PDF **(requires OCR)**
-  - `image_invoice.png` — scanned invoice image **(requires OCR)**
-- Backend: `POST /data-sources/upload` accepts multipart file upload
-
-**Can fail if:** File too large, unsupported type
+| Item | Details |
+|------|---------|
+| **User action** | Click "Workspaces" in sidebar → Create Workspace or select existing "Demo Workspace" |
+| **Expected UI state** | Workspace list visible; create form accepts name and description; selected workspace appears in header |
+| **Backend API** | `GET /workspaces` — list workspaces; `POST /workspaces` — create with `{"name":"Demo","description":"..."}` |
+| **Artifact created** | `{data_dir}/workspaces/{workspace_id}/meta.json` |
+| **What can fail** | Backend unavailable, disk full, workspace name conflict |
+| **How to recover** | Check backend is running; use a different workspace name |
 
 ---
 
-### 3. Parse, OCR (if needed), and Index Files
+### Step 3 — Load Sample Data
 
-**UI:** Data Sources → Click file → Parse → Index
-
-**What happens:**
-1. File is saved to `.decision_system/data_sources/{source_id}/`
-2. **Parse step:**
-   - For `.md`/`.txt`: `TextParser` reads content directly
-   - For `.csv`: `TextParser` reads as text
-   - For `.pdf`: `PdfParser` tries text extraction via `pypdf`
-     - If no text extracted → **OCR fallback** (`ScannedPdfParser`):
-       - Renders each page via PyMuPDF
-       - Runs tesserocr on each page image
-       - Returns OCR-extracted text
-   - For `.png`/`.jpg`: `ImageOcrParser` runs tesserocr directly
-3. **Index step:** Text is chunked and stored in Chroma vector store
-4. Backend: `POST /data-sources/{id}/parse` → `POST /data-sources/{id}/index`
-
-**OCR trigger conditions:**
-- PDF with no extractable text → automatic fallback to OCR
-- Image files (png/jpg/tiff/bmp) → direct OCR parsing
-- PDF with some text + some images → text pages parsed, OCR pages warned
-
-**Can fail if:** Tesseract not installed, tessdata missing, corrupt file
+| Item | Details |
+|------|---------|
+| **User action** | Navigate to Data Sources → Upload files from `demo/sample-data/` (e.g. `company_overview.md`, `risk_register.csv`) |
+| **Expected UI state** | File upload progress shown; after completion, file appears in data source list with name, type, size, status |
+| **Backend API** | `POST /workspaces/{wid}/data-sources/upload` — multipart file upload |
+| **Artifact created** | `{data_dir}/data_sources/{source_id}/original_file` + `meta.json` |
+| **What can fail** | File too large, unsupported type, path traversal in filename |
+| **How to recover** | Check supported types (md, txt, csv, json, pdf, docx, xlsx); rename file with allowed extension |
 
 ---
 
-### 4. Run Evidence Search
+### Step 4 — Parse / OCR / Index Files
 
-**UI:** Evidence Search
+| Item | Details |
+|------|---------|
+| **User action** | Click on a data source → click "Parse" → wait for completion → click "Index" |
+| **Expected UI state** | Parse button triggers processing; status changes from "uploaded" → "parsed" → "indexed"; chunks count visible |
+| **Backend API** | `POST /data-sources/{id}/parse` → `POST /data-sources/{id}/index` |
+| **Artifact created** | Parsed text in `{data_dir}/chunks/{source_id}/`; Chroma vector index entries |
+| **What can fail** | Corrupt file, parser missing dependency, Tesseract unavailable (for scanned PDFs), disk full |
+| **How to recover** | Use text-based files (md/txt) if OCR unavailable; check Tesseract with `tesseract --version` |
 
-**What happens:**
-- User types a query like "billing system migration risks"
-- Backend: `POST /evidence/search`
-- Chroma vector search returns relevant chunks
-- Results show source file, page number, text excerpt, relevance score
-
-**Can fail if:** No documents indexed, Chroma unavailable
-
----
-
-### 5. Configure Fake Provider
-
-**UI:** Providers → Add Fake Provider
-
-**What happens:**
-- User can click "Add Fake Provider" button
-- Backend: `POST /providers` creates a fake provider
-- Fake provider returns deterministic responses (no API key needed)
-- Becomes default provider if none exists
-
-**Can fail if:** Provider already exists (idempotent — shows success)
+**OCR details:**
+- Text-based PDFs → `pypdf` extracts text directly
+- Scanned PDFs (no extractable text) → `ScannedPdfParser` via PyMuPDF + tesserocr
+- Images (png/jpg) → `ImageOcrParser` via tesserocr
+- If Tesseract is unavailable: text-based files still work; scanned PDFs show OCR-unavailable warning
 
 ---
 
-### 6. Load Demo Workflow
+### Step 5 — Search Evidence
 
-**UI:** Workflow Builder → Templates → "Local Trust Report Demo"
-
-**What happens:**
-- User opens Workflow Builder
-- Clicks "Templates" and selects "Local Trust Report Demo"
-- Workflow loads with pre-configured nodes:
-  1. Evidence Search (uses current workspace)
-  2. Evidence Synthesis (uses fake provider)
-  3. Claim Verification
-  4. Contradiction Scan
-  5. Review Gate (optional)
-  6. Trust Report (generates Markdown report)
-
-**Can fail if:** Template missing, workflow validation fails
+| Item | Details |
+|------|---------|
+| **User action** | Navigate to Evidence Search → type query (e.g. "billing system") → press Enter |
+| **Expected UI state** | Results list shows matching chunks with source document name, text excerpt, relevance score |
+| **Backend API** | `POST /evidence/search` — Chroma vector search |
+| **Artifact created** | Search result set (ephemeral) |
+| **What can fail** | No documents indexed, Chroma unavailable, empty query |
+| **How to recover** | Ensure Step 3 and 4 completed; index at least one file before searching |
 
 ---
 
-### 7. Run Workflow
+### Step 6 — Configure Fake Provider
 
-**UI:** Workflow Builder → Execute
-
-**What happens:**
-- User clicks "Execute"
-- Backend creates workflow execution
-- Each node runs in sequence:
-  1. **Evidence Search** — queries Chroma for relevant evidence
-  2. **Evidence Synthesis** — analyzes evidence via fake provider
-  3. **Claim Verification** — checks claims against evidence
-  4. **Contradiction Scan** — detects conflicting statements
-  5. **Review Gate** — optionally pauses for human review
-  6. **Trust Report** — generates final report with citations
-
-**Can fail if:** No evidence indexed, provider offline, workflow invalid
+| Item | Details |
+|------|---------|
+| **User action** | Navigate to Providers → click "Add Fake Provider" |
+| **Expected UI state** | Provider added; status shows "configured"; no API key required |
+| **Backend API** | `POST /providers` — creates fake provider |
+| **Artifact created** | Provider config stored in `{data_dir}/providers/` |
+| **What can fail** | Provider already exists (idempotent — reports success) |
+| **How to recover** | Re-run; fake provider is idempotent |
 
 ---
 
-### 8. Verify Claims
+### Step 7 — Import Sample Data Through Local Folder Connector
 
-**UI:** Claim Ledger
-
-**What happens:**
-- User navigates to Claim Ledger
-- Sees claims with statuses:
-  - ✅ **Supported** — evidence found and matches
-  - ❌ **Contradicted** — evidence contradicts claim
-  - ⚠️ **Unsupported** — no evidence found
-  - ❓ **Uncertain** — insufficient evidence
-  - 🔍 **Needs Review** — requires human judgment
-- User can click "Verify All" to run verification
-
-**Can fail if:** No claims generated yet
+| Item | Details |
+|------|---------|
+| **User action** | Navigate to Connectors → Add "Local Folder" connector → point to `demo/sample-data/` → run import |
+| **Expected UI state** | Connector setup wizard completes; import job starts with progress bar; items appear in connector view |
+| **Backend API** | `POST /connectors` — create; `POST /connectors/{id}/import` — start import job |
+| **Artifact created** | Connector config in `{data_dir}/connectors/`; imported items in data sources |
+| **What can fail** | Invalid folder path, folder does not exist, permission denied, large folder timeouts |
+| **How to recover** | Use absolute path to `demo/sample-data/`; ensure folder is readable |
 
 ---
 
-### 9. Scan Contradictions
+### Step 8 — Run Connector Sync Twice and See Unchanged Items Skipped
 
-**UI:** Claim Ledger → Scan Contradictions
-
-**What happens:**
-- Backend scans all claims for logical contradictions
-- Contradictions detected:
-  - Metric mismatch (e.g., "2% error rate" vs "0.5% error rate")
-  - Status conflicts (e.g., "migration complete" vs "migration pending")
-  - Risk assessment differences
-- Results show paired contradictory claims with evidence
-
-**Can fail if:** No claims exist
+| Item | Details |
+|------|---------|
+| **User action** | Click "Sync" on the connector → after completion, click "Sync" again |
+| **Expected UI state** | First sync: imports items with progress. Second sync: shows "all items unchanged" or "0 new items" |
+| **Backend API** | `POST /connectors/{id}/sync` — incremental sync with hash-based duplicate detection |
+| **Artifact created** | Sync job record; duplicate detection marks unchanged items via `content_hash` comparison |
+| **What can fail** | Rate limiting, folder deleted between syncs, permission changes |
+| **How to recover** | Check folder still exists; retry sync |
 
 ---
 
-### 10. Generate Trust Report
+### Step 9 — Run Demo Workflow
 
-**UI:** Trust Dashboard → Generate Report
+| Item | Details |
+|------|---------|
+| **User action** | Navigate to Workflow Builder → Templates → "Local Trust Report Demo" → Execute |
+| **Expected UI state** | Workflow loads with nodes; execution progress bar advances through nodes; final report appears |
+| **Backend API** | `GET /workflows/templates` — load template; `POST /workflows/{id}/execute` — run |
+| **Artifact created** | Execution record; generated claims; report markdown |
+| **What can fail** | No evidence indexed, provider not configured, workflow validation error, missing workspace default |
+| **How to recover** | Ensure Steps 3-6 completed (data indexed, fake provider set); check workflow node configuration |
 
-**What happens:**
-- User clicks "Generate Trust Report"
-- Backend creates a Markdown report including:
-  - Executive summary
-  - Evidence quality score
-  - Claim verification summary
-  - Contradictions found
-  - Recommendations
-  - Confidence assessment
-- Report is stored and displayed in UI
-
-**Can fail if:** No verification data
-
----
-
-### 11. Export Markdown Report
-
-**UI:** Reports → Export
-
-**What happens:**
-- User views the trust report
-- Clicks "Export" → downloads as `.md` file
-- File includes full citations and evidence references
-
-**Can fail if:** Report not generated yet
+**Demo workflow node sequence:**
+1. Evidence Search — queries Chroma
+2. Evidence Synthesis — analyzes via fake provider
+3. Claim Verification — checks claims
+4. Contradiction Scan — detects conflicts
+5. Review Gate — optional human pause
+6. Trust Report — generates Markdown
 
 ---
 
-### 12. Restart and Persist
+### Step 10 — Generate Claims
 
-**What happens:**
-- User stops the Docker containers
-- Restarts: `docker compose up`
-- All data remains in `.decision_system/` (Docker volume)
-- Workspaces, data sources, providers, workflows, reports survive restart
+| Item | Details |
+|------|---------|
+| **User action** | After workflow execution → navigate to Claim Ledger |
+| **Expected UI state** | Claims listed with status labels (pending, verified, unsupported, contradicted) |
+| **Backend API** | Claims are created during workflow execution; `GET /claims` to list |
+| **Artifact created** | Claim records in `{data_dir}/claims/` |
+| **What can fail** | No claims generated (workflow did not complete), empty evidence set |
+| **How to recover** | Re-run workflow; ensure evidence was indexed |
 
-**Reset:** `docker compose down -v` removes all data
+---
+
+### Step 11 — Verify Claims
+
+| Item | Details |
+|------|---------|
+| **User action** | Click "Verify All" or verify individual claims |
+| **Expected UI state** | Claim statuses update; each shows evidence references; unsupported/contradicted claims are visible (not hidden) |
+| **Backend API** | `POST /claims/{id}/verify` — verify single claim; `POST /claims/verify-all` — batch verify |
+| **Artifact created** | Verification results attached to claims |
+| **What can fail** | Provider not responding, no evidence for comparison |
+| **How to recover** | Ensure fake provider is configured; ensure evidence is indexed |
+
+---
+
+### Step 12 — Extract Graph Facts / Risks / Metrics
+
+| Item | Details |
+|------|---------|
+| **User action** | Navigate to Knowledge Graph → run extraction → view entities and relationships |
+| **Expected UI state** | Graph shows entity nodes with relationship edges; detail panel shows evidence references |
+| **Backend API** | `POST /graph/extract` — run graph extraction from indexed data |
+| **Artifact created** | Graph nodes/edges in `{data_dir}/graph/` |
+| **What can fail** | No data indexed, extraction timeout, empty result set |
+| **How to recover** | Ensure data sources are indexed; check graph extraction config |
+
+---
+
+### Step 13 — Generate Trust Report
+
+| Item | Details |
+|------|---------|
+| **User action** | Navigate to Trust Dashboard → select workspace → click "Generate Trust Report" |
+| **Expected UI state** | Report generation progress shown; completed report displayed with sections (summary, evidence, claims, risks, graph) |
+| **Backend API** | `POST /reports/generate` — generate trust report |
+| **Artifact created** | Report markdown in `{data_dir}/reports/{report_id}/` |
+| **What can fail** | No claims/evidence data, provider unavailable, report generation timeout |
+| **How to recover** | Complete Steps 9-11 first; check provider configuration |
+
+---
+
+### Step 14 — Export Markdown Report
+
+| Item | Details |
+|------|---------|
+| **User action** | View generated report → click "Export" |
+| **Expected UI state** | Browser downloads a `.md` file with full report including citations |
+| **Backend API** | `GET /reports/{id}/export` — returns markdown file |
+| **Artifact created** | Downloaded `*.md` file on user's machine |
+| **What can fail** | Report not generated yet, permission denied (governed mode), disk full |
+| **How to recover** | Generate report first (Step 13); ensure user has export permission |
+
+---
+
+### Step 15 — Backup Data
+
+| Item | Details |
+|------|---------|
+| **User action** | Run `./scripts/backup-local-data.sh` from terminal |
+| **Expected UI state** | Terminal shows backup progress; timestamped `.tar.gz` file created |
+| **Backend API** | None (script-based) |
+| **Artifact created** | `decision-system-backup-{timestamp}.tar.gz` in current directory |
+| **What can fail** | Data directory missing, disk full, permission denied |
+| **How to recover** | Ensure `.decision_system/` exists; check disk space |
+
+---
+
+### Step 16 — Reset Data (with Confirmation)
+
+| Item | Details |
+|------|---------|
+| **User action** | Run `./scripts/reset-local-data.sh` from terminal → type `yes` when prompted |
+| **Expected UI state** | Terminal prompts for confirmation; after `yes`, data directory is cleared and recreated |
+| **Backend API** | None (script-based) |
+| **Artifact created** | Empty `.decision_system/` directory |
+| **What can fail** | Confirmation not provided (script exits safely), permission denied, directory locked |
+| **How to recover** | Stop backend first; run script again and type `yes` |
+
+---
+
+### Step 17 — Restart and Confirm Persistence
+
+| Item | Details |
+|------|---------|
+| **User action** | Stop app → restart → verify data is still present (before reset) |
+| **Expected UI state** | After restart, workspaces, data sources, providers, workflows, and reports are all preserved |
+| **Backend API** | `GET /workspaces`, `GET /data-sources`, `GET /providers` — all return previous data |
+| **Artifact created** | None (verification step) |
+| **What can fail** | Data directory moved/deleted, volume not mounted (Docker), permissions changed |
+| **How to recover** | Check `.decision_system/` exists and has content; restore from backup |
+
+---
+
+### Step 18 — Run Doctor / Validate Scripts
+
+| Item | Details |
+|------|---------|
+| **User action** | Run `./scripts/doctor-local.sh` and `./scripts/validate-local.sh` |
+| **Expected UI state** | Doctor shows green checks for healthy components; validate runs test suite |
+| **Backend API** | None (script-based, but `GET /health` is checked by doctor) |
+| **Artifact created** | Test results; doctor report |
+| **What can fail** | Environment dependencies missing (Docker, Tesseract), backend not running |
+| **How to recover** | Follow script output instructions; install missing dependencies |
 
 ---
 
@@ -257,14 +294,44 @@ Upload (PDF/Image)
 
 ---
 
-## Known Limitations (v1.25)
+## Non-Docker Equivalent
+
+Every step above works without Docker:
+
+```bash
+# Terminal 1: Start backend
+./scripts/start-local.sh
+
+# Terminal 2: Start frontend (optional, API works via curl too)
+./scripts/start-local.sh --all
+
+# Or use the all-in-one
+./scripts/start-local.sh --all
+```
+
+The SPA frontend at `http://localhost:3000` uses Vite dev server by default.
+For production-like build: `cd web/workflow-builder && npm run build && npx serve dist`
+
+---
+
+## Known Limitations (v1.33)
 
 1. **OCR quality**: Tesseract accuracy depends on image quality. Low-resolution
-   or highly stylized documents may produce errors.
+   or highly stylized documents may produce errors. OCR is only available when
+   Tesseract is installed on the system.
 2. **Non-English text**: Only English (`eng`) language data is bundled.
 3. **Large PDFs**: OCR of large multi-page PDFs is slow (2-5 seconds per page).
 4. **No document images**: Formats like `.docx` with embedded images are not OCR'd.
-5. **Chroma in-memory**: Vector store is in-memory (file-based but loaded at startup).
-6. **Single-user**: No multi-user support.
-7. **No production readiness**: This is a local MVP beta candidate.
+5. **Chroma in-memory**: Vector store is file-based but loaded at startup.
+6. **Single-user**: No multi-user support. Demo mode is default.
+7. **Not production-ready**: This is a local MVP beta candidate.
 8. **Workflow execution**: Sequential node execution only (no parallel branches).
+9. **Docker smoke not run**: Docker validation is environment-dependent.
+10. **Notion/Drive connectors**: Disabled/planned, not active.
+11. **No enterprise auth**: No SSO, no encryption at rest, no audit stream.
+12. **External connectors**: Read-only only. No write connectors.
+
+---
+
+*Demo path verified for v1.33.0-dev — End-to-End Beta QA + Bug Bash.*
+*Update this document when API endpoints, UI flows, or dependencies change.*

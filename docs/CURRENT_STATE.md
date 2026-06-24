@@ -1,7 +1,7 @@
-> **Last updated:** 2026-06-24 (v1.32.0-dev — Beta Packaging, Installer Scripts + Local Release Polish)
-> **Package version:** 1.32.0-dev
-> **Previous milestone:** v1.31.0 — Connector Reliability, Rate Limits + Large Import Handling
-> **Current milestone:** v1.32.0 — Beta Packaging, Installer Scripts + Local Release Polish
+> **Last updated:** 2026-06-24 (v1.33.0-dev — End-to-End Beta QA + Bug Bash)
+> **Package version:** 1.33.0-dev
+> **Previous milestone:** v1.32.0-dev — Beta Packaging, Installer Scripts + Local Release Polish
+> **Current milestone:** v1.33.0-dev — End-to-End Beta QA + Bug Bash
 > **Python:** >=3.11
 
 ---
@@ -196,7 +196,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 1. **Frontend requires npm build.** The React workflow builder needs `npm install && npm run build` before Docker Compose will serve it.
 2. **Running all workflow engine tests together** can cause pytest-asyncio event loop issues. Run individual test files.
 3. **CodeNode is disabled by default.** Set `DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true` to enable (unsafe).
-4. **PDF/DOCX/XLSX parsing** is not yet supported.
+4. **PDF/DOCX/XLSX parsing** is supported (via pypdf, python-docx, openpyxl). OCR requires Tesseract.
 5. **Vector search** requires Chroma to have indexed data; keyword fallback works without it.
 6. **Frontend Data Sources page** is functional but basic.
 

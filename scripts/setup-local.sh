@@ -36,7 +36,7 @@ info() { INFO=$((INFO+1)); echo "  ℹ️  $1"; }
 
 echo "============================================"
 echo "  Agentic Decision System — Local Setup"
-echo "  Version: $(python3 -c "import sys; sys.path.insert(0,'src'); exec(open('src/decision_system/__init__').read()); print(__version__)" 2>/dev/null || echo "unknown")"
+echo "  Version: $(python3 -c "import sys; sys.path.insert(0,'src'); exec(open('src/decision_system/__init__.py').read()); print(__version__)" 2>/dev/null || echo "unknown")"
 echo "============================================"
 echo ""
 

@@ -1047,6 +1047,12 @@ function App() {
             onWorkspaceChange={handleWorkspaceChange}
           />
         );
+      case "connectors":
+        return <ConnectorsPage workspaceId={workspaceId} onNavigate={handleNavigate} />;
+      case "graph":
+        return <GraphPage workspaceId={workspaceId} />;
+      case "risk-dashboard":
+        return <RiskDashboard workspaceId={workspaceId} />;
       default:
         return <CanvasInner onNavigate={handleNavigate} workspaceId={workspaceId} />;
     }

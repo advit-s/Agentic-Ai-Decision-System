@@ -192,8 +192,8 @@ if [ -f "web/workflow-builder/dist/index.html" ]; then
 else
     warn "Frontend build not found (run 'cd web/workflow-builder && npm run build')"
 fi
-if python3 -c "from decision_system import __version__; print(__version__)" 2>/dev/null; then
-    VER=$(python3 -c "from decision_system import __version__; print(__version__)" 2>/dev/null)
+if .venv/bin/python -c "from decision_system import __version__; print(__version__)" 2>/dev/null; then
+    VER=$(.venv/bin/python -c "from decision_system import __version__; print(__version__)" 2>/dev/null)
     pass "Backend package importable (version $VER)"
 else
     fail "Backend package not importable"
