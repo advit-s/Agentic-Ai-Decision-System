@@ -75,3 +75,47 @@ def record_error(
         connector_id=connector_id,
         error_type=error_type,
     )
+
+# ---------------------------------------------------------------------------
+# Sync metrics (v1.29)
+# ---------------------------------------------------------------------------
+
+
+def record_sync_duration(
+    connector_id: str,
+    duration_ms: float,
+    items_new: int = 0,
+    items_changed: int = 0,
+    items_unchanged: int = 0,
+    items_failed: int = 0,
+) -> None:
+    _record(
+        "connector_sync_duration_ms",
+        duration_ms,
+        connector_id=connector_id,
+        items_new=items_new,
+        items_changed=items_changed,
+        items_unchanged=items_unchanged,
+        items_failed=items_failed,
+    )
+
+
+def record_sync_items_count(
+    connector_id: str,
+    status: str,
+    count: int,
+) -> None:
+    _record(
+        f"connector_sync_items_{status}_count",
+        float(count),
+        connector_id=connector_id,
+    )
+
+
+def record_schedules_due(
+    count: int,
+) -> None:
+    _record(
+        "connector_schedules_due_count",
+        float(count),
+    )

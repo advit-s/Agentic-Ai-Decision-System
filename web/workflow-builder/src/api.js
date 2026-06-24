@@ -1231,3 +1231,78 @@ async function getWorkspaceAuditSummary(workspaceId) {
   }
   return apiFetch(`/workspaces/${workspaceId}/audit/summary`);
 }
+
+// ---------------------------------------------------------------------------
+// v1.29 Connector sync API
+// ---------------------------------------------------------------------------
+
+export async function triggerConnectorSync(workspaceId, connectorId) {
+  if (isMockMode()) {
+    return { result: { status: "completed", items_new: 3, items_changed: 1, items_unchanged: 5, items_failed: 0, items_deleted_remote: 0, duration_ms: 1234, job_id: "mock-sync-job-001", error: null } };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/sync`, { method: "POST" });
+}
+
+export async function getConnectorSyncState(workspaceId, connectorId) {
+  if (isMockMode()) {
+    const mockState = [
+      { sync_state_id: "s1", external_id: "doc1", content_hash: "abc123", status: "unchanged", last_seen_at: new Date().toISOString(), last_imported_at: new Date().toISOString() },
+      { sync_state_id: "s2", external_id: "doc2", content_hash: "def456", status: "new", last_seen_at: new Date().toISOString() },
+      { sync_state_id: "s3", external_id: "doc3", content_hash: "ghi789", status: "changed", last_seen_at: new Date().toISOString(), last_imported_at: new Date().toISOString() },
+    ];
+    return { sync_state: mockState, count: mockState.length };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/sync-state`);
+}
+
+export async function listSyncSchedules(workspaceId, connectorId) {
+  if (isMockMode()) {
+    return { schedules: [], count: 0 };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/sync-schedules`);
+}
+
+export async function createSyncSchedule(workspaceId, connectorId, data) {
+  if (isMockMode()) {
+    return { schedule: { schedule_id: "mock-schedule-1", ...data, workspace_id: workspaceId, connector_id: connectorId, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/sync-schedules`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateSyncSchedule(workspaceId, connectorId, scheduleId, data) {
+  if (isMockMode()) {
+    return { schedule: { schedule_id: scheduleId, ...data } };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/sync-schedules/${scheduleId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteSyncSchedule(workspaceId, connectorId, scheduleId) {
+  if (isMockMode()) {
+    return { status: "deleted", schedule_id: scheduleId };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/sync-schedules/${scheduleId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function toggleSyncSchedule(workspaceId, connectorId, scheduleId) {
+  if (isMockMode()) {
+    return { schedule: { schedule_id: scheduleId, enabled: true } };
+  }
+  return apiFetch(`/workspaces/${workspaceId}/connectors/${connectorId}/sync-schedules/${scheduleId}/toggle`, {
+    method: "POST",
+  });
+}
+
+export async function runDueSyncSchedules() {
+  if (isMockMode()) {
+    return { results: [], count: 0 };
+  }
+  return apiFetch("/connector-sync/run-due", { method: "POST" });
+}

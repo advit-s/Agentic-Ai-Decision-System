@@ -289,3 +289,24 @@ v1.27 — Security, Auth, RBAC + Governance Foundation
 3. **Secrets management** — Encrypted provider credentials, key rotation
 4. **Multi-tenant workspace isolation** — Hard separation between workspace data
 5. **Governance dashboards** — Compliance status, access reviews, audit export
+
+## v1.29.0-dev — Connector Scheduling + Incremental Sync
+
+### Completed
+- Sync state model (SyncStateItem) + SyncStateStore (JSON-backed, workspace-scoped)
+- Incremental sync: new/changed/unchanged/deleted_remote detection via SHA-256 hashing
+- Schedule model (ConnectorSchedule) + ScheduleStore (manual/interval/cron)
+- SyncRunner service: orchestrates full sync lifecycle with audit/metrics
+- run_sync() helper in import_jobs.py
+- Full REST API: sync trigger, sync state, schedule CRUD, run-due, toggle
+- RBAC: connector.sync and connector.schedule permissions with role matrix
+- Audit events: 11 new sync/schedule event types
+- Metrics: sync duration, item counts, due schedule counts
+- Frontend: sync button, sync state table, schedule controls (create/enable/disable/delete)
+- 40+ tests covering state model, store, schedule, runner, transitions, citations
+- Demo sync works with Local Folder connector (manual, incremental)
+- All existing tests pass
+- docs/CONNECTOR_SYNC_AUDIT.md documents current state and v1.29 plan
+
+### Read-only guarantee
+Connector sync is read-only. It imports local copies of external content and never writes changes back to the source system.

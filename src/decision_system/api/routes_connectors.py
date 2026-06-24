@@ -477,3 +477,266 @@ def _serialize_definition(definition: Any) -> dict[str, Any]:
         "supports_test": definition.supports_test,
         "is_stub": definition.is_stub,
     }
+
+
+# ---------------------------------------------------------------------------
+# v1.29 Sync API endpoints
+# ---------------------------------------------------------------------------
+
+
+class SyncScheduleCreateRequest(BaseModel):
+    enabled: bool = True
+    schedule_type: str = "manual"
+    interval_minutes: int | None = None
+    cron_expression: str | None = None
+    metadata: dict[str, Any] = {}
+
+
+class SyncScheduleUpdateRequest(BaseModel):
+    enabled: bool | None = None
+    schedule_type: str | None = None
+    interval_minutes: int | None = None
+    cron_expression: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+# ---------------------------------------------------------------------------
+# Manual sync trigger
+# ---------------------------------------------------------------------------
+
+
+@router.post("/workspaces/{workspace_id}/connectors/{connector_id}/sync")
+def trigger_connector_sync(
+    workspace_id: str,
+    connector_id: str,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_SYNC)),
+) -> dict[str, Any]:
+    """Manually trigger a sync for a connector.
+
+    Requires connector.sync permission.
+    Returns incremental sync results.
+    """
+    from decision_system.connectors.import_jobs import run_sync
+
+    result = run_sync(
+        connector_id=connector_id,
+        workspace_id=workspace_id,
+    )
+    return {"result": result}
+
+
+# ---------------------------------------------------------------------------
+# Sync state inspection
+# ---------------------------------------------------------------------------
+
+
+@router.get("/workspaces/{workspace_id}/connectors/{connector_id}/sync-state")
+def get_connector_sync_state(
+    workspace_id: str,
+    connector_id: str,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_READ)),
+) -> dict[str, Any]:
+    """Get sync state for all items in a connector."""
+    from decision_system.connectors.sync_state import get_sync_state_store
+
+    store = get_sync_state_store()
+    state = store.get_sync_state(workspace_id, connector_id)
+    return {
+        "sync_state": [s.model_dump(mode="json") for s in state],
+        "count": len(state),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Sync schedule CRUD
+# ---------------------------------------------------------------------------
+
+
+@router.get("/workspaces/{workspace_id}/connectors/{connector_id}/sync-schedules")
+def list_sync_schedules(
+    workspace_id: str,
+    connector_id: str,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_READ)),
+) -> dict[str, Any]:
+    """List sync schedules for a connector."""
+    from decision_system.connectors.schedule import get_schedule_store
+
+    store = get_schedule_store()
+    schedules = store.list_schedules(workspace_id, connector_id)
+    return {
+        "schedules": [s.model_dump(mode="json") for s in schedules],
+        "count": len(schedules),
+    }
+
+
+@router.post("/workspaces/{workspace_id}/connectors/{connector_id}/sync-schedules")
+def create_sync_schedule(
+    workspace_id: str,
+    connector_id: str,
+    request: SyncScheduleCreateRequest,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_SCHEDULE)),
+) -> dict[str, Any]:
+    """Create a sync schedule for a connector.
+
+    Requires connector.schedule permission.
+    """
+    from decision_system.connectors.schedule import (
+        ConnectorSchedule,
+        get_schedule_store,
+    )
+    from decision_system.connectors.audit import record_schedule_created
+
+    store = get_schedule_store()
+    schedule = ConnectorSchedule(
+        workspace_id=workspace_id,
+        connector_id=connector_id,
+        enabled=request.enabled,
+        schedule_type=request.schedule_type,
+        interval_minutes=request.interval_minutes,
+        cron_expression=request.cron_expression,
+        metadata=request.metadata,
+    )
+    schedule = store.create_schedule(workspace_id, schedule)
+
+    record_schedule_created(
+        connector_id=connector_id,
+        schedule_id=schedule.schedule_id,
+        workspace_id=workspace_id,
+    )
+
+    return {"schedule": schedule.model_dump(mode="json")}
+
+
+@router.put("/workspaces/{workspace_id}/connectors/{connector_id}/sync-schedules/{schedule_id}")
+def update_sync_schedule(
+    workspace_id: str,
+    connector_id: str,
+    schedule_id: str,
+    request: SyncScheduleUpdateRequest,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_SCHEDULE)),
+) -> dict[str, Any]:
+    """Update a sync schedule."""
+    from decision_system.connectors.schedule import get_schedule_store
+    from decision_system.connectors.audit import record_schedule_updated
+
+    store = get_schedule_store()
+    schedule = store.get_schedule(workspace_id, connector_id, schedule_id)
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+
+    if request.enabled is not None:
+        schedule.enabled = request.enabled
+    if request.schedule_type is not None:
+        schedule.schedule_type = request.schedule_type
+    if request.interval_minutes is not None:
+        schedule.interval_minutes = request.interval_minutes
+    if request.cron_expression is not None:
+        schedule.cron_expression = request.cron_expression
+    if request.metadata is not None:
+        schedule.metadata = request.metadata
+
+    store.update_schedule(workspace_id, schedule)
+
+    record_schedule_updated(
+        connector_id=connector_id,
+        schedule_id=schedule_id,
+        workspace_id=workspace_id,
+    )
+
+    return {"schedule": schedule.model_dump(mode="json")}
+
+
+@router.delete("/workspaces/{workspace_id}/connectors/{connector_id}/sync-schedules/{schedule_id}")
+def delete_sync_schedule(
+    workspace_id: str,
+    connector_id: str,
+    schedule_id: str,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_SCHEDULE)),
+) -> dict[str, Any]:
+    """Delete a sync schedule."""
+    from decision_system.connectors.schedule import get_schedule_store
+    from decision_system.connectors.audit import record_schedule_deleted
+
+    store = get_schedule_store()
+    deleted = store.delete_schedule(workspace_id, connector_id, schedule_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+
+    record_schedule_deleted(
+        connector_id=connector_id,
+        schedule_id=schedule_id,
+        workspace_id=workspace_id,
+    )
+
+    return {"status": "deleted", "schedule_id": schedule_id}
+
+
+# ---------------------------------------------------------------------------
+# System: run all due sync schedules
+# ---------------------------------------------------------------------------
+
+
+@router.post("/connector-sync/run-due")
+def run_due_sync_schedules(
+    _user: LocalUser = Depends(require_permission(Permission.CONNECTOR_SCHEDULE)),
+) -> dict[str, Any]:
+    """Find and run all due connector sync schedules.
+
+    Requires connector.schedule permission.
+    Intended for use by a local cron or timer.
+    """
+    from decision_system.connectors.sync_runner import get_sync_runner
+
+    runner = get_sync_runner()
+    results = runner.run_due_schedules()
+
+    return {
+        "results": [
+            {
+                "connector_id": r.connector_id,
+                "workspace_id": r.workspace_id,
+                "status": r.status,
+                "items_new": r.items_new,
+                "items_changed": r.items_changed,
+                "items_unchanged": r.items_unchanged,
+                "items_failed": r.items_failed,
+                "items_deleted_remote": r.items_deleted_remote,
+                "duration_ms": r.duration_ms,
+                "job_id": r.job_id,
+                "error": r.error,
+            }
+            for r in results
+        ],
+        "count": len(results),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Toggle schedule (convenience)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/workspaces/{workspace_id}/connectors/{connector_id}/sync-schedules/{schedule_id}/toggle")
+def toggle_sync_schedule(
+    workspace_id: str,
+    connector_id: str,
+    schedule_id: str,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_SCHEDULE)),
+) -> dict[str, Any]:
+    """Toggle a sync schedule's enabled state."""
+    from decision_system.connectors.schedule import get_schedule_store
+    from decision_system.connectors.audit import record_schedule_toggled
+
+    store = get_schedule_store()
+    schedule = store.toggle_schedule(workspace_id, connector_id, schedule_id)
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+
+    record_schedule_toggled(
+        connector_id=connector_id,
+        schedule_id=schedule_id,
+        enabled=schedule.enabled,
+        workspace_id=workspace_id,
+    )
+
+    return {"schedule": schedule.model_dump(mode="json")}

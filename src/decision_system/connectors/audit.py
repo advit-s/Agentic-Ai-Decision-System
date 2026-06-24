@@ -188,3 +188,204 @@ def record_item_imported(
         workspace_id=workspace_id,
         **extra,
     )
+
+# ---------------------------------------------------------------------------
+# Sync audit events (v1.29)
+# ---------------------------------------------------------------------------
+
+EVENT_CONNECTOR_SYNC_STARTED = "connector_sync_started"
+EVENT_CONNECTOR_SYNC_COMPLETED = "connector_sync_completed"
+EVENT_CONNECTOR_SYNC_FAILED = "connector_sync_failed"
+EVENT_CONNECTOR_SYNC_ITEM_NEW = "connector_sync_item_new"
+EVENT_CONNECTOR_SYNC_ITEM_CHANGED = "connector_sync_item_changed"
+EVENT_CONNECTOR_SYNC_ITEM_UNCHANGED = "connector_sync_item_unchanged"
+EVENT_CONNECTOR_SYNC_ITEM_FAILED = "connector_sync_item_failed"
+EVENT_CONNECTOR_SCHEDULE_CREATED = "connector_schedule_created"
+EVENT_CONNECTOR_SCHEDULE_UPDATED = "connector_schedule_updated"
+EVENT_CONNECTOR_SCHEDULE_DELETED = "connector_schedule_deleted"
+EVENT_CONNECTOR_SCHEDULE_TOGGLED = "connector_schedule_toggled"
+
+
+def record_sync_started(
+    connector_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SYNC_STARTED,
+        f"Connector '{connector_id}' sync started",
+        connector_id=connector_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_sync_completed(
+    connector_id: str,
+    items_new: int,
+    items_changed: int,
+    items_unchanged: int,
+    items_failed: int,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SYNC_COMPLETED,
+        f"Connector '{connector_id}' sync completed: "
+        f"{items_new} new, {items_changed} changed, {items_unchanged} unchanged, {items_failed} failed",
+        connector_id=connector_id,
+        items_new=items_new,
+        items_changed=items_changed,
+        items_unchanged=items_unchanged,
+        items_failed=items_failed,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_sync_failed(
+    connector_id: str,
+    error: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SYNC_FAILED,
+        f"Connector '{connector_id}' sync failed: {error}",
+        connector_id=connector_id,
+        error=error,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_sync_item_new(
+    connector_id: str,
+    external_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SYNC_ITEM_NEW,
+        f"New item '{external_id}' from connector '{connector_id}'",
+        connector_id=connector_id,
+        external_id=external_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_sync_item_changed(
+    connector_id: str,
+    external_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SYNC_ITEM_CHANGED,
+        f"Changed item '{external_id}' from connector '{connector_id}'",
+        connector_id=connector_id,
+        external_id=external_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_sync_item_unchanged(
+    connector_id: str,
+    external_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SYNC_ITEM_UNCHANGED,
+        f"Unchanged item '{external_id}' from connector '{connector_id}'",
+        connector_id=connector_id,
+        external_id=external_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_sync_item_failed(
+    connector_id: str,
+    external_id: str,
+    error: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SYNC_ITEM_FAILED,
+        f"Item '{external_id}' sync failed: {error}",
+        connector_id=connector_id,
+        external_id=external_id,
+        error=error,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_schedule_created(
+    connector_id: str,
+    schedule_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SCHEDULE_CREATED,
+        f"Schedule '{schedule_id}' created for connector '{connector_id}'",
+        connector_id=connector_id,
+        schedule_id=schedule_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_schedule_updated(
+    connector_id: str,
+    schedule_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SCHEDULE_UPDATED,
+        f"Schedule '{schedule_id}' updated for connector '{connector_id}'",
+        connector_id=connector_id,
+        schedule_id=schedule_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_schedule_deleted(
+    connector_id: str,
+    schedule_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SCHEDULE_DELETED,
+        f"Schedule '{schedule_id}' deleted for connector '{connector_id}'",
+        connector_id=connector_id,
+        schedule_id=schedule_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_schedule_toggled(
+    connector_id: str,
+    schedule_id: str,
+    enabled: bool,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_SCHEDULE_TOGGLED,
+        f"Schedule '{schedule_id}' {'enabled' if enabled else 'disabled'} for connector '{connector_id}'",
+        connector_id=connector_id,
+        schedule_id=schedule_id,
+        enabled=enabled,
+        workspace_id=workspace_id,
+        **extra,
+    )

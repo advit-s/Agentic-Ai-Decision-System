@@ -355,6 +355,23 @@ decision-system connectors inspect-jobs
 
 v1.1 adds a safe connector framework for controlled data intake. Only `local-files` is a real connector; GitHub, Jira, Slack, and Email are offline stubs and do not make network calls. No OAuth/token storage is implemented.
 
+**v1.29 connector sync (incremental):**
+- `POST /workspaces/{wid}/connectors/{cid}/sync` — trigger manual sync
+- `GET /workspaces/{wid}/connectors/{cid}/sync-state` — inspect sync state
+- `GET /workspaces/{wid}/connectors/{cid}/sync-schedules` — list schedules
+- `POST /workspaces/{wid}/connectors/{cid}/sync-schedules` — create schedule
+- `PUT /workspaces/{wid}/connectors/{cid}/sync-schedules/{sid}` — update schedule
+- `DELETE /workspaces/{wid}/connectors/{cid}/sync-schedules/{sid}` — delete schedule
+- `POST /workspaces/{wid}/connectors/{cid}/sync-schedules/{sid}/toggle` — toggle schedule
+- `POST /connector-sync/run-due` — run all due schedules
+
+**Permissions (v1.29):**
+- `connector.sync` — manual sync (owner, admin, analyst)
+- `connector.schedule` — create/manage schedules (owner, admin)
+
+**Read-only guarantee:** Connector sync is read-only. It imports local copies of external content and never writes changes back to the source system. Unchanged items are skipped. Changed items are re-imported. Deleted remote items are marked but local data is preserved.
+
+
 ```bash
 decision-system connectors inspect github
 decision-system connectors inspect jira

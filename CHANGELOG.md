@@ -909,3 +909,31 @@
 - This is a local governance foundation, not enterprise auth
 ### Removed
 - No features removed
+
+## v1.29.0-dev (Connector Scheduling + Incremental Sync)
+
+### Added
+- Sync state model (`SyncStateItem`) and store (`SyncStateStore`) for per-item
+  sync tracking with content hashing (SHA-256)
+- Incremental sync logic: new items imported, changed items re-imported,
+  unchanged items skipped, deleted remote items marked (local data preserved)
+- Connector schedule model (`ConnectorSchedule`) and store (`ScheduleStore`)
+  supporting manual, interval, and simple cron schedule types
+- Sync runner (`SyncRunner`) that orchestrates full sync lifecycle: list items,
+  compare hashes, import new/changed, mark deleted_remote, emit audit/metrics
+- `run_sync()` helper in `import_jobs.py` for calling sync from API/CLI
+- Sync API endpoints: POST sync, GET sync-state, schedule CRUD, POST run-due,
+  POST toggle schedule
+- New permissions: `connector.sync` and `connector.schedule` with RBAC enforcement
+- Sync audit events: sync_started, sync_completed, sync_failed, item_new,
+  item_changed, item_unchanged, item_failed, schedule CRUD/toggled
+- Sync metrics: sync_duration_ms, sync_items_*_count, schedules_due_count
+- Frontend sync UI: manual sync button, sync state table with status badges,
+  schedule controls (create/enable/disable/delete), sync status in connector cards
+- Frontend API mock data for sync/schedule operations
+- Comprehensive test suite: 40+ tests covering sync state, schedule, runner,
+  state transitions, citations, workspace isolation
+- Documentation: CONNECTOR_SYNC_AUDIT.md
+
+### Changed
+- Version bumped from 1.28.0-dev to 1.29.0-dev

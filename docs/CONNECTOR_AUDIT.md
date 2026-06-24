@@ -181,3 +181,4 @@ full read-only import system with:
 - `web/workflow-builder/src/components/AppNav.jsx` — Navigation
 - `tests/test_connectors.py` — Updated for new registry
 - `tests/test_api_connector.py` — Updated for new API
+See docs/CONNECTOR_SYNC_AUDIT.md for v1.29 sync audit details.

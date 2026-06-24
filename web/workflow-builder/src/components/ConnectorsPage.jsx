@@ -1,5 +1,5 @@
-// ConnectorsPage.jsx — Read-only connector manager for v1.28
-// Supports create/test/import for Local Folder, GitHub Repo, and URL connectors.
+// ConnectorsPage.jsx — Read-only connector manager for v1.28+v1.29
+// Supports create/test/import (v1.28) and sync/schedule (v1.29).
 import React, { useState, useEffect, useCallback } from "react";
 import {
   listConnectorDefinitions,
@@ -13,6 +13,13 @@ import {
   importConnectorItems,
   listConnectorJobs,
   getConnectorJob,
+  triggerConnectorSync,
+  getConnectorSyncState,
+  listSyncSchedules,
+  createSyncSchedule,
+  updateSyncSchedule,
+  deleteSyncSchedule,
+  toggleSyncSchedule,
 } from "../api";
 import { usePermission } from "../hooks/usePermission";
 import { useToast } from "./Toast";
@@ -30,13 +37,22 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [view, setView] = useState("list"); // list | create | detail | items | jobs
+  const [view, setView] = useState("list"); // list | create | detail | items | jobs | sync-state | schedules
   const [selectedConfig, setSelectedConfig] = useState(null);
   const [items, setItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [importing, setImporting] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [jobs, setJobs] = useState([]);
+  const [syncState, setSyncState] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    schedule_type: "manual",
+    interval_minutes: 60,
+    enabled: true,
+  });
   const [formData, setFormData] = useState({
     name: "",
     connector_type: "local-files",
@@ -159,6 +175,91 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
     }
   };
 
+  // -----------------------------------------------------------------------
+  // v1.29 Sync operations
+  // -----------------------------------------------------------------------
+
+  // Manual sync
+  const handleSync = async (configId) => {
+    setSyncing(true);
+    try {
+      const result = await triggerConnectorSync(workspaceId, configId);
+      const r = result?.result || {};
+      showToast(
+        `Sync complete: ${r.items_new || 0} new, ${r.items_changed || 0} changed, ${r.items_unchanged || 0} unchanged`,
+        r.status === "failed" ? "error" : "success"
+      );
+      loadData();
+    } catch (err) {
+      showToast(`Sync failed: ${err.message}`, "error");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // View sync state
+  const handleViewSyncState = async (config) => {
+    setSelectedConfig(config);
+    setView("sync-state");
+    try {
+      const result = await getConnectorSyncState(workspaceId, config.connector_id);
+      setSyncState(result?.sync_state || []);
+    } catch (err) {
+      showToast(`Failed to load sync state: ${err.message}`, "error");
+      setSyncState([]);
+    }
+  };
+
+  // View schedules
+  const handleViewSchedules = async (config) => {
+    setSelectedConfig(config);
+    setView("schedules");
+    setShowScheduleForm(false);
+    try {
+      const result = await listSyncSchedules(workspaceId, config.connector_id);
+      setSchedules(result?.schedules || []);
+    } catch (err) {
+      showToast(`Failed to load schedules: ${err.message}`, "error");
+      setSchedules([]);
+    }
+  };
+
+  // Create schedule
+  const handleCreateSchedule = async () => {
+    try {
+      await createSyncSchedule(workspaceId, selectedConfig.connector_id, scheduleForm);
+      showToast("Schedule created", "success");
+      setShowScheduleForm(false);
+      handleViewSchedules(selectedConfig);
+    } catch (err) {
+      showToast(`Failed to create schedule: ${err.message}`, "error");
+    }
+  };
+
+  // Delete schedule
+  const handleDeleteSchedule = async (scheduleId) => {
+    if (!window.confirm("Delete this schedule?")) return;
+    try {
+      await deleteSyncSchedule(workspaceId, selectedConfig.connector_id, scheduleId);
+      showToast("Schedule deleted", "success");
+      handleViewSchedules(selectedConfig);
+    } catch (err) {
+      showToast(`Failed to delete schedule: ${err.message}`, "error");
+    }
+  };
+
+  // Toggle schedule
+  const handleToggleSchedule = async (scheduleId) => {
+    try {
+      const result = await toggleSyncSchedule(workspaceId, selectedConfig.connector_id, scheduleId);
+      const enabled = result?.schedule?.enabled;
+      showToast(enabled ? "Schedule enabled" : "Schedule disabled", "success");
+      handleViewSchedules(selectedConfig);
+    } catch (err) {
+      showToast(`Failed to toggle schedule: ${err.message}`, "error");
+    }
+  };
+
   // Load jobs
   const loadJobs = useCallback(async () => {
     if (!workspaceId) return;
@@ -203,6 +304,11 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
     }
   };
 
+  // Schedule form helpers
+  const updateScheduleForm = (field, value) => {
+    setScheduleForm((prev) => ({ ...prev, [field]: value }));
+  };
+
   // Render
   if (!workspaceId) {
     return <div className="section-page"><p>Select a workspace to manage connectors.</p></div>;
@@ -211,6 +317,8 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
   const canManage = can?.("connector.manage");
   const canImport = can?.("connector.import");
   const canRead = can?.("connector.read");
+  const canSync = can?.("connector.sync");
+  const canSchedule = can?.("connector.schedule");
 
   if (!canRead) {
     return (
@@ -229,6 +337,8 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
         <h2>🔌 Connectors</h2>
         <p className="section-subtitle">
           Read-only connector imports. This app imports a local copy and never writes back.
+          Connector sync is incremental — new/changed items are imported, unchanged items are skipped,
+          deleted remote items are marked but local data is preserved.
           {canManage && (
             <button className="btn btn-sm" style={{ marginLeft: 12 }} onClick={() => setView("create")}>
               + New Connector
@@ -351,6 +461,11 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
                     <span className={`connector-status-badge status-${cfg.status}`}>
                       {cfg.status}
                     </span>
+                    {cfg.last_sync_at && (
+                      <span className="connector-last-sync" style={{ marginLeft: 8, fontSize: "0.85em", color: "#888" }}>
+                        Last sync: {new Date(cfg.last_sync_at).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="connector-card-actions">
@@ -364,6 +479,21 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
                   {canImport && (
                     <button className="btn btn-xs btn-primary" onClick={() => handleListItems(cfg)}>
                       Import
+                    </button>
+                  )}
+                  {canSync && (
+                    <button className="btn btn-xs" onClick={() => handleSync(cfg.connector_id)} disabled={syncing}>
+                      {syncing ? "Syncing..." : "⟳ Sync"}
+                    </button>
+                  )}
+                  {canSync && (
+                    <button className="btn btn-xs" onClick={() => handleViewSyncState(cfg)}>
+                      Sync State
+                    </button>
+                  )}
+                  {canSchedule && (
+                    <button className="btn btn-xs" onClick={() => handleViewSchedules(cfg)}>
+                      Schedule
                     </button>
                   )}
                   {canManage && (
@@ -386,6 +516,7 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
               <tr><td>Type</td><td>{getTypeInfo(selectedConfig.connector_type).label}</td></tr>
               <tr><td>Mode</td><td>🔒 Read-only</td></tr>
               <tr><td>Status</td><td><span className={`connector-status-badge status-${selectedConfig.status}`}>{selectedConfig.status}</span></td></tr>
+              <tr><td>Last Sync</td><td>{selectedConfig.last_sync_at ? new Date(selectedConfig.last_sync_at).toLocaleString() : "Never"}</td></tr>
               <tr><td>Created</td><td>{selectedConfig.created_at ? new Date(selectedConfig.created_at).toLocaleString() : "-"}</td></tr>
               <tr><td>Config</td><td><pre className="config-preview">{JSON.stringify(selectedConfig.config, null, 2)}</pre></td></tr>
             </tbody>
@@ -397,6 +528,11 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
             {canImport && (
               <button className="btn btn-xs btn-primary" onClick={() => handleListItems(selectedConfig)}>
                 Import Items
+              </button>
+            )}
+            {canSync && (
+              <button className="btn btn-xs" onClick={() => handleSync(selectedConfig.connector_id)} disabled={syncing}>
+                {syncing ? "Syncing..." : "⟳ Sync Now"}
               </button>
             )}
             <button className="btn btn-xs" onClick={() => setView("list")}>Back</button>
@@ -462,10 +598,172 @@ function ConnectorsPage({ workspaceId, onNavigate }) {
         </div>
       )}
 
+      {view === "sync-state" && selectedConfig && (
+        <div className="connector-sync-state">
+          <h3>Sync State — {selectedConfig.name}</h3>
+          <p className="section-subtitle">
+            Per-item sync state tracking for incremental sync.
+            {canSync && (
+              <button className="btn btn-sm" style={{ marginLeft: 12 }} onClick={() => handleSync(selectedConfig.connector_id)} disabled={syncing}>
+                {syncing ? "Syncing..." : "⟳ Run Sync"}
+              </button>
+            )}
+          </p>
+
+          {syncState.length === 0 && (
+            <div className="empty-state">
+              <p>No sync state yet. Run a sync to start tracking items.</p>
+            </div>
+          )}
+
+          {syncState.length > 0 && (
+            <div className="sync-state-table" style={{ marginTop: 12 }}>
+              <table className="detail-table">
+                <thead>
+                  <tr>
+                    <th>External ID</th>
+                    <th>Status</th>
+                    <th>Content Hash</th>
+                    <th>Last Seen</th>
+                    <th>Last Imported</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {syncState.map((item) => (
+                    <tr key={item.sync_state_id || item.external_id}>
+                      <td>{item.external_id}</td>
+                      <td>
+                        <span className={`sync-status-badge status-${item.status}`}>
+                          {item.status === "new" && "🆕"}
+                          {item.status === "changed" && "🔄"}
+                          {item.status === "unchanged" && "✅"}
+                          {item.status === "deleted_remote" && "🗑️"}
+                          {item.status === "failed" && "❌"}
+                          {item.status === "skipped" && "⏭️"}
+                          {" "}{item.status}
+                        </span>
+                      </td>
+                      <td style={{ fontFamily: "monospace", fontSize: "0.8em" }}>{item.content_hash?.slice(0, 12)}...</td>
+                      <td>{item.last_seen_at ? new Date(item.last_seen_at).toLocaleString() : "-"}</td>
+                      <td>{item.last_imported_at ? new Date(item.last_imported_at).toLocaleString() : "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="form-actions" style={{ marginTop: 16 }}>
+            <button className="btn" onClick={() => { setView("list"); setSelectedConfig(null); }}>Back</button>
+          </div>
+        </div>
+      )}
+
+      {view === "schedules" && selectedConfig && (
+        <div className="connector-schedules">
+          <h3>Sync Schedules — {selectedConfig.name}</h3>
+          <p className="section-subtitle">
+            Configure automated sync schedules for this connector.
+            {canSchedule && !showScheduleForm && (
+              <button className="btn btn-sm" style={{ marginLeft: 12 }} onClick={() => setShowScheduleForm(true)}>
+                + New Schedule
+              </button>
+            )}
+          </p>
+
+          {showScheduleForm && canSchedule && (
+            <div className="schedule-form" style={{ marginBottom: 16, padding: 12, border: "1px solid #ddd", borderRadius: 8 }}>
+              <h4>Create Schedule</h4>
+              <div className="form-group">
+                <label>Schedule Type</label>
+                <select
+                  className="form-input"
+                  value={scheduleForm.schedule_type}
+                  onChange={(e) => updateScheduleForm("schedule_type", e.target.value)}
+                >
+                  <option value="manual">Manual (triggered by user)</option>
+                  <option value="interval">Interval (every N minutes)</option>
+                </select>
+              </div>
+              {scheduleForm.schedule_type === "interval" && (
+                <div className="form-group">
+                  <label>Interval (minutes)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={scheduleForm.interval_minutes}
+                    onChange={(e) => updateScheduleForm("interval_minutes", parseInt(e.target.value) || 60)}
+                    min={1}
+                  />
+                </div>
+              )}
+              <div className="form-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={scheduleForm.enabled}
+                    onChange={(e) => updateScheduleForm("enabled", e.target.checked)}
+                  />{" "}
+                  Enabled
+                </label>
+              </div>
+              <div className="form-actions">
+                <button className="btn btn-primary" onClick={handleCreateSchedule}>
+                  Create
+                </button>
+                <button className="btn" onClick={() => setShowScheduleForm(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {schedules.length === 0 && !showScheduleForm && (
+            <div className="empty-state">
+              <p>No schedules configured. Create a schedule to automate sync.</p>
+            </div>
+          )}
+
+          {schedules.map((sched) => (
+            <div key={sched.schedule_id} className="schedule-card" style={{ padding: 12, marginBottom: 8, border: "1px solid #ddd", borderRadius: 8 }}>
+              <div className="schedule-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <strong>{sched.schedule_type === "interval" ? `Every ${sched.interval_minutes} minutes` : "Manual"}</strong>
+                  <span className={`connector-status-badge ${sched.enabled ? "status-healthy" : "status-configured"}`} style={{ marginLeft: 8 }}>
+                    {sched.enabled ? "Enabled" : "Disabled"}
+                  </span>
+                </div>
+                <div>
+                  {canSchedule && (
+                    <>
+                      <button className="btn btn-xs" onClick={() => handleToggleSchedule(sched.schedule_id)}>
+                        {sched.enabled ? "Disable" : "Enable"}
+                      </button>
+                      <button className="btn btn-xs btn-danger" style={{ marginLeft: 4 }} onClick={() => handleDeleteSchedule(sched.schedule_id)}>
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="schedule-card-details" style={{ marginTop: 8, fontSize: "0.9em", color: "#666" }}>
+                {sched.next_run_at && <span>Next run: {new Date(sched.next_run_at).toLocaleString()} | </span>}
+                {sched.last_run_at && <span>Last run: {new Date(sched.last_run_at).toLocaleString()} | </span>}
+                <span>Created: {new Date(sched.created_at).toLocaleString()}</span>
+              </div>
+            </div>
+          ))}
+
+          <div className="form-actions" style={{ marginTop: 16 }}>
+            <button className="btn" onClick={() => { setView("list"); setSelectedConfig(null); }}>Back</button>
+          </div>
+        </div>
+      )}
+
       {view === "jobs" && (
         <div className="connector-jobs">
-          <h3>Import Jobs</h3>
-          {jobs.length === 0 && <div className="empty-state"><p>No import jobs yet.</p></div>}
+          <h3>Import & Sync Jobs</h3>
+          {jobs.length === 0 && <div className="empty-state"><p>No import or sync jobs yet.</p></div>}
           {jobs.map((job) => (
             <div key={job.job_id} className="job-card">
               <div className="job-card-header">

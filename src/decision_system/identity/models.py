@@ -67,6 +67,8 @@ class Permission(StrEnum):
     CONNECTOR_READ = "connector.read"
     CONNECTOR_MANAGE = "connector.manage"
     CONNECTOR_IMPORT = "connector.import"
+    CONNECTOR_SYNC = "connector.sync"
+    CONNECTOR_SCHEDULE = "connector.schedule"
 
 
 ALL_PERMISSIONS: list[Permission] = list(Permission)
@@ -84,6 +86,8 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
         Permission.CONNECTOR_READ,
         Permission.CONNECTOR_MANAGE,
         Permission.CONNECTOR_IMPORT,
+        Permission.CONNECTOR_SYNC,
+        Permission.CONNECTOR_SCHEDULE,
         Permission.WORKSPACE_READ,
         Permission.WORKSPACE_MANAGE,
         Permission.DATA_SOURCE_UPLOAD,
@@ -106,6 +110,8 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
         Permission.CONNECTOR_READ,
         Permission.CONNECTOR_MANAGE,
         Permission.CONNECTOR_IMPORT,
+        Permission.CONNECTOR_SYNC,
+        Permission.CONNECTOR_SCHEDULE,
         Permission.WORKSPACE_READ,
         Permission.WORKSPACE_MANAGE,
         Permission.DATA_SOURCE_UPLOAD,
@@ -127,6 +133,7 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
     UserRole.ANALYST: {
         Permission.CONNECTOR_READ,
         Permission.CONNECTOR_IMPORT,
+        Permission.CONNECTOR_SYNC,
         Permission.WORKSPACE_READ,
         Permission.DATA_SOURCE_UPLOAD,
         Permission.DATA_SOURCE_DELETE,

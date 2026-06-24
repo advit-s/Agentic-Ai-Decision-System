@@ -364,3 +364,42 @@ def resolve_tags(connector_id: str) -> str:
 
 # Import record_error used in exception handler
 from decision_system.connectors.metrics import record_error
+
+
+# ---------------------------------------------------------------------------
+# Incremental sync (v1.29)
+# ---------------------------------------------------------------------------
+
+
+def run_sync(
+    connector_id: str,
+    workspace_id: str | None = None,
+) -> dict[str, Any]:
+    """Run incremental sync for a connector.
+
+    Compares content hashes against previous sync state and only imports
+    new or changed items. Unchanged items are skipped. Deleted remote
+    items are marked but local data is preserved.
+
+    Returns a dict with sync result details.
+    """
+    from decision_system.connectors.sync_runner import get_sync_runner
+
+    runner = get_sync_runner()
+    result = runner.sync_connector(
+        connector_id=connector_id,
+        workspace_id=workspace_id,
+    )
+    return {
+        "connector_id": result.connector_id,
+        "workspace_id": result.workspace_id,
+        "status": result.status,
+        "items_new": result.items_new,
+        "items_changed": result.items_changed,
+        "items_unchanged": result.items_unchanged,
+        "items_failed": result.items_failed,
+        "items_deleted_remote": result.items_deleted_remote,
+        "duration_ms": result.duration_ms,
+        "job_id": result.job_id,
+        "error": result.error,
+    }
