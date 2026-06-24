@@ -514,3 +514,212 @@ def record_schedule_toggled(
         workspace_id=workspace_id,
         **extra,
     )
+ # ---------------------------------------------------------------------------
+# Reliability audit events (v1.31)
+# ---------------------------------------------------------------------------
+
+EVENT_CONNECTOR_JOB_PROGRESS = "connector_job_progress"
+EVENT_CONNECTOR_JOB_CANCEL_REQUESTED = "connector_job_cancel_requested"
+EVENT_CONNECTOR_JOB_CANCELLED = "connector_job_cancelled"
+EVENT_CONNECTOR_JOB_RESUMED = "connector_job_resumed"
+EVENT_CONNECTOR_ITEM_RETRY = "connector_item_retry"
+EVENT_CONNECTOR_RATE_LIMITED = "connector_rate_limited"
+EVENT_CONNECTOR_DUPLICATE_DETECTED = "connector_duplicate_detected"
+EVENT_CONNECTOR_BATCH_COMPLETED = "connector_batch_completed"
+EVENT_CONNECTOR_LARGE_IMPORT = "connector_large_import"
+EVENT_CONNECTOR_VERSION_CREATED = "connector_version_created"
+EVENT_CONNECTOR_PAUSED = "connector_paused"
+
+
+def record_job_progress(
+    job_id: str,
+    connector_id: str,
+    processed: int,
+    total: int,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_JOB_PROGRESS,
+        f"Job {job_id} progress: {processed}/{total}",
+        job_id=job_id,
+        connector_id=connector_id,
+        processed=processed,
+        total=total,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_job_cancel_requested(
+    job_id: str,
+    connector_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_JOB_CANCEL_REQUESTED,
+        f"Cancel requested for job {job_id}",
+        job_id=job_id,
+        connector_id=connector_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_job_cancelled(
+    job_id: str,
+    connector_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_JOB_CANCELLED,
+        f"Job {job_id} cancelled",
+        job_id=job_id,
+        connector_id=connector_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_job_resumed(
+    job_id: str,
+    connector_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_JOB_RESUMED,
+        f"Job {job_id} resumed",
+        job_id=job_id,
+        connector_id=connector_id,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_item_retry(
+    connector_id: str,
+    external_id: str,
+    attempt: int,
+    error: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_ITEM_RETRY,
+        f"Item '{external_id}' retry attempt {attempt}: {error}",
+        connector_id=connector_id,
+        external_id=external_id,
+        attempt=attempt,
+        error=error,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_rate_limited(
+    connector_id: str,
+    retry_after: float,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_RATE_LIMITED,
+        f"Connector '{connector_id}' rate-limited for {retry_after:.0f}s",
+        connector_id=connector_id,
+        retry_after=retry_after,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_duplicate_detected(
+    connector_id: str,
+    external_id: str,
+    content_hash: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_DUPLICATE_DETECTED,
+        f"Duplicate item '{external_id}' (hash={content_hash[:8]}...)",
+        connector_id=connector_id,
+        external_id=external_id,
+        content_hash=content_hash,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_batch_completed(
+    job_id: str,
+    connector_id: str,
+    batch_number: int,
+    items_processed: int,
+    duration_ms: float,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_BATCH_COMPLETED,
+        f"Batch {batch_number} completed for job {job_id}: {items_processed} items in {duration_ms:.0f}ms",
+        job_id=job_id,
+        connector_id=connector_id,
+        batch_number=batch_number,
+        items_processed=items_processed,
+        duration_ms=duration_ms,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_large_import(
+    connector_id: str,
+    item_count: int,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_LARGE_IMPORT,
+        f"Large import ({item_count} items) for connector '{connector_id}'",
+        connector_id=connector_id,
+        item_count=item_count,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_version_created(
+    connector_id: str,
+    external_id: str,
+    version_number: int,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_VERSION_CREATED,
+        f"Version {version_number} created for item '{external_id}'",
+        connector_id=connector_id,
+        external_id=external_id,
+        version_number=version_number,
+        workspace_id=workspace_id,
+        **extra,
+    )
+
+
+def record_job_paused(
+    job_id: str,
+    connector_id: str,
+    workspace_id: str | None = None,
+    **extra: Any,
+) -> None:
+    _emit(
+        EVENT_CONNECTOR_PAUSED,
+        f"Job {job_id} paused",
+        job_id=job_id,
+        connector_id=connector_id,
+        workspace_id=workspace_id,
+        **extra,
+    )

@@ -919,3 +919,14 @@ Completed:
 - v1.14: Phase 7 — Data Analyst Node
 - v1.15: Claim Ledger DX, Human Review Gates, Execution History
 - v1.16: Backend Connection, 4 New Specialists, Execution UX, Visual Polish
+
+ **v1.31 connector reliability (large imports + rate limits):**
+ - Enhanced import with batch processing (`POST /workspaces/{wid}/connectors/{cid}/import-v3`)
+ - Paginated item listing (`GET /workspaces/{wid}/connectors/{cid}/items-paginated?page=&page_size=`)
+ - Cancel/resume/pause job endpoints (`POST /workspaces/{wid}/connector-jobs/{job_id}/cancel|resume|pause`)
+ - Retry with exponential backoff for transient failures
+ - Rate-limit detection (HTTP 429, GitHub headers, Retry-After)
+ - Content-based duplicate detection and idempotent imports
+ - Version/provenance tracking for stable evidence citations
+ - Job progress model with batch progress and checkpoint resume
+ - Demo large folder import (`demo/sample-data/large-folder/` - 150 files)

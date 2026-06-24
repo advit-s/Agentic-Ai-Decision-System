@@ -1,3 +1,33 @@
+ ## [1.31.0-dev] - 2026-06-24 — Connector Reliability, Rate Limits + Large Import Handling
+ ### Added
+ - **Import job progress model**: Enhanced `ConnectorImportJob` with `total_items`, `processed_items`, `changed_items`, `unchanged_items`, `rate_limited_items`, `current_item_id`, `duration_ms` fields and `queued`, `completed_with_warnings`, `cancelled`, `paused` statuses
+ - **Batch import processing**: Bounded batch processing with configurable batch size, progress persisted after each batch, partial failures preserved
+ - **Pagination support**: Paginated item listing with `page`, `page_size`, `next_cursor`, `has_more`, `total_count`; paginated API endpoints
+ - **Retry and backoff policy**: `RetryPolicy` with retryable/non-retryable error classification, bounded retries (max 3), exponential backoff
+ - **Rate-limit handling**: Detection of HTTP 429 and rate-limit headers (GitHub, URL connectors), `rate_limited` status, `Retry-After` support
+ - **Cancel/pause/resume**: Job state support for `cancel_requested`, `paused`; checkpoint-based resume for failed/paused jobs
+ - **Connector job APIs**: Cancel/resume endpoints, paginated item listing API, improved job querying
+ - **Duplicate detection**: Hash-based dedup using `content_hash` + `external_id` + `source_url`; idempotent re-imports
+ - **Data-source versioning**: Version tracking with `version_number`, `previous_source_id`, `supersedes_source_id`, `content_hash`, `external_modified_at`
+ - **Frontend reliability UI**: ConnectorsPage with job progress bar, processed/imported/skipped/failed counts, rate-limit warnings, cancel/resume buttons, pagination
+ - **Reliability audit events**: `connector_job_progress`, `connector_job_cancel_requested`, `connector_job_cancelled`, `connector_job_resumed`, `connector_item_retry`, `connector_rate_limited`, `connector_duplicate_detected`, `connector_batch_completed`
+ - **Reliability metrics**: `connector_batch_duration_ms`, `connector_retry_count`, `connector_rate_limit_count`, `connector_cancel_count`, `connector_resume_count`, `connector_duplicate_count`, `connector_large_import_count`
+ - **Large import demo fixture**: `demo/sample-data/large-folder/` with 100+ generated text files for testing paginated/batched imports
+ - **Comprehensive reliability tests**: Tests for job progress model, batch processing, pagination, retry/backoff, rate-limit handling, cancel/resume, idempotency, duplicate detection, provenance, APIs, frontend reliability states, audit/metrics, large import
+
+ ### Changed
+ - Version bumped from 1.30.0-dev to 1.31.0-dev
+ - `ConnectorRuntime.list_items()` now supports pagination parameters
+ - Import job persistence extended with all new progress fields
+ - `import_jobs.run_import_v2()` processes items in bounded batches with progress tracking
+ - Connector CLI shows progress during imports
+ - Documentation updated across all connector-related docs
+
+ ### Documentation
+ - `docs/CONNECTOR_RELIABILITY_AUDIT.md` — Baseline audit of current connector reliability and v1.31 plan
+ - `docs/CURRENT_STATE.md` — Updated version to 1.31.0-dev and milestone description
+
+
 ## [1.30.0-dev] - 2026-06-24 — Connector Expansion + OAuth/Token Setup UX
 ### Added
 - **Connector setup schema system**: Standardized setup schemas per connector type with field types, credential hints, safety notes, and read-only capability descriptions (`setup_schemas.py`)

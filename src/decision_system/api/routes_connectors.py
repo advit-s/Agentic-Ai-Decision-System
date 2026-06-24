@@ -777,3 +777,119 @@ def toggle_sync_schedule(
     )
 
     return {"schedule": schedule.model_dump(mode="json")}
+ # ---------------------------------------------------------------------------
+# v1.31 Connector reliability endpoints: paginated items, cancel, resume, pause
+# ---------------------------------------------------------------------------
+
+
+class PaginatedItemsRequest(BaseModel):
+    page: int = 1
+    page_size: int = 50
+    path: str = ""
+
+
+@router.get("/workspaces/{workspace_id}/connectors/{connector_id}/items-paginated")
+def list_connector_items_paginated(
+    workspace_id: str,
+    connector_id: str,
+    page: int = 1,
+    page_size: int = 50,
+    path: str = "",
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_READ)),
+) -> dict[str, Any]:
+    """List items from a connector with pagination (v1.31)."""
+    from decision_system.connectors.import_jobs import run_list_items_paginated
+
+    result = run_list_items_paginated(
+        connector_id=connector_id,
+        path=path,
+        page=page,
+        page_size=page_size,
+        workspace_id=workspace_id,
+    )
+
+    record_connector_items_listed(
+        connector_id=connector_id,
+        item_count=len(result.items),
+        workspace_id=workspace_id,
+    )
+
+    return {
+        "items": [to_jsonable(i) for i in result.items],
+        "page": result.page,
+        "page_size": result.page_size,
+        "total_count": result.total_count,
+        "has_more": result.has_more,
+        "next_cursor": result.next_cursor,
+    }
+
+
+class CancelJobResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class JobActionResponse(BaseModel):
+    success: bool
+    message: str
+    job_id: str | None = None
+    status: str | None = None
+
+
+@router.post("/workspaces/{workspace_id}/connector-jobs/{job_id}/cancel")
+def cancel_connector_job(
+    workspace_id: str,
+    job_id: str,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_IMPORT)),
+) -> dict[str, Any]:
+    """Request cancellation of a running connector import job (v1.31)."""
+    from decision_system.connectors.import_jobs import request_cancel_job
+
+    result = request_cancel_job(job_id)
+    return result
+
+
+@router.post("/workspaces/{workspace_id}/connector-jobs/{job_id}/resume")
+def resume_connector_job(
+    workspace_id: str,
+    job_id: str,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_IMPORT)),
+) -> dict[str, Any]:
+    """Resume a failed or paused connector import job (v1.31)."""
+    from decision_system.connectors.import_jobs import resume_job
+
+    result = resume_job(job_id)
+    return result
+
+
+@router.post("/workspaces/{workspace_id}/connector-jobs/{job_id}/pause")
+def pause_connector_job(
+    workspace_id: str,
+    job_id: str,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_IMPORT)),
+) -> dict[str, Any]:
+    """Pause a running connector import job (v1.31)."""
+    from decision_system.connectors.import_jobs import pause_job
+
+    result = pause_job(job_id)
+    return result
+
+
+@router.post("/workspaces/{workspace_id}/connectors/{connector_id}/import-v3")
+def import_connector_items_v3(
+    workspace_id: str,
+    connector_id: str,
+    request: ImportRequest = ImportRequest(),
+    batch_size: int = 50,
+    _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_IMPORT)),
+) -> dict[str, Any]:
+    """Enhanced import with batch processing, retry, dedup, and provenance (v1.31)."""
+    from decision_system.connectors.import_jobs import run_import_v3
+
+    result = run_import_v3(
+        connector_id=connector_id,
+        workspace_id=workspace_id,
+        item_ids=request.item_ids,
+        batch_size=batch_size,
+    )
+    return {"result": inspect_import_job(result.job)}

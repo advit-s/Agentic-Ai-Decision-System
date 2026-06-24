@@ -1,7 +1,7 @@
-> **Last updated:** 2026-06-24 (v1.30.0-dev — Connector Expansion + OAuth/Token Setup UX)
-> **Package version:** 1.30.0-dev
-> **Previous milestone:** v1.29.0 — Connector Scheduling + Incremental Sync
-> **Current milestone:** v1.30.0 — Connector Expansion + OAuth/Token Setup UX
+ > **Last updated:** 2026-06-24 (v1.31.0-dev — Connector Reliability, Rate Limits + Large Import Handling)
+ > **Package version:** 1.31.0-dev
+ > **Previous milestone:** v1.30.0 — Connector Expansion + OAuth/Token Setup UX
+ > **Current milestone:** v1.31.0 — Connector Reliability, Rate Limits + Large Import Handling
 > **Python:** >=3.11
 
 ---
@@ -253,43 +253,51 @@ docker compose up --build
 7. **CodeNode is disabled by default.** Set `DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE=true` to enable (unsafe)
 8. **This is a local governance foundation**, not enterprise auth
 
-## Next milestone
+ ## Next milestone
 
-**v1.28 — Connector Read-Only Imports + External Knowledge Sync**
+ **v1.32 — Beta Packaging, Installer Scripts + Local Release Polish**
 
-After establishing a clean release baseline, the next step is expanding data ingestion with read-only connectors for GitHub, Jira, Slack, and email — still offline-first, still local-governed.
-```
+ After connector reliability, the next step is improving the local deployment experience with better packaging, installer scripts, and release polish.
 
-## Local app commands
+ ## Local app commands
 
-```bash
-# Docker
-docker compose up
-# Frontend: http://localhost:3000
-# Backend:  http://localhost:8000
+ ```bash
+ # Docker
+ docker compose up
+ # Frontend: http://localhost:3000
+ # Backend:  http://localhost:8000
 
-# Manual backend
-python -m pip install -e ".[dev]"
-decision-system serve-api --host 0.0.0.0 --port 8000
+ # Manual backend
+ python -m pip install -e ".[dev]"
+ decision-system serve-api --host 0.0.0.0 --port 8000
 
-# Manual frontend (separate terminal)
-cd web/workflow-builder
-npm install
-npm run dev
-# Frontend: http://localhost:5173
-```
+ # Manual frontend (separate terminal)
+ cd web/workflow-builder
+ npm install
+ npm run dev
+ # Frontend: http://localhost:5173
+ ```
 
-## Next milestone
+ ## v1.31.0-dev — Connector Reliability, Rate Limits + Large Import Handling
 
-v1.27 — Security, Auth, RBAC + Governance Foundation
+ ### Completed
+ - Import job progress model with total_items, processed_items, changed_items, etc.
+ - Rich job statuses: queued, completed_with_warnings, cancelled, paused
+ - Batch import processing with configurable batch size and progress persistence
+ - Pagination support for item listing (offset and cursor-based)
+ - Retry/backoff policy (exponential backoff, retryable/non-retryable error classification)
+ - Rate-limit handling (HTTP 429 detection, GitHub headers, Retry-After)
+ - Cancel/pause/resume foundation (checkpoint-based, cancel between batches)
+ - Job APIs for cancel, resume, pause, and paginated item listing
+ - Content-based duplicate detection (SHA-256 hashing, idempotent re-import)
+ - Data-source version/provenance tracking (version chains, stable evidence citations)
+ - Reliability audit events (11 new events) and metrics (7 new metrics)
+ - Demo large import fixture (150 generated text files)
+ - 68 new reliability tests
+ - All existing tests pass (256 total)
 
-1. **Authentication & RBAC** — User roles, workspace-level access control
-2. **Audit logging governance** — Tamper-evident audit trails, compliance exports
-3. **Secrets management** — Encrypted provider credentials, key rotation
-4. **Multi-tenant workspace isolation** — Hard separation between workspace data
-5. **Governance dashboards** — Compliance status, access reviews, audit export
-
-## v1.29.0-dev — Connector Scheduling + Incremental Sync
+ ### Read-only guarantee
+ All connector reliability features remain read-only. They improve local import/sync robustness and never modify external systems.
 
 ### Completed
 - Sync state model (SyncStateItem) + SyncStateStore (JSON-backed, workspace-scoped)

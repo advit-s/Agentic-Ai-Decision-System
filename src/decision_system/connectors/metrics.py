@@ -188,3 +188,85 @@ def record_import_by_type(
         connector_type=connector_type,
         item_type=item_type,
     )
+# ---------------------------------------------------------------------------
+# Reliability metrics (v1.31)
+# ---------------------------------------------------------------------------
+
+
+def record_batch_duration(
+    connector_id: str,
+    duration_ms: float,
+    batch_number: int = 0,
+) -> None:
+    _record(
+        "connector_batch_duration_ms",
+        duration_ms,
+        connector_id=connector_id,
+        batch_number=batch_number,
+    )
+
+
+def record_retry_count(
+    connector_id: str,
+    count: int = 1,
+) -> None:
+    _record(
+        "connector_retry_count",
+        float(count),
+        connector_id=connector_id,
+    )
+
+
+def record_rate_limit_count(
+    connector_id: str,
+    count: int = 1,
+) -> None:
+    _record(
+        "connector_rate_limit_count",
+        float(count),
+        connector_id=connector_id,
+    )
+
+
+def record_cancel_count(
+    connector_id: str,
+    count: int = 1,
+) -> None:
+    _record(
+        "connector_cancel_count",
+        float(count),
+        connector_id=connector_id,
+    )
+
+
+def record_resume_count(
+    connector_id: str,
+    count: int = 1,
+) -> None:
+    _record(
+        "connector_resume_count",
+        float(count),
+        connector_id=connector_id,
+    )
+
+
+def record_duplicate_count(
+    connector_id: str,
+    count: int = 1,
+) -> None:
+    _record(
+        "connector_duplicate_count",
+        float(count),
+        connector_id=connector_id,
+    )
+
+
+def record_large_import_count(
+    connector_id: str,
+    count: int = 1,
+) -> None:
+    _record(
+        "connector_large_import_count",
+        float(count),
+        connector_id=connector_id,
+    )

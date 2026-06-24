@@ -218,27 +218,116 @@ class ConnectorDryRunResult(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-class ConnectorImportJob(BaseModel):
-    """An executed import job record with rich tracking fields."""
+class ConnectorJobStatus(StrEnum):
+    """Import/sync job status values."""
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    COMPLETED_WITH_WARNINGS = "completed_with_warnings"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    PAUSED = "paused"
 
-    job_id: str
-    workspace_id: str | None = None
-    connector_id: str
-    status: str
-    source_path: str = ""
-    imported_files: list[str] = Field(default_factory=list)
-    skipped_files: list[str] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
-    errors: list[str] = Field(default_factory=list)
-    output_paths: list[str] = Field(default_factory=list)
-    items_found: int = 0
-    items_imported: int = 0
-    items_skipped: int = 0
-    items_failed: int = 0
-    metadata: dict[str, Any] = Field(default_factory=dict)
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class JobProgress(BaseModel):
+     """Progress tracking for a connector import/sync job."""
+     total_items: int = 0
+     processed_items: int = 0
+     imported_items: int = 0
+     skipped_items: int = 0
+     changed_items: int = 0
+     unchanged_items: int = 0
+     failed_items: int = 0
+     rate_limited_items: int = 0
+     current_item_id: str | None = None
+     current_item_title: str | None = None
+     started_at: datetime | None = None
+     completed_at: datetime | None = None
+     duration_ms: float | None = None
+     batch_number: int = 0
+     total_batches: int = 0
+
+     def percent_complete(self) -> float:
+         if self.total_items <= 0:
+             return 0.0
+         return (self.processed_items / self.total_items) * 100.0
+
+     def is_finished(self) -> bool:
+         return self.processed_items >= self.total_items
+
+     def add_progress(self, processed: int = 0, imported: int = 0, skipped: int = 0,
+                       changed: int = 0, failed: int = 0, rate_limited: int = 0) -> None:
+         self.processed_items += processed
+         self.imported_items += imported
+         self.skipped_items += skipped
+         self.changed_items += changed
+         self.failed_items += failed
+         self.rate_limited_items += rate_limited
+
+
+class ConnectorImportJob(BaseModel):
+     """An executed import job record with rich tracking fields."""
+
+     job_id: str = Field(description="Unique job identifier")
+     workspace_id: str | None = Field(None, description="Workspace scope")
+     connector_id: str = Field(description="Connector identifier")
+     status: str = Field(default="queued", description="Job status: queued, running, completed, completed_with_warnings, failed, cancelled, paused")
+     job_type: str = Field(default="import", description="Job type: import, sync, preview")
+     progress: JobProgress = Field(default_factory=JobProgress, description="Job progress tracking")
+     source_path: str = ""
+     imported_files: list[str] = Field(default_factory=list)
+     skipped_files: list[str] = Field(default_factory=list)
+     warnings: list[str] = Field(default_factory=list)
+     errors: list[str] = Field(default_factory=list)
+     output_paths: list[str] = Field(default_factory=list)
+     batch_size: int = Field(default=50, description="Number of items per batch")
+     current_batch: int = Field(default=0, description="Current batch number")
+     cancel_requested: bool = Field(default=False, description="True if cancel has been requested")
+     resume_from_checkpoint: dict[str, Any] = Field(default_factory=dict, description="Checkpoint data for resume")
+     checkpoint_id: str | None = Field(default=None, description="Resume checkpoint identifier")
+     metadata: dict[str, Any] = Field(default_factory=dict)
+     items_found: int = 0
+     items_imported: int = 0
+     items_skipped: int = 0
+     items_failed: int = 0
+     started_at: datetime | None = None
+     completed_at: datetime | None = None
+     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+     duration_ms: float | None = Field(default=None, description="Total job duration in milliseconds")
+     total_items: int = Field(default=0, description="Total items to process")
+     processed_items: int = Field(default=0, description="Items processed so far")
+     changed_items: int = Field(default=0, description="Items that changed since last import")
+     unchanged_items: int = Field(default=0, description="Items unchanged since last import")
+     rate_limited_items: int = Field(default=0, description="Items skipped due to rate limiting")
+     current_item_id: str | None = Field(default=None, description="Currently processing item ID")
+
+     def to_progress_dict(self) -> dict[str, Any]:
+         """Return a compact progress snapshot for API responses."""
+         return {
+             "job_id": self.job_id,
+             "status": self.status,
+             "total_items": self.total_items or self.items_found,
+             "processed_items": self.processed_items,
+             "imported_items": self.items_imported,
+             "skipped_items": self.items_skipped,
+             "changed_items": self.changed_items,
+             "unchanged_items": self.unchanged_items,
+             "failed_items": self.items_failed,
+             "rate_limited_items": self.rate_limited_items,
+             "current_item_id": self.current_item_id,
+             "percent_complete": self.percent_complete(),
+             "duration_ms": self.duration_ms,
+             "batch_number": self.current_batch,
+             "errors": self.errors[:5] if self.errors else [],
+             "warnings": self.warnings[:5] if self.warnings else [],
+         }
+
+     def percent_complete(self) -> float:
+         total = self.total_items or self.items_found or 1
+         return (self.processed_items / total) * 100.0
+
+     def is_cancelled(self) -> bool:
+         return self.cancel_requested or self.status == "cancelled"
 
 
 class ConnectorImportResult(BaseModel):
