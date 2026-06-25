@@ -3096,7 +3096,7 @@ def get_execution_queue(execution_id: str) -> asyncio.Queue:
 
 def emit_event(event: ExecutionEvent) -> None:
     """Emit an event into the execution's queue (non-blocking).
-    
+
     Called by DAGEngine's on_event handler.
     """
     queue = _execution_queues.get(event.execution_id)
@@ -3111,7 +3111,7 @@ def cleanup_queue(execution_id: str) -> None:
 
 class ExecutionEventStream:
     """Async iterator that yields events for a given execution.
-    
+
     Stops yielding when a terminal event (workflow_completed,
     workflow_failed) is received.
     """
@@ -3160,7 +3160,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 async def execution_event_stream(websocket: WebSocket, execution_id: str):
     """WebSocket endpoint streaming execution events in real-time."""
     from decision_system.workflow_engine.stream import ExecutionEventStream
-    
+
     await websocket.accept()
     try:
         stream = ExecutionEventStream(execution_id)

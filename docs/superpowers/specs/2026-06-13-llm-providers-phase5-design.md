@@ -1,8 +1,8 @@
 # Phase 5: Real LLM Provider Integration — Design Spec
 
-> **Status:** Draft for review  
-> **Version:** 1.0  
-> **Date:** 2026-06-13  
+> **Status:** Draft for review
+> **Version:** 1.0
+> **Date:** 2026-06-13
 > **Applies to:** Agentic Decision System v1.12.0
 
 ---

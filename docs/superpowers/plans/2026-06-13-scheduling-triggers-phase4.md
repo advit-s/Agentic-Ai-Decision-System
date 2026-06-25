@@ -122,7 +122,7 @@ class TriggerType(str, Enum):
 
 class ScheduleDefinition(BaseModel):
     """A schedule that triggers a workflow automatically.
-    
+
     Each schedule links a trigger type + config to a workflow_id.
     Multiple schedules can target the same workflow. A workflow
     can have at most one schedule of type 'webhook' (the webhook
@@ -161,23 +161,23 @@ from decision_system.workflow_engine.scheduler.models import (
 
 class ScheduleStore:
     """JSON file-backed schedule store.
-    
+
     Stores one JSON file per schedule under the configured directory.
     Pattern: <dir>/schedule_<id>.json
     """
-    
+
     def __init__(self, store_dir: str | Path) -> None:
         self._dir = Path(store_dir)
         self._dir.mkdir(parents=True, exist_ok=True)
-    
+
     def _path(self, schedule_id: str) -> Path:
         return self._dir / f"schedule_{schedule_id}.json"
-    
+
     def _all_paths(self) -> list[Path]:
         if not self._dir.exists():
             return []
         return sorted(self._dir.glob("schedule_*.json"))
-    
+
     def save(self, schedule: ScheduleDefinition) -> ScheduleDefinition:
         """Save a schedule. Generates id if missing."""
         if not schedule.id:
@@ -187,7 +187,7 @@ class ScheduleStore:
             schedule.model_dump_json(indent=2, default=str)
         )
         return schedule
-    
+
     def load(self, schedule_id: str) -> Optional[ScheduleDefinition]:
         """Load a schedule by id. Returns None if not found."""
         path = self._path(schedule_id)
@@ -195,7 +195,7 @@ class ScheduleStore:
             return None
         data = json.loads(path.read_text())
         return ScheduleDefinition(**data)
-    
+
     def list(
         self,
         workflow_id: Optional[str] = None,
@@ -212,7 +212,7 @@ class ScheduleStore:
                 continue
             results.append(sd)
         return results
-    
+
     def delete(self, schedule_id: str) -> bool:
         """Delete a schedule. Returns True if existed."""
         path = self._path(schedule_id)
@@ -220,7 +220,7 @@ class ScheduleStore:
             path.unlink()
             return True
         return False
-    
+
     def update_last_fired(self, schedule_id: str, timestamp: datetime) -> None:
         """Update last_fired timestamp without loading the full object."""
         sd = self.load(schedule_id)
@@ -295,7 +295,7 @@ from typing import Optional
 
 def _parse_cron(expression: str) -> tuple:
     """Parse a cron expression into minute, hour, day-of-month, month, day-of-week.
-    
+
     Returns a 5-tuple of sets for each field, or -1 for wildcards.
     Raises ValueError on invalid expressions.
     """
@@ -320,7 +320,7 @@ def _cron_matches(expression: str, dt: datetime) -> bool:
         minute, hour, dom, month, dow = _parse_cron(expression)
     except ValueError:
         return False
-    
+
     if minute != -1 and dt.minute != minute:
         return False
     if hour != -1 and dt.hour != hour:
@@ -336,7 +336,7 @@ def _cron_matches(expression: str, dt: datetime) -> bool:
 
 def evaluate_cron(expression: str, last_fired: Optional[datetime] = None) -> bool:
     """Evaluate whether a cron trigger should fire now.
-    
+
     Returns True if the current time matches the expression AND
     the trigger hasn't already fired in the current minute window.
     """
@@ -361,22 +361,22 @@ def scan_directory(
     known_files: Optional[set[str]] = None,
 ) -> tuple[set[str], list[str]]:
     """Scan a directory for new files matching a pattern.
-    
+
     Returns (current_files, new_files) tuple.
     known_files is the set of files from the last scan.
     """
     dir_path = Path(directory)
     if not dir_path.is_dir():
         return set(), []
-    
+
     current: set[str] = set()
     for entry in dir_path.iterdir():
         if entry.is_file() and fnmatch.fnmatch(entry.name, pattern):
             current.add(entry.name)
-    
+
     if known_files is None:
         return current, []
-    
+
     new_files = [f for f in current if f not in known_files]
     return current, new_files
 ```
@@ -449,7 +449,7 @@ logger = logging.getLogger(__name__)
 
 class SchedulerService:
     """Background scheduler that polls schedules and fires workflows."""
-    
+
     def __init__(
         self,
         schedule_store: ScheduleStore,
@@ -463,19 +463,19 @@ class SchedulerService:
         self._watch_interval = watch_interval
         self._task: Optional[asyncio.Task] = None
         self._running = False
-        
+
         # Track known files per watch schedule for diff detection
         self._known_files: dict[str, set[str]] = {}
-    
+
     async def start(self) -> None:
         """Start the scheduler background loop."""
         if self._running:
             return
         self._running = True
         self._task = asyncio.create_task(self._run_loop())
-        logger.info("Scheduler started (poll=%ss, watch=%ss)", 
+        logger.info("Scheduler started (poll=%ss, watch=%ss)",
                      self._poll_interval, self._watch_interval)
-    
+
     async def stop(self) -> None:
         """Stop the scheduler background loop."""
         self._running = False
@@ -487,7 +487,7 @@ class SchedulerService:
                 pass
             self._task = None
         logger.info("Scheduler stopped")
-    
+
     async def _run_loop(self) -> None:
         """Main scheduler loop."""
         poll_cycles = 0
@@ -497,28 +497,28 @@ class SchedulerService:
                     await self._check_schedules()
                 except Exception as exc:
                     logger.error("Scheduler check failed: %s", exc)
-                
+
                 poll_cycles += 1
                 # File-watch triggers checked more frequently
                 await asyncio.sleep(self._poll_interval)
         except asyncio.CancelledError:
             pass
-    
+
     async def _check_schedules(self) -> None:
         """Check all enabled schedules and fire matching ones."""
         schedules = self._store.list()
-        
+
         for schedule in schedules:
             if not schedule.enabled:
                 continue
-            
+
             should_fire = False
-            
+
             if schedule.trigger_type == TriggerType.CRON:
                 expression = schedule.trigger_config.get("expression", "")
                 if expression:
                     should_fire = evaluate_cron(expression, schedule.last_fired)
-            
+
             elif schedule.trigger_type == TriggerType.FILE_WATCH:
                 directory = schedule.trigger_config.get("directory", "")
                 pattern = schedule.trigger_config.get("pattern", "*")
@@ -529,28 +529,28 @@ class SchedulerService:
                     should_fire = True
                     # Pass changed files as workflow inputs
                     schedule.trigger_config["_changed_files"] = new_files
-            
+
             # Webhook triggers are handled separately via API route, not here
-            
+
             if should_fire:
                 await self._fire(schedule)
-    
+
     async def _fire(self, schedule: ScheduleDefinition) -> None:
         """Execute the workflow associated with a schedule."""
         wf = self._engine.workflow_store.load(schedule.workflow_id)
         if wf is None:
-            logger.warning("Schedule %s: workflow %s not found", 
+            logger.warning("Schedule %s: workflow %s not found",
                           schedule.id, schedule.workflow_id)
             return
-        
+
         logger.info("Firing schedule %s -> workflow %s (trigger=%s)",
                     schedule.id, schedule.workflow_id, schedule.trigger_type)
-        
+
         inputs = schedule.trigger_config.get("_changed_files", {})
         state = await self._engine.execute(wf, global_inputs=inputs)
-        
+
         self._store.update_last_fired(schedule.id, datetime.now(timezone.utc))
-        
+
         if state.status == "failed":
             logger.error("Schedule %s: workflow execution failed: %s",
                         schedule.id, state.error)
@@ -610,7 +610,7 @@ Add to `src/decision_system/workflow_engine/nodes/builtin/trigger_nodes.py`:
 ```python
 class CronTriggerNode(WorkflowNode):
     """Cron trigger — starts a workflow on a time-based schedule.
-    
+
     The scheduler evaluates the cron expression and fires the workflow
     automatically. During manual execution, this node just returns the
     configured schedule info.
@@ -664,7 +664,7 @@ class CronTriggerNode(WorkflowNode):
 
 class WebhookTriggerNode(WorkflowNode):
     """Webhook trigger — starts a workflow via HTTP POST.
-    
+
     The scheduler registers a unique webhook URL for this node.
     POSTing to the webhook URL triggers the workflow with the
     POST body as workflow inputs.
@@ -722,7 +722,7 @@ class WebhookTriggerNode(WorkflowNode):
 
 class FileWatchTriggerNode(WorkflowNode):
     """File Watch trigger — starts a workflow when files change in a directory.
-    
+
     The scheduler monitors the configured directory for new or modified
     files matching the pattern. When detected, it fires the workflow.
     """
@@ -1054,7 +1054,7 @@ In `src/decision_system/workflow_engine/api.py`:
 ```python
 def _sync_schedules_for_workflow(workflow: WorkflowDefinition) -> list[str]:
     """Auto-create/update/delete schedules based on workflow's trigger nodes.
-    
+
     Scans workflow nodes for trigger types (cron, webhook, file_watch).
     Creates or updates corresponding ScheduleDefinition entries.
     Deletes schedules for trigger nodes that were removed.
@@ -1065,27 +1065,27 @@ def _sync_schedules_for_workflow(workflow: WorkflowDefinition) -> list[str]:
         "decision_system.trigger_webhook": TriggerType.WEBHOOK,
         "decision_system.trigger_file_watch": TriggerType.FILE_WATCH,
     }
-    
+
     # Find trigger nodes in the workflow
     trigger_nodes = [n for n in workflow.nodes if n.type in TRIGGER_TYPE_MAP]
-    
+
     # Get existing schedules for this workflow
     existing = _schedule_store.list(workflow_id=workflow.id)
     existing_by_type = {s.trigger_type.value: s for s in existing}
-    
+
     schedule_ids = []
     seen_types = set()
-    
+
     for node in trigger_nodes:
         trigger_type = TRIGGER_TYPE_MAP[node.type]
         seen_types.add(trigger_type.value)
-        
+
         trigger_config = dict(node.config)
         if trigger_type == TriggerType.WEBHOOK and not trigger_config.get("webhook_path"):
             # Auto-generate webhook path
             import uuid
             trigger_config["webhook_path"] = f"hooks/wf-{workflow.id[:8]}-{uuid.uuid4().hex[:8]}"
-        
+
         if trigger_type.value in existing_by_type:
             # Update existing schedule
             sd = existing_by_type[trigger_type.value]
@@ -1101,12 +1101,12 @@ def _sync_schedules_for_workflow(workflow: WorkflowDefinition) -> list[str]:
             )
             sd = _schedule_store.save(sd)
             schedule_ids.append(sd.id)
-    
+
     # Delete schedules for removed trigger types
     for s in existing:
         if s.trigger_type.value not in seen_types:
             _schedule_store.delete(s.id)
-    
+
     return schedule_ids
 ```
 

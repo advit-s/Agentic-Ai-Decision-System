@@ -43,4 +43,3 @@ def load_provider_eval_results(
         return None
     payload = json.loads(path.read_text(encoding="utf-8"))
     return ProviderEvalSuiteResult.model_validate(payload)
-

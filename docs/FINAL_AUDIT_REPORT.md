@@ -1,9 +1,9 @@
 # Final Audit Report — Agentic AI Decision System (v1.8)
 
-**Date:** 2026-06-10  
-**Project Version:** 1.8.0  
-**Auditor:** Claude Code  
-**Status:** PROTOTYPE-READY  
+**Date:** 2026-06-10
+**Project Version:** 1.8.0
+**Auditor:** Claude Code
+**Status:** PROTOTYPE-READY
 
 > **Note:** This report was regenerated for the v1.8 milestone, which includes all v1.6/v1.7 fixes, documentation alignment, packaging hardening, security redaction masking, overlapping-pattern deduplication, path traversal protection, and 6 new local-first features. See the CHANGELOG for the full diff.
 
@@ -132,39 +132,39 @@ This audit performed a line-by-line review of the Agentic AI Decision System / C
 ## Vulnerability Findings
 
 ### Finding 1: Dockerfile Line 1 Glitch
-**Severity:** Low  
-**File:** `Dockerfile:1`  
-**Issue:** The first line contained `\\\\\\\\/goal#` before the comment header, which appeared to be a copy-paste glitch or encoding artifact.  
-**Fix applied:** Removed the glitch, leaving the proper `# Agentic Decision System - Local Development Dockerfile` comment.  
+**Severity:** Low
+**File:** `Dockerfile:1`
+**Issue:** The first line contained `\\\\\\\\/goal#` before the comment header, which appeared to be a copy-paste glitch or encoding artifact.
+**Fix applied:** Removed the glitch, leaving the proper `# Agentic Decision System - Local Development Dockerfile` comment.
 
 ### Finding 2: Dead Code in Policy Checker
-**Severity:** Low  
-**File:** `src/decision_system/security/policy.py:215-216`  
-**Issue:** Duplicate `continue` statement after a `continue` — the second `continue` was unreachable dead code.  
-**Fix applied:** Removed the duplicate `continue`.  
+**Severity:** Low
+**File:** `src/decision_system/security/policy.py:215-216`
+**Issue:** Duplicate `continue` statement after a `continue` — the second `continue` was unreachable dead code.
+**Fix applied:** Removed the duplicate `continue`.
 
 ### Finding 3: Duplicate `.decision_system/` in `.dockerignore`
-**Severity:** Low  
-**File:** `.dockerignore:8,26`  
-**Issue:** `.decision_system/` appeared twice — once under "Prevent secrets" section and once under "Generated local state" section. The duplicate is harmless but unnecessary.  
-**Fix applied:** Removed the duplicate entry.  
+**Severity:** Low
+**File:** `.dockerignore:8,26`
+**Issue:** `.decision_system/` appeared twice — once under "Prevent secrets" section and once under "Generated local state" section. The duplicate is harmless but unnecessary.
+**Fix applied:** Removed the duplicate entry.
 
 ### Finding 4: Web UI Security View Always Crashes (Fixed in v1.7)
-**Severity:** Medium  
-**File:** `web/app.js:361-363` (both `web/` and `src/decision_system/web/`)  
-**Issue:** `renderSecurity()` function references `FALLBACK_DATA.security`, but `FALLBACK_DATA` did not contain a `security` key.  
+**Severity:** Medium
+**File:** `web/app.js:361-363` (both `web/` and `src/decision_system/web/`)
+**Issue:** `renderSecurity()` function references `FALLBACK_DATA.security`, but `FALLBACK_DATA` did not contain a `security` key.
 **Fix (v1.7):** Added `FALLBACK_DATA.security` definition with mock policy, audit, and approvals data. The Security & Governance section now renders from mock data as intended.
 
 ### Finding 5: Overlapping Redaction Patterns (Fixed in v1.8)
-**Severity:** Low  
-**File:** `src/decision_system/security/redaction.py`  
-**Issue:** Redaction patterns for `secret_token` and `phone` could overlap — e.g., a string like `sk-mySecretKey1234567890` would match `phone` for `1234567890` before `secret_token` captured the full token, causing partial masking.  
+**Severity:** Low
+**File:** `src/decision_system/security/redaction.py`
+**Issue:** Redaction patterns for `secret_token` and `phone` could overlap — e.g., a string like `sk-mySecretKey1234567890` would match `phone` for `1234567890` before `secret_token` captured the full token, causing partial masking.
 **Fix (v1.8):** Reordered patterns so `secret_token` comes before `phone`, and added `_is_overlapping()` to skip overlapping matches.
 
 ### Finding 6: Path Traversal Risk (Fixed in v1.8)
-**Severity:** Low  
-**File:** New `path_util.py` module  
-**Issue:** File operations had no centralized path validation; writes to system directories like `/etc` would succeed.  
+**Severity:** Low
+**File:** New `path_util.py` module
+**Issue:** File operations had no centralized path validation; writes to system directories like `/etc` would succeed.
 **Fix (v1.8):** Added `path_util.py` with `resolve_path()`, `is_safe_write_path()`, `ensure_safe_path()`, and `safe_relative_to()`. Denied paths include `/etc`, `/proc`, `/sys`, `/dev`, `/bin`, `/sbin`, `/boot`, `/lib`, `/lib64`, `/opt`, `/root`, `/run`, `/srv`.
 
 ---

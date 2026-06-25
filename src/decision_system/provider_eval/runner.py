@@ -517,4 +517,3 @@ def _claim_for_evidence(prefix: str, chunk: EvidenceChunk) -> str:
     if "CONTRADICTS:" in chunk.text:
         return f"{prefix} claim cites contradiction evidence {chunk.evidence_id}: {chunk.text}"
     return f"{prefix} claim cites {chunk.evidence_id}: {chunk.text}"
-

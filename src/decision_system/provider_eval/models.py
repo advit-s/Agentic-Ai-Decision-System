@@ -78,4 +78,3 @@ class ProviderEvalSuiteResult(BaseModel):
     results: list[ProviderEvalResult] = Field(default_factory=list)
     saved_result_path: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-

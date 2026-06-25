@@ -51,7 +51,7 @@ class ConnectorCapabilityDetail(BaseModel):
 
 class ConnectorSetupSchema(BaseModel):
     """Complete setup schema for a connector type.
-    
+
     Frontends use this to render dynamic configuration forms with
     appropriate field types, validation, and credential guidance.
     """

@@ -517,4 +517,3 @@ Add 3 entries to the node type palette in `App.jsx` under the "AI Analysis" cate
 - **Phase 5 (LLM Provider Integration)** — ✅ Complete. ProviderStore, LLMClient, `resolve_provider()` all available.
 - **Phase 1 (DAG Engine)** — ✅ Complete. execute(), ExecutionContext, node registry all available.
 - **Phase 2 (Flow Control)** — ✅ Complete. Condition, Loop, Merge nodes enable the validation-gate pattern.
-

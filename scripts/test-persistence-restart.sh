@@ -113,11 +113,11 @@ trap cleanup EXIT
     echo "WS_ID=$WS_ID"
     echo "SID=$SID"
     echo "TIMESTAMP=$TS"
-    
+
     # Record workspaces
     WORKSPACES=$(curl -sf "$BASE_URL/workspaces" 2>/dev/null || echo '[]')
     echo "WS_COUNT=$(echo "$WORKSPACES" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")"
-    
+
     # Record data sources
     SOURCES=$(curl -sf "$BASE_URL/workspaces/$WS_ID/data-sources" 2>/dev/null || echo '[]')
     echo "DS_COUNT=$(echo "$SOURCES" | python3 -c "
@@ -127,11 +127,11 @@ if isinstance(d, list): print(len(d))
 elif isinstance(d, dict): print(len(d.get('sources',[]) or d.get('items',[])))
 else: print(0)
 " 2>/dev/null || echo "0")"
-    
+
     # Record providers
     PROVS=$(curl -sf "$BASE_URL/providers" 2>/dev/null || echo '[]')
     echo "PROV_COUNT=$(echo "$PROVS" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")"
-    
+
     # Check local data directory
     if [ -d ".decision_system" ]; then
         echo "DATA_DIR_EXISTS=yes"
@@ -173,10 +173,10 @@ echo ""
 if [ "${1:-}" = "--verify" ] && [ -n "${2:-}" ]; then
     STATE_FILE="$2"
     echo "--- Verifying persistence ---"
-    
+
     # Load recorded state
     source "$STATE_FILE" 2>/dev/null || true
-    
+
     # Health check
     HEALTH=$(curl -sf "$BASE_URL/health" 2>/dev/null || echo "")
     if [ -z "$HEALTH" ]; then
@@ -184,7 +184,7 @@ if [ "${1:-}" = "--verify" ] && [ -n "${2:-}" ]; then
         exit 1
     fi
     pass "Backend reachable after restart"
-    
+
     # Check workspaces
     WS_AFTER=$(curl -sf "$BASE_URL/workspaces" 2>/dev/null || echo '[]')
     if [ -n "${WS_ID:-}" ]; then
@@ -204,7 +204,7 @@ except: pass
             fail "Workspace '$WS_ID' lost after restart"
         fi
     fi
-    
+
     # Check data sources
     if [ -n "${WS_ID:-}" ] && [ -n "${SID:-}" ]; then
         DS_AFTER=$(curl -sf "$BASE_URL/workspaces/$WS_ID/data-sources" 2>/dev/null || echo '[]')
@@ -226,7 +226,7 @@ except: pass
             fail "Data source '$SID' lost after restart"
         fi
     fi
-    
+
     # Check providers
     PROV_AFTER=$(curl -sf "$BASE_URL/providers" 2>/dev/null || echo '[]')
     PROV_COUNT_AFTER=$(echo "$PROV_AFTER" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
@@ -236,12 +236,12 @@ except: pass
         echo "  ⓘ No providers to verify"
         pass "Provider check completed"
     fi
-    
+
     # Check data directory
     if [ -d ".decision_system" ]; then
         pass "Data directory exists"
     fi
-    
+
     # Summary
     echo ""
     echo "============================================"
@@ -252,7 +252,7 @@ except: pass
     if [ "$FAIL" -gt 0 ]; then
         for e in "${ERRORS[@]}"; do echo "  - $e"; done
     fi
-    
+
     # Cleanup
     rm -f "$STATE_FILE"
     exit $(( FAIL > 126 ? 126 : FAIL ))

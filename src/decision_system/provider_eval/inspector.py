@@ -68,4 +68,3 @@ def render_provider_eval_suite(suite: ProviderEvalSuiteResult) -> str:
     if suite.saved_result_path:
         lines.extend(["", f"Saved results: {suite.saved_result_path}"])
     return "\n".join(lines)
-

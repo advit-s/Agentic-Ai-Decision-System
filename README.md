@@ -120,6 +120,19 @@ See [CHANGELOG](./CHANGELOG.md) for full version history.
 | Product Vision | [`docs/PRODUCT_VISION.md`](./docs/PRODUCT_VISION.md) |
 | API Reference | (FastAPI auto-docs at `http://localhost:8000/docs`) |
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Project Audit Report](./docs/PROJECT_AUDIT_REPORT.md) | Comprehensive project health assessment (9.6/10) |
+| [Architecture](./docs/ARCHITECTURE.md) | Detailed architecture documentation |
+| [API Documentation](/docs) | Interactive API docs (Swagger UI) when server is running |
+| [Migration Guide](./docs/MIGRATION_GUIDE.md) | Upgrade between versions |
+| [Known Limitations](./docs/KNOWN_LIMITATIONS.md) | Current product limitations |
+| [Security Model](./docs/SECURITY_MODEL.md) | Security and governance design |
+| [Threat Model](./docs/THREAT_MODEL.md) | Security threat analysis |
+| [Local First Setup](./docs/LOCAL_FIRST_SETUP.md) | Detailed local setup guide |
+
 ## Commands
 
 ```bash

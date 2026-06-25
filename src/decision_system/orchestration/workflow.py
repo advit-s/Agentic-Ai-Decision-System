@@ -59,7 +59,7 @@ def run_orchestration(
     """
     if base_data_root is None:
         base_data_root = get_data_root() / "graph"
-    
+
 
     # 1. Session
     session = create_session(question)

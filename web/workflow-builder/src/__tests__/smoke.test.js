@@ -17,7 +17,7 @@ describe("API mock mode detection", () => {
   it("should detect mock mode from environment", () => {
     // This tests that the test infrastructure is ready for API contract tests
     const isMockMode = () => {
-      return typeof window !== "undefined" && 
+      return typeof window !== "undefined" &&
         window.location.hostname === "localhost" || !process.env.CI;
     };
     expect(isMockMode()).toBeDefined();

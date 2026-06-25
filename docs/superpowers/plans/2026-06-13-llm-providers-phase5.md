@@ -1,8 +1,8 @@
 # Phase 5: Real LLM Provider Integration — Implementation Plan
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Date:** 2026-06-13  
+> **Status:** Draft
+> **Version:** 1.0
+> **Date:** 2026-06-13
 > **Based on:** `docs/superpowers/specs/2026-06-13-llm-providers-phase5-design.md`
 
 ## Goal

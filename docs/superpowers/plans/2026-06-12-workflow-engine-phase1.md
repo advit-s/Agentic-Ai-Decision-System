@@ -1610,7 +1610,7 @@ class TestDAGEngine:
         assert state.node_states["n2"].outputs == {"value": 12}
 
     def test_execute_diamond_dag(self, engine):
-        """n1 -> n2 (×3), n1 -> n3 (+1), n2/n3 -> n4. 
+        """n1 -> n2 (×3), n1 -> n3 (+1), n2/n3 -> n4.
         Input 2: n2=6, n3=3, n4 should receive n2's output (last writer)."""
         wf = WorkflowDefinition(
             name="diamond",

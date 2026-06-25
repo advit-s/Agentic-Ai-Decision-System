@@ -278,7 +278,7 @@ def create_workflow(req: CreateWorkflowRequest, user: LocalUser = Depends(requir
     )
 
     _sync_workflow_schedules(wf.id, nodes)
-    
+
     # Audit event for workflow creation
     try:
         from decision_system.security.audit import log_audit_event
@@ -289,7 +289,7 @@ def create_workflow(req: CreateWorkflowRequest, user: LocalUser = Depends(requir
         })
     except Exception:
         pass
-    
+
     result = wf.model_dump()
     result["version_count"] = 1
     return result
@@ -350,7 +350,7 @@ def delete_workflow(workflow_id: str, user: LocalUser = Depends(require_permissi
     if wf is None:
         raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found")
     _workflow_store.delete(workflow_id)
-    
+
     # Audit event for workflow deletion
     try:
         from decision_system.security.audit import log_audit_event
@@ -360,7 +360,7 @@ def delete_workflow(workflow_id: str, user: LocalUser = Depends(require_permissi
         })
     except Exception:
         pass
-    
+
     return {"status": "deleted", "id": workflow_id}
 
 

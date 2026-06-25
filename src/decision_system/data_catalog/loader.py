@@ -69,4 +69,3 @@ def load_csv(path: Path, category: DataCategory) -> LoadedDataset:
         rows=rows,
         warnings=warnings,
     )
-

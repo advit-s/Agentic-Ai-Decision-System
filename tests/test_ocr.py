@@ -43,14 +43,14 @@ class TestImageOcrParser:
     def test_ocr_image_invoice(self, tessdata):
         """OCR should extract text from the sample invoice image."""
         from decision_system.data_sources.ocr_parser import ImageOcrParser
-        
+
         img_path = Path("demo/sample-data/image_invoice.png")
         if not img_path.exists():
             pytest.skip("Sample invoice image not found")
-        
+
         parser = ImageOcrParser()
         result = parser.parse(img_path, "test-img-001", "test-ws-001")
-        
+
         assert result is not None
         assert len(result.text) > 50, f"OCR extracted too little text: {len(result.text)} chars"
         assert "INVOICE" in result.text, f"OCR missing 'INVOICE', got: {result.text[:100]}"
@@ -61,11 +61,11 @@ class TestImageOcrParser:
     def test_ocr_parser_registered(self, tessdata):
         """Verify image parsers are registered in the parser registry."""
         from decision_system.data_sources.parser import get_parser, get_supported_extensions
-        
+
         exts = get_supported_extensions()
         assert ".png" in exts
         assert ".jpg" in exts
-        
+
         png_parser = get_parser(".png")
         assert png_parser is not None
         assert png_parser.name == "image_ocr"
@@ -73,11 +73,11 @@ class TestImageOcrParser:
     def test_ocr_dispatch_via_parse_document(self, tessdata):
         """Verify parse_document dispatches images to ImageOcrParser."""
         from decision_system.data_sources.parser import parse_document
-        
+
         img_path = "demo/sample-data/image_invoice.png"
         if not os.path.exists(img_path):
             pytest.skip("Sample invoice image not found")
-        
+
         chunks, warnings = parse_document(
             Path(img_path), ".png", "test-dispatch-001", "test-ws-001"
         )
@@ -91,14 +91,14 @@ class TestScannedPdfOcr:
     def test_ocr_scanned_pdf(self, tessdata):
         """OCR should extract text from the scanned contract PDF."""
         from decision_system.data_sources.ocr_parser import ScannedPdfParser
-        
+
         pdf_path = Path("demo/sample-data/scanned_contract.pdf")
         if not pdf_path.exists():
             pytest.skip("Sample scanned PDF not found")
-        
+
         parser = ScannedPdfParser()
         result = parser.parse(pdf_path, "test-pdf-001", "test-ws-001")
-        
+
         assert result is not None
         assert len(result.text) > 100, f"OCR extracted too little text: {len(result.text)} chars"
         assert "AGREEMENT" in result.text or "SERVICE" in result.text, \
@@ -109,11 +109,11 @@ class TestScannedPdfOcr:
     def test_ocr_pdf_fallback_flow(self, tessdata):
         """Verify that textless PDFs trigger OCR fallback in parse_document."""
         from decision_system.data_sources.parser import parse_document
-        
+
         pdf_path = "demo/sample-data/scanned_contract.pdf"
         if not os.path.exists(pdf_path):
             pytest.skip("Sample scanned PDF not found")
-        
+
         # parse_document dispatches to PdfParser first (which gets no text),
         # then falls back to ScannedPdfParser
         chunks, warnings = parse_document(
@@ -121,7 +121,7 @@ class TestScannedPdfOcr:
         )
         # Should have at least some chunks from OCR
         assert len(chunks) >= 1
-        
+
         # Should have warnings about OCR
         ocr_warnings = [w for w in warnings if "OCR" in w or "ocr" in w.lower()]
         # The fallback may add an OCR warning
@@ -135,11 +135,11 @@ class TestOcrFallbackBehavior:
     def test_parse_document_text_file_no_ocr_needed(self, tessdata):
         """Regular text files should not need OCR."""
         from decision_system.data_sources.parser import parse_document
-        
+
         md_path = "demo/sample-data/company_overview.md"
         if not os.path.exists(md_path):
             pytest.skip("Sample markdown not found")
-        
+
         chunks, warnings = parse_document(
             Path(md_path), ".md", "test-md-001", "test-ws-001"
         )
