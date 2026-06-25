@@ -23,6 +23,7 @@ from decision_system.identity.store import (
     get_or_create_default_user,
     list_memberships,
 )
+from decision_system.identity.settings import is_demo_mode as settings_is_demo
 
 
 # ---------------------------------------------------------------------------
@@ -44,13 +45,14 @@ def set_demo_override(enabled: bool) -> None:
 
 
 def _is_demo_mode() -> bool:
-    """Detect whether we are running in demo mode."""
+    """Detect whether we are running in demo mode.
+
+    Uses override first (for testing), then falls back to the authoritative
+    security settings on disk.
+    """
     if _DEMO_OVERRIDE is not None:
         return _DEMO_OVERRIDE
-    # Default to demo mode if only the default user exists
-    from decision_system.identity.store import list_users
-    users = list_users()
-    return len(users) <= 1
+    return settings_is_demo()
 
 
 def get_current_user(request: Request = None) -> LocalUser:
@@ -63,15 +65,28 @@ def get_current_user(request: Request = None) -> LocalUser:
     if _is_demo_mode():
         return get_or_create_default_user()
 
-    user_id = "local/system"
-    if request is not None:
-        user_id = request.headers.get("X-User-Id", "local/system")
+    # In governed mode, X-User-Id header is required
+    user_id = ""
+    if request is None or not request.headers.get("X-User-Id", ""):
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "code": "missing_user_id",
+                "message": "X-User-Id header is required in governed mode.",
+            },
+        )
+    user_id = request.headers["X-User-Id"]
 
     from decision_system.identity.store import get_user
     user = get_user(user_id)
     if user is None:
-        # Fall back to default
-        return get_or_create_default_user()
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "user_not_found",
+                "message": f"User '{user_id}' not found in governed mode.",
+            },
+        )
     return user
 
 

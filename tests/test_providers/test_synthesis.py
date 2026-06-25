@@ -135,53 +135,61 @@ class TestSynthesisService:
     def test_with_fake_provider(self):
         import os, tempfile
         tmp = tempfile.mkdtemp()
+        old_data_dir = os.environ.get("DECISION_SYSTEM_DATA_DIR")
         os.environ["DECISION_SYSTEM_DATA_DIR"] = tmp
+        try:
+            from decision_system.providers.store import create_provider
+            from decision_system.providers.models import ProviderCreateRequest
+            req = ProviderCreateRequest(name="Synth Fake", provider_type="fake")
+            config = create_provider(req)
 
-        from decision_system.providers.store import create_provider
-        from decision_system.providers.models import ProviderCreateRequest
-        req = ProviderCreateRequest(name="Synth Fake", provider_type="fake")
-        config = create_provider(req)
-
-        result = run_synthesis(
-            workspace_id="ws-test",
-            question="Summarize the evidence",
-            evidence_results=[
-                {"id": "ev-1", "text": "Billing migration requires rollback planning."},
-                {"id": "ev-2", "text": "LegacyAuth is owned by Platform Team."},
-            ],
-            provider_config=config,
-            synthesis_mode="summary",
-        )
-        assert result.synthesis_id.startswith("syn-")
-        assert len(result.summary_text) > 0
-        assert "evidence" in result.summary_text.lower() or len(result.summary_text) > 20
-
-        import shutil
-        shutil.rmtree(tmp, ignore_errors=True)
-        os.environ.pop("DECISION_SYSTEM_DATA_DIR", None)
+            result = run_synthesis(
+                workspace_id="ws-test",
+                question="Summarize the evidence",
+                evidence_results=[
+                    {"id": "ev-1", "text": "Billing migration requires rollback planning."},
+                    {"id": "ev-2", "text": "LegacyAuth is owned by Platform Team."},
+                ],
+                provider_config=config,
+                synthesis_mode="summary",
+            )
+            assert result.synthesis_id.startswith("syn-")
+            assert len(result.summary_text) > 0
+            assert "evidence" in result.summary_text.lower() or len(result.summary_text) > 20
+        finally:
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)
+            if old_data_dir is not None:
+                os.environ["DECISION_SYSTEM_DATA_DIR"] = old_data_dir
+            else:
+                os.environ.pop("DECISION_SYSTEM_DATA_DIR", None)
 
     def test_claims_mode_with_fake_provider(self):
         import os, tempfile
         tmp = tempfile.mkdtemp()
+        old_data_dir = os.environ.get("DECISION_SYSTEM_DATA_DIR")
         os.environ["DECISION_SYSTEM_DATA_DIR"] = tmp
+        try:
+            from decision_system.providers.store import create_provider
+            from decision_system.providers.models import ProviderCreateRequest
+            req = ProviderCreateRequest(name="Synth Claims", provider_type="fake")
+            config = create_provider(req)
 
-        from decision_system.providers.store import create_provider
-        from decision_system.providers.models import ProviderCreateRequest
-        req = ProviderCreateRequest(name="Synth Claims", provider_type="fake")
-        config = create_provider(req)
-
-        result = run_synthesis(
-            workspace_id="ws-test",
-            question="Extract claims from evidence",
-            evidence_results=[
-                {"id": "ev-1", "text": "Billing migration requires rollback planning."},
-            ],
-            provider_config=config,
-            synthesis_mode="claims",
-        )
-        assert result.synthesis_id.startswith("syn-")
-        assert len(result.summary_text) > 0 or len(result.draft_claims) > 0
-
-        import shutil
-        shutil.rmtree(tmp, ignore_errors=True)
-        os.environ.pop("DECISION_SYSTEM_DATA_DIR", None)
+            result = run_synthesis(
+                workspace_id="ws-test",
+                question="Extract claims from evidence",
+                evidence_results=[
+                    {"id": "ev-1", "text": "Billing migration requires rollback planning."},
+                ],
+                provider_config=config,
+                synthesis_mode="claims",
+            )
+            assert result.synthesis_id.startswith("syn-")
+            assert len(result.summary_text) > 0 or len(result.draft_claims) > 0
+        finally:
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)
+            if old_data_dir is not None:
+                os.environ["DECISION_SYSTEM_DATA_DIR"] = old_data_dir
+            else:
+                os.environ.pop("DECISION_SYSTEM_DATA_DIR", None)

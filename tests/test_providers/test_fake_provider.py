@@ -104,18 +104,21 @@ class TestProviderRuntimeWithFake:
         # Create a fake provider config and register it with runtime
         import os, tempfile
         tmp = tempfile.mkdtemp()
+        old_data_dir = os.environ.get("DECISION_SYSTEM_DATA_DIR")
         os.environ["DECISION_SYSTEM_DATA_DIR"] = tmp
-
-        from decision_system.providers.store import create_provider
-        req = ProviderCreateRequest(name="Runtime Fake", provider_type="fake")
-        config = create_provider(req)
-
-        runtime = ProviderRuntime()
-        provider = runtime.get_provider(config.provider_id)
-        assert provider is not None
-        assert provider.provider_type == "fake"
-        assert provider.health_check() is True
-
-        import shutil
-        shutil.rmtree(tmp, ignore_errors=True)
-        os.environ.pop("DECISION_SYSTEM_DATA_DIR", None)
+        try:
+            from decision_system.providers.store import create_provider
+            req = ProviderCreateRequest(name="Runtime Fake", provider_type="fake")
+            config = create_provider(req)
+            runtime = ProviderRuntime()
+            provider = runtime.get_provider(config.provider_id)
+            assert provider is not None
+            assert provider.provider_type == "fake"
+            assert provider.health_check() is True
+        finally:
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)
+            if old_data_dir is not None:
+                os.environ["DECISION_SYSTEM_DATA_DIR"] = old_data_dir
+            else:
+                os.environ.pop("DECISION_SYSTEM_DATA_DIR", None)

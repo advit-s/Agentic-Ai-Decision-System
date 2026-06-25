@@ -35,6 +35,8 @@ def workspace_env(tmp_path, monkeypatch):
     """Set up an isolated workspace environment with a temp SQLite DB."""
     db_file = tmp_path / "workspaces.sqlite"
     monkeypatch.setenv("DECISION_WORKSPACE_DB", str(db_file))
+    # Unset any leaked DECISION_SYSTEM_DATA_DIR so get_data_root() uses cwd
+    monkeypatch.delenv("DECISION_SYSTEM_DATA_DIR", raising=False)
     monkeypatch.chdir(tmp_path)
     return tmp_path, db_file
 

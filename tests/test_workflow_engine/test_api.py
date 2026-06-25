@@ -12,21 +12,28 @@ from decision_system.api.app import set_scheduler_enabled, create_app
 async def client(tmp_path):
     """Create an async test client with isolated temp storage."""
     import os
+    old_data_dir = os.environ.get("DECISION_SYSTEM_DATA_DIR")
     # Use isolated temp dir for durable storage
-    os.environ['DECISION_SYSTEM_DATA_DIR'] = str(tmp_path)
+    os.environ["DECISION_SYSTEM_DATA_DIR"] = str(tmp_path)
     set_scheduler_enabled(False)
-    # Clear any cached store instances by re-importing
-    import importlib
-    import decision_system.workflow_engine.api as wf_api
-    importlib.reload(wf_api)
-    from decision_system.api.app import create_app as fresh_create
-    app = fresh_create()
-    transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-    ) as ac:
-        yield ac
+    try:
+        # Clear any cached store instances by re-importing
+        import importlib
+        import decision_system.workflow_engine.api as wf_api
+        importlib.reload(wf_api)
+        from decision_system.api.app import create_app as fresh_create
+        app = fresh_create()
+        transport = ASGITransport(app=app)
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+        ) as ac:
+            yield ac
+    finally:
+        if old_data_dir is not None:
+            os.environ["DECISION_SYSTEM_DATA_DIR"] = old_data_dir
+        else:
+            os.environ.pop("DECISION_SYSTEM_DATA_DIR", None)
 
 
 class TestWorkflowAPI:

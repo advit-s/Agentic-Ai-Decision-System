@@ -246,15 +246,26 @@ class TestSecuritySettingsAPI:
 
     async def test_security_settings_persist(self, async_client):
         """Security settings persist after update."""
-        await async_client.put(
+        resp = await async_client.put(
             "/identity/settings",
             json={"security_mode": "governed"},
+            headers={"X-User-Id": "local/system"},
         )
-        resp = await async_client.get("/identity/settings")
-        assert resp.json()["security_mode"] == "governed"
+        assert resp.status_code == 200
+        resp2 = await async_client.get(
+            "/identity/settings",
+            headers={"X-User-Id": "local/system"},
+        )
+        assert resp2.json()["security_mode"] == "governed"
         # Reset to demo for other tests
-        await async_client.put(
+        resp3 = await async_client.put(
             "/identity/settings",
             json={"security_mode": "demo"},
+            headers={"X-User-Id": "local/system"},
         )
-        assert (await async_client.get("/identity/settings")).json()["security_mode"] == "demo"
+        assert resp3.status_code == 200
+        resp4 = await async_client.get(
+            "/identity/settings",
+            headers={"X-User-Id": "local/system"},
+        )
+        assert resp4.json()["security_mode"] == "demo"

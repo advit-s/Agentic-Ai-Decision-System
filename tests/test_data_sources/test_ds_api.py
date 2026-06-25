@@ -15,22 +15,29 @@ from decision_system.api.app import set_scheduler_enabled, create_app
 async def client(tmp_path):
     """Create an async test client with isolated temp storage."""
     import os
+    old_data_dir = os.environ.get("DECISION_SYSTEM_DATA_DIR")
     os.environ["DECISION_SYSTEM_DATA_DIR"] = str(tmp_path)
     set_scheduler_enabled(False)
-    import importlib
-    import decision_system.workflow_engine.api as wf_api
-    importlib.reload(wf_api)
-    app = create_app()
-    transport = ASGITransport(app=app)
-    # Clean any leftover data sources
-    ds_dir = Path(".decision_system") / "data_sources"
-    if ds_dir.exists():
-        shutil.rmtree(ds_dir)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-    ) as ac:
-        yield ac
+    try:
+        import importlib
+        import decision_system.workflow_engine.api as wf_api
+        importlib.reload(wf_api)
+        app = create_app()
+        transport = ASGITransport(app=app)
+        # Clean any leftover data sources
+        ds_dir = Path(".decision_system") / "data_sources"
+        if ds_dir.exists():
+            shutil.rmtree(ds_dir)
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+        ) as ac:
+            yield ac
+    finally:
+        if old_data_dir is not None:
+            os.environ["DECISION_SYSTEM_DATA_DIR"] = old_data_dir
+        else:
+            os.environ.pop("DECISION_SYSTEM_DATA_DIR", None)
 
 
 @pytest.mark.asyncio

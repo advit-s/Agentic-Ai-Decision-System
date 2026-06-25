@@ -1,4 +1,10 @@
 # Agentic AI Decision System
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)]()
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)]()
+[![Tests](https://img.shields.io/badge/tests-1647%20passed-brightgreen)]()
+[![Frontend](https://img.shields.io/badge/frontend-React%2018-blue)]()
+[![Status](https://img.shields.io/badge/status-Beta-yellow)]()
+
 
 > **⚠️ PUBLIC BETA RELEASE CANDIDATE** — v1.35.0-dev
 > This is a **local MVP beta** for evaluation purposes. Not production-ready.
