@@ -53,7 +53,6 @@ class CleanResult:
 def _is_within(entry: Path, protected: Sequence[str]) -> bool:
     """Return True if *entry* is inside any of the *protected* directories."""
     for name in protected:
-        parts = (name,)
         if name in entry.parts:
             return True
     return False

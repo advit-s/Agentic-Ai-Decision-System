@@ -13,45 +13,46 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from decision_system.workflow_engine.models import (
-    WorkflowDefinition,
-    NodeConfig,
-    Connection,
-    ExecutionState,
-    NodeExecutionState,
-)
-from decision_system.workflow_engine.providers.store import ProviderStore
-from decision_system.workflow_engine.engine.dag import DAGValidator
-from decision_system.workflow_engine.engine.executor import DAGEngine
-from decision_system.workflow_engine.nodes import create_default_registry
-from decision_system.workflow_engine.scheduler import (
-    ScheduleDefinition,
-    ScheduleStore,
-    SchedulerService,
-    TriggerType,
-)
-from decision_system.workflow_engine.stores.json_store import (
-    JSONWorkflowStore,
-    JSONExecutionStore,
-)
-from decision_system.workflow_engine.stores.version_store import JSONVersionStore
-from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
-from decision_system.workflow_engine.stream import emit_event
 from decision_system.identity.models import LocalUser, Permission, UserRole
 from decision_system.identity.permissions import (
     get_current_user,
     require_permission,
-    require_workspace_permission,
-    user_has_permission,
     role_is_at_least,
+    user_has_permission,
 )
 from decision_system.identity.settings import load_settings
-from decision_system.security.audit import append_event, log_audit_event
+from decision_system.security.audit import log_audit_event
+from decision_system.workflow_engine.engine.dag import DAGValidator
+from decision_system.workflow_engine.engine.events import ExecutionEvent
+from decision_system.workflow_engine.engine.executor import DAGEngine
+from decision_system.workflow_engine.models import (
+    Connection,
+    ExecutionState,
+    NodeConfig,
+    WorkflowDefinition,
+)
+from decision_system.workflow_engine.nodes import create_default_registry
+from decision_system.workflow_engine.providers.store import ProviderStore
+from decision_system.workflow_engine.scheduler import (
+    ScheduleDefinition,
+    SchedulerService,
+    ScheduleStore,
+    TriggerType,
+)
+from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
+from decision_system.workflow_engine.stores.json_store import (
+    JSONExecutionStore,
+    JSONWorkflowStore,
+)
+from decision_system.workflow_engine.stores.version_store import JSONVersionStore
+from decision_system.workflow_engine.stream import emit_event
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Persistent data directory — replaces tempfile.mkdtemp()
 # ---------------------------------------------------------------------------
+
 
 def _get_data_dir() -> Path:
     """Return the configured data directory for workflow engine state.
@@ -100,6 +101,7 @@ router = APIRouter(tags=["workflows"])
 
 # --- Request/Response models ---
 
+
 class CreateWorkflowRequest(BaseModel):
     name: str
     description: str = ""
@@ -110,6 +112,7 @@ class CreateWorkflowRequest(BaseModel):
 
 class CreateClaimRequest(BaseModel):
     """Validated request model for creating a claim."""
+
     claim_text: str
     source_agent: str = "api"
     claim_type: str = "assumption"
@@ -151,6 +154,7 @@ class UpdateScheduleRequest(BaseModel):
 
 class ResolveReviewRequest(BaseModel):
     """Request body for resolving a review."""
+
     action: str
     notes: str = ""
     modified_data: dict[str, Any] | None = None
@@ -168,7 +172,9 @@ _TRIGGER_TYPE_MAP: dict[str, TriggerType] = {
 
 def _compute_content_hash(wf: WorkflowDefinition) -> str:
     """Compute a content hash for change detection."""
-    content = wf.model_dump_json(exclude={"id", "version", "created_at", "updated_at"}, sort_keys=True)
+    content = wf.model_dump_json(
+        exclude={"id", "version", "created_at", "updated_at"}, sort_keys=True
+    )
     return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
@@ -179,9 +185,7 @@ def _enrich_execution(state: ExecutionState) -> dict[str, Any]:
     data["completed_node_count"] = sum(
         1 for ns in state.node_states.values() if ns.status == "completed"
     )
-    data["failed_node_count"] = sum(
-        1 for ns in state.node_states.values() if ns.status == "failed"
-    )
+    data["failed_node_count"] = sum(1 for ns in state.node_states.values() if ns.status == "failed")
     # Compute duration
     if state.started_at:
         end = state.completed_at or datetime.now(timezone.utc)
@@ -257,7 +261,10 @@ def list_node_types() -> NodeTypesResponse:
 
 
 @router.post("/workflows")
-def create_workflow(req: CreateWorkflowRequest, user: LocalUser = Depends(require_permission(Permission.WORKFLOW_CREATE))) -> dict[str, Any]:
+def create_workflow(
+    req: CreateWorkflowRequest,
+    user: LocalUser = Depends(require_permission(Permission.WORKFLOW_CREATE)),
+) -> dict[str, Any]:
     """Create a new workflow definition and snapshot version 1."""
     nodes = [NodeConfig(**n) for n in req.nodes]
     connections = [Connection(**c) for c in req.connections]
@@ -282,11 +289,14 @@ def create_workflow(req: CreateWorkflowRequest, user: LocalUser = Depends(requir
     # Audit event for workflow creation
     try:
         from decision_system.security.audit import log_audit_event
-        log_audit_event({
-            "event_type": "workflow_created",
-            "workflow_id": wf.id,
-            "workflow_name": wf.name,
-        })
+
+        log_audit_event(
+            {
+                "event_type": "workflow_created",
+                "workflow_id": wf.id,
+                "workflow_name": wf.name,
+            }
+        )
     except Exception:
         pass
 
@@ -312,7 +322,11 @@ def get_workflow(workflow_id: str) -> dict[str, Any]:
 
 
 @router.put("/workflows/{workflow_id}")
-def update_workflow(workflow_id: str, req: CreateWorkflowRequest, user: LocalUser = Depends(require_permission(Permission.WORKFLOW_UPDATE))) -> dict[str, Any]:
+def update_workflow(
+    workflow_id: str,
+    req: CreateWorkflowRequest,
+    user: LocalUser = Depends(require_permission(Permission.WORKFLOW_UPDATE)),
+) -> dict[str, Any]:
     """Update an existing workflow definition and create a new version."""
     existing = _workflow_store.load(workflow_id)
     if existing is None:
@@ -344,7 +358,10 @@ def update_workflow(workflow_id: str, req: CreateWorkflowRequest, user: LocalUse
 
 
 @router.delete("/workflows/{workflow_id}")
-def delete_workflow(workflow_id: str, user: LocalUser = Depends(require_permission(Permission.WORKFLOW_UPDATE))) -> dict[str, Any]:
+def delete_workflow(
+    workflow_id: str,
+    user: LocalUser = Depends(require_permission(Permission.WORKFLOW_UPDATE)),
+) -> dict[str, Any]:
     """Delete a workflow definition."""
     wf = _workflow_store.load(workflow_id)
     if wf is None:
@@ -354,10 +371,13 @@ def delete_workflow(workflow_id: str, user: LocalUser = Depends(require_permissi
     # Audit event for workflow deletion
     try:
         from decision_system.security.audit import log_audit_event
-        log_audit_event({
-            "event_type": "workflow_deleted",
-            "workflow_id": workflow_id,
-        })
+
+        log_audit_event(
+            {
+                "event_type": "workflow_deleted",
+                "workflow_id": workflow_id,
+            }
+        )
     except Exception:
         pass
 
@@ -377,10 +397,13 @@ async def execute_workflow(
 
     errors = DAGValidator.validate(wf)
     if errors:
-        raise HTTPException(status_code=400, detail={
-            "error": "Workflow validation failed",
-            "errors": [str(e) for e in errors],
-        })
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "Workflow validation failed",
+                "errors": [str(e) for e in errors],
+            },
+        )
 
     # Determine the latest version ID for this execution
     latest_version = _version_store.get_latest_version_number(workflow_id)
@@ -404,13 +427,16 @@ async def execute_workflow(
     # Basic audit event
     try:
         from decision_system.security.audit import log_audit_event
-        log_audit_event({
-            "event_type": "workflow_executed",
-            "workflow_id": workflow_id,
-            "execution_id": state.execution_id,
-            "status": state.status,
-            "version_id": version_id,
-        })
+
+        log_audit_event(
+            {
+                "event_type": "workflow_executed",
+                "workflow_id": workflow_id,
+                "execution_id": state.execution_id,
+                "status": state.status,
+                "version_id": version_id,
+            }
+        )
     except Exception:
         pass
 
@@ -489,7 +515,7 @@ def list_execution_history(
     )
 
     # Paginate
-    paged = all_states[offset:offset + limit]
+    paged = all_states[offset : offset + limit]
 
     history = []
     for state in paged:
@@ -503,7 +529,6 @@ def list_execution_history(
         history.append(entry)
 
     return {"executions": history}
-
 
 
 @router.delete("/executions/history/{execution_id}")
@@ -520,7 +545,6 @@ def delete_execution_history(execution_id: str) -> dict[str, str]:
 
     _execution_store.delete(execution_id)
     return {"status": "deleted", "id": execution_id}
-
 
 
 @router.get("/executions/{execution_id}")
@@ -553,9 +577,7 @@ def get_execution_detail(execution_id: str) -> dict[str, Any]:
 
     # Include workflow version if linked
     if state.workflow_version_id:
-        enriched["workflow_version"] = _version_store.load_version_by_id(
-            state.workflow_version_id
-        )
+        enriched["workflow_version"] = _version_store.load_version_by_id(state.workflow_version_id)
         if enriched["workflow_version"] is not None:
             enriched["workflow_version"] = enriched["workflow_version"].model_dump(
                 mode="json", exclude_none=True
@@ -586,12 +608,8 @@ def get_execution_detail(execution_id: str) -> dict[str, Any]:
     return enriched
 
 
-
-
 @router.websocket("/executions/{execution_id}/stream")
-async def execution_event_stream(
-    websocket: WebSocket, execution_id: str
-) -> None:
+async def execution_event_stream(websocket: WebSocket, execution_id: str) -> None:
     """WebSocket endpoint streaming execution events in real-time."""
     from decision_system.workflow_engine.stream import ExecutionEventStream
 
@@ -622,6 +640,7 @@ def _load_execution_events(execution_id: str) -> list[dict[str, Any]]:
         return []
     try:
         import json
+
         data = json.loads(events_path.read_text())
         return data if isinstance(data, list) else []
     except (json.JSONDecodeError, OSError):
@@ -635,6 +654,7 @@ def _save_execution_event(execution_id: str, event: dict[str, Any]) -> None:
     filepath = events_path / f"{execution_id}.json"
 
     import json
+
     try:
         if filepath.exists():
             events = json.loads(filepath.read_text())
@@ -660,6 +680,7 @@ def _load_execution_reviews(execution_id: str) -> list[dict[str, Any]]:
     from decision_system.workflow_engine.nodes.specialist.review_gate import (
         list_all_reviews,
     )
+
     all_reviews = list_all_reviews()
     return [r for r in all_reviews if r.get("execution_id") == execution_id]
 
@@ -799,12 +820,14 @@ async def receive_webhook(
         state = await _engine.execute(wf, global_inputs=inputs, schedule_id=schedule.id)
         _schedule_store.update_last_fired(schedule.id)
 
-        results.append({
-            "schedule_id": schedule.id,
-            "workflow_id": schedule.workflow_id,
-            "execution_id": state.execution_id,
-            "status": state.status,
-        })
+        results.append(
+            {
+                "schedule_id": schedule.id,
+                "workflow_id": schedule.workflow_id,
+                "execution_id": state.execution_id,
+                "status": state.status,
+            }
+        )
 
     return {"triggered": len(results), "executions": results}
 
@@ -900,13 +923,15 @@ def resolve_review_endpoint(review_id: str, req: ResolveReviewRequest) -> dict[s
 
     # Audit event for review resolution with actor
     try:
-        log_audit_event({
-            "event_type": "review_resolved",
-            "review_id": review_id,
-            "action": req.action,
-            "reviewed_by": reviewer,
-            "notes": req.notes or "",
-        })
+        log_audit_event(
+            {
+                "event_type": "review_resolved",
+                "review_id": review_id,
+                "action": req.action,
+                "reviewed_by": reviewer,
+                "notes": req.notes or "",
+            }
+        )
     except Exception:
         pass
 
@@ -974,15 +999,15 @@ async def resume_execution_endpoint(
     return _enrich_execution(result)
 
 
-
-
 @router.get("/workspaces/{workspace_id}/workflows")
 def list_workspace_workflows(workspace_id: str) -> dict[str, list[dict[str, Any]]]:
     """List all workflows belonging to a workspace."""
     all_workflows = _workflow_store.list()
-    filtered = [w.model_dump() for w in all_workflows
-                if (w.model_dump().get("workspace_id") or None) == workspace_id
-                or workspace_id == "_all_"]
+    filtered = [
+        w.model_dump()
+        for w in all_workflows
+        if (w.model_dump().get("workspace_id") or None) == workspace_id or workspace_id == "_all_"
+    ]
     return {"workflows": filtered}
 
 
@@ -994,14 +1019,14 @@ def list_workspace_executions(
 ) -> dict[str, list[dict[str, Any]]]:
     """List executions belonging to a workspace."""
     all_states = _execution_store.list()
-    filtered = [s for s in all_states
-                if (s.workspace_id or None) == workspace_id
-                or workspace_id == "_all_"]
+    filtered = [
+        s for s in all_states if (s.workspace_id or None) == workspace_id or workspace_id == "_all_"
+    ]
     filtered.sort(
         key=lambda s: s.started_at or datetime.min.replace(tzinfo=timezone.utc),
         reverse=True,
     )
-    paged = filtered[offset:offset + limit]
+    paged = filtered[offset : offset + limit]
     return {"executions": [_enrich_execution(s) for s in paged]}
 
 
@@ -1037,15 +1062,17 @@ def workspace_overview(workspace_id: str) -> dict[str, Any]:
     """Get a summary overview of a workspace."""
     # Workflow count
     all_wf = _workflow_store.list()
-    wf_count = sum(1 for w in all_wf
-                   if (w.model_dump().get("workspace_id") or None) == workspace_id
-                   or workspace_id == "_all_")
+    wf_count = sum(
+        1
+        for w in all_wf
+        if (w.model_dump().get("workspace_id") or None) == workspace_id or workspace_id == "_all_"
+    )
 
     # Execution count
     all_execs = _execution_store.list()
-    ws_execs = [s for s in all_execs
-                if (s.workspace_id or None) == workspace_id
-                or workspace_id == "_all_"]
+    ws_execs = [
+        s for s in all_execs if (s.workspace_id or None) == workspace_id or workspace_id == "_all_"
+    ]
     exec_count = len(ws_execs)
     completed_count = sum(1 for s in ws_execs if s.status == "completed")
     failed_count = sum(1 for s in ws_execs if s.status == "failed")
@@ -1055,6 +1082,7 @@ def workspace_overview(workspace_id: str) -> dict[str, Any]:
     from decision_system.workflow_engine.nodes.specialist.review_gate import (
         list_all_reviews,
     )
+
     all_reviews = list_all_reviews()
     if workspace_id != "_all_":
         all_reviews = [r for r in all_reviews if r.get("workspace_id") == workspace_id]
@@ -1065,7 +1093,9 @@ def workspace_overview(workspace_id: str) -> dict[str, Any]:
     sched_count = len(schedules)
 
     # Claim summary
-    claim_summary = _claim_store.summary(workspace_id=workspace_id if workspace_id != "_all_" else None)
+    claim_summary = _claim_store.summary(
+        workspace_id=workspace_id if workspace_id != "_all_" else None
+    )
 
     return {
         "workspace_id": workspace_id,
@@ -1119,15 +1149,28 @@ def get_claim(claim_id: str) -> dict[str, Any]:
 
 
 VALID_CLAIM_TYPES = {"technical", "risk", "option", "recommendation", "assumption"}
-VALID_CLAIM_STATUSES = {"pending", "verified", "unsupported", "contradicted", "uncertain"}
+VALID_CLAIM_STATUSES = {
+    "pending",
+    "verified",
+    "unsupported",
+    "contradicted",
+    "uncertain",
+}
+
 
 @router.post("/claims")
-def create_claim(req: CreateClaimRequest, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))) -> dict[str, Any]:
+def create_claim(
+    req: CreateClaimRequest,
+    user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY)),
+) -> dict[str, Any]:
     """Create a new claim with validated input."""
     if not req.claim_text or not req.claim_text.strip():
         raise HTTPException(status_code=422, detail="claim_text is required and cannot be empty")
     if req.claim_type not in VALID_CLAIM_TYPES:
-        raise HTTPException(status_code=422, detail=f"Invalid claim_type '{req.claim_type}'. Must be one of: {', '.join(sorted(VALID_CLAIM_TYPES))}")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid claim_type '{req.claim_type}'. Must be one of: {', '.join(sorted(VALID_CLAIM_TYPES))}",
+        )
 
     claim = _claim_store.add_claim(
         claim_text=req.claim_text,

@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 
 from fastapi import APIRouter
 
+from decision_system._data_root import get_data_root
 
 router = APIRouter(tags=["data"])
 

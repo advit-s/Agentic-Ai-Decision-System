@@ -11,9 +11,9 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 
+from decision_system._data_root import get_data_root
 from decision_system.identity.models import (
     LocalUser,
     UserRole,
@@ -25,11 +25,14 @@ from decision_system.identity.models import (
 # Default paths
 # ---------------------------------------------------------------------------
 
+
 def _default_identity_dir() -> Path:
     return get_data_root() / "identity"
 
+
 def _default_users_file() -> Path:
     return _default_identity_dir() / "users.json"
+
 
 def _default_memberships_file() -> Path:
     return _default_identity_dir() / "memberships.json"

@@ -31,20 +31,22 @@ class DAGValidator:
         # Check for missing nodes in connections
         for conn in wf.connections:
             if conn.source_node not in node_ids:
-                errors.append(MissingConnectionError(
-                    f"Connection source node '{conn.source_node}' not found in workflow nodes"
-                ))
+                errors.append(
+                    MissingConnectionError(
+                        f"Connection source node '{conn.source_node}' not found in workflow nodes"
+                    )
+                )
             if conn.target_node not in node_ids:
-                errors.append(MissingConnectionError(
-                    f"Connection target node '{conn.target_node}' not found in workflow nodes"
-                ))
+                errors.append(
+                    MissingConnectionError(
+                        f"Connection target node '{conn.target_node}' not found in workflow nodes"
+                    )
+                )
 
         # Check for cycles (checks exist regardless of missing-node errors)
         cycle = DAGValidator._find_cycle(wf)
         if cycle:
-            errors.append(CyclicDAGError(
-                f"Workflow contains a cycle: {' -> '.join(cycle)}"
-            ))
+            errors.append(CyclicDAGError(f"Workflow contains a cycle: {' -> '.join(cycle)}"))
 
         return errors
 

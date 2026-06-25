@@ -24,7 +24,10 @@ class FakeProvider:
                     for chunk in evidence
                 ],
                 risks=[],
-                options=["Proceed with a staged plan", "Delay until missing evidence is reviewed"],
+                options=[
+                    "Proceed with a staged plan",
+                    "Delay until missing evidence is reviewed",
+                ],
                 cited_evidence_ids=[chunk.evidence_id for chunk in evidence],
             )
 
@@ -82,9 +85,7 @@ class FakeProvider:
                 # Keep one claim tied to one chunk so verification can produce a
                 # mix of verified and contradicted statuses in the same run.
                 evidence_ids = (
-                    [memo.cited_evidence_ids[index]]
-                    if index < len(memo.cited_evidence_ids)
-                    else []
+                    [memo.cited_evidence_ids[index]] if index < len(memo.cited_evidence_ids) else []
                 )
                 claims.append(
                     Claim(
@@ -112,4 +113,6 @@ class FakeProvider:
         claim ledger rather than raw provider prose.
         """
 
-        raise NotImplementedError("FakeProvider report writing is handled by the report renderer in v0.1.")
+        raise NotImplementedError(
+            "FakeProvider report writing is handled by the report renderer in v0.1."
+        )

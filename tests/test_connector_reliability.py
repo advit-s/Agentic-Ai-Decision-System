@@ -4,60 +4,45 @@ and audit/metrics.
 """
 
 from __future__ import annotations
-import tempfile
 
 import hashlib
-import json
-import math
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 
-from decision_system.connectors.models import (
-    ConnectorImportJob,
-    ConnectorRuntimeItem,
-    ConnectorFetchedContent,
-    ConnectorConfig,
-    ConnectorType,
-    ConnectorMode,
-    ConnectorConfigStatus,
-    JobProgress,
-    ConnectorJobStatus,
-)
-from decision_system.connectors.retry_policy import (
-    RetryPolicy,
-    RetryAttempt,
-    get_retry_policy,
-    reset_retry_policy,
-)
-from decision_system.connectors.rate_limiter import (
-    RateLimiter,
-    get_rate_limiter,
-    reset_rate_limiter,
-)
-from decision_system.connectors.pagination import (
-    paginate_items,
-    apply_pagination_params,
-)
 from decision_system.connectors.batch_processor import (
     BatchProcessor,
-    get_batch_processor,
     reset_batch_processor,
-    BatchResult,
 )
 from decision_system.connectors.dedup import (
     DuplicateDetector,
-    get_duplicate_detector,
     reset_duplicate_detector,
+)
+from decision_system.connectors.models import (
+    ConnectorFetchedContent,
+    ConnectorImportJob,
+    ConnectorJobStatus,
+    ConnectorRuntimeItem,
+    JobProgress,
+)
+from decision_system.connectors.pagination import (
+    apply_pagination_params,
+    paginate_items,
 )
 from decision_system.connectors.provenance import (
     ProvenanceTracker,
-    SourceVersion,
-    get_provenance_tracker,
     reset_provenance_tracker,
+)
+from decision_system.connectors.rate_limiter import (
+    RateLimiter,
+    reset_rate_limiter,
+)
+from decision_system.connectors.retry_policy import (
+    RetryPolicy,
+    reset_retry_policy,
 )
 
 # Re-usable test content
@@ -169,9 +154,14 @@ class TestConnectorImportJobNewFields:
 
     def test_to_progress_dict(self):
         job = ConnectorImportJob(
-            job_id="j1", connector_id="c1", status="running",
-            total_items=100, processed_items=50,
-            items_imported=30, items_skipped=15, items_failed=5,
+            job_id="j1",
+            connector_id="c1",
+            status="running",
+            total_items=100,
+            processed_items=50,
+            items_imported=30,
+            items_skipped=15,
+            items_failed=5,
         )
         d = job.to_progress_dict()
         assert d["job_id"] == "j1"
@@ -202,7 +192,9 @@ class TestConnectorImportJobNewFields:
 
     def test_completed_with_warnings(self):
         job = ConnectorImportJob(
-            job_id="j1", connector_id="c1", status="completed_with_warnings",
+            job_id="j1",
+            connector_id="c1",
+            status="completed_with_warnings",
             items_failed=3,
         )
         assert job.status == "completed_with_warnings"
@@ -221,10 +213,7 @@ class TestConnectorImportJobNewFields:
 class TestBatchProcessor:
     def test_process_all_items(self):
         processor = BatchProcessor(batch_size=10)
-        items = [
-            ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}")
-            for i in range(25)
-        ]
+        items = [ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}") for i in range(25)]
         job = ConnectorImportJob(job_id="batch1", connector_id="c1", status="queued")
 
         def fetch_fn(item):
@@ -244,10 +233,7 @@ class TestBatchProcessor:
 
     def test_batch_size_respected(self):
         processor = BatchProcessor(batch_size=5)
-        items = [
-            ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}")
-            for i in range(12)
-        ]
+        items = [ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}") for i in range(12)]
         job = ConnectorImportJob(job_id="batch2", connector_id="c1", status="queued")
 
         def fetch_fn(item):
@@ -264,10 +250,7 @@ class TestBatchProcessor:
 
     def test_partial_failures(self):
         processor = BatchProcessor(batch_size=10)
-        items = [
-            ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}")
-            for i in range(20)
-        ]
+        items = [ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}") for i in range(20)]
         job = ConnectorImportJob(job_id="batch3", connector_id="c1", status="queued")
 
         fail_ids = {"doc5", "doc12"}
@@ -289,10 +272,7 @@ class TestBatchProcessor:
 
     def test_cancel_between_batches(self):
         processor = BatchProcessor(batch_size=10)
-        items = [
-            ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}")
-            for i in range(50)
-        ]
+        items = [ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}") for i in range(50)]
         job = ConnectorImportJob(job_id="cancel1", connector_id="c1", status="running")
 
         def fetch_fn(item):
@@ -316,8 +296,7 @@ class TestBatchProcessor:
         """Process 100+ items to verify memory-safe batching."""
         processor = BatchProcessor(batch_size=20)
         items = [
-            ConnectorRuntimeItem(external_id=f"bigdoc{i}", title=f"Big Doc {i}")
-            for i in range(105)
+            ConnectorRuntimeItem(external_id=f"bigdoc{i}", title=f"Big Doc {i}") for i in range(105)
         ]
         job = ConnectorImportJob(job_id="large1", connector_id="c1", status="queued")
 
@@ -336,12 +315,11 @@ class TestBatchProcessor:
 
     def test_resume_from_checkpoint(self):
         processor = BatchProcessor(batch_size=10)
-        items = [
-            ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}")
-            for i in range(30)
-        ]
+        items = [ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}") for i in range(30)]
         job = ConnectorImportJob(
-            job_id="resume1", connector_id="c1", status="failed",
+            job_id="resume1",
+            connector_id="c1",
+            status="failed",
             resume_from_checkpoint={"processed_items": 10},
         )
 
@@ -356,7 +334,7 @@ class TestBatchProcessor:
         result = processor.resume_job(job, items, fetch_fn)
         assert result.status == "completed"
         # Should have processed remaining items via resume
-        import_ids = [e.external_id for e in items if hasattr(e, 'external_id')]
+        import_ids = [e.external_id for e in items if hasattr(e, "external_id")]
         assert result.items_imported > 0
 
     def test_empty_items_list(self):
@@ -577,7 +555,6 @@ class TestRateLimiter:
         assert state.rate_limit_remaining == 42
         assert state.retry_after_seconds == 30.0  # Prefers Retry-After header
 
-
     def test_history(self):
         rl = RateLimiter()
         rl.record_429("conn-a", retry_after=10.0)
@@ -599,10 +576,7 @@ class TestRateLimiter:
 class TestCancelResume:
     def test_cancel_request_stops_processing(self):
         processor = BatchProcessor(batch_size=5)
-        items = [
-            ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}")
-            for i in range(20)
-        ]
+        items = [ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}") for i in range(20)]
         job = ConnectorImportJob(job_id="test_cancel", connector_id="c1", status="running")
 
         def fetch_fn(item):
@@ -649,14 +623,12 @@ class TestCancelResume:
 class TestDuplicateDetection:
     def test_first_import_not_duplicate(self):
         dd = DuplicateDetector(base_dir=tempfile.mkdtemp(prefix="test_dedup_"))
-        import hashlib
         h = hashlib.sha256(b"unique content").hexdigest()
         result = dd.check_duplicate("test-conn", "item1", h)
         assert result.is_duplicate is False
 
     def test_second_import_is_unchanged(self):
         dd = DuplicateDetector(base_dir=tempfile.mkdtemp(prefix="test_dedup_"))
-        import hashlib
         h = hashlib.sha256(b"same content").hexdigest()
         dd.record_import("test-conn", "item1", h)
         result = dd.check_duplicate("test-conn", "item1", h)
@@ -665,7 +637,6 @@ class TestDuplicateDetection:
 
     def test_changed_content_detected(self):
         dd = DuplicateDetector(base_dir=tempfile.mkdtemp(prefix="test_dedup_"))
-        import hashlib
         h1 = hashlib.sha256(b"old content").hexdigest()
         h2 = hashlib.sha256(b"new content").hexdigest()
         dd.record_import("test-conn", "item1", h1)
@@ -675,7 +646,6 @@ class TestDuplicateDetection:
 
     def test_idempotent_reimport(self):
         dd = DuplicateDetector(base_dir=tempfile.mkdtemp(prefix="test_dedup_"))
-        import hashlib
         h = hashlib.sha256(b"same content").hexdigest()
 
         # First import
@@ -690,7 +660,6 @@ class TestDuplicateDetection:
 
     def test_workspace_scoped(self):
         dd = DuplicateDetector(base_dir=tempfile.mkdtemp(prefix="test_dedup_"))
-        import hashlib
         h = hashlib.sha256(b"content").hexdigest()
         dd.record_import("test-conn", "item1", h, workspace_id="ws1")
         # Different workspace - should not find duplicate
@@ -706,7 +675,6 @@ class TestDuplicateDetection:
 class TestProvenance:
     def test_first_version(self):
         pt = ProvenanceTracker(base_dir=tempfile.mkdtemp(prefix="test_prov_"))
-        import hashlib
         h = hashlib.sha256(b"content v1").hexdigest()
         version = pt.create_version("test-conn", "item1", h, job_id="job1", label="Item 1")
         assert version.version_number == 1
@@ -716,7 +684,6 @@ class TestProvenance:
 
     def test_second_version(self):
         pt = ProvenanceTracker(base_dir=tempfile.mkdtemp(prefix="test_prov_"))
-        import hashlib
         h1 = hashlib.sha256(b"content v1").hexdigest()
         h2 = hashlib.sha256(b"content v2").hexdigest()
 
@@ -728,7 +695,6 @@ class TestProvenance:
 
     def test_get_versions(self):
         pt = ProvenanceTracker(base_dir=tempfile.mkdtemp(prefix="test_prov_"))
-        import hashlib
         h1 = hashlib.sha256(b"v1").hexdigest()
         h2 = hashlib.sha256(b"v2").hexdigest()
 
@@ -739,7 +705,6 @@ class TestProvenance:
 
     def test_get_latest_version(self):
         pt = ProvenanceTracker(base_dir=tempfile.mkdtemp(prefix="test_prov_"))
-        import hashlib
         h1 = hashlib.sha256(b"v1").hexdigest()
         h2 = hashlib.sha256(b"v2").hexdigest()
 
@@ -766,15 +731,12 @@ class TestReliabilityAudit:
     def test_audit_events_exist(self):
         """Verify audit event constants exist in audit module."""
         from decision_system.connectors.audit import (
-            EVENT_CONNECTOR_JOB_PROGRESS,
-            EVENT_CONNECTOR_JOB_CANCEL_REQUESTED,
-            EVENT_CONNECTOR_JOB_CANCELLED,
-            EVENT_CONNECTOR_JOB_RESUMED,
-            EVENT_CONNECTOR_ITEM_RETRY,
-            EVENT_CONNECTOR_RATE_LIMITED,
             EVENT_CONNECTOR_DUPLICATE_DETECTED,
-            EVENT_CONNECTOR_BATCH_COMPLETED,
+            EVENT_CONNECTOR_JOB_CANCEL_REQUESTED,
+            EVENT_CONNECTOR_JOB_PROGRESS,
+            EVENT_CONNECTOR_RATE_LIMITED,
         )
+
         assert EVENT_CONNECTOR_JOB_PROGRESS == "connector_job_progress"
         assert EVENT_CONNECTOR_JOB_CANCEL_REQUESTED == "connector_job_cancel_requested"
         assert EVENT_CONNECTOR_RATE_LIMITED == "connector_rate_limited"
@@ -783,12 +745,13 @@ class TestReliabilityAudit:
     def test_audit_recording_does_not_crash(self):
         """Audit recording should never raise exceptions."""
         from decision_system.connectors.audit import (
-            record_job_progress,
-            record_job_cancel_requested,
-            record_rate_limited,
-            record_duplicate_detected,
             record_batch_completed,
+            record_duplicate_detected,
+            record_job_cancel_requested,
+            record_job_progress,
+            record_rate_limited,
         )
+
         # These should all succeed without raising
         record_job_progress("job1", "conn1", 50, 100)
         record_job_cancel_requested("job1", "conn1")
@@ -799,13 +762,14 @@ class TestReliabilityAudit:
     def test_metrics_exist(self):
         from decision_system.connectors.metrics import (
             record_batch_duration,
-            record_retry_count,
-            record_rate_limit_count,
             record_cancel_count,
-            record_resume_count,
             record_duplicate_count,
             record_large_import_count,
+            record_rate_limit_count,
+            record_resume_count,
+            record_retry_count,
         )
+
         # These should not raise
         record_batch_duration("conn1", 100.0)
         record_retry_count("conn1")
@@ -859,10 +823,7 @@ class TestIntegration:
     def test_progress_to_completion(self):
         """End-to-end: create job, process items, verify final state."""
         processor = BatchProcessor(batch_size=10)
-        items = [
-            ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}")
-            for i in range(37)
-        ]
+        items = [ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}") for i in range(37)]
         job = ConnectorImportJob(job_id="integration1", connector_id="c1", status="queued")
         job.total_items = len(items)
 
@@ -888,10 +849,7 @@ class TestIntegration:
             batch_size=10,
             retry_policy=RetryPolicy(max_retries=2, base_delay_seconds=0.01),
         )
-        items = [
-            ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}")
-            for i in range(5)
-        ]
+        items = [ConnectorRuntimeItem(external_id=f"doc{i}", title=f"Doc {i}") for i in range(5)]
         job = ConnectorImportJob(job_id="retry_integration", connector_id="c1", status="queued")
 
         call_counts = {}
@@ -921,7 +879,6 @@ class TestIntegration:
         """Verify dedup + provenance work together."""
         dd = DuplicateDetector(base_dir=tempfile.mkdtemp(prefix="test_integ_dedup_"))
         pt = ProvenanceTracker(base_dir=tempfile.mkdtemp(prefix="test_integ_prov_"))
-        import hashlib
 
         # First import of content
         h1 = hashlib.sha256(b"content v1").hexdigest()

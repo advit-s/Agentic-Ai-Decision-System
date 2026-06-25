@@ -220,11 +220,12 @@ def _check_secrets_in_source() -> PolicyCheck:
                 # Look for actual API key values, not regex patterns
                 # sk-<20+ chars> and nvapi-<20+ chars> at start of word
                 import re as _re
-                if _re.search(r'\bsk-[A-Za-z0-9\-]{8,}\b', text):
+
+                if _re.search(r"\bsk-[A-Za-z0-9\-]{8,}\b", text):
                     secrets.append(str(file_path.relative_to(REPO_ROOT)))
-                elif _re.search(r'\bnvapi-[A-Za-z0-9\-_]{20,}\b', text):
+                elif _re.search(r"\bnvapi-[A-Za-z0-9\-_]{20,}\b", text):
                     secrets.append(str(file_path.relative_to(REPO_ROOT)))
-                elif _re.search(r'(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA)[0-9A-Z]{16}', text):
+                elif _re.search(r"(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA)[0-9A-Z]{16}", text):
                     secrets.append(str(file_path.relative_to(REPO_ROOT)))
             except (OSError, PermissionError):
                 continue
@@ -311,9 +312,7 @@ def run_policy_checks() -> PolicyCheckResult:
     checks = [fn() for fn in _ALL_CHECKS]
     passed = sum(1 for c in checks if c.passed)
     warnings = sum(1 for c in checks if not c.passed and c.severity == "warning")
-    failed = sum(
-        1 for c in checks if not c.passed and c.severity in ("critical",)
-    )
+    failed = sum(1 for c in checks if not c.passed and c.severity in ("critical",))
     if failed:
         status: Literal["ok", "warn", "fail"] = "fail"
     elif warnings:

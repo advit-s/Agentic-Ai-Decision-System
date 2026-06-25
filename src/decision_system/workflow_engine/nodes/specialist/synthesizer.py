@@ -10,9 +10,8 @@ import copy
 import json
 from typing import Any
 
-from decision_system.workflow_engine.models import WorkflowNode, ExecutionContext
+from decision_system.workflow_engine.models import ExecutionContext, WorkflowNode
 from decision_system.workflow_engine.providers.client import LLMClient
-
 
 # ── Fake fallback generators ──────────────────────────────────────────
 
@@ -21,66 +20,172 @@ _FAKE_OPTIONS_BY_KEYWORD: dict[str, list[dict]] = {
         {
             "title": "Full Investment",
             "description": "Allocate full capital to the opportunity based on positive indicators.",
-            "pros": ["Maximum upside potential", "First-mover advantage", "Strong market signal"],
-            "cons": ["Higher capital at risk", "Requires immediate execution", "Limited diversification"],
+            "pros": [
+                "Maximum upside potential",
+                "First-mover advantage",
+                "Strong market signal",
+            ],
+            "cons": [
+                "Higher capital at risk",
+                "Requires immediate execution",
+                "Limited diversification",
+            ],
             "confidence": 0.7,
-            "criteria_scores": {"feasibility": 0.6, "impact": 0.8, "cost": 0.4, "risk": 0.5},
+            "criteria_scores": {
+                "feasibility": 0.6,
+                "impact": 0.8,
+                "cost": 0.4,
+                "risk": 0.5,
+            },
             "risks": [
-                {"risk": "Market downturn", "likelihood": "medium", "mitigation": "Phased investment"},
-                {"risk": "Execution delays", "likelihood": "low", "mitigation": "Dedicated project team"},
+                {
+                    "risk": "Market downturn",
+                    "likelihood": "medium",
+                    "mitigation": "Phased investment",
+                },
+                {
+                    "risk": "Execution delays",
+                    "likelihood": "low",
+                    "mitigation": "Dedicated project team",
+                },
             ],
         },
         {
             "title": "Phased Investment",
             "description": "Invest in stages, starting with a pilot to validate assumptions.",
-            "pros": ["Lower initial risk", "Option to scale based on results", "Learn before committing"],
-            "cons": ["May miss timing window", "Slower to realize returns", "Higher total overhead"],
+            "pros": [
+                "Lower initial risk",
+                "Option to scale based on results",
+                "Learn before committing",
+            ],
+            "cons": [
+                "May miss timing window",
+                "Slower to realize returns",
+                "Higher total overhead",
+            ],
             "confidence": 0.65,
-            "criteria_scores": {"feasibility": 0.7, "impact": 0.6, "cost": 0.6, "risk": 0.7},
+            "criteria_scores": {
+                "feasibility": 0.7,
+                "impact": 0.6,
+                "cost": 0.6,
+                "risk": 0.7,
+            },
             "risks": [
-                {"risk": "Competitor moves first", "likelihood": "medium", "mitigation": "Accelerate phase 1"},
+                {
+                    "risk": "Competitor moves first",
+                    "likelihood": "medium",
+                    "mitigation": "Accelerate phase 1",
+                },
             ],
         },
         {
             "title": "Defer Decision",
             "description": "Gather more data before committing capital.",
-            "pros": ["More information reduces uncertainty", "Preserves optionality", "No immediate cost"],
-            "cons": ["May miss opportunity window", "Analysis paralysis risk", "Delays value creation"],
+            "pros": [
+                "More information reduces uncertainty",
+                "Preserves optionality",
+                "No immediate cost",
+            ],
+            "cons": [
+                "May miss opportunity window",
+                "Analysis paralysis risk",
+                "Delays value creation",
+            ],
             "confidence": 0.4,
-            "criteria_scores": {"feasibility": 0.8, "impact": 0.3, "cost": 0.9, "risk": 0.8},
-            "risks": [{"risk": "Decision inertia", "likelihood": "medium", "mitigation": "Set a deadline"}],
+            "criteria_scores": {
+                "feasibility": 0.8,
+                "impact": 0.3,
+                "cost": 0.9,
+                "risk": 0.8,
+            },
+            "risks": [
+                {
+                    "risk": "Decision inertia",
+                    "likelihood": "medium",
+                    "mitigation": "Set a deadline",
+                }
+            ],
         },
     ],
     "expand": [
         {
             "title": "Aggressive Expansion",
             "description": "Pursue rapid geographic or market expansion.",
-            "pros": ["Market share growth", "Revenue diversification", "Competitive moat"],
-            "cons": ["High capital requirements", "Operational complexity", "Cultural challenges"],
+            "pros": [
+                "Market share growth",
+                "Revenue diversification",
+                "Competitive moat",
+            ],
+            "cons": [
+                "High capital requirements",
+                "Operational complexity",
+                "Cultural challenges",
+            ],
             "confidence": 0.6,
-            "criteria_scores": {"feasibility": 0.5, "impact": 0.8, "cost": 0.3, "risk": 0.4},
+            "criteria_scores": {
+                "feasibility": 0.5,
+                "impact": 0.8,
+                "cost": 0.3,
+                "risk": 0.4,
+            },
             "risks": [
-                {"risk": "Overextension", "likelihood": "high", "mitigation": "Limit to 2 new markets"},
+                {
+                    "risk": "Overextension",
+                    "likelihood": "high",
+                    "mitigation": "Limit to 2 new markets",
+                },
             ],
         },
         {
             "title": "Organic Growth",
             "description": "Focus on deepening existing market presence before expanding.",
-            "pros": ["Lower risk profile", "Builds on existing strengths", "Sustainable pace"],
-            "cons": ["Slower growth trajectory", "May miss opportunities", "Less differentiation"],
+            "pros": [
+                "Lower risk profile",
+                "Builds on existing strengths",
+                "Sustainable pace",
+            ],
+            "cons": [
+                "Slower growth trajectory",
+                "May miss opportunities",
+                "Less differentiation",
+            ],
             "confidence": 0.55,
-            "criteria_scores": {"feasibility": 0.7, "impact": 0.5, "cost": 0.7, "risk": 0.7},
-            "risks": [{"risk": "Competitive pressure", "likelihood": "medium", "mitigation": "Innovation focus"}],
+            "criteria_scores": {
+                "feasibility": 0.7,
+                "impact": 0.5,
+                "cost": 0.7,
+                "risk": 0.7,
+            },
+            "risks": [
+                {
+                    "risk": "Competitive pressure",
+                    "likelihood": "medium",
+                    "mitigation": "Innovation focus",
+                }
+            ],
         },
         {
             "title": "Strategic Partnership",
             "description": "Find partners to share costs and risks of expansion.",
             "pros": ["Shared investment", "Local market knowledge", "Reduced risk"],
-            "cons": ["Profit sharing", "Integration complexity", "Cultural alignment risk"],
+            "cons": [
+                "Profit sharing",
+                "Integration complexity",
+                "Cultural alignment risk",
+            ],
             "confidence": 0.5,
-            "criteria_scores": {"feasibility": 0.6, "impact": 0.6, "cost": 0.6, "risk": 0.6},
+            "criteria_scores": {
+                "feasibility": 0.6,
+                "impact": 0.6,
+                "cost": 0.6,
+                "risk": 0.6,
+            },
             "risks": [
-                {"risk": "Partner misalignment", "likelihood": "medium", "mitigation": "Clear governance agreement"},
+                {
+                    "risk": "Partner misalignment",
+                    "likelihood": "medium",
+                    "mitigation": "Clear governance agreement",
+                },
             ],
         },
     ],
@@ -88,32 +193,81 @@ _FAKE_OPTIONS_BY_KEYWORD: dict[str, list[dict]] = {
         {
             "title": "Aggressive Expansion",
             "description": "Pursue rapid geographic or market expansion.",
-            "pros": ["Market share growth", "Revenue diversification", "Competitive moat"],
-            "cons": ["High capital requirements", "Operational complexity", "Cultural challenges"],
+            "pros": [
+                "Market share growth",
+                "Revenue diversification",
+                "Competitive moat",
+            ],
+            "cons": [
+                "High capital requirements",
+                "Operational complexity",
+                "Cultural challenges",
+            ],
             "confidence": 0.6,
-            "criteria_scores": {"feasibility": 0.5, "impact": 0.8, "cost": 0.3, "risk": 0.4},
+            "criteria_scores": {
+                "feasibility": 0.5,
+                "impact": 0.8,
+                "cost": 0.3,
+                "risk": 0.4,
+            },
             "risks": [
-                {"risk": "Overextension", "likelihood": "high", "mitigation": "Limit to 2 new markets"},
+                {
+                    "risk": "Overextension",
+                    "likelihood": "high",
+                    "mitigation": "Limit to 2 new markets",
+                },
             ],
         },
         {
             "title": "Organic Growth",
             "description": "Focus on deepening existing market presence before expanding.",
-            "pros": ["Lower risk profile", "Builds on existing strengths", "Sustainable pace"],
-            "cons": ["Slower growth trajectory", "May miss opportunities", "Less differentiation"],
+            "pros": [
+                "Lower risk profile",
+                "Builds on existing strengths",
+                "Sustainable pace",
+            ],
+            "cons": [
+                "Slower growth trajectory",
+                "May miss opportunities",
+                "Less differentiation",
+            ],
             "confidence": 0.55,
-            "criteria_scores": {"feasibility": 0.7, "impact": 0.5, "cost": 0.7, "risk": 0.7},
-            "risks": [{"risk": "Competitive pressure", "likelihood": "medium", "mitigation": "Innovation focus"}],
+            "criteria_scores": {
+                "feasibility": 0.7,
+                "impact": 0.5,
+                "cost": 0.7,
+                "risk": 0.7,
+            },
+            "risks": [
+                {
+                    "risk": "Competitive pressure",
+                    "likelihood": "medium",
+                    "mitigation": "Innovation focus",
+                }
+            ],
         },
         {
             "title": "Strategic Partnership",
             "description": "Find partners to share costs and risks of expansion.",
             "pros": ["Shared investment", "Local market knowledge", "Reduced risk"],
-            "cons": ["Profit sharing", "Integration complexity", "Cultural alignment risk"],
+            "cons": [
+                "Profit sharing",
+                "Integration complexity",
+                "Cultural alignment risk",
+            ],
             "confidence": 0.5,
-            "criteria_scores": {"feasibility": 0.6, "impact": 0.6, "cost": 0.6, "risk": 0.6},
+            "criteria_scores": {
+                "feasibility": 0.6,
+                "impact": 0.6,
+                "cost": 0.6,
+                "risk": 0.6,
+            },
             "risks": [
-                {"risk": "Partner misalignment", "likelihood": "medium", "mitigation": "Clear governance agreement"},
+                {
+                    "risk": "Partner misalignment",
+                    "likelihood": "medium",
+                    "mitigation": "Clear governance agreement",
+                },
             ],
         },
     ],
@@ -121,12 +275,25 @@ _FAKE_OPTIONS_BY_KEYWORD: dict[str, list[dict]] = {
         {
             "title": "Recommended Course",
             "description": "Proceed with the evidence-backed option balancing risk and opportunity.",
-            "pros": ["Evidence-based approach", "Balanced risk profile", "Clear execution path"],
+            "pros": [
+                "Evidence-based approach",
+                "Balanced risk profile",
+                "Clear execution path",
+            ],
             "cons": ["Further analysis may be needed", "Trade-offs accepted"],
             "confidence": 0.5,
-            "criteria_scores": {"feasibility": 0.6, "impact": 0.6, "cost": 0.6, "risk": 0.6},
+            "criteria_scores": {
+                "feasibility": 0.6,
+                "impact": 0.6,
+                "cost": 0.6,
+                "risk": 0.6,
+            },
             "risks": [
-                {"risk": "Unforeseen external factors", "likelihood": "medium", "mitigation": "Regular review cycles"},
+                {
+                    "risk": "Unforeseen external factors",
+                    "likelihood": "medium",
+                    "mitigation": "Regular review cycles",
+                },
             ],
         },
         {
@@ -135,17 +302,47 @@ _FAKE_OPTIONS_BY_KEYWORD: dict[str, list[dict]] = {
             "pros": ["Different risk/reward balance", "May suit specific constraints"],
             "cons": ["Lower overall evidence alignment", "Unknown trade-offs"],
             "confidence": 0.35,
-            "criteria_scores": {"feasibility": 0.5, "impact": 0.5, "cost": 0.7, "risk": 0.5},
-            "risks": [{"risk": "Less aligned with evidence", "likelihood": "medium", "mitigation": "Re-evaluate criteria weights"}],
+            "criteria_scores": {
+                "feasibility": 0.5,
+                "impact": 0.5,
+                "cost": 0.7,
+                "risk": 0.5,
+            },
+            "risks": [
+                {
+                    "risk": "Less aligned with evidence",
+                    "likelihood": "medium",
+                    "mitigation": "Re-evaluate criteria weights",
+                }
+            ],
         },
         {
             "title": "Do Not Proceed",
             "description": "Hold off until stronger supporting evidence or more favorable conditions emerge.",
-            "pros": ["Preserves capital", "No commitment risk", "Maintains flexibility"],
-            "cons": ["Zero upside potential", "May miss opportunities", "No strategic progress"],
+            "pros": [
+                "Preserves capital",
+                "No commitment risk",
+                "Maintains flexibility",
+            ],
+            "cons": [
+                "Zero upside potential",
+                "May miss opportunities",
+                "No strategic progress",
+            ],
             "confidence": 0.3,
-            "criteria_scores": {"feasibility": 0.8, "impact": 0.2, "cost": 0.9, "risk": 0.9},
-            "risks": [{"risk": "Stagnation", "likelihood": "medium", "mitigation": "Set review date"}],
+            "criteria_scores": {
+                "feasibility": 0.8,
+                "impact": 0.2,
+                "cost": 0.9,
+                "risk": 0.9,
+            },
+            "risks": [
+                {
+                    "risk": "Stagnation",
+                    "likelihood": "medium",
+                    "mitigation": "Set review date",
+                }
+            ],
         },
     ],
 }
@@ -252,6 +449,7 @@ class SynthesizerNode(WorkflowNode):
     Produces ranked decision options with trade-off analysis, risk assessment,
     and a recommended course of action.
     """
+
     type: str = "decision_system.synthesizer"
     label: str = "Decision Synthesizer"
 
@@ -266,17 +464,30 @@ class SynthesizerNode(WorkflowNode):
             raw_findings = inputs.get("findings")
             if raw_findings and isinstance(raw_findings, list) and len(raw_findings) > 0:
                 evidence_streams = [
-                    {"source_label": "Research Findings", "content": {"findings": raw_findings}},
+                    {
+                        "source_label": "Research Findings",
+                        "content": {"findings": raw_findings},
+                    },
                 ]
             # Check for another Synthesizer's options
-            elif inputs.get("options") and isinstance(inputs.get("options"), list) and len(inputs.get("options")) > 0:
+            elif (
+                inputs.get("options")
+                and isinstance(inputs.get("options"), list)
+                and len(inputs.get("options")) > 0
+            ):
                 evidence_streams = [
-                    {"source_label": "Prior Synthesis", "content": {"options": inputs["options"]}},
+                    {
+                        "source_label": "Prior Synthesis",
+                        "content": {"options": inputs["options"]},
+                    },
                 ]
             # Check for report text
             elif inputs.get("report") or inputs.get("text"):
                 evidence_streams = [
-                    {"source_label": "Report", "content": {"text": inputs.get("report") or inputs.get("text", "")}},
+                    {
+                        "source_label": "Report",
+                        "content": {"text": inputs.get("report") or inputs.get("text", "")},
+                    },
                 ]
 
         if not question:
@@ -290,15 +501,23 @@ class SynthesizerNode(WorkflowNode):
         if not evidence_streams:
             # Single option based on question alone
             options, recommendation = _score_options(
-                [{
-                    "title": "Preliminary Assessment",
-                    "description": f"Assessment based on: {question}",
-                    "pros": ["Based on available information"],
-                    "cons": ["No evidence streams provided — consider adding upstream sources"],
-                    "confidence": 0.2,
-                    "criteria_scores": {c["name"]: 0.5 for c in criteria},
-                    "risks": [{"risk": "Insufficient evidence", "likelihood": "high", "mitigation": "Add upstream analysis nodes"}],
-                }],
+                [
+                    {
+                        "title": "Preliminary Assessment",
+                        "description": f"Assessment based on: {question}",
+                        "pros": ["Based on available information"],
+                        "cons": ["No evidence streams provided — consider adding upstream sources"],
+                        "confidence": 0.2,
+                        "criteria_scores": {c["name"]: 0.5 for c in criteria},
+                        "risks": [
+                            {
+                                "risk": "Insufficient evidence",
+                                "likelihood": "high",
+                                "mitigation": "Add upstream analysis nodes",
+                            }
+                        ],
+                    }
+                ],
                 criteria,
             )
             return {
@@ -325,7 +544,9 @@ class SynthesizerNode(WorkflowNode):
         if provider_cfg and evidence_streams:
             provider_config, _ = provider_cfg
             try:
-                return await self._llm_synthesize(question, evidence_context, criteria, provider_config)
+                return await self._llm_synthesize(
+                    question, evidence_context, criteria, provider_config
+                )
             except Exception as exc:
                 fallback_reason = f"{type(exc).__name__}: {exc}"
                 # Fall through to fake
@@ -351,7 +572,11 @@ class SynthesizerNode(WorkflowNode):
         }
 
     async def _llm_synthesize(
-        self, question: str, evidence_context: str, criteria: list[dict], provider_config: Any,
+        self,
+        question: str,
+        evidence_context: str,
+        criteria: list[dict],
+        provider_config: Any,
     ) -> dict:
         """Use LLM to generate decision options."""
         client = LLMClient(provider_config)
@@ -361,12 +586,15 @@ class SynthesizerNode(WorkflowNode):
 
         response = await client.chat_completion(
             messages=[
-                {"role": "system", "content": _SYNTHESIZER_SYSTEM_PROMPT.format(
-                    question=question,
-                    evidence_context=evidence_context,
-                    criteria_text=criteria_text,
-                    num_options=max_options,
-                )},
+                {
+                    "role": "system",
+                    "content": _SYNTHESIZER_SYSTEM_PROMPT.format(
+                        question=question,
+                        evidence_context=evidence_context,
+                        criteria_text=criteria_text,
+                        num_options=max_options,
+                    ),
+                },
                 {"role": "user", "content": f"Synthesize decisions for: {question}"},
             ],
             model=provider_config.default_model,
@@ -404,11 +632,15 @@ class SynthesizerNode(WorkflowNode):
                     "title": "Decision Framework",
                 },
                 "max_options": {
-                    "type": "integer", "default": 5, "minimum": 2, "maximum": 10,
+                    "type": "integer",
+                    "default": 5,
+                    "minimum": 2,
+                    "maximum": 10,
                     "title": "Max Options",
                 },
                 "include_risks": {
-                    "type": "boolean", "default": True,
+                    "type": "boolean",
+                    "default": True,
                     "title": "Include Risk Assessments",
                 },
             },
@@ -463,7 +695,11 @@ class SynthesizerNode(WorkflowNode):
                             "description": {"type": "string"},
                             "pros": {"type": "array", "items": {"type": "string"}},
                             "cons": {"type": "array", "items": {"type": "string"}},
-                            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                            "confidence": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                            },
                             "criteria_scores": {"type": "object"},
                             "risks": {
                                 "type": "array",
@@ -471,7 +707,10 @@ class SynthesizerNode(WorkflowNode):
                                     "type": "object",
                                     "properties": {
                                         "risk": {"type": "string"},
-                                        "likelihood": {"type": "string", "enum": ["low", "medium", "high"]},
+                                        "likelihood": {
+                                            "type": "string",
+                                            "enum": ["low", "medium", "high"],
+                                        },
                                         "mitigation": {"type": "string"},
                                     },
                                 },
@@ -484,7 +723,11 @@ class SynthesizerNode(WorkflowNode):
                     "properties": {
                         "title": {"type": "string"},
                         "rationale": {"type": "string"},
-                        "overall_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                        "overall_confidence": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                        },
                     },
                 },
                 "trade_offs_summary": {"type": "string"},

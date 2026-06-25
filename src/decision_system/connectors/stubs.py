@@ -1,14 +1,12 @@
 """Offline connector stubs for external integrations not yet implemented."""
+
 from __future__ import annotations
 
 from decision_system.connectors.models import (
     ConnectorDefinition,
     ConnectorDryRunResult,
-    ConnectorImportJob,
     ConnectorImportResult,
-    ConnectorStatus,
 )
-from decision_system.connectors.registry import ConnectorRegistry
 
 
 class ExternalConnectorError(Exception):

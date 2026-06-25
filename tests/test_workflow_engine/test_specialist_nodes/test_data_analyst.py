@@ -16,20 +16,25 @@ from decision_system.workflow_engine.nodes.specialist.data_analyst import (
     _fake_analysis,
     _summarize_analysis,
 )
-from decision_system.workflow_engine.providers.store import ProviderConfig, ProviderStore
+from decision_system.workflow_engine.providers.store import (
+    ProviderConfig,
+    ProviderStore,
+)
 
 
 def _store_with_provider() -> ProviderStore:
     tmp = Path(tempfile.mkdtemp())
     store = ProviderStore(tmp / "providers.json")
-    store.save([
-        ProviderConfig(
-            name="test-provider",
-            api_base="https://test.api/v1",
-            api_key_env="TEST_AI_KEY",
-            default_model="test-model",
-        ),
-    ])
+    store.save(
+        [
+            ProviderConfig(
+                name="test-provider",
+                api_base="https://test.api/v1",
+                api_key_env="TEST_AI_KEY",
+                default_model="test-model",
+            ),
+        ]
+    )
     return store
 
 
@@ -63,15 +68,22 @@ ANALYSIS_RESPONSE = {
             "index": 0,
             "message": {
                 "role": "assistant",
-                "content": json.dumps({
-                    "analysis": {
-                        "row_count": 5,
-                        "columns": ["id", "name", "revenue", "region"],
-                        "key_insights": ["Revenue ranges from $95K to $320K"],
-                    },
-                    "summary": "Analyzed 5 records. Revenue ranges widely.",
-                    "charts": {"revenue_distribution": {"labels": ["Alice", "Bob", "Charlie", "Diana", "Eve"], "values": [150000, 250000, 95000, 320000, 180000]}},
-                }),
+                "content": json.dumps(
+                    {
+                        "analysis": {
+                            "row_count": 5,
+                            "columns": ["id", "name", "revenue", "region"],
+                            "key_insights": ["Revenue ranges from $95K to $320K"],
+                        },
+                        "summary": "Analyzed 5 records. Revenue ranges widely.",
+                        "charts": {
+                            "revenue_distribution": {
+                                "labels": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
+                                "values": [150000, 250000, 95000, 320000, 180000],
+                            }
+                        },
+                    }
+                ),
             },
             "finish_reason": "stop",
         }
@@ -81,6 +93,7 @@ ANALYSIS_RESPONSE = {
 
 class TestDataAnalystNode:
     """DataAnalystNode — AI-powered structured data analysis."""
+
     pytestmark = pytest.mark.asyncio
 
     async def test_fallback_empty_data(self):
@@ -207,8 +220,8 @@ class TestDataAnalystNode:
 
 # ── Unit tests for helper functions ─────────────────────────────────
 
-class TestDataAnalystHelpers:
 
+class TestDataAnalystHelpers:
     def test_fake_analysis_profile(self):
         result = _fake_analysis(SAMPLE_DATA, "profile")
         assert "row_count" in result

@@ -9,8 +9,8 @@ All logic is rule-based. No LLM call.
 from __future__ import annotations
 
 from decision_system.orchestration.models import (
-    ProblemAnalysis,
     DispatchPlan,
+    ProblemAnalysis,
 )
 
 # ---------------------------------------------------------------------------

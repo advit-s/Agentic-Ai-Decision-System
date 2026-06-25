@@ -11,20 +11,19 @@ from __future__ import annotations
 
 import pytest
 
+from decision_system.graphing.store import (
+    delete_workspace,
+    get_default_data_root,
+    list_metrics,
+    list_nodes,
+    list_risks,
+)
 from decision_system.workflow_engine.models import ExecutionContext
 from decision_system.workflow_engine.nodes.builtin.graph_nodes import (
     GraphExtractionNodeV2,
     GraphSummaryNode,
     MetricExtractionNode,
     RiskExtractionNode,
-)
-from decision_system.graphing.store import (
-    get_default_data_root,
-    delete_workspace,
-    list_edges,
-    list_metrics,
-    list_nodes,
-    list_risks,
 )
 
 # ---------------------------------------------------------------------------
@@ -43,7 +42,12 @@ def _ctx(workspace_id: str = TEST_WS) -> ExecutionContext:
     )
 
 
-def _text_input(text: str, evidence_id: str = "ev-1", source_id: str = "src-1", chunk_id: str = "ch-1") -> dict:
+def _text_input(
+    text: str,
+    evidence_id: str = "ev-1",
+    source_id: str = "src-1",
+    chunk_id: str = "ch-1",
+) -> dict:
     return {
         "text": text,
         "evidence_id": evidence_id,
@@ -97,9 +101,7 @@ class TestGraphExtractionNodeV2:
     @pytest.mark.asyncio
     async def test_all_empty_texts(self):
         node = GraphExtractionNodeV2(id="gn3", config={"workspace_id": TEST_WS})
-        texts = [
-            {"text": "", "evidence_id": "", "source_id": "", "chunk_id": ""}
-        ]
+        texts = [{"text": "", "evidence_id": "", "source_id": "", "chunk_id": ""}]
         result = await node.execute({"texts": texts}, _ctx())
         assert result["nodes_extracted"] == 0
         assert "All provided texts were empty" in result.get("error", "")
@@ -109,8 +111,7 @@ class TestGraphExtractionNodeV2:
         node = GraphExtractionNodeV2(id="gn4", config={"workspace_id": TEST_WS})
         texts = [
             _text_input(
-                "Acme Corporation provides CloudSync and DataVault."
-                " Revenue: $5M. Employees: 120.",
+                "Acme Corporation provides CloudSync and DataVault. Revenue: $5M. Employees: 120.",
                 evidence_id="ev-company-1",
             ),
         ]
@@ -144,7 +145,10 @@ class TestGraphExtractionNodeV2:
         node = GraphExtractionNodeV2(id="gn6", config={"workspace_id": TEST_WS})
         texts = [
             _text_input("Acme Corp provides cloud services. Revenue: $10M.", evidence_id="ev-1"),
-            _text_input("Vendor: FastCloud Ltd. Annual spend: $500k. Risk of vendor lock-in.", evidence_id="ev-2"),
+            _text_input(
+                "Vendor: FastCloud Ltd. Annual spend: $500k. Risk of vendor lock-in.",
+                evidence_id="ev-2",
+            ),
         ]
         result = await node.execute({"texts": texts}, _ctx())
         assert result["nodes_extracted"] >= 2
@@ -228,8 +232,7 @@ class TestRiskExtractionNode:
         node = RiskExtractionNode(id="rn3", config={"workspace_id": TEST_WS})
         texts = [
             _text_input(
-                "Budget overrun of $2M. Revenue decline of 15%. "
-                "Cash flow issues reported.",
+                "Budget overrun of $2M. Revenue decline of 15%. Cash flow issues reported.",
                 evidence_id="ev-fin-risk-1",
             ),
         ]
@@ -305,8 +308,7 @@ class TestMetricExtractionNode:
         node = MetricExtractionNode(id="mn3", config={"workspace_id": TEST_WS})
         texts = [
             _text_input(
-                "Churn rate: 5%. Customer satisfaction: 92%. "
-                "Uptime: 99.9%.",
+                "Churn rate: 5%. Customer satisfaction: 92%. Uptime: 99.9%.",
                 evidence_id="ev-pct-1",
             ),
         ]

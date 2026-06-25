@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-
 # =========================================================================
 # Feature A: Report Export
 # =========================================================================
@@ -34,24 +33,36 @@ class TestReportExport:
         assert payload["audit_metadata"] == {}
 
     def test_build_report_payload_with_claims(self):
-        from decision_system.reports.exporter import build_report_payload
         from decision_system.models import Claim
+        from decision_system.reports.exporter import build_report_payload
 
         claims = [
             Claim(
-                claim_id="c1", run_id="r1", source_agent="analyst",
-                claim_text="Claim one", claim_type="technical",
-                status="verified", confidence="high",
+                claim_id="c1",
+                run_id="r1",
+                source_agent="analyst",
+                claim_text="Claim one",
+                claim_type="technical",
+                status="verified",
+                confidence="high",
             ),
             Claim(
-                claim_id="c2", run_id="r1", source_agent="analyst",
-                claim_text="Claim two", claim_type="risk",
-                status="unsupported", confidence="low",
+                claim_id="c2",
+                run_id="r1",
+                source_agent="analyst",
+                claim_text="Claim two",
+                claim_type="risk",
+                status="unsupported",
+                confidence="low",
             ),
             Claim(
-                claim_id="c3", run_id="r1", source_agent="analyst",
-                claim_text="Claim three", claim_type="risk",
-                status="contradicted", confidence="medium",
+                claim_id="c3",
+                run_id="r1",
+                source_agent="analyst",
+                claim_text="Claim three",
+                claim_type="risk",
+                status="contradicted",
+                confidence="medium",
             ),
         ]
         payload = build_report_payload(
@@ -124,6 +135,7 @@ class TestReportExport:
 
     def test_cli_export_report(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()
@@ -151,18 +163,22 @@ class TestCoverageScore:
         assert score.status == "no_claims"
 
     def test_all_verified(self):
-        from decision_system.reports.coverage import compute_coverage
         from decision_system.models import VerificationResult
+        from decision_system.reports.coverage import compute_coverage
 
         results = [
             VerificationResult(
-                claim_id="c1", status="verified",
-                evidence_ids=["e1"], confidence="high",
+                claim_id="c1",
+                status="verified",
+                evidence_ids=["e1"],
+                confidence="high",
                 verification_notes="",
             ),
             VerificationResult(
-                claim_id="c2", status="verified",
-                evidence_ids=["e1"], confidence="high",
+                claim_id="c2",
+                status="verified",
+                evidence_ids=["e1"],
+                confidence="high",
                 verification_notes="",
             ),
         ]
@@ -173,12 +189,24 @@ class TestCoverageScore:
         assert score.status == "good"
 
     def test_partial_coverage(self):
-        from decision_system.reports.coverage import compute_coverage
         from decision_system.models import VerificationResult
+        from decision_system.reports.coverage import compute_coverage
 
         results = [
-            VerificationResult(claim_id="c1", status="verified", evidence_ids=["e1"], confidence="high", verification_notes=""),
-            VerificationResult(claim_id="c2", status="unsupported", evidence_ids=[], confidence="low", verification_notes=""),
+            VerificationResult(
+                claim_id="c1",
+                status="verified",
+                evidence_ids=["e1"],
+                confidence="high",
+                verification_notes="",
+            ),
+            VerificationResult(
+                claim_id="c2",
+                status="unsupported",
+                evidence_ids=[],
+                confidence="low",
+                verification_notes="",
+            ),
         ]
         score = compute_coverage(verification_results=results)
         assert score.total_claims == 2
@@ -188,12 +216,28 @@ class TestCoverageScore:
         assert score.status == "unsupported_found"
 
     def test_contradictions(self):
-        from decision_system.reports.coverage import compute_coverage
         from decision_system.models import Claim
+        from decision_system.reports.coverage import compute_coverage
 
         claims = [
-            Claim(claim_id="c1", run_id="r1", source_agent="a", claim_text="t1", claim_type="technical", status="contradicted", confidence="low"),
-            Claim(claim_id="c2", run_id="r1", source_agent="a", claim_text="t2", claim_type="technical", status="verified", confidence="high"),
+            Claim(
+                claim_id="c1",
+                run_id="r1",
+                source_agent="a",
+                claim_text="t1",
+                claim_type="technical",
+                status="contradicted",
+                confidence="low",
+            ),
+            Claim(
+                claim_id="c2",
+                run_id="r1",
+                source_agent="a",
+                claim_text="t2",
+                claim_type="technical",
+                status="verified",
+                confidence="high",
+            ),
         ]
         score = compute_coverage(claims=claims)
         assert score.total_claims == 2
@@ -201,12 +245,28 @@ class TestCoverageScore:
         assert score.status == "contradictions_found"
 
     def test_coverage_from_claims(self):
-        from decision_system.reports.coverage import compute_coverage
         from decision_system.models import Claim
+        from decision_system.reports.coverage import compute_coverage
 
         claims = [
-            Claim(claim_id="c1", run_id="r1", source_agent="a", claim_text="t1", claim_type="technical", status="verified", confidence="high"),
-            Claim(claim_id="c2", run_id="r1", source_agent="a", claim_text="t2", claim_type="technical", status="pending", confidence="low"),
+            Claim(
+                claim_id="c1",
+                run_id="r1",
+                source_agent="a",
+                claim_text="t1",
+                claim_type="technical",
+                status="verified",
+                confidence="high",
+            ),
+            Claim(
+                claim_id="c2",
+                run_id="r1",
+                source_agent="a",
+                claim_text="t2",
+                claim_type="technical",
+                status="pending",
+                confidence="low",
+            ),
         ]
         score = compute_coverage(claims=claims)
         assert score.total_claims == 2
@@ -222,6 +282,7 @@ class TestCoverageScore:
 
     def test_cli_coverage(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()
@@ -231,6 +292,7 @@ class TestCoverageScore:
 
     def test_cli_coverage_json(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()
@@ -254,13 +316,41 @@ class TestWorkspaceDiff:
 
         old = tmp_path / "old.json"
         new = tmp_path / "new.json"
-        old.write_text(json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": [
-            {"artifact_type": "decision_report", "source_path": "doc1.md", "title": "Doc One"},
-        ]}))
-        new.write_text(json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": [
-            {"artifact_type": "decision_report", "source_path": "doc1.md", "title": "Doc One"},
-            {"artifact_type": "decision_report", "source_path": "doc2.md", "title": "Doc Two"},
-        ]}))
+        old.write_text(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "workspace": {"name": "ws1"},
+                    "artifacts": [
+                        {
+                            "artifact_type": "decision_report",
+                            "source_path": "doc1.md",
+                            "title": "Doc One",
+                        },
+                    ],
+                }
+            )
+        )
+        new.write_text(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "workspace": {"name": "ws1"},
+                    "artifacts": [
+                        {
+                            "artifact_type": "decision_report",
+                            "source_path": "doc1.md",
+                            "title": "Doc One",
+                        },
+                        {
+                            "artifact_type": "decision_report",
+                            "source_path": "doc2.md",
+                            "title": "Doc Two",
+                        },
+                    ],
+                }
+            )
+        )
 
         diff = diff_workspaces(old, new)
         assert diff.has_changes
@@ -282,23 +372,51 @@ class TestWorkspaceDiff:
 
         old = tmp_path / "old.json"
         new = tmp_path / "new.json"
-        old.write_text(json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": [
-            {"artifact_type": "decision_report", "source_path": "gone.md", "title": "Gone"},
-        ]}))
-        new.write_text(json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": []}))
+        old.write_text(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "workspace": {"name": "ws1"},
+                    "artifacts": [
+                        {
+                            "artifact_type": "decision_report",
+                            "source_path": "gone.md",
+                            "title": "Gone",
+                        },
+                    ],
+                }
+            )
+        )
+        new.write_text(
+            json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": []})
+        )
         diff = diff_workspaces(old, new)
         assert diff.has_changes
         assert "gone.md" in diff.removed_documents or "Gone" in diff.removed_documents
 
     def test_diff_text_render(self, tmp_path):
-        from decision_system.reports.diff import diff_workspaces, diff_to_text
+        from decision_system.reports.diff import diff_to_text, diff_workspaces
 
         old = tmp_path / "old.json"
         new = tmp_path / "new.json"
-        old.write_text(json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": []}))
-        new.write_text(json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": [
-            {"artifact_type": "decision_report", "source_path": "new.md", "title": "New"},
-        ]}))
+        old.write_text(
+            json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": []})
+        )
+        new.write_text(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "workspace": {"name": "ws1"},
+                    "artifacts": [
+                        {
+                            "artifact_type": "decision_report",
+                            "source_path": "new.md",
+                            "title": "New",
+                        },
+                    ],
+                }
+            )
+        )
         diff = diff_workspaces(old, new)
         text = diff_to_text(diff)
         assert "Workspace Diff" in text
@@ -306,22 +424,30 @@ class TestWorkspaceDiff:
 
     def test_cli_diff(self, tmp_path):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         old = tmp_path / "a.json"
         new = tmp_path / "b.json"
-        old.write_text(json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": []}))
-        new.write_text(json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": []}))
+        old.write_text(
+            json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": []})
+        )
+        new.write_text(
+            json.dumps({"version": "1.0", "workspace": {"name": "ws1"}, "artifacts": []})
+        )
         runner = CliRunner()
         result = runner.invoke(app, ["diff-workspaces", str(old), str(new)])
         assert result.exit_code == 0
 
     def test_cli_diff_missing_file(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()
-        result = runner.invoke(app, ["diff-workspaces", "/nonexistent/old.json", "/nonexistent/new.json"])
+        result = runner.invoke(
+            app, ["diff-workspaces", "/nonexistent/old.json", "/nonexistent/new.json"]
+        )
         assert result.exit_code == 1
 
 
@@ -357,6 +483,7 @@ class TestAuditTimeline:
 
     def test_cli_timeline(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()
@@ -367,6 +494,7 @@ class TestAuditTimeline:
 
     def test_cli_timeline_json(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()
@@ -405,7 +533,6 @@ class TestDemoDataValidator:
     def test_validate_scans_known_patterns(self):
         from decision_system.devtools.demo_data_validator import (
             validate_demo_data,
-            ValidationFinding,
         )
 
         # Run from actual project root
@@ -427,6 +554,7 @@ class TestDemoDataValidator:
 
     def test_cli_validate(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()
@@ -494,6 +622,7 @@ class TestProviderSafety:
 
     def test_cli_provider_safety(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()
@@ -503,6 +632,7 @@ class TestProviderSafety:
 
     def test_cli_provider_safety_json(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()
@@ -522,8 +652,9 @@ class TestNewFeatureAPIEndpoints:
 
     async def test_coverage_api(self):
         """Coverage endpoint should work even with no runs."""
-        from httpx import ASGITransport
         import httpx
+        from httpx import ASGITransport
+
         from decision_system.api.app import app
 
         transport = ASGITransport(app=app)
@@ -536,8 +667,9 @@ class TestNewFeatureAPIEndpoints:
 
     async def test_audit_timeline_api(self):
         """Audit timeline endpoint should return valid data."""
-        from httpx import ASGITransport
         import httpx
+        from httpx import ASGITransport
+
         from decision_system.api.app import app
 
         transport = ASGITransport(app=app)
@@ -549,8 +681,9 @@ class TestNewFeatureAPIEndpoints:
 
     async def test_provider_safety_api(self):
         """Provider safety endpoint should return current status."""
-        from httpx import ASGITransport
         import httpx
+        from httpx import ASGITransport
+
         from decision_system.api.app import app
 
         transport = ASGITransport(app=app)
@@ -562,8 +695,9 @@ class TestNewFeatureAPIEndpoints:
 
     async def test_export_api(self):
         """Report export endpoint should handle empty state gracefully."""
-        from httpx import ASGITransport
         import httpx
+        from httpx import ASGITransport
+
         from decision_system.api.app import app
 
         transport = ASGITransport(app=app)
@@ -600,7 +734,7 @@ class TestPathUtil:
         assert not is_safe_write_path("/etc/passwd")
 
     def test_ensure_safe_path_valid(self, tmp_path):
-        from decision_system.path_util import ensure_safe_path, resolve_path
+        from decision_system.path_util import ensure_safe_path
 
         # Write to a location inside project root (tmp_path as project_root)
         safe = tmp_path / "safe.txt"
@@ -634,6 +768,7 @@ class TestNewCLICommands:
 
     def test_help_includes_export_report(self):
         from typer.testing import CliRunner
+
         from decision_system.cli import app
 
         runner = CliRunner()

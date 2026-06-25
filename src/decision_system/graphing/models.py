@@ -129,10 +129,7 @@ class WorkspaceGraph(BaseModel):
         return None
 
     def edges_for_node(self, node_id: str) -> list[WorkspaceEdge]:
-        return [
-            e for e in self.edges
-            if e.source_node_id == node_id or e.target_node_id == node_id
-        ]
+        return [e for e in self.edges if e.source_node_id == node_id or e.target_node_id == node_id]
 
     def nodes_by_type(self, node_type: NodeType) -> list[WorkspaceNode]:
         return [n for n in self.nodes if n.node_type == node_type]

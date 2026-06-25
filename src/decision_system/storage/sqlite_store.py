@@ -1,11 +1,12 @@
 """SQLite database connection manager for the workspace layer.
 Uses Python's built-in ``sqlite3`` module. No external ORM is added.
 """
+
 from __future__ import annotations
+
 import sqlite3
 from pathlib import Path
 from typing import Any
-
 
 # Row factory for dict-like access
 _DICT_ROW = sqlite3.Row

@@ -8,22 +8,20 @@ v1.30 -- Connector Expansion
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime
 
 import httpx
 
+from decision_system.connectors.github_connector import (
+    _TIMEOUT,
+    _get_headers,
+    _parse_github_url,
+)
 from decision_system.connectors.models import (
     ConnectorConfig,
-    ConnectorRuntimeItem,
     ConnectorFetchedContent,
+    ConnectorRuntimeItem,
 )
-from decision_system.connectors.github_connector import (
-    _parse_github_url,
-    _get_headers,
-    _TIMEOUT,
-)
-
 
 # ---------------------------------------------------------------------------
 # GitHub Issues (read-only)
@@ -49,10 +47,7 @@ def _pulls_api_url(owner: str, repo: str, state: str = "open") -> str:
 
 
 def _releases_api_url(owner: str, repo: str) -> str:
-    return (
-        f"https://api.github.com/repos/{owner}/{repo}/releases"
-        f"?per_page=50"
-    )
+    return f"https://api.github.com/repos/{owner}/{repo}/releases?per_page=50"
 
 
 def _parse_github_repo(repo_url: str) -> dict[str, str] | None:
@@ -62,9 +57,7 @@ def _parse_github_repo(repo_url: str) -> dict[str, str] | None:
     return {"owner": parsed["owner"], "repo": parsed["repo"]}
 
 
-def list_issues(
-    config: ConnectorConfig, state: str = "open"
-) -> list[ConnectorRuntimeItem]:
+def list_issues(config: ConnectorConfig, state: str = "open") -> list[ConnectorRuntimeItem]:
     """List issues from a GitHub repository (read-only).
 
     Args:
@@ -102,9 +95,7 @@ def _issue_to_item(issue: dict, repo: dict) -> ConnectorRuntimeItem:
     modified = None
     if issue.get("updated_at"):
         try:
-            modified = datetime.fromisoformat(
-                issue["updated_at"].replace("Z", "+00:00")
-            )
+            modified = datetime.fromisoformat(issue["updated_at"].replace("Z", "+00:00"))
         except (ValueError, AttributeError):
             pass
 
@@ -132,9 +123,7 @@ def _issue_to_item(issue: dict, repo: dict) -> ConnectorRuntimeItem:
     )
 
 
-def fetch_issue(
-    config: ConnectorConfig, item: ConnectorRuntimeItem
-) -> ConnectorFetchedContent:
+def fetch_issue(config: ConnectorConfig, item: ConnectorRuntimeItem) -> ConnectorFetchedContent:
     """Fetch the full content of a GitHub issue."""
     repo_url = config.config.get("repository_url", "")
     repo = _parse_github_repo(repo_url)
@@ -176,9 +165,7 @@ def fetch_issue(
                 "github_type": "issue",
                 "issue_number": issue_number,
                 "state": issue_data.get("state", ""),
-                "labels": [
-                    l.get("name", "") for l in issue_data.get("labels", [])
-                ],
+                "labels": [l.get("name", "") for l in issue_data.get("labels", [])],
                 "author": issue_data.get("user", {}).get("login", ""),
                 "created_at": issue_data.get("created_at", ""),
                 "updated_at": issue_data.get("updated_at", ""),
@@ -225,9 +212,7 @@ def _format_issue_content(issue_data: dict, body: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def list_pull_requests(
-    config: ConnectorConfig, state: str = "open"
-) -> list[ConnectorRuntimeItem]:
+def list_pull_requests(config: ConnectorConfig, state: str = "open") -> list[ConnectorRuntimeItem]:
     """List pull requests from a GitHub repository (read-only)."""
     repo_url = config.config.get("repository_url", "")
     repo = _parse_github_repo(repo_url)
@@ -255,9 +240,7 @@ def _pr_to_item(pr: dict, repo: dict) -> ConnectorRuntimeItem:
     modified = None
     if pr.get("updated_at"):
         try:
-            modified = datetime.fromisoformat(
-                pr["updated_at"].replace("Z", "+00:00")
-            )
+            modified = datetime.fromisoformat(pr["updated_at"].replace("Z", "+00:00"))
         except (ValueError, AttributeError):
             pass
 
@@ -318,17 +301,13 @@ def _release_to_item(release: dict, repo: dict) -> ConnectorRuntimeItem:
     published = None
     if release.get("published_at"):
         try:
-            published = datetime.fromisoformat(
-                release["published_at"].replace("Z", "+00:00")
-            )
+            published = datetime.fromisoformat(release["published_at"].replace("Z", "+00:00"))
         except (ValueError, AttributeError):
             pass
 
     return ConnectorRuntimeItem(
         external_id=f"release-{release.get('tag_name', release['id'])}",
-        title=release.get(
-            "name", release.get("tag_name", "Release")
-        ),
+        title=release.get("name", release.get("tag_name", "Release")),
         item_type="release",
         source_url=release.get("html_url", ""),
         modified_at=published,
@@ -345,9 +324,7 @@ def _release_to_item(release: dict, repo: dict) -> ConnectorRuntimeItem:
     )
 
 
-def fetch_release(
-    config: ConnectorConfig, item: ConnectorRuntimeItem
-) -> ConnectorFetchedContent:
+def fetch_release(config: ConnectorConfig, item: ConnectorRuntimeItem) -> ConnectorFetchedContent:
     """Fetch the content of a GitHub release."""
     body = item.metadata.get("body", "")
     tag_name = item.metadata.get("tag_name", "")
@@ -357,7 +334,7 @@ def fetch_release(
 
 **Release:** {tag_name}
 **URL:** {html_url}
-**Published:** {item.metadata.get('published_at', '')}
+**Published:** {item.metadata.get("published_at", "")}
 
 ---
 

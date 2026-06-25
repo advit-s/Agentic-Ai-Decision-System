@@ -10,16 +10,16 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 from uuid import uuid4
 
+from decision_system._data_root import get_data_root
 from decision_system.connectors.models import (
     ConnectorConfig,
     ConnectorConfigStatus,
-    ConnectorType,
     ConnectorMode,
     ConnectorSecretRef,
+    ConnectorType,
 )
 
 
@@ -116,18 +116,14 @@ class ConnectorConfigStore:
             self._save_index(cfg.workspace_id, ids)
         return cfg
 
-    def load(
-        self, workspace_id: str | None, connector_id: str
-    ) -> ConnectorConfig | None:
+    def load(self, workspace_id: str | None, connector_id: str) -> ConnectorConfig | None:
         """Load a connector config by workspace and connector_id."""
         data = _read_json(self._config_path(workspace_id, connector_id))
         if data is None:
             return None
         return ConnectorConfig(**data)
 
-    def list_by_workspace(
-        self, workspace_id: str | None
-    ) -> list[ConnectorConfig]:
+    def list_by_workspace(self, workspace_id: str | None) -> list[ConnectorConfig]:
         """List all connector configs for a workspace (or global)."""
         configs: list[ConnectorConfig] = []
         for cid in self._load_index(workspace_id):
@@ -148,9 +144,7 @@ class ConnectorConfigStore:
             configs.extend(self.list_by_workspace(ws_id))
         return configs
 
-    def delete(
-        self, workspace_id: str | None, connector_id: str
-    ) -> bool:
+    def delete(self, workspace_id: str | None, connector_id: str) -> bool:
         """Delete a connector config. Returns True if it existed."""
         path = self._config_path(workspace_id, connector_id)
         existed = path.exists()
@@ -179,9 +173,7 @@ class ConnectorConfigStore:
     # Helpers
     # ------------------------------------------------------------------
 
-    def apply_secrets(
-        self, cfg: ConnectorConfig
-    ) -> dict[str, Any]:
+    def apply_secrets(self, cfg: ConnectorConfig) -> dict[str, Any]:
         """Resolve secret refs from environment variables into a config dict.
 
         Returns a copy of cfg.config with secret values resolved from env.

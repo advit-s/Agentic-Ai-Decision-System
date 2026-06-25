@@ -6,10 +6,8 @@ and claim-vs-evidence contradictions.
 
 from __future__ import annotations
 
-import pytest
-
-from decision_system.verification.contradictions import ContradictionDetector
 from decision_system.models import ContradictionRecord
+from decision_system.verification.contradictions import ContradictionDetector
 
 
 class TestContradictionDetector:
@@ -42,8 +40,14 @@ class TestContradictionDetector:
         """Detect contradictory compliance status."""
         detector = ContradictionDetector()
         evidence = [
-            {"id": "ev-1", "text": "Vendor X is SOC2 compliant according to the audit."},
-            {"id": "ev-2", "text": "Vendor X is not SOC2 compliant per the latest review."},
+            {
+                "id": "ev-1",
+                "text": "Vendor X is SOC2 compliant according to the audit.",
+            },
+            {
+                "id": "ev-2",
+                "text": "Vendor X is not SOC2 compliant per the latest review.",
+            },
         ]
         results = detector.scan_evidence(evidence)
         # May match via opposite_status or statement_conflict
@@ -53,7 +57,10 @@ class TestContradictionDetector:
         """Detect risk present vs absent conflict."""
         detector = ContradictionDetector()
         evidence = [
-            {"id": "ev-1", "text": "There is a significant security risk in the current infrastructure."},
+            {
+                "id": "ev-1",
+                "text": "There is a significant security risk in the current infrastructure.",
+            },
             {"id": "ev-2", "text": "There is no known security risk in the system."},
         ]
         results = detector.scan_evidence(evidence)
@@ -84,7 +91,9 @@ class TestContradictionDetector:
             evidence,
         )
         # Same value, should not contradict
-        metric_ctr = [r for r in results if r.type == "metric_conflict" or r.type == "claim_contradicted"]
+        metric_ctr = [
+            r for r in results if r.type == "metric_conflict" or r.type == "claim_contradicted"
+        ]
         assert len(metric_ctr) == 0
 
     def test_no_conflict_identical_text(self):
@@ -105,8 +114,6 @@ class TestContradictionDetector:
 
     def test_contradiction_record_fields(self):
         """ContradictionRecord has the expected fields."""
-        from decision_system.models import ContradictionRecord
-        from datetime import datetime, timezone
         record = ContradictionRecord(
             contradiction_id="ctr-1",
             source_id_a="a",

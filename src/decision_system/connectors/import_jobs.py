@@ -16,9 +16,42 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from decision_system.connectors.audit import (
+    record_duplicate_detected,
+    record_import_completed,
+    record_import_failed,
+    record_import_started,
+    record_item_imported,
+    record_job_cancel_requested,
+    record_job_cancelled,
+    record_job_paused,
+    record_job_resumed,
+    record_large_import,
+    record_version_created,
+)
+from decision_system.connectors.batch_processor import (
+    get_batch_processor,
+)
+from decision_system.connectors.config_store import get_config_store
+from decision_system.connectors.dedup import (
+    get_duplicate_detector,
+)
 from decision_system.connectors.local_files import (
     run_dry_run as _run_local_dry_run,
+)
+from decision_system.connectors.local_files import (
     run_local_files_import as _run_local_import,
+)
+from decision_system.connectors.metrics import (
+    record_cancel_count,
+    record_duplicate_count,
+    record_error,
+    record_import_duration,
+    record_items_failed,
+    record_items_found,
+    record_items_imported,
+    record_large_import_count,
+    record_resume_count,
 )
 from decision_system.connectors.models import (
     ConnectorDefinition,
@@ -27,79 +60,24 @@ from decision_system.connectors.models import (
     ConnectorImportJob,
     ConnectorImportResult,
     ConnectorRuntimeItem,
-    ConnectorType,
-)
-from decision_system.connectors.stubs import ExternalConnectorError
-from decision_system.connectors.stubs import run_stub_dry_run
-from decision_system.connectors.stubs import run_stub_import
-from decision_system.connectors.store import save_job
-from decision_system.connectors.audit import (
-    record_import_started,
-    record_import_completed,
-    record_import_failed,
-    record_item_imported,
-    record_job_cancel_requested,
-    record_job_cancelled,
-    record_job_resumed,
-    record_job_paused,
-    record_item_retry,
-    record_rate_limited,
-    record_duplicate_detected,
-    record_batch_completed,
-    record_large_import,
-    record_version_created,
-)
-from decision_system.connectors.metrics import (
-    record_import_duration,
-    record_items_found,
-    record_items_imported,
-    record_items_failed,
-    record_error,
-    record_batch_duration,
-    record_retry_count,
-    record_rate_limit_count,
-    record_cancel_count,
-    record_resume_count,
-    record_duplicate_count,
-    record_large_import_count,
-)
-from decision_system.connectors.runtime_dispatch import (
-    test_connection,
-    list_items,
-    sync,
-)
-from decision_system.connectors.config_store import get_config_store
-from decision_system.connectors.batch_processor import (
-    BatchProcessor,
-    get_batch_processor,
-    reset_batch_processor,
 )
 from decision_system.connectors.pagination import (
-    apply_pagination_params,
-    paginate_items,
     PaginatedResult,
-)
-from decision_system.connectors.retry_policy import (
-    RetryPolicy,
-    get_retry_policy,
-    reset_retry_policy,
-)
-from decision_system.connectors.rate_limiter import (
-    RateLimiter,
-    get_rate_limiter,
-    reset_rate_limiter,
-)
-from decision_system.connectors.dedup import (
-    DuplicateDetector,
-    DuplicateResult,
-    get_duplicate_detector,
-    reset_duplicate_detector,
+    apply_pagination_params,
 )
 from decision_system.connectors.provenance import (
-    ProvenanceTracker,
-    SourceVersion,
     get_provenance_tracker,
-    reset_provenance_tracker,
+)
+from decision_system.connectors.runtime_dispatch import (
+    list_items,
+    sync,
+    test_connection,
+)
+from decision_system.connectors.store import save_job
+from decision_system.connectors.stubs import (
+    ExternalConnectorError,
+    run_stub_dry_run,
+    run_stub_import,
 )
 
 
@@ -110,6 +88,8 @@ def _store_connector_job_as_artifact(job, settings) -> None:
     """
     try:
         from decision_system.config import load_settings as _load_settings
+        from decision_system.storage.export_import import init_workspace_dir
+        from decision_system.storage.migrations import run_migrations
         from decision_system.storage.models import (
             ArtifactType,
             StoredArtifact,
@@ -119,8 +99,6 @@ def _store_connector_job_as_artifact(job, settings) -> None:
             WorkspaceRepository,
         )
         from decision_system.storage.sqlite_store import DatabaseConnection
-        from decision_system.storage.export_import import init_workspace_dir
-        from decision_system.storage.migrations import run_migrations
 
         if settings is None:
             settings = _load_settings()
@@ -151,9 +129,7 @@ def _store_connector_job_as_artifact(job, settings) -> None:
                     "imported_count": job.items_imported,
                     "skipped_count": job.items_skipped,
                     "failed_count": job.items_failed,
-                    "created_at": job.created_at.isoformat()
-                    if job.created_at
-                    else None,
+                    "created_at": job.created_at.isoformat() if job.created_at else None,
                 },
                 content=json.loads(job.model_dump_json()),
             )
@@ -175,13 +151,8 @@ def validate_connector_id(
 
     definition = get_connector_definition(connector_id)
     if definition is None:
-        available = ", ".join(
-            c.connector_id for c in list_connectors()
-        )
-        raise ValueError(
-            f"Unknown connector '{connector_id}'. "
-            f"Available connectors: {available}."
-        )
+        available = ", ".join(c.connector_id for c in list_connectors())
+        raise ValueError(f"Unknown connector '{connector_id}'. Available connectors: {available}.")
     return definition
 
 
@@ -207,9 +178,7 @@ def run_dry_run(
         source_path=str(source_path),
         files=[],
         skipped_files=[],
-        warnings=[
-            f"Connector '{connector_id}' has no dry-run implementation yet."
-        ],
+        warnings=[f"Connector '{connector_id}' has no dry-run implementation yet."],
         would_import_count=0,
     )
 
@@ -310,8 +279,10 @@ def run_import_v2(
 
         # Record metrics
         record_import_duration(
-            cfg.connector_id, duration_ms,
-            items_imported=items_imported, items_failed=items_failed,
+            cfg.connector_id,
+            duration_ms,
+            items_imported=items_imported,
+            items_failed=items_failed,
         )
         record_items_found(cfg.connector_id, items_found)
         record_items_imported(cfg.connector_id, items_imported)
@@ -388,7 +359,10 @@ def run_test_connection(
     if cfg is None and config_id:
         cfg = store.load(workspace_id, config_id)
     if cfg is None:
-        return {"success": False, "message": f"Connector config not found: {connector_id}"}
+        return {
+            "success": False,
+            "message": f"Connector config not found: {connector_id}",
+        }
 
     return test_connection(cfg)
 
@@ -523,9 +497,7 @@ def run_import_v3(
 
     definition = validate_connector_id(cfg.connector_type.value)
     if definition.is_stub:
-        raise ExternalConnectorError(
-            f"Connector '{cfg.connector_type.value}' is not available."
-        )
+        raise ExternalConnectorError(f"Connector '{cfg.connector_type.value}' is not available.")
 
     job_id = str(uuid4())
     start_time = time.time()
@@ -575,8 +547,11 @@ def run_import_v3(
             job.duration_ms = (time.time() - start_time) * 1000
             save_job(job)
             record_import_completed(
-                connector_id=cfg.connector_id, items_imported=0,
-                items_skipped=0, items_failed=0, job_id=job_id,
+                connector_id=cfg.connector_id,
+                items_imported=0,
+                items_skipped=0,
+                items_failed=0,
+                job_id=job_id,
                 workspace_id=workspace_id,
             )
             return ConnectorImportResult(job=job, dry_run=False)
@@ -596,17 +571,23 @@ def run_import_v3(
             # Compute content hash
             content_bytes = content.content_bytes or (content.content_text or "").encode("utf-8")
             import hashlib
+
             content_hash = hashlib.sha256(content_bytes).hexdigest()
 
             # Check dedup
             if dedup:
                 dup_result = dedup.check_duplicate(
-                    cfg.connector_id, item.external_id, content_hash,
-                    source_url=item.source_url, workspace_id=workspace_id,
+                    cfg.connector_id,
+                    item.external_id,
+                    content_hash,
+                    source_url=item.source_url,
+                    workspace_id=workspace_id,
                 )
                 if dup_result.is_unchanged:
                     record_duplicate_detected(
-                        cfg.connector_id, item.external_id, content_hash,
+                        cfg.connector_id,
+                        item.external_id,
+                        content_hash,
                         workspace_id=workspace_id,
                     )
                     record_duplicate_count(cfg.connector_id)
@@ -619,14 +600,18 @@ def run_import_v3(
 
                 if dup_result.is_changed:
                     record_duplicate_detected(
-                        cfg.connector_id, item.external_id, content_hash,
+                        cfg.connector_id,
+                        item.external_id,
+                        content_hash,
                         workspace_id=workspace_id,
                     )
 
             # Record import in dedup store
             if dedup:
                 dedup.record_import(
-                    cfg.connector_id, item.external_id, content_hash,
+                    cfg.connector_id,
+                    item.external_id,
+                    content_hash,
                     source_id=content.external_id,
                     source_url=item.source_url,
                     workspace_id=workspace_id,
@@ -637,14 +622,19 @@ def run_import_v3(
                 source_url = item.source_url or ""
                 modified_at = item.modified_at.isoformat() if item.modified_at else None
                 version = provenance.create_version(
-                    cfg.connector_id, item.external_id, content_hash,
-                    job_id=job_id, source_url=source_url,
+                    cfg.connector_id,
+                    item.external_id,
+                    content_hash,
+                    job_id=job_id,
+                    source_url=source_url,
                     label=item.title,
                     external_modified_at=modified_at,
                     workspace_id=workspace_id,
                 )
                 record_version_created(
-                    cfg.connector_id, item.external_id, version.version_number,
+                    cfg.connector_id,
+                    item.external_id,
+                    version.version_number,
                     workspace_id=workspace_id,
                 )
                 if content.metadata is None:
@@ -656,7 +646,9 @@ def run_import_v3(
 
         # Run batch processing
         job = processor.process_items(
-            job, items, fetch_item_fn,
+            job,
+            items,
+            fetch_item_fn,
             progress_callback=lambda j: _store_connector_job_as_artifact(j, None),
         )
 
@@ -672,9 +664,12 @@ def run_import_v3(
 
         # Metrics
         duration_ms = job.duration_ms or ((time.time() - start_time) * 1000)
-        record_import_duration(cfg.connector_id, duration_ms,
-                               items_imported=job.items_imported,
-                               items_failed=job.items_failed)
+        record_import_duration(
+            cfg.connector_id,
+            duration_ms,
+            items_imported=job.items_imported,
+            items_failed=job.items_failed,
+        )
         record_items_found(cfg.connector_id, job.total_items)
         record_items_imported(cfg.connector_id, job.items_imported)
         if job.items_failed:
@@ -727,13 +722,17 @@ def request_cancel_job(job_id: str) -> dict[str, Any]:
         return {"success": False, "message": f"Job not found: {job_id}"}
 
     if job.status not in ("running", "queued"):
-        return {"success": False, "message": f"Job {job_id} is not running (status={job.status})"}
+        return {
+            "success": False,
+            "message": f"Job {job_id} is not running (status={job.status})",
+        }
 
     processor = get_batch_processor()
     processor.request_cancel(job)
 
     record_job_cancel_requested(
-        job_id=job_id, connector_id=job.connector_id,
+        job_id=job_id,
+        connector_id=job.connector_id,
         workspace_id=job.workspace_id,
     )
     record_cancel_count(job.connector_id)
@@ -754,7 +753,8 @@ def confirm_cancel_job(job_id: str) -> dict[str, Any]:
     save_job(job)
 
     record_job_cancelled(
-        job_id=job_id, connector_id=job.connector_id,
+        job_id=job_id,
+        connector_id=job.connector_id,
         workspace_id=job.workspace_id,
     )
 
@@ -763,34 +763,42 @@ def confirm_cancel_job(job_id: str) -> dict[str, Any]:
 
 def resume_job(job_id: str) -> dict[str, Any]:
     """Resume a failed, paused, or cancelled job."""
-    from decision_system.connectors.store import get_job
     from decision_system.connectors.runtime_dispatch import list_items as rt_list_items
+    from decision_system.connectors.store import get_job
 
     job = get_job(job_id)
     if job is None:
         return {"success": False, "message": f"Job not found: {job_id}"}
 
     if job.status not in ("failed", "paused", "cancelled"):
-        return {"success": False, "message": f"Job {job_id} is not in a resumable state (status={job.status})"}
+        return {
+            "success": False,
+            "message": f"Job {job_id} is not in a resumable state (status={job.status})",
+        }
 
     # Get connector config
     store = get_config_store()
     cfg = store.load(job.workspace_id, job.connector_id)
     if cfg is None:
-        return {"success": False, "message": f"Connector config not found: {job.connector_id}"}
+        return {
+            "success": False,
+            "message": f"Connector config not found: {job.connector_id}",
+        }
 
     # Get items
     items = rt_list_items(cfg)
     processor = get_batch_processor()
 
     record_job_resumed(
-        job_id=job_id, connector_id=job.connector_id,
+        job_id=job_id,
+        connector_id=job.connector_id,
         workspace_id=job.workspace_id,
     )
     record_resume_count(job.connector_id)
 
     def fetch_item_fn(item: ConnectorRuntimeItem) -> ConnectorFetchedContent | None:
         from decision_system.connectors.runtime_dispatch import fetch_item
+
         return fetch_item(cfg, item)
 
     try:
@@ -813,13 +821,17 @@ def pause_job(job_id: str) -> dict[str, Any]:
         return {"success": False, "message": f"Job not found: {job_id}"}
 
     if job.status != "running":
-        return {"success": False, "message": f"Job {job_id} is not running (status={job.status})"}
+        return {
+            "success": False,
+            "message": f"Job {job_id} is not running (status={job.status})",
+        }
 
     job.status = "paused"
     save_job(job)
 
     record_job_paused(
-        job_id=job_id, connector_id=job.connector_id,
+        job_id=job_id,
+        connector_id=job.connector_id,
         workspace_id=job.workspace_id,
     )
 

@@ -20,8 +20,8 @@ from typing import Optional
 
 from decision_system.workflow_engine.engine.executor import DAGEngine
 from decision_system.workflow_engine.scheduler.models import (
-    TriggerType,
     ScheduleDefinition,
+    TriggerType,
 )
 from decision_system.workflow_engine.scheduler.store import ScheduleStore
 from decision_system.workflow_engine.scheduler.triggers import (

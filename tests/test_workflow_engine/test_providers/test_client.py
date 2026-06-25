@@ -22,6 +22,7 @@ pytestmark = pytest.mark.asyncio
 
 # ── Helpers ───────────────────────────────────────────────────────────
 
+
 def _sse_stream(*chunks: str) -> str:
     """Build SSE response body from content strings."""
     lines = [
@@ -43,6 +44,7 @@ def _sse_stream(*chunks: str) -> str:
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def openai_config() -> ProviderConfig:
@@ -68,17 +70,24 @@ SIMPLE_RESPONSE = {
     "id": "chatcmpl-1",
     "object": "chat.completion",
     "choices": [
-        {"index": 0, "message": {"role": "assistant", "content": "Hello, world!"}, "finish_reason": "stop"}
+        {
+            "index": 0,
+            "message": {"role": "assistant", "content": "Hello, world!"},
+            "finish_reason": "stop",
+        }
     ],
 }
 
 
 # ── Basic Request Tests ───────────────────────────────────────────────
 
+
 class TestLLMClientBasic:
     """Core request/response handling."""
 
-    async def test_chat_completion_basic(self, httpx_mock: HTTPXMock, openai_config: ProviderConfig):
+    async def test_chat_completion_basic(
+        self, httpx_mock: HTTPXMock, openai_config: ProviderConfig
+    ):
         """Sends correct request body, returns response."""
         os.environ["TEST_OPENAI_KEY"] = "sk-test123"
         try:
@@ -213,9 +222,7 @@ class TestLLMClientBasic:
                 json=SIMPLE_RESPONSE,
             )
             client = LLMClient(openai_config)
-            await client.chat_completion(
-                messages=[{"role": "user", "content": "hi"}], stream=False
-            )
+            await client.chat_completion(messages=[{"role": "user", "content": "hi"}], stream=False)
             request = httpx_mock.get_request()
             assert request is not None
             assert request.headers["Content-Type"] == "application/json"
@@ -225,10 +232,13 @@ class TestLLMClientBasic:
 
 # ── Streaming Tests ───────────────────────────────────────────────────
 
+
 class TestLLMClientStreaming:
     """Streaming response handling."""
 
-    async def test_streaming_calls_on_token(self, httpx_mock: HTTPXMock, openai_config: ProviderConfig):
+    async def test_streaming_calls_on_token(
+        self, httpx_mock: HTTPXMock, openai_config: ProviderConfig
+    ):
         """on_token callback is called for each content chunk."""
         os.environ["TEST_OPENAI_KEY"] = "sk-stream"
         try:
@@ -250,7 +260,9 @@ class TestLLMClientStreaming:
         finally:
             os.environ.pop("TEST_OPENAI_KEY", None)
 
-    async def test_streaming_without_on_token(self, httpx_mock: HTTPXMock, openai_config: ProviderConfig):
+    async def test_streaming_without_on_token(
+        self, httpx_mock: HTTPXMock, openai_config: ProviderConfig
+    ):
         """stream=True without on_token still returns full text."""
         os.environ["TEST_OPENAI_KEY"] = "sk-stream2"
         try:
@@ -296,6 +308,7 @@ class TestLLMClientStreaming:
 
 # ── Error Tests ───────────────────────────────────────────────────────
 
+
 class TestLLMClientErrors:
     """Error handling and mapping."""
 
@@ -307,7 +320,12 @@ class TestLLMClientErrors:
                 url="https://api.openai.com/v1/chat/completions",
                 method="POST",
                 status_code=401,
-                json={"error": {"message": "Incorrect API key", "type": "authentication_error"}},
+                json={
+                    "error": {
+                        "message": "Incorrect API key",
+                        "type": "authentication_error",
+                    }
+                },
             )
             client = LLMClient(openai_config)
             with pytest.raises(AuthenticationError) as exc:
@@ -324,7 +342,12 @@ class TestLLMClientErrors:
                 url="https://api.openai.com/v1/chat/completions",
                 method="POST",
                 status_code=429,
-                json={"error": {"message": "Rate limit exceeded", "type": "rate_limit_error"}},
+                json={
+                    "error": {
+                        "message": "Rate limit exceeded",
+                        "type": "rate_limit_error",
+                    }
+                },
             )
             client = LLMClient(openai_config)
             with pytest.raises(RateLimitError) as exc:
@@ -341,7 +364,12 @@ class TestLLMClientErrors:
                 url="https://api.openai.com/v1/chat/completions",
                 method="POST",
                 status_code=404,
-                json={"error": {"message": "The model `gpt-4o` does not exist", "type": "invalid_request_error"}},
+                json={
+                    "error": {
+                        "message": "The model `gpt-4o` does not exist",
+                        "type": "invalid_request_error",
+                    }
+                },
             )
             client = LLMClient(openai_config)
             with pytest.raises(ModelNotFoundError) as exc:
@@ -358,7 +386,12 @@ class TestLLMClientErrors:
                 url="https://api.openai.com/v1/chat/completions",
                 method="POST",
                 status_code=500,
-                json={"error": {"message": "Internal server error", "type": "server_error"}},
+                json={
+                    "error": {
+                        "message": "Internal server error",
+                        "type": "server_error",
+                    }
+                },
             )
             client = LLMClient(openai_config)
             with pytest.raises(ProviderError) as exc:

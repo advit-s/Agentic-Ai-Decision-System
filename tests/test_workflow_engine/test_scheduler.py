@@ -15,8 +15,8 @@ from decision_system.workflow_engine.scheduler.models import (
     TriggerType,
 )
 
-
 # ─── Test ScheduleDefinition ─────────────────────────────────────────────────
+
 
 class TestScheduleDefinition:
     def test_minimal_schedule(self):
@@ -99,10 +99,12 @@ class TestScheduleDefinition:
 
 # ─── Test ScheduleStore ──────────────────────────────────────────────────────
 
+
 class TestScheduleStore:
     @pytest.fixture
     def store(self):
         from decision_system.workflow_engine.scheduler.store import ScheduleStore
+
         with tempfile.TemporaryDirectory() as tmp:
             yield ScheduleStore(Path(tmp))
 
@@ -141,12 +143,18 @@ class TestScheduleStore:
         assert len(wf2_schedules) == 1
 
     def test_list_by_trigger_type(self, store):
-        store.save(ScheduleDefinition(
-            workflow_id="wf-1", trigger_type=TriggerType.CRON,
-        ))
-        store.save(ScheduleDefinition(
-            workflow_id="wf-2", trigger_type=TriggerType.WEBHOOK,
-        ))
+        store.save(
+            ScheduleDefinition(
+                workflow_id="wf-1",
+                trigger_type=TriggerType.CRON,
+            )
+        )
+        store.save(
+            ScheduleDefinition(
+                workflow_id="wf-2",
+                trigger_type=TriggerType.WEBHOOK,
+            )
+        )
         cron_schedules = store.list(trigger_type=TriggerType.CRON)
         assert len(cron_schedules) == 1
         assert cron_schedules[0].trigger_type == TriggerType.CRON
@@ -187,13 +195,16 @@ class TestScheduleStore:
 
     def test_persists_to_disk(self, store):
         """Verify data survives between store instances (JSON file)."""
-        sd = store.save(ScheduleDefinition(
-            workflow_id="wf-123",
-            trigger_type=TriggerType.CRON,
-            trigger_config={"expression": "*/5 * * * *"},
-        ))
+        sd = store.save(
+            ScheduleDefinition(
+                workflow_id="wf-123",
+                trigger_type=TriggerType.CRON,
+                trigger_config={"expression": "*/5 * * * *"},
+            )
+        )
         # Create a new store instance pointing to same directory
         from decision_system.workflow_engine.scheduler.store import ScheduleStore
+
         store2 = ScheduleStore(store._dir)
         loaded = store2.load(sd.id)
         assert loaded is not None
@@ -217,19 +228,23 @@ class TestScheduleStore:
 
 # ─── Test Trigger Evaluators ─────────────────────────────────────────────────
 
+
 class TestCronEvaluator:
     def test_every_minute_matches(self):
         from decision_system.workflow_engine.scheduler.triggers import evaluate_cron
+
         assert evaluate_cron("* * * * *") is True
 
     def test_nonexpression_does_not_match(self):
         from decision_system.workflow_engine.scheduler.triggers import evaluate_cron
+
         # This should not match at the current hour if not midnight
         result = evaluate_cron("0 3 * * *")  # 3:00 AM — unlikely current time
         assert result is False
 
     def test_already_fired_recently(self):
         from decision_system.workflow_engine.scheduler.triggers import evaluate_cron
+
         now = datetime.now(timezone.utc)
         # If last_fired is within the last 60 seconds, should not fire
         result = evaluate_cron("* * * * *", last_fired=now)
@@ -237,16 +252,19 @@ class TestCronEvaluator:
 
     def test_fires_after_interval(self):
         from decision_system.workflow_engine.scheduler.triggers import evaluate_cron
+
         old = datetime(2020, 1, 1, tzinfo=timezone.utc)
         result = evaluate_cron("* * * * *", last_fired=old)
         assert result is True
 
     def test_invalid_expression_returns_false(self):
         from decision_system.workflow_engine.scheduler.triggers import evaluate_cron
+
         assert evaluate_cron("invalid") is False
 
     def test_wildcard_day_of_week(self):
         from decision_system.workflow_engine.scheduler.triggers import evaluate_cron
+
         # * for day of week = any day, should still work
         result = evaluate_cron("* * * * *")
         assert result is True
@@ -254,37 +272,52 @@ class TestCronEvaluator:
 
 class TestWebhookEvaluator:
     def test_validate_path_match(self):
-        from decision_system.workflow_engine.scheduler.triggers import validate_webhook_path
+        from decision_system.workflow_engine.scheduler.triggers import (
+            validate_webhook_path,
+        )
+
         assert validate_webhook_path("/hooks/my-webhook", "/hooks/my-webhook") is True
 
     def test_validate_path_no_match(self):
-        from decision_system.workflow_engine.scheduler.triggers import validate_webhook_path
+        from decision_system.workflow_engine.scheduler.triggers import (
+            validate_webhook_path,
+        )
+
         assert validate_webhook_path("/hooks/wrong", "/hooks/my-webhook") is False
 
     def test_validate_path_with_trailing_slash(self):
-        from decision_system.workflow_engine.scheduler.triggers import validate_webhook_path
+        from decision_system.workflow_engine.scheduler.triggers import (
+            validate_webhook_path,
+        )
+
         assert validate_webhook_path("/hooks/my-webhook/", "/hooks/my-webhook") is True
 
     def test_validate_path_empty(self):
-        from decision_system.workflow_engine.scheduler.triggers import validate_webhook_path
+        from decision_system.workflow_engine.scheduler.triggers import (
+            validate_webhook_path,
+        )
+
         assert validate_webhook_path("", "/hooks/my-webhook") is False
 
 
 class TestFileWatchEvaluator:
     def test_scan_nonexistent_dir(self):
         from decision_system.workflow_engine.scheduler.triggers import scan_directory
+
         current, new = scan_directory("/nonexistent/path", "*")
         assert current == set()
         assert new == []
 
     def test_scan_empty_dir(self, tmp_path):
         from decision_system.workflow_engine.scheduler.triggers import scan_directory
+
         current, new = scan_directory(str(tmp_path), "*")
         assert current == set()
         assert new == []
 
     def test_scan_new_file_detected(self, tmp_path):
         from decision_system.workflow_engine.scheduler.triggers import scan_directory
+
         # First scan: empty
         known, new = scan_directory(str(tmp_path), "*")
         assert known == set()
@@ -300,6 +333,7 @@ class TestFileWatchEvaluator:
 
     def test_pattern_filter(self, tmp_path):
         from decision_system.workflow_engine.scheduler.triggers import scan_directory
+
         (tmp_path / "data.csv").write_text("a,b,c")
         (tmp_path / "notes.md").write_text("# Hello")
 
@@ -309,6 +343,7 @@ class TestFileWatchEvaluator:
 
     def test_no_duplicate_detection(self, tmp_path):
         from decision_system.workflow_engine.scheduler.triggers import scan_directory
+
         (tmp_path / "test.md").write_text("hello")
         known, new = scan_directory(str(tmp_path), "*")
         # Second scan with known files
@@ -317,6 +352,7 @@ class TestFileWatchEvaluator:
 
     def test_pattern_filter_no_match(self, tmp_path):
         from decision_system.workflow_engine.scheduler.triggers import scan_directory
+
         (tmp_path / "data.bin").write_text("binary")
         current, new = scan_directory(str(tmp_path), "*.csv")
         assert current == set()
@@ -324,6 +360,7 @@ class TestFileWatchEvaluator:
 
     def test_multiple_new_files(self, tmp_path):
         from decision_system.workflow_engine.scheduler.triggers import scan_directory
+
         known, _ = scan_directory(str(tmp_path), "*")
 
         (tmp_path / "a.md").write_text("a")
@@ -337,17 +374,20 @@ class TestFileWatchEvaluator:
 
 # ─── Test SchedulerService ────────────────────────────────────────────────────
 
+
 class TestSchedulerService:
     @pytest.fixture
     def scheduler(self):
+        import tempfile
+
+        from decision_system.workflow_engine.engine.executor import DAGEngine
+        from decision_system.workflow_engine.nodes import create_default_registry
         from decision_system.workflow_engine.scheduler.scheduler import SchedulerService
         from decision_system.workflow_engine.scheduler.store import ScheduleStore
-        from decision_system.workflow_engine.nodes import create_default_registry
         from decision_system.workflow_engine.stores.json_store import (
-            JSONWorkflowStore, JSONExecutionStore,
+            JSONExecutionStore,
+            JSONWorkflowStore,
         )
-        from decision_system.workflow_engine.engine.executor import DAGEngine
-        import tempfile
 
         tmp = tempfile.mkdtemp()
         store_dir = Path(tmp)
@@ -378,7 +418,11 @@ class TestSchedulerService:
         svc, sstore, engine, wf_store, exec_store = scheduler
 
         # Create a workflow
-        from decision_system.workflow_engine.models import WorkflowDefinition, NodeConfig
+        from decision_system.workflow_engine.models import (
+            NodeConfig,
+            WorkflowDefinition,
+        )
+
         wf = WorkflowDefinition(
             name="Test WF",
             nodes=[NodeConfig(id="n1", type="decision_system.trigger_manual")],
@@ -386,12 +430,14 @@ class TestSchedulerService:
         wf_store.save(wf)
 
         # Create a DISABLED schedule
-        sstore.save(ScheduleDefinition(
-            workflow_id=wf.id,
-            trigger_type=TriggerType.CRON,
-            trigger_config={"expression": "* * * * *"},
-            enabled=False,
-        ))
+        sstore.save(
+            ScheduleDefinition(
+                workflow_id=wf.id,
+                trigger_type=TriggerType.CRON,
+                trigger_config={"expression": "* * * * *"},
+                enabled=False,
+            )
+        )
 
         await svc._check_schedules()
         # No workflows should be executed
@@ -402,7 +448,11 @@ class TestSchedulerService:
     async def test_fires_matching_schedule(self, scheduler):
         svc, sstore, engine, wf_store, exec_store = scheduler
 
-        from decision_system.workflow_engine.models import WorkflowDefinition, NodeConfig
+        from decision_system.workflow_engine.models import (
+            NodeConfig,
+            WorkflowDefinition,
+        )
+
         wf = WorkflowDefinition(
             name="Test WF",
             nodes=[NodeConfig(id="n1", type="decision_system.trigger_manual")],
@@ -410,12 +460,14 @@ class TestSchedulerService:
         wf_store.save(wf)
 
         # Create an enabled cron schedule that matches every minute
-        sstore.save(ScheduleDefinition(
-            workflow_id=wf.id,
-            trigger_type=TriggerType.CRON,
-            trigger_config={"expression": "* * * * *"},
-            enabled=True,
-        ))
+        sstore.save(
+            ScheduleDefinition(
+                workflow_id=wf.id,
+                trigger_type=TriggerType.CRON,
+                trigger_config={"expression": "* * * * *"},
+                enabled=True,
+            )
+        )
 
         await svc._check_schedules()
         # Should have fired the workflow
@@ -426,18 +478,24 @@ class TestSchedulerService:
     async def test_last_fired_updated(self, scheduler):
         svc, sstore, engine, wf_store, _ = scheduler
 
-        from decision_system.workflow_engine.models import WorkflowDefinition, NodeConfig
+        from decision_system.workflow_engine.models import (
+            NodeConfig,
+            WorkflowDefinition,
+        )
+
         wf = WorkflowDefinition(
             name="Test WF",
             nodes=[NodeConfig(id="n1", type="decision_system.trigger_manual")],
         )
         wf_store.save(wf)
 
-        sd = sstore.save(ScheduleDefinition(
-            workflow_id=wf.id,
-            trigger_type=TriggerType.CRON,
-            trigger_config={"expression": "* * * * *"},
-        ))
+        sd = sstore.save(
+            ScheduleDefinition(
+                workflow_id=wf.id,
+                trigger_type=TriggerType.CRON,
+                trigger_config={"expression": "* * * * *"},
+            )
+        )
 
         await svc._check_schedules()
         loaded = sstore.load(sd.id)
@@ -456,23 +514,34 @@ class TestSchedulerService:
     async def test_multiple_schedules_same_workflow(self, scheduler):
         svc, sstore, engine, wf_store, exec_store = scheduler
 
-        from decision_system.workflow_engine.models import WorkflowDefinition, NodeConfig
+        from decision_system.workflow_engine.models import (
+            NodeConfig,
+            WorkflowDefinition,
+        )
+
         wf = WorkflowDefinition(
             name="Test WF",
             nodes=[NodeConfig(id="n1", type="decision_system.trigger_manual")],
         )
         wf_store.save(wf)
 
-        sstore.save(ScheduleDefinition(
-            workflow_id=wf.id,
-            trigger_type=TriggerType.CRON,
-            trigger_config={"expression": "* * * * *"},
-        ))
-        sstore.save(ScheduleDefinition(
-            workflow_id=wf.id,
-            trigger_type=TriggerType.FILE_WATCH,
-            trigger_config={"directory": str(Path(tempfile.mkdtemp())), "pattern": "*"},
-        ))
+        sstore.save(
+            ScheduleDefinition(
+                workflow_id=wf.id,
+                trigger_type=TriggerType.CRON,
+                trigger_config={"expression": "* * * * *"},
+            )
+        )
+        sstore.save(
+            ScheduleDefinition(
+                workflow_id=wf.id,
+                trigger_type=TriggerType.FILE_WATCH,
+                trigger_config={
+                    "directory": str(Path(tempfile.mkdtemp())),
+                    "pattern": "*",
+                },
+            )
+        )
 
         await svc._check_schedules()
         # At least the cron one should fire

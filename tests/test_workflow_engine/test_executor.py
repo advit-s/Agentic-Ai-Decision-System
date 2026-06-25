@@ -1,26 +1,30 @@
 """Tests for the DAG execution engine."""
 
 import asyncio
-from pathlib import Path
-from datetime import datetime, timezone
 import tempfile
+from pathlib import Path
 
 import pytest
 
-from decision_system.workflow_engine.models import (
-    WorkflowNode, WorkflowDefinition, NodeConfig, Connection,
-    ExecutionContext, ErrorPolicy, RetryConfig, NodeExecutionState,
-)
 from decision_system.workflow_engine.engine.executor import DAGEngine
-from decision_system.workflow_engine.engine.dag import DAGError
+from decision_system.workflow_engine.models import (
+    Connection,
+    ErrorPolicy,
+    ExecutionContext,
+    NodeConfig,
+    WorkflowDefinition,
+    WorkflowNode,
+)
 from decision_system.workflow_engine.nodes.registry import NodeRegistry
 from decision_system.workflow_engine.stores.json_store import (
-    JSONWorkflowStore, JSONExecutionStore,
+    JSONExecutionStore,
+    JSONWorkflowStore,
 )
 
 
 class AddOneNode(WorkflowNode):
     """Adds 1 to the input value."""
+
     type: str = "test.add_one"
     label: str = "Add One"
 
@@ -29,10 +33,13 @@ class AddOneNode(WorkflowNode):
         return {"value": value + 1}
 
     @classmethod
-    def get_config_schema(cls) -> dict: return {"type": "object", "properties": {}}
+    def get_config_schema(cls) -> dict:
+        return {"type": "object", "properties": {}}
+
     @classmethod
     def get_input_schema(cls) -> dict:
         return {"type": "object", "properties": {"value": {"type": "number"}}}
+
     @classmethod
     def get_output_schema(cls) -> dict:
         return {"type": "object", "properties": {"value": {"type": "number"}}}
@@ -40,6 +47,7 @@ class AddOneNode(WorkflowNode):
 
 class MultiplyNode(WorkflowNode):
     """Multiplies the input value."""
+
     type: str = "test.multiply"
     label: str = "Multiply"
 
@@ -51,9 +59,11 @@ class MultiplyNode(WorkflowNode):
     @classmethod
     def get_config_schema(cls) -> dict:
         return {"type": "object", "properties": {"factor": {"type": "number"}}}
+
     @classmethod
     def get_input_schema(cls) -> dict:
         return {"type": "object", "properties": {"value": {"type": "number"}}}
+
     @classmethod
     def get_output_schema(cls) -> dict:
         return {"type": "object", "properties": {"value": {"type": "number"}}}
@@ -61,6 +71,7 @@ class MultiplyNode(WorkflowNode):
 
 class FailingNode(WorkflowNode):
     """Always fails."""
+
     type: str = "test.fail"
     label: str = "Failing"
 
@@ -68,11 +79,16 @@ class FailingNode(WorkflowNode):
         raise ValueError("This node always fails")
 
     @classmethod
-    def get_config_schema(cls) -> dict: return {"type": "object", "properties": {}}
+    def get_config_schema(cls) -> dict:
+        return {"type": "object", "properties": {}}
+
     @classmethod
-    def get_input_schema(cls) -> dict: return {"type": "object", "properties": {}}
+    def get_input_schema(cls) -> dict:
+        return {"type": "object", "properties": {}}
+
     @classmethod
-    def get_output_schema(cls) -> dict: return {"type": "object", "properties": {}}
+    def get_output_schema(cls) -> dict:
+        return {"type": "object", "properties": {}}
 
 
 class TestDAGEngine:
@@ -163,10 +179,14 @@ class TestDAGEngine:
         """A node with SKIP policy should be marked skipped, not fail the workflow."""
         wf = WorkflowDefinition(
             name="skip",
-            nodes=[NodeConfig(
-                id="n1", type="test.fail", config={},
-                error_policy=ErrorPolicy.SKIP,
-            )],
+            nodes=[
+                NodeConfig(
+                    id="n1",
+                    type="test.fail",
+                    config={},
+                    error_policy=ErrorPolicy.SKIP,
+                )
+            ],
         )
         state = asyncio.run(engine.execute(wf))
         assert state.status == "completed"
@@ -197,6 +217,7 @@ class TestDAGEngine:
 
 
 # ─── Schedule-Aware Execution Tests ──────────────────────────────────────────
+
 
 class TestScheduleAwareExecution:
     """DAGEngine passes schedule_id through to node ExecutionContext."""
@@ -237,12 +258,17 @@ class TestScheduleAwareExecution:
             @classmethod
             def get_config_schema(cls) -> dict:
                 return {"type": "object", "properties": {}}
+
             @classmethod
             def get_input_schema(cls) -> dict:
                 return {"type": "object", "properties": {}}
+
             @classmethod
             def get_output_schema(cls) -> dict:
-                return {"type": "object", "properties": {"captured": {"type": "boolean"}}}
+                return {
+                    "type": "object",
+                    "properties": {"captured": {"type": "boolean"}},
+                }
 
         engine.registry.register(CaptureScheduleNode)
 
@@ -268,12 +294,17 @@ class TestScheduleAwareExecution:
             @classmethod
             def get_config_schema(cls) -> dict:
                 return {"type": "object", "properties": {}}
+
             @classmethod
             def get_input_schema(cls) -> dict:
                 return {"type": "object", "properties": {}}
+
             @classmethod
             def get_output_schema(cls) -> dict:
-                return {"type": "object", "properties": {"captured": {"type": "boolean"}}}
+                return {
+                    "type": "object",
+                    "properties": {"captured": {"type": "boolean"}},
+                }
 
         engine.registry.register(CaptureScheduleNode)
 

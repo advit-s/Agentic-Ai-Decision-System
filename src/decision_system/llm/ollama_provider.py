@@ -15,7 +15,6 @@ from typing import Any, TypeVar
 from pydantic import BaseModel
 
 from decision_system.config import Settings
-from decision_system.models import AgentMemo, Claim, DecisionReport, EvidenceChunk
 from decision_system.llm.structured_io import (
     ClaimsEnvelope,
     claim_prompt,
@@ -24,6 +23,7 @@ from decision_system.llm.structured_io import (
     system_prompt,
     technical_prompt,
 )
+from decision_system.models import AgentMemo, Claim, DecisionReport, EvidenceChunk
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -41,9 +41,7 @@ class OllamaProvider:
         if not settings.ollama_base_url:
             raise ValueError("OLLAMA_BASE_URL is required when DECISION_PROVIDER=ollama.")
         if not settings.ollama_base_url.startswith(("http://", "https://")):
-            raise ValueError(
-                "OLLAMA_BASE_URL must start with http:// or https://."
-            )
+            raise ValueError("OLLAMA_BASE_URL must start with http:// or https://.")
         self.settings = settings
         self._client = client  # optional injected client for testing
 
@@ -98,8 +96,7 @@ class OllamaProvider:
                 response_text = body.get("message", {}).get("content", "")
         except urllib.error.URLError as exc:
             raise ConnectionError(
-                f"Cannot reach Ollama at {base}. "
-                "Start Ollama locally: ollama serve"
+                f"Cannot reach Ollama at {base}. Start Ollama locally: ollama serve"
             ) from exc
 
         return _parse_response(schema_name, schema_model, response_text)
@@ -108,9 +105,7 @@ class OllamaProvider:
     # Provider interface
     # ------------------------------------------------------------------
 
-    def technical_memo(
-        self, question: str, evidence: list[EvidenceChunk]
-    ) -> AgentMemo:
+    def technical_memo(self, question: str, evidence: list[EvidenceChunk]) -> AgentMemo:
         """Create a structured technical memo from Ollama output."""
         return self._chat(
             schema_name="AgentMemo",
@@ -131,9 +126,7 @@ class OllamaProvider:
             user_prompt=risk_prompt(question, evidence, technical_memo),
         )
 
-    def extract_claims(
-        self, run_id: str, memos: list[AgentMemo]
-    ) -> list[Claim]:
+    def extract_claims(self, run_id: str, memos: list[AgentMemo]) -> list[Claim]:
         """Convert structured memos into claim-ledger records using Ollama."""
         envelope = self._chat(
             schema_name="ClaimsEnvelope",
@@ -149,9 +142,7 @@ class OllamaProvider:
         evidence: list[EvidenceChunk],
     ) -> DecisionReport:
         """Provider-side reports are not used; local renderer owns reports."""
-        raise NotImplementedError(
-            "OllamaProvider report writing is handled by the local renderer."
-        )
+        raise NotImplementedError("OllamaProvider report writing is handled by the local renderer.")
 
 
 def _parse_response(

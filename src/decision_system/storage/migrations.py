@@ -2,6 +2,7 @@
 Tables are created with ``IF NOT EXISTS`` and are never dropped automatically.
 Calling ``run_migrations`` on an existing database is a no-op for already-created tables.
 """
+
 from __future__ import annotations
 
 MIGRATIONS: list[str] = [

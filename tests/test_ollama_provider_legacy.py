@@ -3,22 +3,20 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from decision_system.config import Settings
 from decision_system.llm.factory import get_provider
-from decision_system.llm.ollama_provider import ClaimsEnvelope, OllamaProvider, _parse_response
-from decision_system.models import AgentMemo, Claim, EvidenceChunk
-
+from decision_system.llm.ollama_provider import OllamaProvider, _parse_response
+from decision_system.models import AgentMemo, EvidenceChunk
 
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------
+
 
 @pytest.fixture()
 def settings():
@@ -62,6 +60,7 @@ def evidence():
 # Agent memo payload helpers
 # ------------------------------------------------------------------
 
+
 def _memo_payload(**overrides):
     base = {
         "agent_name": "technical_analyst",
@@ -77,27 +76,30 @@ def _memo_payload(**overrides):
 
 
 def _claims_payload():
-    return json.dumps({
-        "claims": [
-            {
-                "claim_id": "claim-0001",
-                "run_id": "run-1",
-                "source_agent": "technical_analyst",
-                "claim_text": "Billing migration requires rollback planning.",
-                "claim_type": "technical",
-                "status": "pending",
-                "evidence_ids": ["e1"],
-                "contradicting_evidence_ids": [],
-                "confidence": "low",
-                "verification_notes": "",
-            }
-        ]
-    })
+    return json.dumps(
+        {
+            "claims": [
+                {
+                    "claim_id": "claim-0001",
+                    "run_id": "run-1",
+                    "source_agent": "technical_analyst",
+                    "claim_text": "Billing migration requires rollback planning.",
+                    "claim_type": "technical",
+                    "status": "pending",
+                    "evidence_ids": ["e1"],
+                    "contradicting_evidence_ids": [],
+                    "confidence": "low",
+                    "verification_notes": "",
+                }
+            ]
+        }
+    )
 
 
 # ------------------------------------------------------------------
 # _parse_response helper tests
 # ------------------------------------------------------------------
+
 
 class TestParseResponse:
     def test_valid_json(self):
@@ -117,6 +119,7 @@ class TestParseResponse:
 # ------------------------------------------------------------------
 # Missing model config
 # ------------------------------------------------------------------
+
 
 class TestMissingModel:
     def test_missing_model_raises(self):
@@ -147,6 +150,7 @@ class TestMissingModel:
 # Mocked client tests
 # ------------------------------------------------------------------
 
+
 class TestMockedClient:
     """Use an injected client to avoid any HTTP calls."""
 
@@ -173,7 +177,9 @@ class TestMockedClient:
             options=[],
             cited_evidence_ids=[],
         )
-        provider = self._make_provider(settings, {"AgentMemo": _memo_payload(agent_name="risk_analyst")})
+        provider = self._make_provider(
+            settings, {"AgentMemo": _memo_payload(agent_name="risk_analyst")}
+        )
         risk = provider.risk_memo("Should we migrate billing?", evidence, tech)
         assert isinstance(risk, AgentMemo)
         assert risk.agent_name == "risk_analyst"
@@ -182,7 +188,12 @@ class TestMockedClient:
         provider = self._make_provider(settings, {"ClaimsEnvelope": _claims_payload()})
         tech = AgentMemo(
             agent_name="technical_analyst",
-            question="Q?", summary="s", claims=[], risks=[], options=[], cited_evidence_ids=[],
+            question="Q?",
+            summary="s",
+            claims=[],
+            risks=[],
+            options=[],
+            cited_evidence_ids=[],
         )
         claims = provider.extract_claims("run-1", [tech])
         assert len(claims) == 1
@@ -222,12 +233,16 @@ class _MockOllamaClient:
         for key in ["ClaimsEnvelope", "AgentMemo"]:
             if key in content and key in self._response_map:
                 return self._response_map[key]
-        return self._response_map.get("default", '{"agent_name":"technical_analyst","question":"Q?","summary":"s","claims":[],"risks":[],"options":[],"cited_evidence_ids":[]}')
+        return self._response_map.get(
+            "default",
+            '{"agent_name":"technical_analyst","question":"Q?","summary":"s","claims":[],"risks":[],"options":[],"cited_evidence_ids":[]}',
+        )
 
 
 # ------------------------------------------------------------------
 # Connection error test (no mock - tests the error path)
 # ------------------------------------------------------------------
+
 
 class TestConnectionError:
     def test_urlerror_message(self, settings):
@@ -243,6 +258,7 @@ class TestConnectionError:
 # ------------------------------------------------------------------
 # Provider factory tests (supplementing existing test_provider_factory.py)
 # ------------------------------------------------------------------
+
 
 def _ollama_settings(model: str = "llama3.1:8b", provider: str = "ollama"):
     return Settings(

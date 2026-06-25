@@ -4,22 +4,20 @@ Provides prompt templates, structured output parsing, and the synthesis
 service that ties provider calls, prompts, and parsing together.
 """
 
-from decision_system.synthesis.prompts import (
-    get_template,
-    SynthesisMode,
-    TEMPLATE_VERSION,
-)
-
 from decision_system.synthesis.parser import (
-    parse_synthesis_output,
     DraftClaim,
     ParsedSynthesis,
+    parse_synthesis_output,
 )
-
+from decision_system.synthesis.prompts import (
+    TEMPLATE_VERSION,
+    SynthesisMode,
+    get_template,
+)
 from decision_system.synthesis.service import (
-    run_synthesis,
-    SynthesisResult,
     SYNTHESIS_MODES,
+    SynthesisResult,
+    run_synthesis,
 )
 
 __all__ = [

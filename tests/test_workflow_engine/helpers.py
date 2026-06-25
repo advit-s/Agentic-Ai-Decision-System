@@ -11,7 +11,7 @@ from typing import AsyncIterator
 
 from httpx import ASGITransport, AsyncClient
 
-from decision_system.api.app import set_scheduler_enabled, create_app
+from decision_system.api.app import create_app, set_scheduler_enabled
 
 
 @asynccontextmanager

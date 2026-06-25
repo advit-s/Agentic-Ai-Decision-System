@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from decision_system.workflow_engine.models import (
-    WorkflowNode, ExecutionContext,
+    ExecutionContext,
+    WorkflowNode,
 )
 
 
@@ -12,6 +13,7 @@ class FilterNode(WorkflowNode):
     If the condition evaluates to False, the node outputs the original
     inputs unchanged (pass-through).
     """
+
     type: str = "decision_system.filter"
     label: str = "Filter"
 
@@ -62,7 +64,13 @@ class FilterNode(WorkflowNode):
                 "operator": {
                     "type": "string",
                     "title": "Operator",
-                    "enum": ["exists", "equals", "not_equals", "greater_than", "less_than"],
+                    "enum": [
+                        "exists",
+                        "equals",
+                        "not_equals",
+                        "greater_than",
+                        "less_than",
+                    ],
                     "default": "exists",
                 },
                 "value": {
@@ -93,6 +101,7 @@ class MergeNode(WorkflowNode):
     - merge: shallow merge of all input dicts (later keys overwrite earlier)
     - concat: concatenate lists found at the specified field name
     """
+
     type: str = "decision_system.merge"
     label: str = "Merge"
 
@@ -159,12 +168,18 @@ class CodeNode(WorkflowNode):
     When enabled, the node uses Python's exec() with builtins available,
     which can execute arbitrary code. Use with extreme caution.
     """
+
     type: str = "decision_system.code"
     label: str = "Code"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
         import os
-        enabled = os.environ.get("DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE", "false").lower() in ("1", "true", "yes")
+
+        enabled = os.environ.get("DECISION_SYSTEM_ENABLE_UNSAFE_CODE_NODE", "false").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
         if not enabled:
             raise RuntimeError(
                 "CodeNode is disabled by default for safety. "

@@ -7,9 +7,6 @@ handling, and cross-workspace isolation.
 from __future__ import annotations
 
 import tempfile
-from pathlib import Path
-
-import pytest
 
 from decision_system.evidence.resolver import EvidenceResolver, ResolvedEvidence
 

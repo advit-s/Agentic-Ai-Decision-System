@@ -1,11 +1,11 @@
 """Tests for data source models."""
 
 from decision_system.data_sources.models import (
+    DatasetProfile,
     DataSource,
     DataSourceChunk,
-    DatasetProfile,
-    EvidenceSearchResult,
     EvidenceSearchResponse,
+    EvidenceSearchResult,
 )
 
 
@@ -50,9 +50,7 @@ def test_evidence_search_result():
 
 def test_evidence_search_response():
     results = [
-        EvidenceSearchResult(
-            evidence_id="ev1", workspace_id="ws1", source_id="s1", text="test"
-        )
+        EvidenceSearchResult(evidence_id="ev1", workspace_id="ws1", source_id="s1", text="test")
     ]
     resp = EvidenceSearchResponse(
         results=results,

@@ -6,8 +6,8 @@ This package provides:
 - Evidence quality scoring
 """
 
-from decision_system.verification.verifier import ClaimVerifier
 from decision_system.verification.contradictions import ContradictionDetector
 from decision_system.verification.quality import EvidenceQualityScorer
+from decision_system.verification.verifier import ClaimVerifier
 
 __all__ = ["ClaimVerifier", "ContradictionDetector", "EvidenceQualityScorer"]

@@ -12,6 +12,7 @@ CSV: profiling with column type detection, missing value analysis.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json as json_lib
 import re
@@ -19,8 +20,6 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
-import hashlib
 
 
 def _make_chunk_id(source_id: str, chunk_index: int, text: str) -> str:
@@ -32,12 +31,12 @@ def _make_chunk_id(source_id: str, chunk_index: int, text: str) -> str:
     raw = f"{source_id}:{chunk_index}:{text.strip()[:200]}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
+
 from decision_system.data_sources.models import (
     DataSourceChunk,
-    ParseResult,
     ParsedBlock,
+    ParseResult,
 )
-
 
 # ---------------------------------------------------------------------------
 # Parser base class
@@ -145,8 +144,9 @@ class TextParser(BaseParser):
                 warnings=["File is empty"],
                 parser_name=self.name,
             )
-        chunks = self.chunk(text, source_id, workspace_id,
-                            source_metadata={"source_name": path.name})
+        chunks = self.chunk(
+            text, source_id, workspace_id, source_metadata={"source_name": path.name}
+        )
         return ParseResult(
             source_id=source_id,
             workspace_id=workspace_id,
@@ -171,36 +171,59 @@ class JsonParser(BaseParser):
         text = path.read_text(encoding="utf-8", errors="replace")
         if not text.strip():
             return ParseResult(
-                source_id=source_id, workspace_id=workspace_id,
-                warnings=["File is empty"], parser_name=self.name,
+                source_id=source_id,
+                workspace_id=workspace_id,
+                warnings=["File is empty"],
+                parser_name=self.name,
             )
         try:
             data = json_lib.loads(text)
         except json_lib.JSONDecodeError as e:
             return ParseResult(
-                source_id=source_id, workspace_id=workspace_id,
-                warnings=[f"JSON parsing error: {e}"], parser_name=self.name,
+                source_id=source_id,
+                workspace_id=workspace_id,
+                warnings=[f"JSON parsing error: {e}"],
+                parser_name=self.name,
             )
 
         chunks: list[DataSourceChunk] = []
         if isinstance(data, dict):
             for key, value in data.items():
                 chunk_text = f"{key}: {json_lib.dumps(value, indent=2, ensure_ascii=False)}"
-                chunks.extend(self.chunk(chunk_text, source_id, workspace_id,
-                              source_metadata={"source_name": path.name, "key": key}))
+                chunks.extend(
+                    self.chunk(
+                        chunk_text,
+                        source_id,
+                        workspace_id,
+                        source_metadata={"source_name": path.name, "key": key},
+                    )
+                )
         elif isinstance(data, list):
             for i, item in enumerate(data):
                 chunk_text = json_lib.dumps(item, indent=2, ensure_ascii=False)
-                chunks.extend(self.chunk(chunk_text, source_id, workspace_id,
-                              source_metadata={"source_name": path.name, "index": i}))
+                chunks.extend(
+                    self.chunk(
+                        chunk_text,
+                        source_id,
+                        workspace_id,
+                        source_metadata={"source_name": path.name, "index": i},
+                    )
+                )
         else:
             chunk_text = str(data)
-            chunks = self.chunk(chunk_text, source_id, workspace_id,
-                                source_metadata={"source_name": path.name})
+            chunks = self.chunk(
+                chunk_text,
+                source_id,
+                workspace_id,
+                source_metadata={"source_name": path.name},
+            )
 
         return ParseResult(
-            source_id=source_id, workspace_id=workspace_id,
-            text=text, parser_name=self.name, chunks=chunks,
+            source_id=source_id,
+            workspace_id=workspace_id,
+            text=text,
+            parser_name=self.name,
+            chunks=chunks,
             metadata={"top_level_type": type(data).__name__},
         )
 
@@ -221,7 +244,8 @@ class PdfParser(BaseParser):
             from pypdf import PdfReader
         except ImportError:
             return ParseResult(
-                source_id=source_id, workspace_id=workspace_id,
+                source_id=source_id,
+                workspace_id=workspace_id,
                 warnings=["pypdf is not installed. Install it with: pip install pypdf"],
                 parser_name=self.name,
             )
@@ -230,13 +254,16 @@ class PdfParser(BaseParser):
             reader = PdfReader(path)
         except Exception as e:
             return ParseResult(
-                source_id=source_id, workspace_id=workspace_id,
-                warnings=[f"Failed to open PDF: {e}"], parser_name=self.name,
+                source_id=source_id,
+                workspace_id=workspace_id,
+                warnings=[f"Failed to open PDF: {e}"],
+                parser_name=self.name,
             )
 
         if reader.is_encrypted:
             return ParseResult(
-                source_id=source_id, workspace_id=workspace_id,
+                source_id=source_id,
+                workspace_id=workspace_id,
                 warnings=["PDF is encrypted and cannot be read by this local parser."],
                 parser_name=self.name,
             )
@@ -252,15 +279,21 @@ class PdfParser(BaseParser):
             if not text.strip():
                 warnings.append(f"Page {page_num + 1} has no extractable text")
                 continue
-            pages_parsed.append({
-                "page_number": page_num + 1,
-                "text": text,
-                "char_count": char_count,
-            })
+            pages_parsed.append(
+                {
+                    "page_number": page_num + 1,
+                    "text": text,
+                    "char_count": char_count,
+                }
+            )
             full_text_parts.append(text)
-            chunks = self.chunk(text, source_id, workspace_id,
-                                source_metadata={"source_name": path.name},
-                                page_number=page_num + 1)
+            chunks = self.chunk(
+                text,
+                source_id,
+                workspace_id,
+                source_metadata={"source_name": path.name},
+                page_number=page_num + 1,
+            )
             all_chunks.extend(chunks)
 
         full_text = "\n\n".join(full_text_parts)
@@ -275,8 +308,7 @@ class PdfParser(BaseParser):
 
         if not full_text.strip():
             warnings.append(
-                "PDF contains no extractable text. "
-                "OCR is not supported in this local parser."
+                "PDF contains no extractable text. OCR is not supported in this local parser."
             )
 
         return ParseResult(
@@ -310,7 +342,8 @@ class DocxParser(BaseParser):
             from docx import Document as DocxDocument
         except ImportError:
             return ParseResult(
-                source_id=source_id, workspace_id=workspace_id,
+                source_id=source_id,
+                workspace_id=workspace_id,
                 warnings=["python-docx is not installed. Install it with: pip install python-docx"],
                 parser_name=self.name,
             )
@@ -319,8 +352,10 @@ class DocxParser(BaseParser):
             doc = DocxDocument(str(path))
         except Exception as e:
             return ParseResult(
-                source_id=source_id, workspace_id=workspace_id,
-                warnings=[f"Failed to open DOCX: {e}"], parser_name=self.name,
+                source_id=source_id,
+                workspace_id=workspace_id,
+                warnings=[f"Failed to open DOCX: {e}"],
+                parser_name=self.name,
             )
 
         blocks: list[ParsedBlock] = []
@@ -343,14 +378,22 @@ class DocxParser(BaseParser):
                 style = para.style.name if para.style else ""
                 is_heading = style.startswith("Heading") if style else False
                 block_type = "heading" if is_heading else "paragraph"
-                blocks.append(ParsedBlock(
-                    block_type=block_type, text=text, index=block_idx,
-                    metadata={"style": style},
-                ))
+                blocks.append(
+                    ParsedBlock(
+                        block_type=block_type,
+                        text=text,
+                        index=block_idx,
+                        metadata={"style": style},
+                    )
+                )
                 full_text_parts.append(text)
-                chunks = self.chunk(text, source_id, workspace_id,
-                                    source_metadata={"source_name": path.name},
-                                    block_type=block_type)
+                chunks = self.chunk(
+                    text,
+                    source_id,
+                    workspace_id,
+                    source_metadata={"source_name": path.name},
+                    block_type=block_type,
+                )
                 all_chunks.extend(chunks)
                 para_count += 1
 
@@ -364,14 +407,22 @@ class DocxParser(BaseParser):
                     cells = [cell.text.strip() for cell in row.cells]
                     rows_text.append(" | ".join(cells))
                 table_text = "\n".join(rows_text)
-                blocks.append(ParsedBlock(
-                    block_type="table", text=table_text, index=block_idx,
-                    metadata={"rows": len(table.rows), "cols": len(table.columns)},
-                ))
+                blocks.append(
+                    ParsedBlock(
+                        block_type="table",
+                        text=table_text,
+                        index=block_idx,
+                        metadata={"rows": len(table.rows), "cols": len(table.columns)},
+                    )
+                )
                 full_text_parts.append(f"[TABLE]:\n{table_text}")
-                chunks = self.chunk(table_text, source_id, workspace_id,
-                                    source_metadata={"source_name": path.name},
-                                    block_type="table")
+                chunks = self.chunk(
+                    table_text,
+                    source_id,
+                    workspace_id,
+                    source_metadata={"source_name": path.name},
+                    block_type="table",
+                )
                 all_chunks.extend(chunks)
                 table_count += 1
 
@@ -407,16 +458,15 @@ class XlsxParser(BaseParser):
     name = "xlsx"
     version = "openpyxl"
     supported_extensions = [".xlsx"]
-    supported_mime_types = [
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    ]
+    supported_mime_types = ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
 
     def parse(self, path: Path, source_id: str, workspace_id: str) -> ParseResult:
         try:
             import openpyxl
         except ImportError:
             return ParseResult(
-                source_id=source_id, workspace_id=workspace_id,
+                source_id=source_id,
+                workspace_id=workspace_id,
                 warnings=["openpyxl is not installed. Install with: pip install openpyxl"],
                 parser_name=self.name,
             )
@@ -425,8 +475,10 @@ class XlsxParser(BaseParser):
             wb = openpyxl.load_workbook(str(path), data_only=True, read_only=True)
         except Exception as e:
             return ParseResult(
-                source_id=source_id, workspace_id=workspace_id,
-                warnings=[f"Failed to open XLSX: {e}"], parser_name=self.name,
+                source_id=source_id,
+                workspace_id=workspace_id,
+                warnings=[f"Failed to open XLSX: {e}"],
+                parser_name=self.name,
             )
 
         sheets_parsed: list[dict[str, Any]] = []
@@ -455,19 +507,25 @@ class XlsxParser(BaseParser):
             sample_rows = rows[:5]
             for i, row in enumerate(sample_rows):
                 vals = [str(c) if c is not None else "" for c in row]
-                sheet_text += f"Row {i+1}: " + " | ".join(vals) + "\n"
+                sheet_text += f"Row {i + 1}: " + " | ".join(vals) + "\n"
 
             full_text_parts.append(sheet_text)
-            sheets_parsed.append({
-                "sheet_name": sheet_name,
-                "row_count": row_count,
-                "column_count": col_count,
-                "headers": headers,
-            })
+            sheets_parsed.append(
+                {
+                    "sheet_name": sheet_name,
+                    "row_count": row_count,
+                    "column_count": col_count,
+                    "headers": headers,
+                }
+            )
 
-            chunks = self.chunk(sheet_text, source_id, workspace_id,
-                                source_metadata={"source_name": path.name},
-                                sheet_name=sheet_name)
+            chunks = self.chunk(
+                sheet_text,
+                source_id,
+                workspace_id,
+                source_metadata={"source_name": path.name},
+                sheet_name=sheet_name,
+            )
             all_chunks.extend(chunks)
 
             # Also create chunks per-row for finer granularity
@@ -476,7 +534,9 @@ class XlsxParser(BaseParser):
                 row_text = " | ".join(vals)
                 if row_text.strip():
                     row_chunks = self.chunk(
-                        f"{sheet_name} Row {i}: {row_text}", source_id, workspace_id,
+                        f"{sheet_name} Row {i}: {row_text}",
+                        source_id,
+                        workspace_id,
                         source_metadata={"source_name": path.name},
                         sheet_name=sheet_name,
                     )
@@ -546,7 +606,9 @@ class XlsxParser(BaseParser):
                 col_info = {
                     "name": h,
                     "missing": missing_counts.get(h, 0),
-                    "missing_pct": round(missing_counts.get(h, 0) / max(row_count - 1, 1), 4) if row_count > 1 else 0,
+                    "missing_pct": round(missing_counts.get(h, 0) / max(row_count - 1, 1), 4)
+                    if row_count > 1
+                    else 0,
                 }
                 if numeric_cols.get(h):
                     nums = numeric_cols[h]
@@ -566,20 +628,34 @@ class XlsxParser(BaseParser):
                 if cp.get("missing_pct", 0) > 0.5:
                     warnings_local.append(f"Column '{cp['name']}' is >50% missing")
 
-            sheets_profile.append({
-                "sheet_name": sheet_name,
-                "row_count": row_count,
-                "column_count": col_count,
-                "columns": col_profiles,
-                "sample_rows": [
-                    {headers[j]: (str(rows[i][j]) if j < len(rows[i]) and rows[i][j] is not None else "")
-                     for j in range(len(headers))}
-                    for i in range(1, min(6, row_count))
-                ] if row_count > 1 else [],
-                "warnings": warnings_local,
-            })
+            sheets_profile.append(
+                {
+                    "sheet_name": sheet_name,
+                    "row_count": row_count,
+                    "column_count": col_count,
+                    "columns": col_profiles,
+                    "sample_rows": [
+                        {
+                            headers[j]: (
+                                str(rows[i][j])
+                                if j < len(rows[i]) and rows[i][j] is not None
+                                else ""
+                            )
+                            for j in range(len(headers))
+                        }
+                        for i in range(1, min(6, row_count))
+                    ]
+                    if row_count > 1
+                    else [],
+                    "warnings": warnings_local,
+                }
+            )
 
-        sheet_names = list(wb.sheetnames) if hasattr(wb, 'sheetnames') else [s["sheet_name"] for s in sheets_profile]
+        sheet_names = (
+            list(wb.sheetnames)
+            if hasattr(wb, "sheetnames")
+            else [s["sheet_name"] for s in sheets_profile]
+        )
         sheet_count = len(sheet_names)
         wb.close()
         return {
@@ -610,6 +686,7 @@ def _init_registry():
     # Conditionally add OCR parsers for images
     try:
         from decision_system.data_sources.ocr_parser import ImageOcrParser
+
         for ext in ImageOcrParser.supported_extensions:
             _registry[ext.lower()] = ImageOcrParser()
     except ImportError:
@@ -651,13 +728,17 @@ def parse_document(
     if not _registry:
         _init_registry()
     result = ParseResult(
-        source_id=source_id, workspace_id=workspace_id,
-        warnings=[], parser_name="unknown", chunks=[],
+        source_id=source_id,
+        workspace_id=workspace_id,
+        warnings=[],
+        parser_name="unknown",
+        chunks=[],
     )
 
     # Resolve path
     if isinstance(path_or_content, str):
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=ext, mode="w", delete=False, encoding="utf-8") as f:
             f.write(path_or_content)
             path = Path(f.name)
@@ -667,12 +748,17 @@ def parse_document(
         finally:
             path.unlink(missing_ok=True)
     else:
-        chunks, warnings, metadata = _do_parse(path_or_content, ext, source_id, workspace_id, result)
+        chunks, warnings, metadata = _do_parse(
+            path_or_content, ext, source_id, workspace_id, result
+        )
         return chunks, warnings
 
 
 def _do_parse(
-    path: Path, ext: str, source_id: str, workspace_id: str,
+    path: Path,
+    ext: str,
+    source_id: str,
+    workspace_id: str,
     result: ParseResult,
 ) -> tuple[list[DataSourceChunk], list[str], dict[str, Any]]:
     """Internal dispatch to the appropriate parser."""
@@ -696,6 +782,7 @@ def _do_parse(
     if ext_lower == ".pdf" and result and not result.text.strip():
         try:
             from decision_system.data_sources.ocr_parser import ScannedPdfParser
+
             ocr_parser = ScannedPdfParser()
             ocr_result = ocr_parser.parse(path, source_id, workspace_id)
             if ocr_result and ocr_result.text.strip():
@@ -717,6 +804,7 @@ def parse_document_from_content(
     Writes content to a temp file and dispatches to the right parser.
     """
     import tempfile
+
     with tempfile.NamedTemporaryFile(suffix=ext, mode="w", delete=False, encoding="utf-8") as f:
         f.write(content)
         tmp_path = Path(f.name)
@@ -731,8 +819,9 @@ def parse_document_from_content(
 def parse_text(content: str, source_id: str, workspace_id: str) -> list[DataSourceChunk]:
     """Legacy wrapper."""
     parser = TextParser()
-    from pathlib import Path
     import tempfile
+    from pathlib import Path
+
     with tempfile.NamedTemporaryFile(suffix=".txt", mode="w", delete=False, encoding="utf-8") as f:
         f.write(content)
         tmp_path = Path(f.name)
@@ -747,6 +836,7 @@ def parse_json(content: str, source_id: str, workspace_id: str) -> list[DataSour
     """Legacy wrapper."""
     parser = JsonParser()
     import tempfile
+
     with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False, encoding="utf-8") as f:
         f.write(content)
         tmp_path = Path(f.name)
@@ -762,9 +852,7 @@ def parse_json(content: str, source_id: str, workspace_id: str) -> list[DataSour
 # ---------------------------------------------------------------------------
 
 
-def profile_csv(
-    content: str, source_id: str, workspace_id: str
-) -> dict[str, Any]:
+def profile_csv(content: str, source_id: str, workspace_id: str) -> dict[str, Any]:
     """Profile CSV content and return a structured profile dict.
 
     Returns profile with row_count, column_count, column_types,
@@ -826,22 +914,20 @@ def profile_csv(
             freqs: dict[str, int] = {}
             for v in non_empty:
                 freqs[v] = freqs.get(v, 0) + 1
-            categorical_summary[header] = sorted(
-                freqs.items(), key=lambda x: (-x[1], x[0])
-            )[:10]
+            categorical_summary[header] = sorted(freqs.items(), key=lambda x: (-x[1], x[0]))[:10]
 
         missing_values[header] = missing
-        columns.append({
-            "name": header,
-            "dtype": column_types[header],
-            "missing": missing,
-            "missing_pct": round(missing / row_count, 4) if row_count else 0,
-        })
+        columns.append(
+            {
+                "name": header,
+                "dtype": column_types[header],
+                "missing": missing,
+                "missing_pct": round(missing / row_count, 4) if row_count else 0,
+            }
+        )
 
         # Date-like detection
-        date_pattern = re.compile(
-            r"date|time|month|year|day|period|week", re.IGNORECASE
-        )
+        date_pattern = re.compile(r"date|time|month|year|day|period|week", re.IGNORECASE)
         if date_pattern.search(header) and not is_numeric:
             date_like_columns.append(header)
 
@@ -866,9 +952,7 @@ def profile_csv(
     }
 
 
-def profile_json_content(
-    content: str, source_id: str, workspace_id: str
-) -> dict[str, Any]:
+def profile_json_content(content: str, source_id: str, workspace_id: str) -> dict[str, Any]:
     """Profile JSON content and return a structured profile dict."""
     try:
         data = json_lib.loads(content)

@@ -1,14 +1,18 @@
 """Tests for DAG validation and topological sort."""
 
-import pytest
 from uuid import UUID
 
-from decision_system.workflow_engine.models import (
-    WorkflowDefinition, NodeConfig, Connection, ErrorPolicy,
-)
 from decision_system.workflow_engine.engine.dag import (
-    DAGValidator, TopologicalSort, DAGError,
-    CyclicDAGError, MissingConnectionError,
+    CyclicDAGError,
+    DAGError,
+    DAGValidator,
+    MissingConnectionError,
+    TopologicalSort,
+)
+from decision_system.workflow_engine.models import (
+    Connection,
+    NodeConfig,
+    WorkflowDefinition,
 )
 
 

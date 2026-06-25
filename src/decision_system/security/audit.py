@@ -10,11 +10,10 @@ and never calls external services.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from decision_system._data_root import get_data_root
 
+from decision_system._data_root import get_data_root
 from decision_system.security.models import AuditEvent
 
 # Optional identity integration — the audit module tries to import the
@@ -22,6 +21,7 @@ from decision_system.security.models import AuditEvent
 # not available, audit events fall back to "local-user".
 try:
     from decision_system.identity.permissions import get_current_user as _get_audit_user
+
     _IDENTITY_AVAILABLE = True
 except (ImportError, Exception):
     _IDENTITY_AVAILABLE = False
@@ -29,6 +29,7 @@ except (ImportError, Exception):
 # ---------------------------------------------------------------------------
 # Path helpers
 # ---------------------------------------------------------------------------
+
 
 def _get_security_dir() -> Path:
     """Return the security data directory (lazy)."""

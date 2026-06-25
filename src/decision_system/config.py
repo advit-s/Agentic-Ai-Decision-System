@@ -7,9 +7,10 @@ credentials must come from `.env` or process environment variables, never code.
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from decision_system._data_root import get_data_root
 
 from dotenv import load_dotenv
+
+from decision_system._data_root import get_data_root
 
 
 @dataclass(frozen=True)
@@ -61,9 +62,7 @@ def load_settings() -> Settings:
         nvidia_temperature=float(os.getenv("NVIDIA_TEMPERATURE", "0")),
         nvidia_top_p=float(os.getenv("NVIDIA_TOP_P", "0.95")),
         nvidia_max_tokens=int(os.getenv("NVIDIA_MAX_TOKENS", "4096")),
-        nvidia_nim_base_url=os.getenv(
-            "NVIDIA_NIM_BASE_URL", "https://integrate.api.nvidia.com/v1"
-        ),
+        nvidia_nim_base_url=os.getenv("NVIDIA_NIM_BASE_URL", "https://integrate.api.nvidia.com/v1"),
         nvidia_reasoning_enabled=_env_bool("NVIDIA_REASONING_ENABLED", default=False),
         nvidia_reasoning_effort=os.getenv("NVIDIA_REASONING_EFFORT", "medium"),
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),

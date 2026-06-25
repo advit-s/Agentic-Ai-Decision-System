@@ -9,9 +9,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from decision_system.workflow_engine.models import WorkflowNode, ExecutionContext
+from decision_system.workflow_engine.models import ExecutionContext, WorkflowNode
 from decision_system.workflow_engine.providers.client import LLMClient
-
 
 # ── Fake fallback generators ─────────────────────────────────────────
 
@@ -29,55 +28,67 @@ def _generate_fake_audit(data: dict, audit_depth: str) -> dict:
             for i, f in enumerate(raw_findings[:5]):
                 confidence = f.get("confidence", 0.5) if isinstance(f, dict) else 0.5
                 evidence = f.get("evidence", []) if isinstance(f, dict) else []
-                findings.append({
-                    "category": "evidence_quality",
-                    "severity": "medium" if confidence < 0.5 else "low",
-                    "description": f"Finding {i + 1} has confidence {confidence:.1f} with {len(evidence) if isinstance(evidence, list) else 0} evidence items.",
-                    "recommendation": "Strengthen evidence base for this finding.",
-                })
+                findings.append(
+                    {
+                        "category": "evidence_quality",
+                        "severity": "medium" if confidence < 0.5 else "low",
+                        "description": f"Finding {i + 1} has confidence {confidence:.1f} with {len(evidence) if isinstance(evidence, list) else 0} evidence items.",
+                        "recommendation": "Strengthen evidence base for this finding.",
+                    }
+                )
         score = 0.75 if len(findings) == 0 else max(0.3, 0.75 - len(findings) * 0.08)
     elif "analysis" in data_keys:
-        findings.append({
-            "category": "completeness",
-            "severity": "low",
-            "description": "Analysis data appears structurally complete.",
-            "recommendation": "Consider adding more granular breakdowns.",
-        })
-        findings.append({
-            "category": "consistency",
-            "severity": "medium",
-            "description": "Analysis methods appear consistent across data points.",
-            "recommendation": "Verify edge cases and outlier handling.",
-        })
+        findings.append(
+            {
+                "category": "completeness",
+                "severity": "low",
+                "description": "Analysis data appears structurally complete.",
+                "recommendation": "Consider adding more granular breakdowns.",
+            }
+        )
+        findings.append(
+            {
+                "category": "consistency",
+                "severity": "medium",
+                "description": "Analysis methods appear consistent across data points.",
+                "recommendation": "Verify edge cases and outlier handling.",
+            }
+        )
         score = 0.78
     elif "plan" in data_keys:
         plan_steps = data.get("plan") or data.get("steps") or []
         if isinstance(plan_steps, list):
             for i, step in enumerate(plan_steps[:5]):
                 if isinstance(step, dict) and not step.get("dependencies"):
-                    findings.append({
-                        "category": "completeness",
-                        "severity": "low",
-                        "description": f"Step {i + 1} is missing dependency information.",
-                        "recommendation": "Add dependency references for better sequencing.",
-                    })
+                    findings.append(
+                        {
+                            "category": "completeness",
+                            "severity": "low",
+                            "description": f"Step {i + 1} is missing dependency information.",
+                            "recommendation": "Add dependency references for better sequencing.",
+                        }
+                    )
                 if isinstance(step, dict) and not step.get("estimated_effort"):
-                    findings.append({
-                        "category": "completeness",
-                        "severity": "medium",
-                        "description": f"Step {i + 1} has no effort estimate.",
-                        "recommendation": "Add time or effort estimates for each step.",
-                    })
+                    findings.append(
+                        {
+                            "category": "completeness",
+                            "severity": "medium",
+                            "description": f"Step {i + 1} has no effort estimate.",
+                            "recommendation": "Add time or effort estimates for each step.",
+                        }
+                    )
         score = max(0.3, 0.8 - len(findings) * 0.1)
     else:
         # Basic quality check
         total_fields = len(data)
-        findings.append({
-            "category": "completeness",
-            "severity": "low",
-            "description": f"Data contains {total_fields} top-level fields. Basic structure check passed.",
-            "recommendation": "Review data for completeness against expected schema.",
-        })
+        findings.append(
+            {
+                "category": "completeness",
+                "severity": "low",
+                "description": f"Data contains {total_fields} top-level fields. Basic structure check passed.",
+                "recommendation": "Review data for completeness against expected schema.",
+            }
+        )
         score = 0.7
 
     if audit_depth == "quick":
@@ -145,12 +156,15 @@ class AuditorNode(WorkflowNode):
     Produces structured audit findings with severity levels and recommendations.
     Falls back to deterministic mock audit when no LLM provider is configured.
     """
+
     type: str = "decision_system.auditor"
     label: str = "Auditor"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
         data = inputs.get("data", {})
-        audit_scope = inputs.get("audit_scope") or self.config.get("audit_scope", ["completeness", "consistency"])
+        audit_scope = inputs.get("audit_scope") or self.config.get(
+            "audit_scope", ["completeness", "consistency"]
+        )
         criteria = inputs.get("criteria", {})
 
         if not data:
@@ -183,7 +197,9 @@ class AuditorNode(WorkflowNode):
         if provider_cfg:
             provider_config, _ = provider_cfg
             try:
-                return await self._llm_audit(data, audit_scope_str, audit_depth, criteria_str, provider_config)
+                return await self._llm_audit(
+                    data, audit_scope_str, audit_depth, criteria_str, provider_config
+                )
             except Exception as exc:
                 fallback_reason = f"{type(exc).__name__}: {exc}"
 
@@ -196,8 +212,12 @@ class AuditorNode(WorkflowNode):
         return result
 
     async def _llm_audit(
-        self, data: dict, audit_scope_str: str, audit_depth: str,
-        criteria_str: str, provider_config: Any,
+        self,
+        data: dict,
+        audit_scope_str: str,
+        audit_depth: str,
+        criteria_str: str,
+        provider_config: Any,
     ) -> dict:
         """Use LLM to audit the data."""
         client = LLMClient(provider_config)
@@ -205,13 +225,19 @@ class AuditorNode(WorkflowNode):
 
         response = await client.chat_completion(
             messages=[
-                {"role": "system", "content": _AUDITOR_SYSTEM_PROMPT.format(
-                    data_json=data_json,
-                    audit_scope_str=audit_scope_str,
-                    audit_depth=audit_depth,
-                    criteria_str=criteria_str,
-                )},
-                {"role": "user", "content": f"Audit this data ({audit_depth} depth, scope: {audit_scope_str})."},
+                {
+                    "role": "system",
+                    "content": _AUDITOR_SYSTEM_PROMPT.format(
+                        data_json=data_json,
+                        audit_scope_str=audit_scope_str,
+                        audit_depth=audit_depth,
+                        criteria_str=criteria_str,
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Audit this data ({audit_depth} depth, scope: {audit_scope_str}).",
+                },
             ],
             model=provider_config.default_model,
             stream=False,
@@ -292,14 +318,20 @@ class AuditorNode(WorkflowNode):
             "type": "object",
             "properties": {
                 "passed": {"type": "boolean", "description": "Overall pass/fail"},
-                "score": {"type": "number", "description": "Overall quality score (0-1)"},
+                "score": {
+                    "type": "number",
+                    "description": "Overall quality score (0-1)",
+                },
                 "findings": {
                     "type": "array",
                     "items": {
                         "type": "object",
                         "properties": {
                             "category": {"type": "string"},
-                            "severity": {"type": "string", "enum": ["low", "medium", "high"]},
+                            "severity": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high"],
+                            },
                             "description": {"type": "string"},
                             "recommendation": {"type": "string"},
                         },

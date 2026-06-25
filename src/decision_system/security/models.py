@@ -12,7 +12,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Enums / literal unions
 # ---------------------------------------------------------------------------
@@ -44,6 +43,7 @@ ApprovalStatus = Literal["pending", "approved", "rejected", "cancelled"]
 # Secret scanning
 # ---------------------------------------------------------------------------
 
+
 class SecretFinding(BaseModel):
     """One secret (or suspicious credential-ish pattern) found in a file.
 
@@ -56,9 +56,7 @@ class SecretFinding(BaseModel):
 
     finding_id: str = Field(..., description="Unique identifier for this finding.")
     source_path: str = Field(..., description="Relative path of the scanned file.")
-    line_number: int = Field(
-        ..., description="1-based line number where the pattern was detected."
-    )
+    line_number: int = Field(..., description="1-based line number where the pattern was detected.")
     secret_type: SecretType = Field(
         ...,
         description="Categorisation of the detected secret-like pattern.",
@@ -91,14 +89,13 @@ class SecretScanResult(BaseModel):
     files_skipped: int = Field(default=0)
     findings: list[SecretFinding] = Field(default_factory=list)
     overall_status: Literal["ok", "warn", "fail"] = Field(default="ok")
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 # ---------------------------------------------------------------------------
 # Redaction preview
 # ---------------------------------------------------------------------------
+
 
 class RedactionFinding(BaseModel):
     """One PII / secret-like span in a piece of text."""
@@ -109,14 +106,10 @@ class RedactionFinding(BaseModel):
     text_type: RedactionKind = Field(...)
     start: int = Field(..., description="Character start index (inclusive).")
     end: int = Field(..., description="Character end index (exclusive).")
-    matched_preview: str = Field(
-        ..., description="The matched text, truncated for display."
-    )
+    matched_preview: str = Field(..., description="The matched text, truncated for display.")
     replacement: str = Field(..., description="Replacement placeholder.")
     confidence: Literal["high", "medium", "low"] = Field(default="high")
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class RedactionPreviewResult(BaseModel):
@@ -133,6 +126,7 @@ class RedactionPreviewResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Audit
 # ---------------------------------------------------------------------------
+
 
 class AuditEvent(BaseModel):
     """One entry in the local audit log JSONL file."""
@@ -156,14 +150,13 @@ class AuditEvent(BaseModel):
         default_factory=dict,
         description="Structured auxiliary data.",
     )
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 # ---------------------------------------------------------------------------
 # Policy
 # ---------------------------------------------------------------------------
+
 
 class PolicyCheck(BaseModel):
     """One individual policy check result."""
@@ -188,14 +181,13 @@ class PolicyCheckResult(BaseModel):
     warning_count: int = Field(default=0)
     failed_count: int = Field(default=0)
     overall_status: Literal["ok", "warn", "fail"] = Field(default="ok")
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 # ---------------------------------------------------------------------------
 # Approvals
 # ---------------------------------------------------------------------------
+
 
 class ApprovalRequest(BaseModel):
     """A local approval request record.
@@ -207,9 +199,7 @@ class ApprovalRequest(BaseModel):
 
     model_config = {"extra": "forbid"}
 
-    approval_id: str = Field(
-        default_factory=lambda: __import__("uuid").uuid4().hex[:12]
-    )
+    approval_id: str = Field(default_factory=lambda: __import__("uuid").uuid4().hex[:12])
     reason: str = Field(...)
     status: ApprovalStatus = Field(default="pending")
     requested_by: str = Field(
@@ -217,9 +207,7 @@ class ApprovalRequest(BaseModel):
         description="Actor identifier (no real auth yet).",
     )
     metadata: dict[str, str] = Field(default_factory=dict)
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     resolved_at: str | None = Field(
         default=None,
         description="ISO timestamp when the request was approved/rejected/cancelled.",

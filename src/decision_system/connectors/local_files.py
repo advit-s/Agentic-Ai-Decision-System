@@ -1,23 +1,22 @@
 """Real local-files connector: dry-run scan and safe copy-based import."""
+
 from __future__ import annotations
 
 import os
 import shutil
-from typing import Any
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
+from typing import Any
 
+from decision_system._data_root import get_data_root
 from decision_system.connectors.models import (
     ConnectorConfig,
-    ConnectorDefinition,
     ConnectorDryRunFile,
     ConnectorDryRunResult,
     ConnectorFetchedContent,
     ConnectorImportJob,
     ConnectorImportResult,
     ConnectorRuntimeItem,
-    ConnectorType,
 )
 from decision_system.connectors.runtime import ConnectorRuntime
 from decision_system.connectors.store import save_job
@@ -126,9 +125,7 @@ def _collect_files(
             try:
                 resolved.relative_to(source_root)
             except ValueError:
-                skipped.append(
-                    (file_path, "Resolved path escapes source root")
-                )
+                skipped.append((file_path, "Resolved path escapes source root"))
                 continue
 
             extension = file_path.suffix.lower()
@@ -194,9 +191,7 @@ def run_dry_run(
     files = [
         ConnectorDryRunFile(
             source_path=str(fp),
-            relative_path=str(
-                fp.relative_to(resolved) if fp != resolved else fp.name
-            ),
+            relative_path=str(fp.relative_to(resolved) if fp != resolved else fp.name),
             filename=fp.name,
             extension=fp.suffix.lower(),
             size_bytes=fp.stat().st_size,
@@ -272,16 +267,13 @@ def run_local_files_import(
         try:
             target_resolved.relative_to(dest_root.resolve())
         except ValueError:
-            warnings.append(
-                f"Target path {target} escapes connector root — skipped"
-            )
+            warnings.append(f"Target path {target} escapes connector root — skipped")
             skipped_files.append(file_info.source_path)
             continue
 
         _copy_safe(source_file, target, warnings)
         imported_files.append(file_info.source_path)
         output_paths.append(str(target))
-
 
     job = ConnectorImportJob(
         job_id=job_id,
@@ -343,11 +335,20 @@ class LocalFolderConnectorRuntime(ConnectorRuntime):
 
         path = Path(folder_path)
         if not path.exists():
-            return {"success": False, "message": f"Folder does not exist: {folder_path}"}
+            return {
+                "success": False,
+                "message": f"Folder does not exist: {folder_path}",
+            }
         if not path.is_dir():
-            return {"success": False, "message": f"Path is not a directory: {folder_path}"}
+            return {
+                "success": False,
+                "message": f"Path is not a directory: {folder_path}",
+            }
         if not os.access(str(path), os.R_OK):
-            return {"success": False, "message": f"Folder is not readable: {folder_path}"}
+            return {
+                "success": False,
+                "message": f"Folder is not readable: {folder_path}",
+            }
 
         return {
             "success": True,
@@ -356,9 +357,7 @@ class LocalFolderConnectorRuntime(ConnectorRuntime):
             "is_absolute": path.is_absolute(),
         }
 
-    def list_items(
-        self, config: ConnectorConfig, path: str = ""
-    ) -> list[ConnectorRuntimeItem]:
+    def list_items(self, config: ConnectorConfig, path: str = "") -> list[ConnectorRuntimeItem]:
         """List supported files in the configured folder."""
         folder_path = config.config.get("folder_path", "")
         base_path = Path(folder_path)

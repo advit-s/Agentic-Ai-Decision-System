@@ -15,7 +15,6 @@ from decision_system.provider_eval.models import (
     ProviderEvalSuiteResult,
 )
 
-
 PROVIDER_EVAL_PROVIDERS = ("fake", "nvidia_nim", "ollama")
 
 
@@ -222,7 +221,9 @@ def run_provider_eval_case(
     )
     citation_grounded = _citations_grounded(claims, evidence)
     contradiction_handled = _contradiction_handled(case, [tech_memo, risk_memo], claims)
-    unsupported_claims_handled = _unsupported_claims_handled(evidence, [tech_memo, risk_memo], claims)
+    unsupported_claims_handled = _unsupported_claims_handled(
+        evidence, [tech_memo, risk_memo], claims
+    )
     hallucination_risk = _hallucination_risk(
         claims=claims,
         evidence=evidence,
@@ -332,9 +333,17 @@ def _case_passed(case: ProviderEvalCase, result: ProviderEvalResult) -> bool:
             and result.claim_count >= case.expected_min_claims
         )
     if case.expected_behavior == "contradiction":
-        return result.schema_valid and result.contradiction_handled and result.hallucination_risk != "high"
+        return (
+            result.schema_valid
+            and result.contradiction_handled
+            and result.hallucination_risk != "high"
+        )
     if case.expected_behavior == "unsupported_claim":
-        return result.schema_valid and result.unsupported_claims_handled and result.hallucination_risk != "high"
+        return (
+            result.schema_valid
+            and result.unsupported_claims_handled
+            and result.hallucination_risk != "high"
+        )
     if case.expected_behavior == "citation":
         return (
             result.schema_valid
@@ -495,9 +504,7 @@ class _MockProvider:
             claim_type = "risk" if "risk" in memo.agent_name else "technical"
             for index, claim_text in enumerate(memo.claims):
                 evidence_ids = (
-                    [memo.cited_evidence_ids[index]]
-                    if index < len(memo.cited_evidence_ids)
-                    else []
+                    [memo.cited_evidence_ids[index]] if index < len(memo.cited_evidence_ids) else []
                 )
                 claims.append(
                     Claim(

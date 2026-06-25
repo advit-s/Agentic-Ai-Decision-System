@@ -9,22 +9,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 
 from decision_system.identity.models import (
-    ALL_PERMISSIONS,
     ROLE_PERMISSIONS,
     LocalUser,
     Permission,
     UserRole,
 )
+from decision_system.identity.settings import is_demo_mode as settings_is_demo
 from decision_system.identity.store import (
     get_membership,
     get_or_create_default_user,
-    list_memberships,
 )
-from decision_system.identity.settings import is_demo_mode as settings_is_demo
-
 
 # ---------------------------------------------------------------------------
 # Current user context
@@ -78,6 +75,7 @@ def get_current_user(request: Request = None) -> LocalUser:
     user_id = request.headers["X-User-Id"]
 
     from decision_system.identity.store import get_user
+
     user = get_user(user_id)
     if user is None:
         raise HTTPException(
@@ -118,40 +116,40 @@ def user_has_permission(
 
 
 def require_permission(permission: Permission) -> Any:
-     """FastAPI dependency factory that checks the current user has the given permission.
+    """FastAPI dependency factory that checks the current user has the given permission.
 
-     Usage::
+    Usage::
 
-         @router.get("/workspaces/{id}")
-         def get_workspace(
-             id: str,
-             user: LocalUser = Depends(require_permission(Permission.WORKSPACE_READ)),
-         ):
-             ...
+        @router.get("/workspaces/{id}")
+        def get_workspace(
+            id: str,
+            user: LocalUser = Depends(require_permission(Permission.WORKSPACE_READ)),
+        ):
+            ...
 
-     Raises ``HTTPException(403)`` if the user lacks the required permission.
-     """
+    Raises ``HTTPException(403)`` if the user lacks the required permission.
+    """
 
-     def _dependency(
-         request: Request = None,
-     ) -> LocalUser:
-         user = get_current_user(request)
-         if not user_has_permission(user, permission, None):
-             raise HTTPException(
-                 status_code=403,
-                 detail={
-                     "code": "permission_denied",
-                     "message": f"User '{user.user_id}' lacks required permission '{permission.value}'.",
-                     "details": {
-                         "user_id": user.user_id,
-                         "role": user.role.value,
-                         "permission": permission.value,
-                     },
-                 },
-             )
-         return user
+    def _dependency(
+        request: Request = None,
+    ) -> LocalUser:
+        user = get_current_user(request)
+        if not user_has_permission(user, permission, None):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "permission_denied",
+                    "message": f"User '{user.user_id}' lacks required permission '{permission.value}'.",
+                    "details": {
+                        "user_id": user.user_id,
+                        "role": user.role.value,
+                        "permission": permission.value,
+                    },
+                },
+            )
+        return user
 
-     return _dependency
+    return _dependency
 
 
 # ---------------------------------------------------------------------------
@@ -160,44 +158,44 @@ def require_permission(permission: Permission) -> Any:
 
 
 def require_workspace_permission(permission: Permission) -> Any:
-     """Create a FastAPI dependency that checks a workspace-scoped permission.
+    """Create a FastAPI dependency that checks a workspace-scoped permission.
 
-     The workspace_id is extracted from the route path parameter ``id``
-     or ``workspace_id``.
+    The workspace_id is extracted from the route path parameter ``id``
+    or ``workspace_id``.
 
-     Usage::
+    Usage::
 
-         @router.get("/workspaces/{id}/data-sources")
-         def list_data_sources(
-             id: str,
-             user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
-         ):
-             ...
-     """
+        @router.get("/workspaces/{id}/data-sources")
+        def list_data_sources(
+            id: str,
+            user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+        ):
+            ...
+    """
 
-     def _dependency(
-         request: Request,
-     ) -> LocalUser:
-         # Try to extract workspace_id from path params
-         workspace_id = request.path_params.get("id") or request.path_params.get("workspace_id")
-         user = get_current_user(request)
-         if not user_has_permission(user, permission, workspace_id):
-             raise HTTPException(
-                 status_code=403,
-                 detail={
-                     "code": "permission_denied",
-                     "message": f"User '{user.user_id}' lacks required permission '{permission.value}'.",
-                     "details": {
-                         "user_id": user.user_id,
-                         "role": user.role.value,
-                         "permission": permission.value,
-                         "workspace_id": workspace_id,
-                     },
-                 },
-             )
-         return user
+    def _dependency(
+        request: Request,
+    ) -> LocalUser:
+        # Try to extract workspace_id from path params
+        workspace_id = request.path_params.get("id") or request.path_params.get("workspace_id")
+        user = get_current_user(request)
+        if not user_has_permission(user, permission, workspace_id):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "permission_denied",
+                    "message": f"User '{user.user_id}' lacks required permission '{permission.value}'.",
+                    "details": {
+                        "user_id": user.user_id,
+                        "role": user.role.value,
+                        "permission": permission.value,
+                        "workspace_id": workspace_id,
+                    },
+                },
+            )
+        return user
 
-     return _dependency
+    return _dependency
 
 
 def get_user_role(user: LocalUser, workspace_id: str | None = None) -> UserRole:
@@ -214,5 +212,11 @@ def role_is_at_least(current: UserRole, minimum: UserRole) -> bool:
 
     Roles ordered: owner > admin > analyst > reviewer > viewer
     """
-    ORDER = [UserRole.VIEWER, UserRole.REVIEWER, UserRole.ANALYST, UserRole.ADMIN, UserRole.OWNER]
+    ORDER = [
+        UserRole.VIEWER,
+        UserRole.REVIEWER,
+        UserRole.ANALYST,
+        UserRole.ADMIN,
+        UserRole.OWNER,
+    ]
     return ORDER.index(current) >= ORDER.index(minimum)

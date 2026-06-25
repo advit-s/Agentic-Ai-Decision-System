@@ -3,9 +3,9 @@
 import json
 import tempfile
 from pathlib import Path
-from typer.testing import CliRunner
 
 import pytest
+from typer.testing import CliRunner
 
 from decision_system.workflow_engine.cli import app as workflow_app
 
@@ -21,7 +21,11 @@ class TestWorkflowCLI:
         wf = {
             "name": "Test CLI Workflow",
             "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual", "label": "Start"},
+                {
+                    "id": "n1",
+                    "type": "decision_system.trigger_manual",
+                    "label": "Start",
+                },
             ],
             "connections": [],
             "version": 1,
@@ -72,9 +76,15 @@ class TestWorkflowCLI:
     def test_create_workflow_with_name(self, runner):
         with tempfile.TemporaryDirectory() as td:
             output_path = Path(td) / "named_wf.json"
-            result = runner.invoke(workflow_app, [
-                "create", str(output_path), "--name", "My Workflow",
-            ])
+            result = runner.invoke(
+                workflow_app,
+                [
+                    "create",
+                    str(output_path),
+                    "--name",
+                    "My Workflow",
+                ],
+            )
             assert result.exit_code == 0
             data = json.loads(output_path.read_text())
             assert data["name"] == "My Workflow"
@@ -117,10 +127,15 @@ class TestScheduleCLI:
     @pytest.fixture
     def saved_schedule_id(self):
         """Create a workflow + schedule in a temp dir, return (schedule_id, store_dir)."""
-        from decision_system.workflow_engine.models import WorkflowDefinition
-        from decision_system.workflow_engine.stores.json_store import JSONWorkflowStore
-        from decision_system.workflow_engine.scheduler import ScheduleDefinition, ScheduleStore, TriggerType
         from uuid import uuid4
+
+        from decision_system.workflow_engine.models import WorkflowDefinition
+        from decision_system.workflow_engine.scheduler import (
+            ScheduleDefinition,
+            ScheduleStore,
+            TriggerType,
+        )
+        from decision_system.workflow_engine.stores.json_store import JSONWorkflowStore
 
         store_dir = Path(tempfile.mkdtemp())
 
@@ -153,10 +168,17 @@ class TestScheduleCLI:
 
     def test_schedule_list_filtered(self, runner, saved_schedule_id):
         sch_id, store_dir = saved_schedule_id
-        result = runner.invoke(workflow_app, [
-            "schedule", "list", "--store-dir", store_dir,
-            "--workflow-id", "nonexistent",
-        ])
+        result = runner.invoke(
+            workflow_app,
+            [
+                "schedule",
+                "list",
+                "--store-dir",
+                store_dir,
+                "--workflow-id",
+                "nonexistent",
+            ],
+        )
         assert result.exit_code == 0
         assert "No schedules found" in result.stdout
 
@@ -169,63 +191,107 @@ class TestScheduleCLI:
         wf = WorkflowDefinition(name="CLI Sched WF")
         ws.save(wf)
 
-        result = runner.invoke(workflow_app, [
-            "schedule", "create", wf.id,
-            "--store-dir", str(store_dir),
-            "--trigger-type", "cron",
-            "--config", '{"expression": "0 12 * * *"}',
-        ])
+        result = runner.invoke(
+            workflow_app,
+            [
+                "schedule",
+                "create",
+                wf.id,
+                "--store-dir",
+                str(store_dir),
+                "--trigger-type",
+                "cron",
+                "--config",
+                '{"expression": "0 12 * * *"}',
+            ],
+        )
         assert result.exit_code == 0
         assert "Created schedule" in result.stdout
         assert "cron" in result.stdout
 
     def test_schedule_create_nonexistent_workflow(self, runner):
         with tempfile.TemporaryDirectory() as td:
-            result = runner.invoke(workflow_app, [
-                "schedule", "create", "nonexistent",
-                "--store-dir", td,
-            ])
+            result = runner.invoke(
+                workflow_app,
+                [
+                    "schedule",
+                    "create",
+                    "nonexistent",
+                    "--store-dir",
+                    td,
+                ],
+            )
             assert result.exit_code != 0
             assert "not found" in result.stdout
 
     def test_schedule_delete(self, runner, saved_schedule_id):
         sch_id, store_dir = saved_schedule_id
-        result = runner.invoke(workflow_app, [
-            "schedule", "delete", sch_id,
-            "--store-dir", store_dir,
-        ])
+        result = runner.invoke(
+            workflow_app,
+            [
+                "schedule",
+                "delete",
+                sch_id,
+                "--store-dir",
+                store_dir,
+            ],
+        )
         assert result.exit_code == 0
         assert "Deleted" in result.stdout
 
     def test_schedule_delete_nonexistent(self, runner):
         with tempfile.TemporaryDirectory() as td:
-            result = runner.invoke(workflow_app, [
-                "schedule", "delete", "nonexistent",
-                "--store-dir", td,
-            ])
+            result = runner.invoke(
+                workflow_app,
+                [
+                    "schedule",
+                    "delete",
+                    "nonexistent",
+                    "--store-dir",
+                    td,
+                ],
+            )
             assert result.exit_code != 0
 
     def test_schedule_toggle(self, runner, saved_schedule_id):
         sch_id, store_dir = saved_schedule_id
-        result = runner.invoke(workflow_app, [
-            "schedule", "toggle", sch_id,
-            "--store-dir", store_dir,
-        ])
+        result = runner.invoke(
+            workflow_app,
+            [
+                "schedule",
+                "toggle",
+                sch_id,
+                "--store-dir",
+                store_dir,
+            ],
+        )
         assert result.exit_code == 0
         assert "disabled" in result.stdout
 
         # Toggle back
-        result = runner.invoke(workflow_app, [
-            "schedule", "toggle", sch_id,
-            "--store-dir", store_dir,
-        ])
+        result = runner.invoke(
+            workflow_app,
+            [
+                "schedule",
+                "toggle",
+                sch_id,
+                "--store-dir",
+                store_dir,
+            ],
+        )
         assert result.exit_code == 0
         assert "enabled" in result.stdout
 
     def test_schedule_toggle_nonexistent(self, runner):
         with tempfile.TemporaryDirectory() as td:
-            result = runner.invoke(workflow_app, [
-                "schedule", "toggle", "nonexistent",
-                "--store-dir", td,
-            ])
+            result = runner.invoke(
+                workflow_app,
+                [
+                    "schedule",
+                    "toggle",
+                    "nonexistent",
+                    "--store-dir",
+                    td,
+                ],
+            )
             assert result.exit_code != 0

@@ -1,16 +1,13 @@
 """Tests for the v2 deterministic entity/risk/metric extraction."""
 
-import pytest
-
 from decision_system.graphing.extractor_v2 import (
-    extract_intelligence,
-    _normalize_name,
-    _make_id,
     _clean_phrase,
     _infer_entity_type,
     _infer_unit,
+    _make_id,
+    _normalize_name,
+    extract_intelligence,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -19,7 +16,12 @@ from decision_system.graphing.extractor_v2 import (
 WS = "test-ws"
 
 
-def _text(text: str, evidence_id: str = "ev-1", source_id: str = "src-1", chunk_id: str = "ch-1"):
+def _text(
+    text: str,
+    evidence_id: str = "ev-1",
+    source_id: str = "src-1",
+    chunk_id: str = "ch-1",
+):
     return (text, evidence_id, source_id, chunk_id)
 
 
@@ -226,7 +228,9 @@ def test_supplies_relationship():
 
 
 def test_contradiction_relationship():
-    result = extract_intelligence([_text("Migration needs rollback. CONTRADICTS: Migration is safe.")], WS)
+    result = extract_intelligence(
+        [_text("Migration needs rollback. CONTRADICTS: Migration is safe.")], WS
+    )
     edges = result.to_edge_list()
     assert any(e.edge_type == "contradicts" for e in edges)
 
@@ -237,7 +241,9 @@ def test_contradiction_relationship():
 
 
 def test_evidence_ids_preserved():
-    result = extract_intelligence([_text("Acme Corp has $1M revenue.", "ev-42", "src-7", "ch-3")], WS)
+    result = extract_intelligence(
+        [_text("Acme Corp has $1M revenue.", "ev-42", "src-7", "ch-3")], WS
+    )
     for node in result.to_node_list():
         assert "ev-42" in node.evidence_ids or len(node.evidence_ids) > 0
     for risk in result.to_risk_list():

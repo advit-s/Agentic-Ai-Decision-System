@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from decision_system.models import Claim
 from decision_system.verification.service import VerificationService
 
@@ -14,8 +12,11 @@ class TestVerificationService:
     def test_verify_claim_no_store(self):
         """Verification works without a claim store."""
         claim = Claim(
-            claim_id="vs-1", run_id="r1", source_agent="test",
-            claim_text="Test claim.", claim_type="assumption",
+            claim_id="vs-1",
+            run_id="r1",
+            source_agent="test",
+            claim_text="Test claim.",
+            claim_type="assumption",
         )
         service = VerificationService()
         result, quality = service.verify_claim(claim, workspace_id="ws-none")

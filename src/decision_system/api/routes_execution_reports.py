@@ -8,21 +8,19 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
-from decision_system.api.models import api_error
-from decision_system.security.audit import append_event
-from decision_system.identity.models import LocalUser, Permission
-from decision_system.identity.permissions import (
-    get_current_user,
-    require_workspace_permission,
-    require_permission,
-    user_has_permission,
-)
 from decision_system._data_root import get_data_root
+from decision_system.api.models import api_error
+from decision_system.identity.models import LocalUser, Permission, UserRole
+from decision_system.identity.permissions import (
+    require_permission,
+    require_workspace_permission,
+)
 from decision_system.identity.settings import load_settings
 from decision_system.observability.metrics import MetricsCollector, MetricType
+from decision_system.security.audit import append_event
 
 router = APIRouter(tags=["execution-reports"])
 
@@ -52,6 +50,7 @@ def _load_claims_for_execution(execution_id: str) -> list[dict[str, Any]]:
     """Load claims linked to an execution."""
     try:
         from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
+
         store = JSONClaimStore(get_data_root())
         claims = store.list(execution_id=execution_id)
         return [c.model_dump(mode="json") for c in claims]
@@ -159,12 +158,14 @@ def _export_markdown(report_data: dict[str, Any]) -> str:
 
     # Claims section
     claims = report_data.get("claims", [])
-    lines.extend([
-        "## Claims",
-        "",
-        f"Total claims: {len(claims)}",
-        "",
-    ])
+    lines.extend(
+        [
+            "## Claims",
+            "",
+            f"Total claims: {len(claims)}",
+            "",
+        ]
+    )
 
     for c in claims:
         status_icon = {
@@ -205,7 +206,9 @@ def _export_markdown(report_data: dict[str, Any]) -> str:
     if timeline:
         lines.extend(["## Event Timeline", ""])
         for event in timeline:
-            lines.append(f"- **{event.get('event_type', 'event')}** at {event.get('timestamp', '?')}")
+            lines.append(
+                f"- **{event.get('event_type', 'event')}** at {event.get('timestamp', '?')}"
+            )
         lines.append("")
 
     # Warnings
@@ -220,7 +223,11 @@ def _export_markdown(report_data: dict[str, Any]) -> str:
 
 
 @router.post("/executions/{execution_id}/report")
-def generate_execution_report(execution_id: str, user: LocalUser = Depends(require_permission(Permission.REPORT_GENERATE)), mode: str = "deterministic") -> dict[str, Any]:
+def generate_execution_report(
+    execution_id: str,
+    user: LocalUser = Depends(require_permission(Permission.REPORT_GENERATE)),
+    mode: str = "deterministic",
+) -> dict[str, Any]:
     """Generate a report from a workflow execution with evidence references.
 
     The ``mode`` parameter controls report generation:
@@ -243,18 +250,21 @@ def generate_execution_report(execution_id: str, user: LocalUser = Depends(requi
     # AI-assisted draft mode: use synthesis service to draft summary text
     if mode == "trust_ai_draft":
         try:
-            from decision_system.synthesis.service import run_synthesis
             from decision_system.providers.store import list_providers
+            from decision_system.synthesis.service import run_synthesis
+
             providers = list_providers()
             provider_config = providers[0] if providers else None
 
             evidence_items = []
             for c in claims:
-                evidence_items.append({
-                    "id": c.get("claim_id", ""),
-                    "text": c.get("claim_text", ""),
-                    "source": f"claim/{c.get('claim_id', '')}",
-                })
+                evidence_items.append(
+                    {
+                        "id": c.get("claim_id", ""),
+                        "text": c.get("claim_text", ""),
+                        "source": f"claim/{c.get('claim_id', '')}",
+                    }
+                )
 
             synthesis = run_synthesis(
                 workspace_id=workspace_id,
@@ -269,11 +279,15 @@ def generate_execution_report(execution_id: str, user: LocalUser = Depends(requi
                 report_data["ai_draft_warnings"] = synthesis.warnings + synthesis.parse_warnings
                 report_data["synthesis_id"] = synthesis.synthesis_id
                 try:
-                    append_event("ai_report_draft_generated", f"AI draft for execution {execution_id}", metadata={
-                        "execution_id": execution_id,
-                        "workspace_id": workspace_id,
-                        "synthesis_id": synthesis.synthesis_id,
-                    })
+                    append_event(
+                        "ai_report_draft_generated",
+                        f"AI draft for execution {execution_id}",
+                        metadata={
+                            "execution_id": execution_id,
+                            "workspace_id": workspace_id,
+                            "synthesis_id": synthesis.synthesis_id,
+                        },
+                    )
                 except Exception:
                     pass
         except Exception:
@@ -284,36 +298,53 @@ def generate_execution_report(execution_id: str, user: LocalUser = Depends(requi
 
     # Emit audit event
     try:
-        append_event("trust_report_generated", f"Trust report {report_data['report_id']} generated for execution {execution_id}", metadata={
-            "execution_id": execution_id,
-            "workspace_id": workspace_id,
-            "report_id": report_data["report_id"],
-            "claim_count": len(claims),
-        })
+        append_event(
+            "trust_report_generated",
+            f"Trust report {report_data['report_id']} generated for execution {execution_id}",
+            metadata={
+                "execution_id": execution_id,
+                "workspace_id": workspace_id,
+                "report_id": report_data["report_id"],
+                "claim_count": len(claims),
+            },
+        )
     except Exception:
         pass
     try:
-        _emit_audit_event("report_generated", {
-            "execution_id": execution_id,
-            "workspace_id": workspace_id,
-            "report_id": report_data["report_id"],
-            "claim_count": len(claims),
-        })
+        _emit_audit_event(
+            "report_generated",
+            {
+                "execution_id": execution_id,
+                "workspace_id": workspace_id,
+                "report_id": report_data["report_id"],
+                "claim_count": len(claims),
+            },
+        )
     except Exception:
         pass
 
     try:
         collector = MetricsCollector()
-        collector.record("trust_report_generation_duration_ms", 0, MetricType.TIMER, {
-            "execution_id": execution_id,
-            "workspace_id": workspace_id,
-            "report_id": report_data["report_id"],
-            "claim_count": str(len(claims)),
-        })
-        collector.record("claims_verified_count", len(claims), MetricType.COUNTER, {
-            "action": "report_generated",
-            "execution_id": execution_id,
-        })
+        collector.record(
+            "trust_report_generation_duration_ms",
+            0,
+            MetricType.TIMER,
+            {
+                "execution_id": execution_id,
+                "workspace_id": workspace_id,
+                "report_id": report_data["report_id"],
+                "claim_count": str(len(claims)),
+            },
+        )
+        collector.record(
+            "claims_verified_count",
+            len(claims),
+            MetricType.COUNTER,
+            {
+                "action": "report_generated",
+                "execution_id": execution_id,
+            },
+        )
     except Exception:
         pass
 
@@ -325,7 +356,10 @@ def generate_execution_report(execution_id: str, user: LocalUser = Depends(requi
 
 
 @router.get("/workspaces/{workspace_id}/reports")
-def list_workspace_reports(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.REPORT_EXPORT))) -> dict[str, Any]:
+def list_workspace_reports(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.REPORT_EXPORT)),
+) -> dict[str, Any]:
     """List all reports in a workspace."""
     reports_dir = get_data_root() / "reports" / workspace_id
     if not reports_dir.exists():
@@ -335,13 +369,15 @@ def list_workspace_reports(workspace_id: str, user: LocalUser = Depends(require_
     for f in sorted(reports_dir.glob("*.json"), reverse=True):
         try:
             data = json.loads(f.read_text(encoding="utf-8"))
-            reports.append({
-                "report_id": data.get("report_id", f.stem),
-                "execution_id": data.get("execution_id", ""),
-                "workflow_id": data.get("workflow_id", ""),
-                "created_at": data.get("created_at", ""),
-                "claim_count": len(data.get("claims", [])),
-            })
+            reports.append(
+                {
+                    "report_id": data.get("report_id", f.stem),
+                    "execution_id": data.get("execution_id", ""),
+                    "workflow_id": data.get("workflow_id", ""),
+                    "created_at": data.get("created_at", ""),
+                    "claim_count": len(data.get("claims", [])),
+                }
+            )
         except (json.JSONDecodeError, OSError):
             continue
 
@@ -388,9 +424,9 @@ def export_report(
     # Check if exports require admin
     if load_settings().exports_require_admin:
         from decision_system.identity.permissions import role_is_at_least
+
         if not role_is_at_least(_user.role, UserRole.ADMIN):
-            raise api_error(403, "permission_denied",
-                "Report export requires admin or owner role.")
+            raise api_error(403, "permission_denied", "Report export requires admin or owner role.")
     # Find the report
     result = get_report(report_id, workspace_id)
     report_data = result["report"]
@@ -404,19 +440,26 @@ def export_report(
 
     # Emit audit event
     try:
-        append_event("trust_report_exported", f"Trust report {report_id} exported as {format}", metadata={
-            "report_id": report_id,
-            "workspace_id": report_data.get("workspace_id", ""),
-            "format": format,
-        })
+        append_event(
+            "trust_report_exported",
+            f"Trust report {report_id} exported as {format}",
+            metadata={
+                "report_id": report_id,
+                "workspace_id": report_data.get("workspace_id", ""),
+                "format": format,
+            },
+        )
     except Exception:
         pass
     try:
-        _emit_audit_event("report_exported", {
-            "report_id": report_id,
-            "workspace_id": report_data.get("workspace_id", ""),
-            "format": format,
-        })
+        _emit_audit_event(
+            "report_exported",
+            {
+                "report_id": report_id,
+                "workspace_id": report_data.get("workspace_id", ""),
+                "format": format,
+            },
+        )
     except Exception:
         pass
 
@@ -431,6 +474,7 @@ def _emit_audit_event(event_type: str, data: dict[str, Any]) -> None:
     """Emit an audit event for observability."""
     try:
         from decision_system.observability.store import record_metric_point
+
         record_metric_point(
             name=f"audit.{event_type}",
             value=1.0,

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from collections import Counter
-
-from decision_system.insights.models import InsightCategory, InsightSeverity, InsightStore
+from decision_system.insights.models import (
+    InsightCategory,
+    InsightSeverity,
+    InsightStore,
+)
 
 
 def inspect_insights(store: InsightStore) -> dict[str, object]:
@@ -63,9 +65,7 @@ def render_insight_inspection(summary: dict[str, object]) -> str:
         lines.append("")
         for idx, item in enumerate(top, start=1):
             sev_badge = item["severity"].upper()
-            lines.append(
-                f"{idx}. [{sev_badge}] **{item['title']}** ({item['category']})"
-            )
+            lines.append(f"{idx}. [{sev_badge}] **{item['title']}** ({item['category']})")
         lines.append("")
 
     if not lines:

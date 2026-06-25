@@ -9,9 +9,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from decision_system.workflow_engine.models import WorkflowNode, ExecutionContext
+from decision_system.workflow_engine.models import ExecutionContext, WorkflowNode
 from decision_system.workflow_engine.providers.client import LLMClient
-
 
 # ── Fake fallback generators ─────────────────────────────────────────
 
@@ -32,34 +31,40 @@ def _generate_fake_compliance(data: dict, framework: str, strict_mode: bool) -> 
         has_retention = any(kw in data_keys for kw in ("retention", "deletion", "expiry"))
 
         if not has_privacy_terms:
-            violations.append({
-                "rule": "GDPR-ART-5",
-                "severity": "critical",
-                "description": "No data privacy terms or consent indicators found in data.",
-                "remediation": "Implement consent management and privacy notice documentation.",
-            })
+            violations.append(
+                {
+                    "rule": "GDPR-ART-5",
+                    "severity": "critical",
+                    "description": "No data privacy terms or consent indicators found in data.",
+                    "remediation": "Implement consent management and privacy notice documentation.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
 
         if not has_data_subject:
-            violations.append({
-                "rule": "GDPR-ART-15",
-                "severity": "high",
-                "description": "Data subject access request handling not evident.",
-                "remediation": "Establish data subject access request (DSAR) process.",
-            })
+            violations.append(
+                {
+                    "rule": "GDPR-ART-15",
+                    "severity": "high",
+                    "description": "Data subject access request handling not evident.",
+                    "remediation": "Establish data subject access request (DSAR) process.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
 
         if not has_retention:
-            violations.append({
-                "rule": "GDPR-ART-17",
-                "severity": "medium",
-                "description": "Data retention and deletion policies not clearly defined.",
-                "remediation": "Define data retention periods and implement automated deletion.",
-            })
+            violations.append(
+                {
+                    "rule": "GDPR-ART-17",
+                    "severity": "medium",
+                    "description": "Data retention and deletion policies not clearly defined.",
+                    "remediation": "Define data retention periods and implement automated deletion.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
@@ -71,34 +76,40 @@ def _generate_fake_compliance(data: dict, framework: str, strict_mode: bool) -> 
         has_encryption = any(kw in data_keys for kw in ("encrypt", "crypto", "tls", "https"))
 
         if not has_access_control:
-            violations.append({
-                "rule": "SOC2-CC6",
-                "severity": "high",
-                "description": "No access control mechanisms identified in data.",
-                "remediation": "Implement role-based access control (RBAC) and review access logs.",
-            })
+            violations.append(
+                {
+                    "rule": "SOC2-CC6",
+                    "severity": "high",
+                    "description": "No access control mechanisms identified in data.",
+                    "remediation": "Implement role-based access control (RBAC) and review access logs.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
 
         if not has_monitoring:
-            violations.append({
-                "rule": "SOC2-CC7",
-                "severity": "high",
-                "description": "No monitoring or audit logging detected.",
-                "remediation": "Deploy monitoring and audit logging for system activity.",
-            })
+            violations.append(
+                {
+                    "rule": "SOC2-CC7",
+                    "severity": "high",
+                    "description": "No monitoring or audit logging detected.",
+                    "remediation": "Deploy monitoring and audit logging for system activity.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
 
         if not has_encryption:
-            violations.append({
-                "rule": "SOC2-CC6.7",
-                "severity": "medium",
-                "description": "Encryption indicators not found — data may not be encrypted at rest or in transit.",
-                "remediation": "Implement encryption for data at rest and in transit.",
-            })
+            violations.append(
+                {
+                    "rule": "SOC2-CC6.7",
+                    "severity": "medium",
+                    "description": "Encryption indicators not found — data may not be encrypted at rest or in transit.",
+                    "remediation": "Implement encryption for data at rest and in transit.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
@@ -106,38 +117,46 @@ def _generate_fake_compliance(data: dict, framework: str, strict_mode: bool) -> 
     elif framework == "hipaa":
         # Check for health data safeguards
         has_phi_safeguards = any(kw in data_keys for kw in ("phi", "health", "medical", "patient"))
-        has_breach_notification = any(kw in data_keys for kw in ("breach", "notification", "incident"))
+        has_breach_notification = any(
+            kw in data_keys for kw in ("breach", "notification", "incident")
+        )
         has_access_logs = any(kw in data_keys for kw in ("access_log", "audit", "login"))
 
         if not has_phi_safeguards:
-            violations.append({
-                "rule": "HIPAA-164.312",
-                "severity": "critical",
-                "description": "No PHI safeguards detected. Protected health information may not be properly secured.",
-                "remediation": "Implement administrative, physical, and technical safeguards for PHI.",
-            })
+            violations.append(
+                {
+                    "rule": "HIPAA-164.312",
+                    "severity": "critical",
+                    "description": "No PHI safeguards detected. Protected health information may not be properly secured.",
+                    "remediation": "Implement administrative, physical, and technical safeguards for PHI.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
 
         if not has_breach_notification:
-            violations.append({
-                "rule": "HIPAA-164.410",
-                "severity": "high",
-                "description": "Breach notification process not evident in data.",
-                "remediation": "Establish breach notification procedures as required by HIPAA.",
-            })
+            violations.append(
+                {
+                    "rule": "HIPAA-164.410",
+                    "severity": "high",
+                    "description": "Breach notification process not evident in data.",
+                    "remediation": "Establish breach notification procedures as required by HIPAA.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
 
         if not has_access_logs:
-            violations.append({
-                "rule": "HIPAA-164.312(b)",
-                "severity": "medium",
-                "description": "Access log mechanisms not detected.",
-                "remediation": "Implement audit controls to record access to PHI.",
-            })
+            violations.append(
+                {
+                    "rule": "HIPAA-164.312(b)",
+                    "severity": "medium",
+                    "description": "Access log mechanisms not detected.",
+                    "remediation": "Implement audit controls to record access to PHI.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
@@ -149,57 +168,67 @@ def _generate_fake_compliance(data: dict, framework: str, strict_mode: bool) -> 
         has_status = any(kw in data_keys for kw in ("status", "state", "phase"))
 
         if not has_metadata:
-            violations.append({
-                "rule": "INT-META-001",
-                "severity": "medium",
-                "description": "Data missing metadata fields (version, date, or timestamp).",
-                "remediation": "Add metadata including version, creation date, and last modified date.",
-            })
+            violations.append(
+                {
+                    "rule": "INT-META-001",
+                    "severity": "medium",
+                    "description": "Data missing metadata fields (version, date, or timestamp).",
+                    "remediation": "Add metadata including version, creation date, and last modified date.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
 
         if not has_owner:
-            violations.append({
-                "rule": "INT-OWN-001",
-                "severity": "medium",
-                "description": "Data owner or author not identified.",
-                "remediation": "Assign a data owner for accountability.",
-            })
+            violations.append(
+                {
+                    "rule": "INT-OWN-001",
+                    "severity": "medium",
+                    "description": "Data owner or author not identified.",
+                    "remediation": "Assign a data owner for accountability.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
 
         if not has_status:
-            violations.append({
-                "rule": "INT-STAT-001",
-                "severity": "low",
-                "description": "Data status or state field is missing.",
-                "remediation": "Add status field to track data lifecycle state.",
-            })
+            violations.append(
+                {
+                    "rule": "INT-STAT-001",
+                    "severity": "low",
+                    "description": "Data status or state field is missing.",
+                    "remediation": "Add status field to track data lifecycle state.",
+                }
+            )
             failed_checks += 1
         else:
             passed_checks += 1
 
     else:
         # Custom / unknown framework — warning
-        violations.append({
-            "rule": "FRM-GEN-001",
-            "severity": "low",
-            "description": f"No specific compliance rules defined for framework: '{framework}'.",
-            "remediation": f"Define compliance rules for {framework} or select a supported framework (gdpr, soc2, hipaa, internal).",
-        })
+        violations.append(
+            {
+                "rule": "FRM-GEN-001",
+                "severity": "low",
+                "description": f"No specific compliance rules defined for framework: '{framework}'.",
+                "remediation": f"Define compliance rules for {framework} or select a supported framework (gdpr, soc2, hipaa, internal).",
+            }
+        )
         failed_checks += 1
 
     if strict_mode:
         # Flag anything borderline as violations
         if len(violations) == 0:
-            violations.append({
-                "rule": "STRICT-001",
-                "severity": "low",
-                "description": "Strict mode enabled — no issues found but review recommended.",
-                "remediation": "Manual review recommended to ensure full compliance.",
-            })
+            violations.append(
+                {
+                    "rule": "STRICT-001",
+                    "severity": "low",
+                    "description": "Strict mode enabled — no issues found but review recommended.",
+                    "remediation": "Manual review recommended to ensure full compliance.",
+                }
+            )
             passed_checks = max(0, passed_checks - 1)
             failed_checks += 1
 
@@ -280,6 +309,7 @@ class ComplianceCheckerNode(WorkflowNode):
     Produces structured compliance results with violations, risk levels, and remediation steps.
     Falls back to deterministic mock compliance when no LLM provider is configured.
     """
+
     type: str = "decision_system.compliance_checker"
     label: str = "Compliance Checker"
 
@@ -318,7 +348,9 @@ class ComplianceCheckerNode(WorkflowNode):
         if provider_cfg:
             provider_config, _ = provider_cfg
             try:
-                return await self._llm_compliance(data, framework, rules_str, strict_mode, provider_config)
+                return await self._llm_compliance(
+                    data, framework, rules_str, strict_mode, provider_config
+                )
             except Exception as exc:
                 fallback_reason = f"{type(exc).__name__}: {exc}"
 
@@ -331,8 +363,12 @@ class ComplianceCheckerNode(WorkflowNode):
         return result
 
     async def _llm_compliance(
-        self, data: dict, framework: str, rules_str: str,
-        strict_mode: bool, provider_config: Any,
+        self,
+        data: dict,
+        framework: str,
+        rules_str: str,
+        strict_mode: bool,
+        provider_config: Any,
     ) -> dict:
         """Use LLM to check compliance."""
         client = LLMClient(provider_config)
@@ -340,13 +376,19 @@ class ComplianceCheckerNode(WorkflowNode):
 
         response = await client.chat_completion(
             messages=[
-                {"role": "system", "content": _COMPLIANCE_SYSTEM_PROMPT.format(
-                    data_json=data_json,
-                    framework=framework,
-                    rules_str=rules_str,
-                    strict_mode=str(strict_mode),
-                )},
-                {"role": "user", "content": f"Check compliance against {framework} framework."},
+                {
+                    "role": "system",
+                    "content": _COMPLIANCE_SYSTEM_PROMPT.format(
+                        data_json=data_json,
+                        framework=framework,
+                        rules_str=rules_str,
+                        strict_mode=str(strict_mode),
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Check compliance against {framework} framework.",
+                },
             ],
             model=provider_config.default_model,
             stream=False,
@@ -427,20 +469,29 @@ class ComplianceCheckerNode(WorkflowNode):
         return {
             "type": "object",
             "properties": {
-                "compliant": {"type": "boolean", "description": "Overall compliance status"},
+                "compliant": {
+                    "type": "boolean",
+                    "description": "Overall compliance status",
+                },
                 "violations": {
                     "type": "array",
                     "items": {
                         "type": "object",
                         "properties": {
                             "rule": {"type": "string"},
-                            "severity": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+                            "severity": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high", "critical"],
+                            },
                             "description": {"type": "string"},
                             "remediation": {"type": "string"},
                         },
                     },
                 },
-                "risk_level": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+                "risk_level": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high", "critical"],
+                },
                 "summary": {"type": "string"},
                 "score": {"type": "number", "description": "Compliance score (0-1)"},
                 "passed_checks": {"type": "integer"},

@@ -91,13 +91,9 @@ def parse_json_response(
     try:
         parsed = json.loads(response_text)
     except json.JSONDecodeError as exc:
-        raise ValueError(
-            f"{provider_label} returned malformed JSON for {schema_name}."
-        ) from exc
+        raise ValueError(f"{provider_label} returned malformed JSON for {schema_name}.") from exc
 
     try:
         return schema_model.model_validate(parsed)
     except ValidationError as exc:
-        raise ValueError(
-            f"{provider_label} returned invalid {schema_name} JSON."
-        ) from exc
+        raise ValueError(f"{provider_label} returned invalid {schema_name} JSON.") from exc

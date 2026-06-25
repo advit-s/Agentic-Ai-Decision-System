@@ -87,8 +87,7 @@ def _cmd_metrics(json_output: bool = False) -> None:
         console.print(f"# Metrics Summary ({len(summaries)})")
         for s in summaries:
             console.print(
-                f"  {s.name}: count={s.count} avg={s.avg:.2f} "
-                f"min={s.min:.2f} max={s.max:.2f}"
+                f"  {s.name}: count={s.count} avg={s.avg:.2f} min={s.min:.2f} max={s.max:.2f}"
             )
 
 

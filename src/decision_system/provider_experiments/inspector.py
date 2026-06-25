@@ -37,7 +37,13 @@ def render_provider_experiments(suite: ProviderExperimentSuiteResult) -> str:
         "",
     ]
     for result in suite.results:
-        status_icon = "PASS" if result.status == "passed" else "SKIP" if result.status == "skipped" else "FAIL"
+        status_icon = (
+            "PASS"
+            if result.status == "passed"
+            else "SKIP"
+            if result.status == "skipped"
+            else "FAIL"
+        )
         lines.append(
             f"- [{status_icon}] {result.case_id}: "
             f"tech={result.technical_memo_valid} risk={result.risk_memo_valid} "

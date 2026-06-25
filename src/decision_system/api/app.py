@@ -6,6 +6,7 @@ lightweight endpoints (``/health``, ``/dashboard``, ``/workspaces/*``,
 ``/security/*``, ``/enterprise-readiness``, etc.) work even when those
 dependencies are not installed.
 """
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -13,35 +14,37 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from decision_system import __version__
-from decision_system.api.models import ApiError, ErrorResponse
 
 # ---------------------------------------------------------------------------
 # Lightweight route modules — imported eagerly because they do not pull in
 # optional heavy packages (chromadb, langgraph, etc.).  Heavy route modules
 # are loaded lazily inside create_app() via _lazy_router().
 # ---------------------------------------------------------------------------
-from decision_system.api import routes_health
-from decision_system.api import routes_connectors
-from decision_system.api import routes_dashboard
-from decision_system.api import routes_data
-from decision_system.api import routes_ontology
-from decision_system.api import routes_security
-from decision_system.api import routes_workspaces
-from decision_system.api import routes_enterprise
-from decision_system.api import routes_observability
-from decision_system.api import routes_data_sources
-from decision_system.api import routes_execution_reports
-from decision_system.api import routes_verification
-from decision_system.api import routes_providers
-from decision_system.api import routes_graph
+from decision_system.api import (
+    routes_audit,
+    routes_connectors,
+    routes_dashboard,
+    routes_data,
+    routes_data_sources,
+    routes_enterprise,
+    routes_execution_reports,
+    routes_graph,
+    routes_health,
+    routes_identity,
+    routes_observability,
+    routes_ontology,
+    routes_providers,
+    routes_security,
+    routes_system,
+    routes_verification,
+    routes_workspaces,
+)
+from decision_system.api.models import ApiError, ErrorResponse
 from decision_system.workflow_engine.api import router as routes_workflow
-from decision_system.api import routes_identity
-from decision_system.api import routes_audit
-from decision_system.api import routes_system
 
 # ---------------------------------------------------------------------------
 # Scheduler control — tests can disable the background scheduler loop to
@@ -69,6 +72,7 @@ def _lazy_router(api: FastAPI, module_name: str) -> None:
     """
     import importlib
     import logging
+
     try:
         mod = importlib.import_module(module_name)
         api.include_router(mod.router)
@@ -81,6 +85,7 @@ def _lazy_router(api: FastAPI, module_name: str) -> None:
 def _get_scheduler() -> object:
     """Return the shared scheduler instance from the workflow engine module."""
     from decision_system.workflow_engine.api import _scheduler
+
     return _scheduler
 
 
@@ -94,7 +99,7 @@ def create_app() -> FastAPI:
         if _SCHEDULER_ENABLED:
             await sched.start()
         yield
-        if _SCHEDULER_ENABLED and getattr(sched, 'is_running', False):
+        if _SCHEDULER_ENABLED and getattr(sched, "is_running", False):
             await sched.stop()
 
     api = FastAPI(
@@ -136,9 +141,10 @@ def create_app() -> FastAPI:
     _lazy_router(api, "decision_system.api.routes_evals")
 
     # Mount the static files for the web UI prototype at the root.
-    from pathlib import Path
-    from fastapi.staticfiles import StaticFiles
     import importlib.resources as _res
+    from pathlib import Path
+
+    from fastapi.staticfiles import StaticFiles
 
     web_dir: Path | None = None
 
@@ -161,7 +167,11 @@ def create_app() -> FastAPI:
             if _repo_wf.is_dir():
                 _wf_dir = _repo_wf
         if _wf_dir.is_dir():
-            api.mount("/workflow-builder", StaticFiles(directory=str(_wf_dir), html=True), name="workflow-builder")
+            api.mount(
+                "/workflow-builder",
+                StaticFiles(directory=str(_wf_dir), html=True),
+                name="workflow-builder",
+            )
 
         api.mount("/", StaticFiles(directory=str(web_dir), html=True), name="web")
 

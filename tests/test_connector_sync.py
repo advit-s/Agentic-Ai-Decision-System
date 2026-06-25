@@ -2,40 +2,29 @@
 
 from __future__ import annotations
 
-import json
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
-from decision_system.connectors.sync_state import (
-    SyncStateItem,
-    SyncStateStore,
-    get_sync_state_store,
-    reset_sync_state_store,
+from decision_system.connectors.import_jobs import run_sync
+from decision_system.connectors.models import (
+    ConnectorType,
 )
 from decision_system.connectors.schedule import (
     ConnectorSchedule,
     ScheduleStore,
-    get_schedule_store,
     reset_schedule_store,
 )
 from decision_system.connectors.sync_runner import (
     SyncRunner,
-    SyncResult,
-    get_sync_runner,
     reset_sync_runner,
 )
-from decision_system.connectors.import_jobs import run_sync
-from decision_system.connectors.models import (
-    ConnectorConfig,
-    ConnectorType,
-    ConnectorMode,
-    ConnectorConfigStatus,
+from decision_system.connectors.sync_state import (
+    SyncStateItem,
+    SyncStateStore,
+    reset_sync_state_store,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -388,15 +377,12 @@ class TestRunSync:
         result = run_sync("nonexistent", "ws1")
         assert result["status"] == "failed"
 
-
-# ---------------------------------------------------------------------------
-# Sync API tests
-# ---------------------------------------------------------------------------
-
+    # ---------------------------------------------------------------------------
+    # Sync API tests
+    # ---------------------------------------------------------------------------
 
     def test_connector_citation_display(self):
-        from decision_system.connectors.models import ConnectorCitation, ConnectorType
-        from datetime import datetime, timezone
+        from decision_system.connectors.models import ConnectorCitation
 
         citation = ConnectorCitation(
             connector_id="c1",

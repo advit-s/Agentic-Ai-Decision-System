@@ -41,39 +41,75 @@ def _cmd_enterprise_readiness(json_output: bool = False) -> None:
         ("Approval request workflow (record-only)", True, "", ""),
         ("Metrics, eval history, quality reports", True, "", ""),
         ("Docker packaging for local deployment", True, "", ""),
-        ("Real authentication (JWT/OAuth)", False, "critical",
-         "No auth implemented. All operations run as local-user."),
-        ("Role-based access control", False, "critical",
-         "No RBAC. All local users have full access."),
-        ("Tenant isolation", False, "critical",
-         "No multi-tenant boundaries."),
-        ("Secrets vault", False, "critical",
-         "Secrets stored in env vars or .env files only."),
-        ("Audit log retention policy", False, "high",
-         "JSONL log rotated locally, no retention policy."),
-        ("Compliance controls (SOC 2, GDPR, HIPAA)", False, "high",
-         "No compliance controls implemented."),
-        ("Production connector approvals", False, "high",
-         "Only local-files is real; others are stubs."),
-        ("Deployment hardening (TLS, rate limiting)", False, "high",
-         "No TLS or rate limiting."),
-        ("Database persistence", False, "medium",
-         "Chroma + JSON files, no RDBMS durability."),
-        ("Encrypted storage at rest", False, "medium",
-         "All data stored unencrypted locally."),
-        ("API input sanitization", False, "medium",
-         "Basic Pydantic validation only."),
+        (
+            "Real authentication (JWT/OAuth)",
+            False,
+            "critical",
+            "No auth implemented. All operations run as local-user.",
+        ),
+        (
+            "Role-based access control",
+            False,
+            "critical",
+            "No RBAC. All local users have full access.",
+        ),
+        ("Tenant isolation", False, "critical", "No multi-tenant boundaries."),
+        (
+            "Secrets vault",
+            False,
+            "critical",
+            "Secrets stored in env vars or .env files only.",
+        ),
+        (
+            "Audit log retention policy",
+            False,
+            "high",
+            "JSONL log rotated locally, no retention policy.",
+        ),
+        (
+            "Compliance controls (SOC 2, GDPR, HIPAA)",
+            False,
+            "high",
+            "No compliance controls implemented.",
+        ),
+        (
+            "Production connector approvals",
+            False,
+            "high",
+            "Only local-files is real; others are stubs.",
+        ),
+        (
+            "Deployment hardening (TLS, rate limiting)",
+            False,
+            "high",
+            "No TLS or rate limiting.",
+        ),
+        (
+            "Database persistence",
+            False,
+            "medium",
+            "Chroma + JSON files, no RDBMS durability.",
+        ),
+        (
+            "Encrypted storage at rest",
+            False,
+            "medium",
+            "All data stored unencrypted locally.",
+        ),
+        ("API input sanitization", False, "medium", "Basic Pydantic validation only."),
     ]
 
     for check in checks:
         if check[1]:
             passed_items.append(check[0])
         else:
-            missing_items.append({
-                "gap": check[0],
-                "severity": check[2] if len(check) > 2 else "medium",
-                "notes": check[3] if len(check) > 3 else "",
-            })
+            missing_items.append(
+                {
+                    "gap": check[0],
+                    "severity": check[2] if len(check) > 2 else "medium",
+                    "notes": check[3] if len(check) > 3 else "",
+                }
+            )
 
     if json_output:
         payload = {
@@ -103,9 +139,7 @@ def _cmd_enterprise_readiness(json_output: bool = False) -> None:
         console.print("")
         console.print(f"## What Is Missing ({len(missing_items)})")
         for item in missing_items:
-            console.print(
-                f"  [ ] {item['gap']} ({item['severity'].upper()})"
-            )
+            console.print(f"  [ ] {item['gap']} ({item['severity'].upper()})")
             if item["notes"]:
                 console.print(f"      {item['notes']}")
 

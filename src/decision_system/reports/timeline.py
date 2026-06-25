@@ -9,7 +9,7 @@ All events are stored in local JSON/JSONL files and never expose secrets.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -157,9 +157,13 @@ def timeline_to_text(timeline: AuditTimeline) -> str:
         lines.append(f"{i}. [{ts}] [{ev.source}] {ev.event_type}")
         lines.append(f"   {ev.summary[:120]}")
         if ev.details:
-            safe_keys = [k for k in ev.details if k not in ("original_text", "raw", "text", "content")]
+            safe_keys = [
+                k for k in ev.details if k not in ("original_text", "raw", "text", "content")
+            ]
             if safe_keys:
-                preview = ", ".join(f"{k}={v}" for k, v in list(ev.details.items())[:3] if k in safe_keys)
+                preview = ", ".join(
+                    f"{k}={v}" for k, v in list(ev.details.items())[:3] if k in safe_keys
+                )
                 if preview:
                     lines.append(f"   ({preview})")
         lines.append("")

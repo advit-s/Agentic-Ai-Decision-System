@@ -1,13 +1,13 @@
-from pathlib import Path
 import builtins
 import importlib
 import sys
+from pathlib import Path
 
 import pytest
 
 from decision_system.config import Settings
-from decision_system.llm.fake_provider import FakeProvider
 from decision_system.llm.factory import get_provider
+from decision_system.llm.fake_provider import FakeProvider
 
 
 def _settings(provider="fake", api_key="", model="deepseek-ai/deepseek-v4-flash"):
@@ -58,7 +58,9 @@ def test_factory_import_stays_lazy_for_nvidia_provider(monkeypatch):
 
 def test_nvidia_nim_provider_loads_when_env_vars_exist():
     provider = get_provider(settings=_settings("nvidia_nim", "key"))
-    from decision_system.llm.nvidia_nim_provider import NvidiaNimProvider as CurrentNvidiaNimProvider
+    from decision_system.llm.nvidia_nim_provider import (
+        NvidiaNimProvider as CurrentNvidiaNimProvider,
+    )
 
     assert isinstance(provider, CurrentNvidiaNimProvider)
 

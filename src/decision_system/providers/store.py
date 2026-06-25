@@ -18,8 +18,8 @@ from typing import List
 from decision_system.providers.models import (
     ProviderConfig,
     ProviderCreateRequest,
-    ProviderUpdateRequest,
     ProviderType,
+    ProviderUpdateRequest,
 )
 
 

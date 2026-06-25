@@ -30,6 +30,5 @@ def get_provider(
         return OllamaProvider(resolved_settings)
 
     raise ValueError(
-        f"Unknown DECISION_PROVIDER '{name}'. "
-        f"Expected one of: fake, nvidia_nim, ollama."
+        f"Unknown DECISION_PROVIDER '{name}'. Expected one of: fake, nvidia_nim, ollama."
     )

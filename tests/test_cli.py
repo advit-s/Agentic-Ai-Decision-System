@@ -41,7 +41,9 @@ def test_inspect_index_empty_store(tmp_path, monkeypatch):
     assert result.exit_code == 0
     assert "Collection name: empty_chunks" in result.output
     # Rich outputs ANSI color codes, strip them for assertion
-    output_no_ansi = result.output.replace("\x1b[1;36m", "").replace("\x1b[0m", "").replace("\x1b[1m", "")
+    output_no_ansi = (
+        result.output.replace("\x1b[1;36m", "").replace("\x1b[0m", "").replace("\x1b[1m", "")
+    )
     assert "Chunk count: 0" in output_no_ansi
     assert "Unique source filenames: (none)" in output_no_ansi
 
@@ -57,7 +59,11 @@ def test_inspect_index_after_indexing(tmp_path, monkeypatch):
     assert inspect_result.exit_code == 0
     assert "Collection name: indexed_chunks" in inspect_result.output
     # Rich outputs ANSI color codes, strip them for assertion
-    output_no_ansi = inspect_result.output.replace("\x1b[1;36m", "").replace("\x1b[0m", "").replace("\x1b[1m", "")
+    output_no_ansi = (
+        inspect_result.output.replace("\x1b[1;36m", "")
+        .replace("\x1b[0m", "")
+        .replace("\x1b[1m", "")
+    )
     assert "Chunk count: 1" in output_no_ansi
     assert "billing.md" in inspect_result.output
 

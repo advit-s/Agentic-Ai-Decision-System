@@ -106,20 +106,17 @@ def run_experiment_case(
             claims_valid = True
             claim_count = len(claims)
         else:
-            errors.append(f"extract_claims returned unexpected types")
+            errors.append("extract_claims returned unexpected types")
     except Exception as exc:
         errors.append(f"extract_claims failed: {exc}")
 
     if claims_valid:
         if claim_count < case.expected_min_claims:
             errors.append(
-                "claim_count below expected_min_claims: "
-                f"{claim_count} < {case.expected_min_claims}"
+                f"claim_count below expected_min_claims: {claim_count} < {case.expected_min_claims}"
             )
         actual_evidence_ids = {
-            evidence_id
-            for claim in claims
-            for evidence_id in claim.evidence_ids
+            evidence_id for claim in claims for evidence_id in claim.evidence_ids
         }
         missing_evidence_ids = [
             evidence_id
@@ -127,10 +124,7 @@ def run_experiment_case(
             if evidence_id not in actual_evidence_ids
         ]
         if missing_evidence_ids:
-            errors.append(
-                "expected evidence IDs not cited by claims: "
-                f"{missing_evidence_ids}"
-            )
+            errors.append(f"expected evidence IDs not cited by claims: {missing_evidence_ids}")
 
     if not errors:
         status = "passed"
@@ -173,12 +167,12 @@ def run_experiment_suite(
 # Case loading
 # ------------------------------------------------------------------
 
-PROVIDER_CASES_DIR = (
-    Path(__file__).resolve().parents[3] / "evals" / "provider_cases"
-)
+PROVIDER_CASES_DIR = Path(__file__).resolve().parents[3] / "evals" / "provider_cases"
 
 
-def load_eval_cases(cases_dir: Path | str = PROVIDER_CASES_DIR) -> list[ProviderExperimentCase]:
+def load_eval_cases(
+    cases_dir: Path | str = PROVIDER_CASES_DIR,
+) -> list[ProviderExperimentCase]:
     """Load provider experiment case JSON files from disk."""
     case_path = Path(cases_dir)
     if not case_path.exists():

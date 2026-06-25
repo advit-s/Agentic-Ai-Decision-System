@@ -13,23 +13,29 @@ from pytest_httpx import HTTPXMock
 from decision_system.workflow_engine.models import ExecutionContext
 from decision_system.workflow_engine.nodes.specialist.synthesizer import (
     SynthesizerNode,
+    _default_criteria,
     _fake_options,
     _score_options,
-    _default_criteria,
 )
-from decision_system.workflow_engine.providers.store import ProviderConfig, ProviderStore
+from decision_system.workflow_engine.providers.store import (
+    ProviderConfig,
+    ProviderStore,
+)
+
 
 def _store_with_provider() -> ProviderStore:
     tmp = Path(tempfile.mkdtemp())
     store = ProviderStore(tmp / "providers.json")
-    store.save([
-        ProviderConfig(
-            name="test-provider",
-            api_base="https://test.api/v1",
-            api_key_env="TEST_AI_KEY",
-            default_model="test-model",
-        ),
-    ])
+    store.save(
+        [
+            ProviderConfig(
+                name="test-provider",
+                api_base="https://test.api/v1",
+                api_key_env="TEST_AI_KEY",
+                default_model="test-model",
+            ),
+        ]
+    )
     return store
 
 
@@ -55,25 +61,38 @@ SYNTHESIS_RESPONSE = {
             "index": 0,
             "message": {
                 "role": "assistant",
-                "content": json.dumps({
-                    "options": [
-                        {
+                "content": json.dumps(
+                    {
+                        "options": [
+                            {
+                                "title": "Strategic Option A",
+                                "description": "Full investment approach",
+                                "pros": ["High upside", "Fast execution"],
+                                "cons": ["High risk", "Capital intensive"],
+                                "confidence": 0.7,
+                                "criteria_scores": {
+                                    "feasibility": 0.6,
+                                    "impact": 0.8,
+                                    "cost": 0.4,
+                                    "risk": 0.5,
+                                },
+                                "risks": [
+                                    {
+                                        "risk": "Market risk",
+                                        "likelihood": "medium",
+                                        "mitigation": "Hedging",
+                                    }
+                                ],
+                            },
+                        ],
+                        "recommendation": {
                             "title": "Strategic Option A",
-                            "description": "Full investment approach",
-                            "pros": ["High upside", "Fast execution"],
-                            "cons": ["High risk", "Capital intensive"],
-                            "confidence": 0.7,
-                            "criteria_scores": {"feasibility": 0.6, "impact": 0.8, "cost": 0.4, "risk": 0.5},
-                            "risks": [{"risk": "Market risk", "likelihood": "medium", "mitigation": "Hedging"}],
+                            "rationale": "Best balance of risk and reward",
+                            "overall_confidence": 0.65,
                         },
-                    ],
-                    "recommendation": {
-                        "title": "Strategic Option A",
-                        "rationale": "Best balance of risk and reward",
-                        "overall_confidence": 0.65,
-                    },
-                    "trade_offs_summary": "Option A trades higher risk for higher reward.",
-                }),
+                        "trade_offs_summary": "Option A trades higher risk for higher reward.",
+                    }
+                ),
             },
             "finish_reason": "stop",
         }
@@ -110,26 +129,38 @@ class TestSynthesizerNode:
         ctx = _ctx(_fake_store())
 
         # "invest" keyword
-        invest_result = await node.execute({
-            "question": "Should we invest in AI?",
-            "evidence_streams": [
-                {"source_label": "Research", "content": {"summary": "Market is growing"}},
-            ],
-            "criteria": _default_criteria(),
-        }, ctx)
+        invest_result = await node.execute(
+            {
+                "question": "Should we invest in AI?",
+                "evidence_streams": [
+                    {
+                        "source_label": "Research",
+                        "content": {"summary": "Market is growing"},
+                    },
+                ],
+                "criteria": _default_criteria(),
+            },
+            ctx,
+        )
         assert len(invest_result["options"]) == 3
         # Options should contain investment-related titles
         titles = [o["title"].lower() for o in invest_result["options"]]
         assert any("invest" in t for t in titles)
 
         # "expand" keyword
-        expand_result = await node.execute({
-            "question": "Should we expand to new markets?",
-            "evidence_streams": [
-                {"source_label": "Analysis", "content": {"summary": "Opportunities exist"}},
-            ],
-            "criteria": _default_criteria(),
-        }, ctx)
+        expand_result = await node.execute(
+            {
+                "question": "Should we expand to new markets?",
+                "evidence_streams": [
+                    {
+                        "source_label": "Analysis",
+                        "content": {"summary": "Opportunities exist"},
+                    },
+                ],
+                "criteria": _default_criteria(),
+            },
+            ctx,
+        )
         titles = [o["title"].lower() for o in expand_result["options"]]
         assert any("expansion" in t or "growth" in t or "partnership" in t for t in titles)
 
@@ -152,13 +183,19 @@ class TestSynthesizerNode:
             )
             node = SynthesizerNode(id="s4", config={"provider": "test-provider"})
             ctx = _ctx(_store_with_provider())
-            result = await node.execute({
-                "question": "Which strategy?",
-                "evidence_streams": [
-                    {"source_label": "Research", "content": {"findings": "Growth data"}},
-                ],
-                "criteria": _default_criteria(),
-            }, ctx)
+            result = await node.execute(
+                {
+                    "question": "Which strategy?",
+                    "evidence_streams": [
+                        {
+                            "source_label": "Research",
+                            "content": {"findings": "Growth data"},
+                        },
+                    ],
+                    "criteria": _default_criteria(),
+                },
+                ctx,
+            )
             assert len(result["options"]) >= 1
             assert result["recommendation"]["title"] == "Strategic Option A"
             assert result["fallback_reason"] == ""
@@ -182,12 +219,15 @@ class TestSynthesizerNode:
             )
             node = SynthesizerNode(id="s5", config={"provider": "test-provider"})
             ctx = _ctx(_store_with_provider())
-            result = await node.execute({
-                "question": "Invest?",
-                "evidence_streams": [
-                    {"source_label": "Research", "content": {"summary": "Data"}},
-                ],
-            }, ctx)
+            result = await node.execute(
+                {
+                    "question": "Invest?",
+                    "evidence_streams": [
+                        {"source_label": "Research", "content": {"summary": "Data"}},
+                    ],
+                },
+                ctx,
+            )
             # Should have fake options + fallback reason
             assert len(result["options"]) > 0
             assert result["fallback_reason"] != ""
@@ -198,12 +238,15 @@ class TestSynthesizerNode:
         """include_risks=False → options don't contain risks."""
         node = SynthesizerNode(id="s6", config={"include_risks": False})
         ctx = _ctx(_fake_store())
-        result = await node.execute({
-            "question": "Should we invest?",
-            "evidence_streams": [
-                {"source_label": "Research", "content": {"summary": "Data"}},
-            ],
-        }, ctx)
+        result = await node.execute(
+            {
+                "question": "Should we invest?",
+                "evidence_streams": [
+                    {"source_label": "Research", "content": {"summary": "Data"}},
+                ],
+            },
+            ctx,
+        )
         for opt in result["options"]:
             assert "risks" not in opt
 
@@ -211,12 +254,15 @@ class TestSynthesizerNode:
         """Output conforms to output_schema properties."""
         node = SynthesizerNode(id="s7", config={})
         ctx = _ctx(_fake_store())
-        result = await node.execute({
-            "question": "Test?",
-            "evidence_streams": [
-                {"source_label": "Test", "content": {"data": "test"}},
-            ],
-        }, ctx)
+        result = await node.execute(
+            {
+                "question": "Test?",
+                "evidence_streams": [
+                    {"source_label": "Test", "content": {"data": "test"}},
+                ],
+            },
+            ctx,
+        )
         schema = node.get_output_schema()
         schema_props = schema.get("properties", {})
         for key in schema_props:
@@ -225,8 +271,8 @@ class TestSynthesizerNode:
 
 # ── Unit tests for helper functions ──────────────────────────────────
 
-class TestSynthesizerHelpers:
 
+class TestSynthesizerHelpers:
     def test_fake_options_by_keyword_invest(self):
         opts = _fake_options("investment decision", _default_criteria())
         assert len(opts) == 3

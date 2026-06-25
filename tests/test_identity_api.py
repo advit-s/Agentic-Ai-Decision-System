@@ -3,9 +3,8 @@
 All tests are offline using httpx.AsyncClient with ASGITransport.
 No external services or API keys required.
 """
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 
 class TestIdentityAPI:

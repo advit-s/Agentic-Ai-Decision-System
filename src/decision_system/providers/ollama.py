@@ -11,14 +11,15 @@ Supports:
 
 from __future__ import annotations
 
-import json
 import time
 from typing import Any
 
 import httpx
 
 from decision_system.providers.runtime import (
-    BaseProvider, ChatRequest, ChatResponse,
+    BaseProvider,
+    ChatRequest,
+    ChatResponse,
 )
 
 DEFAULT_BASE_URL = "http://localhost:11434"

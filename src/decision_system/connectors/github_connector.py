@@ -9,7 +9,6 @@ No write actions. No commit/push/PR creation.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -17,8 +16,8 @@ import httpx
 
 from decision_system.connectors.models import (
     ConnectorConfig,
-    ConnectorRuntimeItem,
     ConnectorFetchedContent,
+    ConnectorRuntimeItem,
 )
 from decision_system.connectors.runtime import ConnectorRuntime
 
@@ -27,10 +26,30 @@ _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
 # Supported file extensions for content import
 _SUPPORTED_EXTENSIONS: set[str] = {
-    ".md", ".txt", ".json", ".csv", ".yml", ".yaml",
-    ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs",
-    ".java", ".rb", ".sh", ".toml", ".cfg", ".ini",
-    ".xml", ".html", ".css", ".scss", ".sql",
+    ".md",
+    ".txt",
+    ".json",
+    ".csv",
+    ".yml",
+    ".yaml",
+    ".py",
+    ".js",
+    ".ts",
+    ".jsx",
+    ".tsx",
+    ".go",
+    ".rs",
+    ".java",
+    ".rb",
+    ".sh",
+    ".toml",
+    ".cfg",
+    ".ini",
+    ".xml",
+    ".html",
+    ".css",
+    ".scss",
+    ".sql",
 }
 
 _MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
@@ -145,9 +164,7 @@ class GitHubConnectorRuntime(ConnectorRuntime):
         except Exception as e:
             return {"success": False, "message": f"Connection failed: {str(e)}"}
 
-    def list_items(
-        self, config: ConnectorConfig, path: str = ""
-    ) -> list[ConnectorRuntimeItem]:
+    def list_items(self, config: ConnectorConfig, path: str = "") -> list[ConnectorRuntimeItem]:
         """List files in the repository at the specified path."""
         repo_url = config.config.get("repository_url", "")
         parsed = _parse_github_url(repo_url)
@@ -196,15 +213,15 @@ class GitHubConnectorRuntime(ConnectorRuntime):
         except (httpx.TimeoutException, httpx.ConnectError, Exception):
             return []
 
-    def _item_from_api(
-        self, entry: dict, parsed: dict
-    ) -> ConnectorRuntimeItem:
+    def _item_from_api(self, entry: dict, parsed: dict) -> ConnectorRuntimeItem:
         return ConnectorRuntimeItem(
             external_id=entry.get("path", entry.get("name", "")),
             title=entry.get("name", ""),
             item_type="file",
             source_url=entry.get("html_url", ""),
-            content_type=f"text/{os.path.splitext(entry.get('name', ''))[1].lstrip('.')}" if entry.get("name") else "text/plain",
+            content_type=f"text/{os.path.splitext(entry.get('name', ''))[1].lstrip('.')}"
+            if entry.get("name")
+            else "text/plain",
             size_bytes=entry.get("size", 0),
             metadata={
                 "sha": entry.get("sha", ""),
@@ -247,6 +264,7 @@ class GitHubConnectorRuntime(ConnectorRuntime):
 
             data = resp.json()
             import base64
+
             content_b64 = data.get("content", "")
             encoding = data.get("encoding", "")
 
@@ -261,7 +279,9 @@ class GitHubConnectorRuntime(ConnectorRuntime):
                             filename=os.path.basename(item.external_id),
                             content_text="",
                             content_type=item.content_type or "text/plain",
-                            metadata={"error": f"File exceeds {_MAX_FILE_SIZE//1024//1024}MB limit"},
+                            metadata={
+                                "error": f"File exceeds {_MAX_FILE_SIZE // 1024 // 1024}MB limit"
+                            },
                         )
                     content_text = content_bytes.decode("utf-8", errors="replace")
                 except Exception:

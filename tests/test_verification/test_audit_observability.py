@@ -2,21 +2,15 @@
 
 from __future__ import annotations
 
-import json
-import os
 import tempfile
 from pathlib import Path
 
-import pytest
-
-from decision_system.security.audit import append_event, load_events
 from decision_system.observability.metrics import MetricsCollector, MetricType
 from decision_system.observability.store import (
-    get_paths,
-    init_store,
-    load_metric_points,
     list_metric_names,
+    load_metric_points,
 )
+from decision_system.security.audit import append_event, load_events
 
 
 class TestVerificationAuditEvents:
@@ -149,9 +143,24 @@ class TestVerificationAuditEvents:
         """Multiple audit events are all persisted."""
         with tempfile.TemporaryDirectory() as tmpdir:
             audit_path = Path(tmpdir) / "audit_log.jsonl"
-            append_event("claim_verified", "First", metadata={"claim_id": "c1"}, audit_path=audit_path)
-            append_event("contradiction_scan_run", "Second", metadata={"count": 3}, audit_path=audit_path)
-            append_event("trust_report_generated", "Third", metadata={"report_id": "rpt-1"}, audit_path=audit_path)
+            append_event(
+                "claim_verified",
+                "First",
+                metadata={"claim_id": "c1"},
+                audit_path=audit_path,
+            )
+            append_event(
+                "contradiction_scan_run",
+                "Second",
+                metadata={"count": 3},
+                audit_path=audit_path,
+            )
+            append_event(
+                "trust_report_generated",
+                "Third",
+                metadata={"report_id": "rpt-1"},
+                audit_path=audit_path,
+            )
 
             events = load_events(audit_path)
             assert len(events) == 3
@@ -176,7 +185,12 @@ class TestVerificationObservabilityMetrics:
     def test_contradiction_metric(self):
         """Contradiction scan emits contradictions_found_count metric."""
         collector = MetricsCollector()
-        collector.record("contradictions_found_count", 3, MetricType.COUNTER, {"workspace_id": "ws-1"})
+        collector.record(
+            "contradictions_found_count",
+            3,
+            MetricType.COUNTER,
+            {"workspace_id": "ws-1"},
+        )
         names = list_metric_names()
         assert "contradictions_found_count" in names
 
@@ -205,12 +219,17 @@ class TestVerificationObservabilityMetrics:
     def test_trust_report_generation_metric(self):
         """Report generation emits trust_report_generation_duration_ms metric."""
         collector = MetricsCollector()
-        collector.record("trust_report_generation_duration_ms", 0, MetricType.TIMER, {
-            "execution_id": "exec-1",
-            "workspace_id": "ws-1",
-            "report_id": "rpt-1",
-            "claim_count": "5",
-        })
+        collector.record(
+            "trust_report_generation_duration_ms",
+            0,
+            MetricType.TIMER,
+            {
+                "execution_id": "exec-1",
+                "workspace_id": "ws-1",
+                "report_id": "rpt-1",
+                "claim_count": "5",
+            },
+        )
         names = list_metric_names()
         assert "trust_report_generation_duration_ms" in names
 

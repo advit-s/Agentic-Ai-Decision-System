@@ -9,12 +9,14 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from decision_system.workflow_engine.models import (
-    WorkflowDefinition, NodeConfig, Connection,
-)
 from decision_system.workflow_engine.engine.dag import DAGValidator, TopologicalSort
-from decision_system.workflow_engine.engine.executor import DAGEngine
 from decision_system.workflow_engine.engine.events import ExecutionEvent
+from decision_system.workflow_engine.engine.executor import DAGEngine
+from decision_system.workflow_engine.models import (
+    Connection,
+    NodeConfig,
+    WorkflowDefinition,
+)
 from decision_system.workflow_engine.nodes import create_default_registry
 
 console = Console()
@@ -41,7 +43,9 @@ def _load_workflow(path: Path) -> WorkflowDefinition:
 @app.command()
 def validate(
     workflow_path: Path = typer.Argument(
-        ..., help="Path to workflow JSON file", exists=True,
+        ...,
+        help="Path to workflow JSON file",
+        exists=True,
     ),
 ) -> None:
     """Validate a workflow DAG definition."""
@@ -59,7 +63,9 @@ def validate(
         raise typer.Exit(1)
 
     layers = TopologicalSort.sort(wf)
-    console.print(f"[green]✓[/green] Workflow is valid: {len(wf.nodes)} nodes in {len(layers)} layers")
+    console.print(
+        f"[green]✓[/green] Workflow is valid: {len(wf.nodes)} nodes in {len(layers)} layers"
+    )
 
 
 @app.command()
@@ -81,7 +87,8 @@ def list_nodes() -> None:
 @app.command()
 def create(
     output_path: Path = typer.Argument(
-        ..., help="Path to write the workflow template JSON",
+        ...,
+        help="Path to write the workflow template JSON",
     ),
     name: str = typer.Option("untitled", "--name", "-n", help="Workflow name"),
 ) -> None:
@@ -111,8 +118,12 @@ def create(
             },
         ],
         "connections": [
-            {"source_node": "trigger_1", "source_output": "default",
-             "target_node": "node_1", "target_input": "default"},
+            {
+                "source_node": "trigger_1",
+                "source_output": "default",
+                "target_node": "node_1",
+                "target_input": "default",
+            },
         ],
         "tags": [],
     }
@@ -123,13 +134,16 @@ def create(
 @app.command(name="list")
 def list_workflows(
     store_dir: Path | None = typer.Option(
-        None, "--store-dir", "-s",
+        None,
+        "--store-dir",
+        "-s",
         help="Store directory (default: temporary)",
     ),
 ) -> None:
     """List saved workflow definitions."""
-    from decision_system.workflow_engine.stores.json_store import JSONWorkflowStore
     import tempfile
+
+    from decision_system.workflow_engine.stores.json_store import JSONWorkflowStore
 
     if store_dir:
         ws = JSONWorkflowStore(store_dir)
@@ -160,10 +174,14 @@ def list_workflows(
 @app.command()
 def run(
     workflow_path: Path = typer.Argument(
-        ..., help="Path to workflow JSON file", exists=True,
+        ...,
+        help="Path to workflow JSON file",
+        exists=True,
     ),
     global_input: list[str] = typer.Option(
-        [], "--input", "-i",
+        [],
+        "--input",
+        "-i",
         help="Global inputs as key=value pairs (can repeat)",
     ),
 ) -> None:
@@ -189,10 +207,13 @@ def run(
             global_inputs[key] = value
 
     # Build engine (temporary stores for CLI runs)
-    from decision_system.workflow_engine.stores.json_store import (
-        JSONWorkflowStore, JSONExecutionStore,
-    )
     import tempfile
+
+    from decision_system.workflow_engine.stores.json_store import (
+        JSONExecutionStore,
+        JSONWorkflowStore,
+    )
+
     tmp_dir = Path(tempfile.mkdtemp())
     ws = JSONWorkflowStore(tmp_dir)
     es = JSONExecutionStore(tmp_dir)
@@ -214,13 +235,16 @@ def run(
     engine.on_event(on_event)
 
     import asyncio
+
     state = asyncio.run(engine.execute(wf, global_inputs=global_inputs))
 
     # Print summary
     if state.status == "completed":
         console.print(f"\n[bold green]✓ Execution {state.execution_id} completed[/bold green]")
     else:
-        console.print(f"\n[bold red]✗ Execution {state.execution_id} failed: {state.error}[/bold red]")
+        console.print(
+            f"\n[bold red]✗ Execution {state.execution_id} failed: {state.error}[/bold red]"
+        )
         raise typer.Exit(1)
 
 
@@ -232,16 +256,22 @@ exec_app = typer.Typer(help="Inspect workflow executions.")
 @exec_app.command(name="list")
 def list_executions(
     workflow_id: str | None = typer.Option(
-        None, "--workflow-id", "-w", help="Filter by workflow ID",
+        None,
+        "--workflow-id",
+        "-w",
+        help="Filter by workflow ID",
     ),
     store_dir: Path | None = typer.Option(
-        None, "--store-dir", "-s",
+        None,
+        "--store-dir",
+        "-s",
         help="Store directory (default: temporary)",
     ),
 ) -> None:
     """List workflow executions."""
-    from decision_system.workflow_engine.stores.json_store import JSONExecutionStore
     import tempfile
+
+    from decision_system.workflow_engine.stores.json_store import JSONExecutionStore
 
     if store_dir:
         es = JSONExecutionStore(store_dir)
@@ -270,13 +300,16 @@ def list_executions(
 def inspect_execution(
     execution_id: str = typer.Argument(..., help="Execution ID to inspect"),
     store_dir: Path | None = typer.Option(
-        None, "--store-dir", "-s",
+        None,
+        "--store-dir",
+        "-s",
         help="Store directory (default: temporary)",
     ),
 ) -> None:
     """Show detailed execution information."""
-    from decision_system.workflow_engine.stores.json_store import JSONExecutionStore
     import tempfile
+
+    from decision_system.workflow_engine.stores.json_store import JSONExecutionStore
 
     if store_dir:
         es = JSONExecutionStore(store_dir)
@@ -314,8 +347,9 @@ schedule_app = typer.Typer(help="Manage workflow schedules and triggers.")
 
 def _get_schedule_store(store_dir: Path | None) -> "ScheduleStore":
     """Get a ScheduleStore, defaulting to a temporary directory."""
-    from decision_system.workflow_engine.scheduler.store import ScheduleStore
     import tempfile
+
+    from decision_system.workflow_engine.scheduler.store import ScheduleStore
 
     if store_dir:
         return ScheduleStore(store_dir)
@@ -325,10 +359,15 @@ def _get_schedule_store(store_dir: Path | None) -> "ScheduleStore":
 @schedule_app.command(name="list")
 def list_schedules(
     workflow_id: str | None = typer.Option(
-        None, "--workflow-id", "-w", help="Filter by workflow ID",
+        None,
+        "--workflow-id",
+        "-w",
+        help="Filter by workflow ID",
     ),
     store_dir: Path | None = typer.Option(
-        None, "--store-dir", "-s",
+        None,
+        "--store-dir",
+        "-s",
         help="Store directory (default: temporary)",
     ),
 ) -> None:
@@ -360,21 +399,33 @@ def list_schedules(
 def create_schedule(
     workflow_id: str = typer.Argument(..., help="Workflow ID to schedule"),
     trigger_type: str = typer.Option(
-        "cron", "--trigger-type", "-t", help="Trigger type (cron, webhook, file_watch)",
+        "cron",
+        "--trigger-type",
+        "-t",
+        help="Trigger type (cron, webhook, file_watch)",
     ),
     trigger_config: str = typer.Option(
-        "{}", "--config", "-c", help="Trigger config as JSON string",
+        "{}",
+        "--config",
+        "-c",
+        help="Trigger config as JSON string",
     ),
     store_dir: Path | None = typer.Option(
-        None, "--store-dir", "-s",
+        None,
+        "--store-dir",
+        "-s",
         help="Store directory (default: temporary)",
     ),
 ) -> None:
     """Create a new schedule for a workflow."""
-    from decision_system.workflow_engine.scheduler import ScheduleDefinition, TriggerType
-    from decision_system.workflow_engine.stores.json_store import JSONWorkflowStore
-    from uuid import uuid4
     import tempfile
+    from uuid import uuid4
+
+    from decision_system.workflow_engine.scheduler import (
+        ScheduleDefinition,
+        TriggerType,
+    )
+    from decision_system.workflow_engine.stores.json_store import JSONWorkflowStore
 
     store = _get_schedule_store(store_dir)
     effective_dir = store_dir or Path(tempfile.mkdtemp())
@@ -383,7 +434,9 @@ def create_schedule(
     try:
         trigger_type_enum = TriggerType(trigger_type)
     except ValueError:
-        console.print(f"[red]Invalid trigger type '{trigger_type}'. Must be one of: {[t.value for t in TriggerType]}[/red]")
+        console.print(
+            f"[red]Invalid trigger type '{trigger_type}'. Must be one of: {[t.value for t in TriggerType]}[/red]"
+        )
         raise typer.Exit(1)
 
     try:
@@ -412,7 +465,9 @@ def create_schedule(
 def delete_schedule(
     schedule_id: str = typer.Argument(..., help="Schedule ID to delete"),
     store_dir: Path | None = typer.Option(
-        None, "--store-dir", "-s",
+        None,
+        "--store-dir",
+        "-s",
         help="Store directory (default: temporary)",
     ),
 ) -> None:
@@ -430,7 +485,9 @@ def delete_schedule(
 def toggle_schedule(
     schedule_id: str = typer.Argument(..., help="Schedule ID to toggle"),
     store_dir: Path | None = typer.Option(
-        None, "--store-dir", "-s",
+        None,
+        "--store-dir",
+        "-s",
         help="Store directory (default: temporary)",
     ),
 ) -> None:
@@ -460,17 +517,24 @@ provider_app = typer.Typer(help="Manage LLM provider configurations.")
 @provider_app.command(name="list")
 def list_providers(
     show_keys: bool = typer.Option(
-        False, "--show-keys", "-k", help="Show API key status",
+        False,
+        "--show-keys",
+        "-k",
+        help="Show API key status",
     ),
 ) -> None:
     """List all configured LLM providers."""
     from decision_system.workflow_engine.providers.store import ProviderStore
 
     store = ProviderStore()
-    providers = store.check() if show_keys else [
-        {"name": p.name, "api_base": p.api_base, "default_model": p.default_model}
-        for p in store.load()
-    ]
+    providers = (
+        store.check()
+        if show_keys
+        else [
+            {"name": p.name, "api_base": p.api_base, "default_model": p.default_model}
+            for p in store.load()
+        ]
+    )
 
     if not providers:
         console.print("No providers configured.")
@@ -498,12 +562,17 @@ def add_provider(
     api_base: str = typer.Argument(..., help="API base URL"),
     default_model: str = typer.Argument(..., help="Default model name"),
     api_key_env: str | None = typer.Option(
-        None, "--api-key-env", "-e", help="Environment variable for API key",
+        None,
+        "--api-key-env",
+        "-e",
+        help="Environment variable for API key",
     ),
 ) -> None:
     """Add a new LLM provider configuration."""
     from decision_system.workflow_engine.providers.store import (
-        ProviderConfig, ProviderStore, DuplicateProviderError,
+        DuplicateProviderError,
+        ProviderConfig,
+        ProviderStore,
     )
 
     store = ProviderStore()
@@ -528,7 +597,8 @@ def remove_provider(
 ) -> None:
     """Remove a provider configuration."""
     from decision_system.workflow_engine.providers.store import (
-        ProviderStore, ProviderNotFoundError,
+        ProviderNotFoundError,
+        ProviderStore,
     )
 
     store = ProviderStore()
@@ -547,7 +617,8 @@ def set_default_provider(
 ) -> None:
     """Set a provider as the system default (first in list)."""
     from decision_system.workflow_engine.providers.store import (
-        ProviderStore, ProviderNotFoundError,
+        ProviderNotFoundError,
+        ProviderStore,
     )
 
     store = ProviderStore()
@@ -564,13 +635,17 @@ def set_default_provider(
 def check_provider(
     name: str = typer.Argument(..., help="Provider name to test"),
     model: str | None = typer.Option(
-        None, "--model", "-m", help="Model to use (default: provider's default)",
+        None,
+        "--model",
+        "-m",
+        help="Model to use (default: provider's default)",
     ),
 ) -> None:
     """Test a provider connection with a simple chat completion."""
     import asyncio
-    from decision_system.workflow_engine.providers.store import ProviderStore
+
     from decision_system.workflow_engine.providers.client import LLMClient
+    from decision_system.workflow_engine.providers.store import ProviderStore
 
     store = ProviderStore()
     cfg = store.get(name)
@@ -582,21 +657,26 @@ def check_provider(
     key_configured = False
     if cfg.api_key_env:
         import os
+
         key_configured = os.environ.get(cfg.api_key_env) is not None
 
     if cfg.api_key_env and not key_configured:
         console.print(f"[yellow]Warning:[/yellow] {cfg.api_key_env} is not set in environment")
 
-    console.print(f"Testing provider [cyan]{name}[/cyan] with model [green]{effective_model}[/green]...")
+    console.print(
+        f"Testing provider [cyan]{name}[/cyan] with model [green]{effective_model}[/green]..."
+    )
     console.print(f"  API: {cfg.api_base}")
 
     client = LLMClient(cfg)
     try:
-        result = asyncio.run(client.chat_completion(
-            messages=[{"role": "user", "content": "Reply with only the word 'ok'."}],
-            model=effective_model,
-            stream=False,
-        ))
+        result = asyncio.run(
+            client.chat_completion(
+                messages=[{"role": "user", "content": "Reply with only the word 'ok'."}],
+                model=effective_model,
+                stream=False,
+            )
+        )
         console.print(f"[green]✓[/green] Response: {result.strip()}")
     except Exception as exc:
         console.print(f"[red]✗[/red] {type(exc).__name__}: {exc}")

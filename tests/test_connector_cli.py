@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import os
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch
 
-import pytest
 from typer.testing import CliRunner
 
 from decision_system.cli_connectors import connectors_app
@@ -78,24 +75,18 @@ class TestConnectorsDryRun:
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "doc.md"), "w") as f:
                 f.write("# Hello")
-            result = runner.invoke(
-                connectors_app, ["dry-run", "local-files", "--path", tmpdir]
-            )
+            result = runner.invoke(connectors_app, ["dry-run", "local-files", "--path", tmpdir])
             assert result.exit_code == 0
 
     def test_dry_run_shows_count(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "doc.md"), "w") as f:
                 f.write("# Hello")
-            result = runner.invoke(
-                connectors_app, ["dry-run", "local-files", "--path", tmpdir]
-            )
+            result = runner.invoke(connectors_app, ["dry-run", "local-files", "--path", tmpdir])
             assert "Would import: 1" in result.output
 
     def test_dry_run_notion_stub_exits_nonzero(self):
-        result = runner.invoke(
-            connectors_app, ["dry-run", "notion", "--path", "/tmp"]
-        )
+        result = runner.invoke(connectors_app, ["dry-run", "notion", "--path", "/tmp"])
         assert result.exit_code != 0
         assert "stub" in result.output.lower()
 
@@ -117,9 +108,7 @@ class TestConnectorsImport:
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = runner.invoke(
-                    connectors_app, ["import", "local-files", "--path", tmpdir]
-                )
+                result = runner.invoke(connectors_app, ["import", "local-files", "--path", tmpdir])
                 assert result.exit_code == 0
             finally:
                 os.chdir(old_cwd)
@@ -135,25 +124,19 @@ class TestConnectorsImport:
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = runner.invoke(
-                    connectors_app, ["import", "local-files", "--path", tmpdir]
-                )
+                result = runner.invoke(connectors_app, ["import", "local-files", "--path", tmpdir])
                 assert result.exit_code == 0
                 assert "Import job" in result.output
             finally:
                 os.chdir(old_cwd)
 
     def test_import_notion_stub_exits_nonzero(self):
-        result = runner.invoke(
-            connectors_app, ["import", "notion", "--path", "/tmp"]
-        )
+        result = runner.invoke(connectors_app, ["import", "notion", "--path", "/tmp"])
         assert result.exit_code != 0
         assert "stub" in result.output.lower()
 
     def test_import_unknown_exits_nonzero(self):
-        result = runner.invoke(
-            connectors_app, ["import", "nonexistent", "--path", "/tmp"]
-        )
+        result = runner.invoke(connectors_app, ["import", "nonexistent", "--path", "/tmp"])
         assert result.exit_code != 0
 
 
@@ -166,6 +149,7 @@ class TestConnectorsInspectJobs:
     def test_inspect_jobs_empty_via_store(self):
         """Verify empty jobs list behavior via store (CLI preserves same logic)."""
         from decision_system.connectors.store import ConnectorJobStore
+
         with tempfile.TemporaryDirectory() as tmpdir:
             jobs_dir = Path(tmpdir) / "jobs"
             jobs_dir.mkdir()
@@ -176,6 +160,7 @@ class TestConnectorsInspectJobs:
         """Verify job data is persisted and retrievable."""
         from decision_system.connectors.models import ConnectorImportJob
         from decision_system.connectors.store import ConnectorJobStore
+
         with tempfile.TemporaryDirectory() as tmpdir:
             jobs_dir = Path(tmpdir) / "jobs"
             jobs_dir.mkdir()
@@ -201,9 +186,10 @@ class TestConnectorsInspectJobs:
 
     def test_inspect_jobs_json_via_store(self):
         """Verify JSON output of import job inspection."""
+        from decision_system.connectors.inspector import inspect_import_job
         from decision_system.connectors.models import ConnectorImportJob
         from decision_system.connectors.store import ConnectorJobStore
-        from decision_system.connectors.inspector import inspect_import_job
+
         with tempfile.TemporaryDirectory() as tmpdir:
             jobs_dir = Path(tmpdir) / "jobs"
             jobs_dir.mkdir()

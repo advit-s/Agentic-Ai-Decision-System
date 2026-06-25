@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from decision_system.cli import app
 from decision_system.war_room.evals import (
     WarRoomEvalCase,
     WarRoomEvalResult,
@@ -23,8 +24,8 @@ from decision_system.war_room.evals import (
     check_workspace_append_only,
     load_war_room_eval_cases,
     render_war_room_eval_report,
-    run_war_room_eval_case,
     run_quality_gates,
+    run_war_room_eval_case,
     save_war_room_eval_results,
 )
 from decision_system.war_room.models import (
@@ -36,7 +37,6 @@ from decision_system.war_room.models import (
     WarRoomRun,
     WorkspaceArtifact,
 )
-from decision_system.cli import app
 
 runner = CliRunner()
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -46,6 +46,7 @@ WR_CASES_DIR = PROJECT_ROOT / "evals" / "war_room_cases"
 # ---------------------------------------------------------------------------
 # Model tests
 # ---------------------------------------------------------------------------
+
 
 class TestWarRoomEvalModels:
     def test_case_model(self):
@@ -64,9 +65,12 @@ class TestWarRoomEvalModels:
 
     def test_case_roundtrip(self):
         original = WarRoomEvalCase(
-            case_id="c", question="q",
-            expected_roles=["x"], expected_tools=["y"],
-            expected_data_categories=["z"], min_artifact_count=1,
+            case_id="c",
+            question="q",
+            expected_roles=["x"],
+            expected_tools=["y"],
+            expected_data_categories=["z"],
+            min_artifact_count=1,
         )
         raw = original.model_dump_json()
         loaded = WarRoomEvalCase.model_validate_json(raw)
@@ -74,16 +78,24 @@ class TestWarRoomEvalModels:
 
     def test_result_model_defaults(self):
         result = WarRoomEvalResult(
-            case_id="x", passed=True,
-            role_match=True, tool_match=True, data_category_match=True,
-            artifact_count_passed=True, judge_summary_present=True, no_crash=True,
+            case_id="x",
+            passed=True,
+            role_match=True,
+            tool_match=True,
+            data_category_match=True,
+            artifact_count_passed=True,
+            judge_summary_present=True,
+            no_crash=True,
         )
         assert result.notes == []
 
     def test_suite_result_model(self):
         suite = WarRoomEvalSuiteResult(
-            total_cases=3, passed_cases=2, failed_cases=1,
-            results=[], created_at="2026-01-01T00:00:00Z",
+            total_cases=3,
+            passed_cases=2,
+            failed_cases=1,
+            results=[],
+            created_at="2026-01-01T00:00:00Z",
         )
         assert suite.total_cases == 3
         assert suite.passed_cases == 2
@@ -93,6 +105,7 @@ class TestWarRoomEvalModels:
 # ---------------------------------------------------------------------------
 # Quality gate tests
 # ---------------------------------------------------------------------------
+
 
 class _FakeRun:
     """Minimal stand-in for WarRoomRun used in gate tests."""
@@ -121,7 +134,13 @@ def _hc() -> HigherContext:
         relevant_insight_ids=(),
         relevant_storage_tiers=(),
         constraints=(),
-        allowed_tools=("read_profiles", "read_graph", "read_insights", "read_context", "save_artifact"),
+        allowed_tools=(
+            "read_profiles",
+            "read_graph",
+            "read_insights",
+            "read_context",
+            "save_artifact",
+        ),
         evidence_requirements={},
         created_at="2026-01-01T00:00:00Z",
     )
@@ -129,35 +148,48 @@ def _hc() -> HigherContext:
 
 def _artifact(aid: str, content: str = "Analysis.") -> WorkspaceArtifact:
     return WorkspaceArtifact(
-        artifact_id=aid, run_id="test-run-123",
+        artifact_id=aid,
+        run_id="test-run-123",
         author_agent_id=f"agent-{aid}",
-        artifact_type="analysis", title=f"Artifact {aid}",
-        content=content, evidence_ids=(), insight_ids=(),
-        ontology_concepts=(), confidence="medium",
+        artifact_type="analysis",
+        title=f"Artifact {aid}",
+        content=content,
+        evidence_ids=(),
+        insight_ids=(),
+        ontology_concepts=(),
+        confidence="medium",
         created_at="2026-01-01T00:00:00Z",
     )
 
 
 def _intervention(iid: str, requires_human_review: bool = False) -> JudgeIntervention:
     return JudgeIntervention(
-        intervention_id=iid, run_id="test-run-123", target_artifact_id="a1",
-        severity="critical", reason="Test intervention.",
-        recommended_action="Review manually.", requires_human_review=requires_human_review,
+        intervention_id=iid,
+        run_id="test-run-123",
+        target_artifact_id="a1",
+        severity="critical",
+        reason="Test intervention.",
+        recommended_action="Review manually.",
+        requires_human_review=requires_human_review,
     )
 
 
 def _pc(hc: HigherContext) -> PersonalAgentContext:
     return PersonalAgentContext(
-        agent_id="fa-test-run-1", role_name="financial_analyst",
-        role_type="financial_analyst", assigned_task="t",
-        perspective="p", allowed_tools=(),
-        focus_areas=(), higher_context_ref=hc.run_id,
-        private_notes="", output_requirements={},
+        agent_id="fa-test-run-1",
+        role_name="financial_analyst",
+        role_type="financial_analyst",
+        assigned_task="t",
+        perspective="p",
+        allowed_tools=(),
+        focus_areas=(),
+        higher_context_ref=hc.run_id,
+        private_notes="",
+        output_requirements={},
     )
 
 
 class TestQualityGates:
-
     def test_higher_context_exists_passes(self):
         run = _FakeRun(hc=_hc())
         passed, _ = check_higher_context_exists(run)
@@ -186,10 +218,16 @@ class TestQualityGates:
     def test_mismatched_personal_context_ref(self):
         hc = _hc()
         bad_pc = PersonalAgentContext(
-            agent_id="x", role_name="x", role_type="unknown",
-            assigned_task="t", perspective="p", allowed_tools=(),
-            focus_areas=(), higher_context_ref="wrong-run-id",
-            private_notes="", output_requirements={},
+            agent_id="x",
+            role_name="x",
+            role_type="unknown",
+            assigned_task="t",
+            perspective="p",
+            allowed_tools=(),
+            focus_areas=(),
+            higher_context_ref="wrong-run-id",
+            private_notes="",
+            output_requirements={},
         )
         spec = _FakeSpec(hc=hc, pcs=[bad_pc])
         passed, _ = check_personal_contexts_reference_higher(spec)
@@ -197,8 +235,10 @@ class TestQualityGates:
 
     def test_artifact_count_passes(self):
         ws = CommonWorkspace(
-            run_id="r", artifacts=(_artifact("a1"), _artifact("a2")),
-            created_at="d", updated_at="d",
+            run_id="r",
+            artifacts=(_artifact("a1"), _artifact("a2")),
+            created_at="d",
+            updated_at="d",
         )
         passed, _ = check_artifact_count(ws, min_count=2)
         assert passed is True
@@ -210,8 +250,10 @@ class TestQualityGates:
 
     def test_workspace_append_only_passes(self):
         ws = CommonWorkspace(
-            run_id="r", artifacts=(_artifact("a1"), _artifact("a2")),
-            created_at="d", updated_at="d",
+            run_id="r",
+            artifacts=(_artifact("a1"), _artifact("a2")),
+            created_at="d",
+            updated_at="d",
         )
         run = _FakeRun(hc=_hc(), ws=ws)
         passed, _ = check_workspace_append_only(run)
@@ -233,8 +275,10 @@ class TestQualityGates:
 
     def test_no_external_apis_passes_clean(self):
         ws = CommonWorkspace(
-            run_id="r", artifacts=(_artifact("a1", content="Finances look okay."),),
-            created_at="d", updated_at="d",
+            run_id="r",
+            artifacts=(_artifact("a1", content="Finances look okay."),),
+            created_at="d",
+            updated_at="d",
         )
         run = _FakeRun(hc=_hc(), ws=ws)
         passed, _ = check_no_external_apis(run)
@@ -244,7 +288,8 @@ class TestQualityGates:
         ws = CommonWorkspace(
             run_id="r",
             artifacts=(_artifact("a1", content="Call https://api.openai.com/v1."),),
-            created_at="d", updated_at="d",
+            created_at="d",
+            updated_at="d",
         )
         run = _FakeRun(hc=_hc(), ws=ws)
         passed, _ = check_no_external_apis(run)
@@ -252,8 +297,10 @@ class TestQualityGates:
 
     def test_no_unbounded_chat_passes(self):
         ws = CommonWorkspace(
-            run_id="r", artifacts=(_artifact("a1", content="Short."),),
-            created_at="d", updated_at="d",
+            run_id="r",
+            artifacts=(_artifact("a1", content="Short."),),
+            created_at="d",
+            updated_at="d",
         )
         run = _FakeRun(hc=_hc(), ws=ws)
         passed, _ = check_no_unbounded_chat(run)
@@ -261,8 +308,10 @@ class TestQualityGates:
 
     def test_no_unbounded_chat_fails(self):
         ws = CommonWorkspace(
-            run_id="r", artifacts=(_artifact("a1", content="x" * 25_000),),
-            created_at="d", updated_at="d",
+            run_id="r",
+            artifacts=(_artifact("a1", content="x" * 25_000),),
+            created_at="d",
+            updated_at="d",
         )
         run = _FakeRun(hc=_hc(), ws=ws)
         passed, _ = check_no_unbounded_chat(run)
@@ -270,8 +319,10 @@ class TestQualityGates:
 
     def test_no_unbounded_chat_fails_transcript_marker(self):
         ws = CommonWorkspace(
-            run_id="r", artifacts=(_artifact("a1", content="User: hello"),),
-            created_at="d", updated_at="d",
+            run_id="r",
+            artifacts=(_artifact("a1", content="User: hello"),),
+            created_at="d",
+            updated_at="d",
         )
         run = _FakeRun(hc=_hc(), ws=ws)
         passed, _ = check_no_unbounded_chat(run)
@@ -283,8 +334,10 @@ class TestRunQualityGates:
         hc = _hc()
         spec = _FakeSpec(hc=hc, pcs=[_pc(hc)])
         ws = CommonWorkspace(
-            run_id="run-1", artifacts=(_artifact("a1"), _artifact("a2")),
-            created_at="d", updated_at="d",
+            run_id="run-1",
+            artifacts=(_artifact("a1"), _artifact("a2")),
+            created_at="d",
+            updated_at="d",
         )
         run = _FakeRun(hc=hc, spec=spec, ws=ws)
         results = run_quality_gates(run, min_artifact_count=2)
@@ -302,8 +355,10 @@ class TestRunQualityGates:
         hc = _hc()
         spec = _FakeSpec(hc=hc, pcs=[_pc(hc)])
         ws = CommonWorkspace(
-            run_id="run-1", artifacts=(_artifact("a1"),),
-            created_at="d", updated_at="d",
+            run_id="run-1",
+            artifacts=(_artifact("a1"),),
+            created_at="d",
+            updated_at="d",
         )
         run = _FakeRun(hc=hc, spec=spec, ws=ws)
         results = run_quality_gates(run, min_artifact_count=3)
@@ -402,6 +457,7 @@ class TestRunQualityGates:
 # Case loading tests
 # ---------------------------------------------------------------------------
 
+
 class TestCaseLoading:
     def test_loads_all_six_cases(self):
         if not WR_CASES_DIR.exists():
@@ -415,8 +471,12 @@ class TestCaseLoading:
         cases = load_war_room_eval_cases()
         ids = {c.case_id for c in cases}
         expected = {
-            "money_loss_case", "marketing_roi_case", "customer_churn_case",
-            "dependency_risk_case", "competitor_risk_case", "missing_data_case",
+            "money_loss_case",
+            "marketing_roi_case",
+            "customer_churn_case",
+            "dependency_risk_case",
+            "competitor_risk_case",
+            "missing_data_case",
         }
         assert ids == expected
 
@@ -441,15 +501,22 @@ class TestCaseLoading:
 # Report rendering tests
 # ---------------------------------------------------------------------------
 
+
 class TestReportRendering:
     def test_render_all_pass(self):
         suite = WarRoomEvalSuiteResult(
-            total_cases=2, passed_cases=2, failed_cases=0,
+            total_cases=2,
+            passed_cases=2,
+            failed_cases=0,
             results=[
                 WarRoomEvalResult(
-                    case_id="c1", passed=True, role_match=True,
-                    tool_match=True, data_category_match=True,
-                    artifact_count_passed=True, judge_summary_present=True,
+                    case_id="c1",
+                    passed=True,
+                    role_match=True,
+                    tool_match=True,
+                    data_category_match=True,
+                    artifact_count_passed=True,
+                    judge_summary_present=True,
                     no_crash=True,
                 ),
             ],
@@ -461,7 +528,9 @@ class TestReportRendering:
 
     def test_render_has_failure_count(self):
         suite = WarRoomEvalSuiteResult(
-            total_cases=3, passed_cases=1, failed_cases=2,
+            total_cases=3,
+            passed_cases=1,
+            failed_cases=2,
             results=[],
             created_at="2026-01-01T00:00:00Z",
         )
@@ -487,6 +556,7 @@ class TestReportRendering:
 # ---------------------------------------------------------------------------
 # CLI tests
 # ---------------------------------------------------------------------------
+
 
 class TestCLI:
     def test_eval_war_room_help(self):

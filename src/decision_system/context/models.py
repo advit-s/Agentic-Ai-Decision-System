@@ -7,7 +7,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 InsightSeverity = Literal["low", "medium", "high", "critical"]
 ConfidenceLevel = Literal["low", "medium", "high"]
 

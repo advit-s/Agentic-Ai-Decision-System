@@ -10,38 +10,43 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from decision_system.identity.models import LocalUser, Permission
-from decision_system.identity.permissions import (
-    require_permission,
-    require_workspace_permission,
-)
 from decision_system.data_sources.models import (
-    DataSource,
-    DataSourceChunk,
-    DataSourceStatus,
     DatasetProfile,
+    DataSourceStatus,
     EvidenceSearchResponse,
     EvidenceSearchResult,
-    ParseResult,
 )
 from decision_system.data_sources.parser import (
-    get_supported_extensions,
-    parse_document,
-    profile_csv,
-    profile_json_content,
-    get_parser,
-    PdfParser,
-    DocxParser,
     XlsxParser,
+    get_parser,
+    profile_csv,
 )
 from decision_system.data_sources.store import DataSourceStore, sanitize_filename
+from decision_system.identity.models import LocalUser, Permission
+from decision_system.identity.permissions import (
+    require_workspace_permission,
+)
 
 MAX_UPLOAD_SIZE_BYTES = 100 * 1024 * 1024  # 100 MB
 
-SUPPORTED_UPLOAD_EXTENSIONS: set[str] = {"txt", "md", "json", "csv", "pdf", "docx", "xlsx", "png", "jpg", "jpeg", "tiff", "tif", "bmp"}
+SUPPORTED_UPLOAD_EXTENSIONS: set[str] = {
+    "txt",
+    "md",
+    "json",
+    "csv",
+    "pdf",
+    "docx",
+    "xlsx",
+    "png",
+    "jpg",
+    "jpeg",
+    "tiff",
+    "tif",
+    "bmp",
+}
 
 router = APIRouter(tags=["data-sources"])
 
@@ -66,9 +71,6 @@ def _get_file_type(filename: str) -> str:
 
 
 def _get_source_type(file_type: str) -> str:
-
-
-
     """Map file extension to source type."""
     doc_types = {"pdf", "docx", "txt", "md", "html", "json", "xml"}
     dataset_types = {"csv", "xlsx", "xls", "tsv"}
@@ -77,10 +79,13 @@ def _get_source_type(file_type: str) -> str:
     elif file_type in dataset_types:
         return "dataset"
     return "unknown"
+
+
 def _emit_audit_event(event_type: str, data: dict) -> None:
     """Emit an audit event."""
     try:
         from decision_system.observability.store import record_metric_point
+
         record_metric_point(
             name=f"audit.{event_type}",
             value=1.0,
@@ -160,13 +165,16 @@ def upload_data_source(
         metadata={"original_filename": filename},
     )
 
-    _emit_audit_event("data_source_uploaded", {
-        "source_id": source_id,
-        "workspace_id": workspace_id,
-        "file_type": file_type,
-        "size_bytes": size_bytes,
-        "filename": filename,
-    })
+    _emit_audit_event(
+        "data_source_uploaded",
+        {
+            "source_id": source_id,
+            "workspace_id": workspace_id,
+            "file_type": file_type,
+            "size_bytes": size_bytes,
+            "filename": filename,
+        },
+    )
     return {
         "status": "uploaded",
         "data_source": source.model_dump(mode="json"),
@@ -174,7 +182,10 @@ def upload_data_source(
 
 
 @router.get("/workspaces/{workspace_id}/data-sources")
-def list_data_sources(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict[str, Any]:
+def list_data_sources(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> dict[str, Any]:
     """List all data sources in a workspace."""
     store = _get_store()
     sources = store.list_by_workspace(workspace_id)
@@ -187,7 +198,11 @@ def list_data_sources(workspace_id: str, user: LocalUser = Depends(require_works
 
 
 @router.get("/workspaces/{workspace_id}/data-sources/{source_id}")
-def get_data_source(workspace_id: str, source_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict[str, Any]:
+def get_data_source(
+    workspace_id: str,
+    source_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> dict[str, Any]:
     """Get a single data source."""
     store = _get_store()
     source = store.load(workspace_id, source_id)
@@ -227,12 +242,15 @@ def delete_data_source(
     # Delete metadata record
     store.delete(workspace_id, source_id)
 
-    _emit_audit_event("data_source_deleted", {
-        "source_id": source_id,
-        "workspace_id": workspace_id,
-        "file_type": source.file_type,
-        "original_filename": source.original_filename,
-    })
+    _emit_audit_event(
+        "data_source_deleted",
+        {
+            "source_id": source_id,
+            "workspace_id": workspace_id,
+            "file_type": source.file_type,
+            "original_filename": source.original_filename,
+        },
+    )
     return {"status": "deleted", "source_id": source_id}
 
 
@@ -258,11 +276,14 @@ def parse_data_source(
         raise HTTPException(status_code=400, detail="File not found on disk")
 
     store.update_status(workspace_id, source_id, DataSourceStatus.PARSING)
-    _emit_audit_event("document_parse_started", {
-        "source_id": source_id,
-        "workspace_id": workspace_id,
-        "file_type": source.file_type,
-    })
+    _emit_audit_event(
+        "document_parse_started",
+        {
+            "source_id": source_id,
+            "workspace_id": workspace_id,
+            "file_type": source.file_type,
+        },
+    )
 
     ext = f".{source.file_type}"
     # CSV is handled via profile, not the parser registry
@@ -271,20 +292,29 @@ def parse_data_source(
 
     parser = get_parser(ext)
     if parser is None:
-        store.update_status(workspace_id, source_id, DataSourceStatus.UNSUPPORTED,
-                           f"No parser for {ext}")
-        raise HTTPException(status_code=400,
-                           detail=f"No parser available for file type: {source.file_type}")
+        store.update_status(
+            workspace_id,
+            source_id,
+            DataSourceStatus.UNSUPPORTED,
+            f"No parser for {ext}",
+        )
+        raise HTTPException(
+            status_code=400,
+            detail=f"No parser available for file type: {source.file_type}",
+        )
 
     try:
         result = parser.parse(file_path, source_id, workspace_id)
     except Exception as e:
         store.update_status(workspace_id, source_id, DataSourceStatus.FAILED, str(e))
-        _emit_audit_event("document_parse_failed", {
-            "source_id": source_id,
-            "workspace_id": workspace_id,
-            "error": str(e),
-        })
+        _emit_audit_event(
+            "document_parse_failed",
+            {
+                "source_id": source_id,
+                "workspace_id": workspace_id,
+                "error": str(e),
+            },
+        )
         raise HTTPException(status_code=400, detail=str(e))
 
     has_warnings = len(result.warnings) > 0
@@ -311,6 +341,7 @@ def parse_data_source(
     profile_data = None
     if source.file_type == "csv":
         from datetime import datetime, timezone
+
         content = file_path.read_text(encoding="utf-8")
         profile_data = profile_csv(content, source_id, workspace_id)
         if "error" not in profile_data:
@@ -334,6 +365,7 @@ def parse_data_source(
             meta["profile_available"] = True
     elif source.file_type == "xlsx":
         from datetime import datetime, timezone
+
         xlsx_parser = XlsxParser()
         profile_result = xlsx_parser.profile(file_path, source_id, workspace_id)
         if "error" not in profile_result:
@@ -342,9 +374,15 @@ def parse_data_source(
                 source_id=source_id,
                 workspace_id=workspace_id,
                 row_count=sum(s.get("row_count", 0) for s in profile_result.get("sheets", [])),
-                column_count=sum(s.get("column_count", 0) for s in profile_result.get("sheets", [])),
-                columns=[col for s in profile_result.get("sheets", []) for col in s.get("columns", [])],
-                warnings=[w for s in profile_result.get("sheets", []) for w in s.get("warnings", [])],
+                column_count=sum(
+                    s.get("column_count", 0) for s in profile_result.get("sheets", [])
+                ),
+                columns=[
+                    col for s in profile_result.get("sheets", []) for col in s.get("columns", [])
+                ],
+                warnings=[
+                    w for s in profile_result.get("sheets", []) for w in s.get("warnings", [])
+                ],
                 created_at=datetime.now(timezone.utc),
             )
             store.save_profile(profile)
@@ -355,13 +393,16 @@ def parse_data_source(
     source.metadata = meta
     store.save(source)
 
-    _emit_audit_event("document_parse_completed", {
-        "source_id": source_id,
-        "workspace_id": workspace_id,
-        "file_type": source.file_type,
-        "chunk_count": len(result.chunks),
-        "warnings_count": len(result.warnings),
-    })
+    _emit_audit_event(
+        "document_parse_completed",
+        {
+            "source_id": source_id,
+            "workspace_id": workspace_id,
+            "file_type": source.file_type,
+            "chunk_count": len(result.chunks),
+            "warnings_count": len(result.warnings),
+        },
+    )
 
     return {
         "status": status,
@@ -371,6 +412,7 @@ def parse_data_source(
         "metadata": result.metadata,
         "profile": profile_data,
     }
+
 
 @router.post("/workspaces/{workspace_id}/data-sources/{source_id}/index")
 def index_data_source(
@@ -401,8 +443,8 @@ def index_data_source(
     # Try Chroma vector indexing
     retrieval_mode = "keyword"
     try:
-        from decision_system.rag.vector_store import index_chunks as index_to_chroma
         from decision_system.models import EvidenceChunk
+        from decision_system.rag.vector_store import index_chunks as index_to_chroma
 
         chroma_chunks = [
             EvidenceChunk(
@@ -418,6 +460,7 @@ def index_data_source(
         ]
 
         from decision_system.config import load_settings
+
         settings = load_settings()
 
         index_to_chroma(
@@ -432,24 +475,32 @@ def index_data_source(
 
     # Save index metadata
     from datetime import datetime, timezone
-    store.save_index_metadata(workspace_id, source_id, {
-        "source_id": source_id,
-        "workspace_id": workspace_id,
-        "source_name": source.name,
-        "file_type": source.file_type,
-        "chunk_count": len(chunks),
-        "retrieval_mode": retrieval_mode,
-        "indexed_at": datetime.now(timezone.utc).isoformat(),
-    })
+
+    store.save_index_metadata(
+        workspace_id,
+        source_id,
+        {
+            "source_id": source_id,
+            "workspace_id": workspace_id,
+            "source_name": source.name,
+            "file_type": source.file_type,
+            "chunk_count": len(chunks),
+            "retrieval_mode": retrieval_mode,
+            "indexed_at": datetime.now(timezone.utc).isoformat(),
+        },
+    )
 
     store.update_status(workspace_id, source_id, "indexed")
 
-    _emit_audit_event("document_indexed", {
-        "source_id": source_id,
-        "workspace_id": workspace_id,
-        "chunk_count": len(chunks),
-        "retrieval_mode": retrieval_mode,
-    })
+    _emit_audit_event(
+        "document_indexed",
+        {
+            "source_id": source_id,
+            "workspace_id": workspace_id,
+            "chunk_count": len(chunks),
+            "retrieval_mode": retrieval_mode,
+        },
+    )
     return {
         "status": "indexed",
         "source_id": source_id,
@@ -476,7 +527,11 @@ def get_data_source_status(workspace_id: str, source_id: str) -> dict[str, Any]:
 
 
 @router.get("/workspaces/{workspace_id}/data-sources/{source_id}/profile")
-def get_data_source_profile(workspace_id: str, source_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict[str, Any]:
+def get_data_source_profile(
+    workspace_id: str,
+    source_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> dict[str, Any]:
     """Get the profile of a dataset data source (CSV/JSON)."""
     store = _get_store()
     source = store.load(workspace_id, source_id)
@@ -491,7 +546,9 @@ def get_data_source_profile(workspace_id: str, source_id: str, user: LocalUser =
 
     profile = store.load_profile(workspace_id, source_id)
     if profile is None:
-        raise HTTPException(status_code=404, detail="Profile not found. Parse the data source first.")
+        raise HTTPException(
+            status_code=404, detail="Profile not found. Parse the data source first."
+        )
 
     return {
         "status": "ok",
@@ -540,13 +597,16 @@ def search_evidence(
                 )
                 for c in chunks
             ]
-            _emit_audit_event("evidence_search_run", {
-                "workspace_id": workspace_id,
-                "query": request.query,
-                "limit": request.limit,
-                "retrieval_mode": "vector",
-                "result_count": len(results),
-            })
+            _emit_audit_event(
+                "evidence_search_run",
+                {
+                    "workspace_id": workspace_id,
+                    "query": request.query,
+                    "limit": request.limit,
+                    "retrieval_mode": "vector",
+                    "result_count": len(results),
+                },
+            )
             return EvidenceSearchResponse(
                 results=results,
                 query=request.query,
@@ -566,13 +626,16 @@ def search_evidence(
         file_types=request.file_types if request.file_types else None,
     )
 
-    _emit_audit_event("evidence_search_run", {
-        "workspace_id": workspace_id,
-        "query": request.query,
-        "limit": request.limit,
-        "retrieval_mode": "keyword",
-        "result_count": len(results),
-    })
+    _emit_audit_event(
+        "evidence_search_run",
+        {
+            "workspace_id": workspace_id,
+            "query": request.query,
+            "limit": request.limit,
+            "retrieval_mode": "keyword",
+            "result_count": len(results),
+        },
+    )
     return EvidenceSearchResponse(
         results=results,
         query=request.query,
@@ -581,9 +644,11 @@ def search_evidence(
         total_results=len(results),
     )
 
+
 def _parse_csv(store, source, file_path, workspace_id, source_id):
     """Parse a CSV file: generate profile and return result."""
     from datetime import datetime, timezone
+
     content = file_path.read_text(encoding="utf-8")
     profile_data = profile_csv(content, source_id, workspace_id)
 
@@ -627,7 +692,6 @@ def _parse_csv(store, source, file_path, workspace_id, source_id):
         "metadata": {"parser": "csv-profiler"},
         "profile": profile_data,
     }
-
 
 
 @router.get("/workspaces/{workspace_id}/data-sources/{source_id}/chunks")

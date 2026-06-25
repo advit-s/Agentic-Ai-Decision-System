@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from pathlib import Path
 
 import pytest
@@ -11,17 +10,15 @@ from typer.testing import CliRunner
 
 from decision_system.cli import app
 from decision_system.cli_workspaces import (
-    _connect,
-    _get_db_path,
     _workspace_repo,
 )
 from decision_system.config import load_settings
+from decision_system.storage.migrations import run_migrations
 from decision_system.storage.models import ArtifactType, StoredArtifact, Workspace
 from decision_system.storage.repositories import (
     ArtifactRepository,
     WorkspaceRepository,
 )
-from decision_system.storage.migrations import run_migrations
 from decision_system.storage.sqlite_store import DatabaseConnection
 
 
@@ -100,9 +97,7 @@ def test_use_workspace_switches_active(workspace_env, runner):
 
 
 def test_use_workspace_missing_fails(workspace_env, runner):
-    result = runner.invoke(
-        app, ["workspace-commands", "use-workspace", "nonexistent"]
-    )
+    result = runner.invoke(app, ["workspace-commands", "use-workspace", "nonexistent"])
     assert result.exit_code != 0
     assert "not found" in result.output
 
@@ -164,13 +159,12 @@ def test_export_workspace(workspace_env, runner):
 def test_import_workspace(workspace_env, runner, tmp_path):
     runner.invoke(app, ["workspace-commands", "init-workspace", "export-demo"])
     runner.invoke(app, ["workspace-commands", "export-workspace"])
-    export_path = (
-        Path(".decision_system") / "workspaces" / "exports" / "export-demo.json"
-    )
+    export_path = Path(".decision_system") / "workspaces" / "exports" / "export-demo.json"
     assert export_path.exists()
 
     # Import under a different name by modifying the export
     import shutil
+
     import_path = tmp_path / "import-test.json"
     shutil.copy(export_path, import_path)
     data = json.loads(import_path.read_text(encoding="utf-8"))
@@ -195,9 +189,7 @@ def test_import_workspace_force_flag(workspace_env, runner, tmp_path):
     runner.invoke(app, ["workspace-commands", "init-workspace", "existing-ws"])
     # Export, then import with force
     runner.invoke(app, ["workspace-commands", "export-workspace"])
-    export_path = (
-        Path(".decision_system") / "workspaces" / "exports" / "existing-ws.json"
-    )
+    export_path = Path(".decision_system") / "workspaces" / "exports" / "existing-ws.json"
     assert export_path.exists()
 
     result = runner.invoke(
@@ -217,9 +209,7 @@ def test_import_workspace_force_required_to_overwrite(workspace_env, runner, tmp
     runner.invoke(app, ["workspace-commands", "init-workspace", "overwrite-me"])
     # Export but modified description
     runner.invoke(app, ["workspace-commands", "export-workspace"])
-    export_path = (
-        Path(".decision_system") / "workspaces" / "exports" / "overwrite-me.json"
-    )
+    export_path = Path(".decision_system") / "workspaces" / "exports" / "overwrite-me.json"
     assert export_path.exists()
 
     result = runner.invoke(
@@ -327,9 +317,7 @@ def test_import_artifacts_with_existing_files(tmp_path, runner, monkeypatch):
 def test_import_artifacts_dry_run(tmp_path, runner, monkeypatch):
     ds = tmp_path / ".decision_system"
     (ds / "insights").mkdir(parents=True)
-    (ds / "insights" / "insights.json").write_text(
-        json.dumps({"insights": []}), encoding="utf-8"
-    )
+    (ds / "insights" / "insights.json").write_text(json.dumps({"insights": []}), encoding="utf-8")
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["workspace-commands", "init-workspace", "dry-run-test"])
     result = runner.invoke(
@@ -343,9 +331,7 @@ def test_import_artifacts_dry_run(tmp_path, runner, monkeypatch):
 def test_import_artifacts_no_existing_artifacts(tmp_path, runner, monkeypatch):
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["workspace-commands", "init-workspace", "empty-test"])
-    result = runner.invoke(
-        app, ["workspace-commands", "import-artifacts"]
-    )
+    result = runner.invoke(app, ["workspace-commands", "import-artifacts"])
     assert result.exit_code == 0
     assert "No existing artifacts" in result.output
 
@@ -353,13 +339,9 @@ def test_import_artifacts_no_existing_artifacts(tmp_path, runner, monkeypatch):
 def test_import_artifacts_no_active_workspace(tmp_path, runner, monkeypatch):
     ds = tmp_path / ".decision_system"
     (ds / "insights").mkdir(parents=True)
-    (ds / "insights" / "insights.json").write_text(
-        json.dumps({"insights": []}), encoding="utf-8"
-    )
+    (ds / "insights" / "insights.json").write_text(json.dumps({"insights": []}), encoding="utf-8")
     monkeypatch.chdir(tmp_path)
-    result = runner.invoke(
-        app, ["workspace-commands", "import-artifacts"]
-    )
+    result = runner.invoke(app, ["workspace-commands", "import-artifacts"])
     assert result.exit_code != 0
 
 
@@ -433,9 +415,7 @@ def test_top_level_inspect_workspace(workspace_env, runner):
 def test_top_level_import_workspace_positional(workspace_env, runner, tmp_path):
     runner.invoke(app, ["init-workspace", "export-alias"])
     runner.invoke(app, ["export-workspace"])
-    export_path = (
-        Path(".decision_system") / "workspaces" / "exports" / "export-alias.json"
-    )
+    export_path = Path(".decision_system") / "workspaces" / "exports" / "export-alias.json"
     assert export_path.exists()
 
     # Copy with a different workspace name to avoid conflict
@@ -481,6 +461,7 @@ def test_workspace_commands_sub_app_still_works(workspace_env, runner):
 
 def test_version_consistency(tmp_path):
     import tomllib
+
     from decision_system import __version__
 
     pyproject = Path("pyproject.toml")

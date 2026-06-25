@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from html import escape
 from pathlib import Path
 from typing import Any, Literal
-from html import escape
 
-from decision_system.models import Claim, DecisionReport, VerificationResult
+from decision_system.models import Claim, VerificationResult
 from decision_system.path_util import ensure_safe_generated_write_path
 from decision_system.war_room.store import load_latest_run as load_latest_war_room
 
@@ -82,14 +82,16 @@ def build_report_payload(
 
     if verification_results:
         for vr in verification_results:
-            payload["verification_results"].append({
-                "claim_id": vr.claim_id,
-                "status": vr.status,
-                "evidence_ids": vr.evidence_ids,
-                "contradicting_evidence_ids": vr.contradicting_evidence_ids,
-                "confidence": vr.confidence,
-                "verification_notes": vr.verification_notes,
-            })
+            payload["verification_results"].append(
+                {
+                    "claim_id": vr.claim_id,
+                    "status": vr.status,
+                    "evidence_ids": vr.evidence_ids,
+                    "contradicting_evidence_ids": vr.contradicting_evidence_ids,
+                    "confidence": vr.confidence,
+                    "verification_notes": vr.verification_notes,
+                }
+            )
 
     return payload
 
@@ -150,7 +152,9 @@ def _render_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- **Source:** {c['source_agent']}")
             lines.append(f"- **Evidence IDs:** {', '.join(c['evidence_ids']) or 'none'}")
             if c["contradicting_evidence_ids"]:
-                lines.append(f"- **Contradicting Evidence:** {', '.join(c['contradicting_evidence_ids'])}")
+                lines.append(
+                    f"- **Contradicting Evidence:** {', '.join(c['contradicting_evidence_ids'])}"
+                )
             if c["verification_notes"]:
                 lines.append(f"- **Notes:** {c['verification_notes']}")
             lines.append("")
@@ -182,12 +186,14 @@ def _render_html(payload: dict[str, Any]) -> str:
     lines.append("<title>Decision Report</title>")
     lines.append("<style>")
     lines.append("body{font-family:sans-serif;max-width:960px;margin:2em auto;padding:0 1em;}")
-    lines.append("h1{color:#1a1a2e;}h2{color:#16213e;border-bottom:1px solid #eee;}h3{margin:1em 0 .25em;}")
+    lines.append(
+        "h1{color:#1a1a2e;}h2{color:#16213e;border-bottom:1px solid #eee;}h3{margin:1em 0 .25em;}"
+    )
     lines.append(".status-verified{color:#2e7d32}.status-unsupported{color:#c62828}")
     lines.append(".status-contradicted{color:#e65100}")
     lines.append("ul{padding-left:1.5em}li{margin:.25em 0}")
     lines.append("</style></head><body>")
-    lines.append(f"<h1>Decision Report</h1>")
+    lines.append("<h1>Decision Report</h1>")
     lines.append(f"<p><strong>Exported:</strong> {safe['exported_at']}</p>")
     lines.append(f"<h2>Question</h2><p>{safe['question']}</p>")
     lines.append(f"<h2>Recommendation</h2><p>{safe['recommendation']}</p>")
@@ -219,7 +225,11 @@ def _render_html(payload: dict[str, Any]) -> str:
     if safe["claims"]:
         lines.append("<h2>Claims Detail</h2>")
         for c in safe["claims"]:
-            cls = f"status-{c['status']}" if c["status"] in ("verified", "unsupported", "contradicted") else ""
+            cls = (
+                f"status-{c['status']}"
+                if c["status"] in ("verified", "unsupported", "contradicted")
+                else ""
+            )
             lines.append(f"<h3 class='{cls}'>{c['claim_text']}</h3>")
             lines.append("<ul>")
             lines.append(f"<li>Status: {c['status']}</li>")
@@ -227,7 +237,9 @@ def _render_html(payload: dict[str, Any]) -> str:
             lines.append(f"<li>Source: {c['source_agent']}</li>")
             lines.append(f"<li>Evidence IDs: {', '.join(c['evidence_ids']) or 'none'}</li>")
             if c.get("contradicting_evidence_ids"):
-                lines.append(f"<li>Contradicting: {', '.join(c['contradicting_evidence_ids'])}</li>")
+                lines.append(
+                    f"<li>Contradicting: {', '.join(c['contradicting_evidence_ids'])}</li>"
+                )
             if c.get("verification_notes"):
                 lines.append(f"<li>Notes: {c['verification_notes']}</li>")
             lines.append("</ul>")
@@ -297,7 +309,6 @@ def load_latest_report_payload() -> dict[str, Any] | None:
     claims_from_artifacts: list[Claim] = []
     evidence_ids: list[str] = []
     risks: list[str] = []
-    options: list[str] = []
     assumptions: list[str] = []
 
     if run.workspace and run.workspace.artifacts:
@@ -307,7 +318,6 @@ def load_latest_report_payload() -> dict[str, Any] | None:
             if hasattr(art, "confidence") and art.confidence:
                 pass
 
-    judge_summary = {}
     if run.judge_interventions:
         for ji in run.judge_interventions:
             reason = ji.reason or ""

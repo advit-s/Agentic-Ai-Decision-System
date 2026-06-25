@@ -12,6 +12,7 @@ def _record(name: str, value: float, **tags: Any) -> None:
     """Record a metric point, best-effort."""
     try:
         from decision_system.observability.store import record_metric_point
+
         record_metric_point(name=name, value=value, tags=tags)
     except Exception:
         pass
@@ -75,6 +76,7 @@ def record_error(
         connector_id=connector_id,
         error_type=error_type,
     )
+
 
 # ---------------------------------------------------------------------------
 # Sync metrics (v1.29)
@@ -188,6 +190,8 @@ def record_import_by_type(
         connector_type=connector_type,
         item_type=item_type,
     )
+
+
 # ---------------------------------------------------------------------------
 # Reliability metrics (v1.31)
 # ---------------------------------------------------------------------------

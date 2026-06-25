@@ -14,9 +14,8 @@ import json
 import time
 from typing import Any
 
-from decision_system.workflow_engine.models import WorkflowNode, ExecutionContext
+from decision_system.workflow_engine.models import ExecutionContext, WorkflowNode
 from decision_system.workflow_engine.providers.client import LLMClient
-
 
 # ── Fake fallback executor ───────────────────────────────────────────
 
@@ -62,7 +61,10 @@ def _simulate_execution(source_code: str, inputs: dict) -> dict:
 
     # Check for specific variable patterns in source
     if "output" in source_lower:
-        result = {"message": "Code executed (simulated)", "output_variable_detected": True}
+        result = {
+            "message": "Code executed (simulated)",
+            "output_variable_detected": True,
+        }
         stdout_lines.append("Output variable detected in source code.")
     elif "df" in source_lower or "dataframe" in source_lower:
         result = {"type": "dataframe", "rows": 0, "columns": 0, "shape": [0, 0]}
@@ -106,7 +108,10 @@ def _simulate_execution(source_code: str, inputs: dict) -> dict:
 
     # If nothing matched, return a generic result
     if result is None:
-        result = {"message": "Code executed successfully (simulated)", "source_length": len(source_code)}
+        result = {
+            "message": "Code executed successfully (simulated)",
+            "source_length": len(source_code),
+        }
         stdout_lines.append("Code executed (simulated).")
 
     elapsed = (time.monotonic() - start_time) * 1000
@@ -160,6 +165,7 @@ class CodeRunnerNode(WorkflowNode):
     In fake/default mode, no actual Python is executed. The node analyzes
     the source code and input patterns to return a plausible mock result.
     """
+
     type: str = "decision_system.code_runner"
     label: str = "Code Runner"
 
@@ -189,7 +195,9 @@ class CodeRunnerNode(WorkflowNode):
         if provider_cfg:
             provider_config, _ = provider_cfg
             try:
-                return await self._llm_predict(source_code, input_vars, libraries, provider_config, timeout)
+                return await self._llm_predict(
+                    source_code, input_vars, libraries, provider_config, timeout
+                )
             except Exception:
                 pass
 
@@ -197,8 +205,12 @@ class CodeRunnerNode(WorkflowNode):
         return _simulate_execution(source_code, input_vars)
 
     async def _llm_predict(
-        self, source_code: str, input_vars: dict, libraries: list,
-        provider_config: Any, timeout: int,
+        self,
+        source_code: str,
+        input_vars: dict,
+        libraries: list,
+        provider_config: Any,
+        timeout: int,
     ) -> dict:
         """Use LLM to predict code output (static analysis, no execution)."""
         client = LLMClient(provider_config)
@@ -210,11 +222,17 @@ class CodeRunnerNode(WorkflowNode):
 
         response = await client.chat_completion(
             messages=[
-                {"role": "system", "content": _CODE_RUNNER_SYSTEM_PROMPT.format(
-                    source_code=source_code,
-                    inputs_json=inputs_json,
-                )},
-                {"role": "user", "content": f"Analyze this Python code{libs_hint}. Timeout: {timeout}s."},
+                {
+                    "role": "system",
+                    "content": _CODE_RUNNER_SYSTEM_PROMPT.format(
+                        source_code=source_code,
+                        inputs_json=inputs_json,
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Analyze this Python code{libs_hint}. Timeout: {timeout}s.",
+                },
             ],
             model=provider_config.default_model,
             stream=False,
@@ -293,8 +311,17 @@ class CodeRunnerNode(WorkflowNode):
             "properties": {
                 "result": {"description": "Return value from execution"},
                 "stdout": {"type": "string", "description": "Captured print output"},
-                "error": {"type": "string", "description": "Error message if execution failed"},
-                "execution_time_ms": {"type": "number", "description": "Execution time in milliseconds"},
-                "success": {"type": "boolean", "description": "Whether execution succeeded"},
+                "error": {
+                    "type": "string",
+                    "description": "Error message if execution failed",
+                },
+                "execution_time_ms": {
+                    "type": "number",
+                    "description": "Execution time in milliseconds",
+                },
+                "success": {
+                    "type": "boolean",
+                    "description": "Whether execution succeeded",
+                },
             },
         }

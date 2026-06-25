@@ -7,7 +7,6 @@ SSRF attacks.
 
 from __future__ import annotations
 
-import os
 import re
 from datetime import datetime, timezone
 from typing import Any
@@ -17,8 +16,8 @@ import httpx
 
 from decision_system.connectors.models import (
     ConnectorConfig,
-    ConnectorRuntimeItem,
     ConnectorFetchedContent,
+    ConnectorRuntimeItem,
 )
 from decision_system.connectors.runtime import ConnectorRuntime
 
@@ -89,33 +88,41 @@ def _is_private_host(hostname: str) -> bool:
 
 def _extract_html_title(html: str) -> str:
     """Extract the <title> from an HTML document."""
-    match = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
+    match = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
     if match:
         title = match.group(1).strip()
-        return ' '.join(title.split())  # Collapse whitespace
+        return " ".join(title.split())  # Collapse whitespace
     return ""
 
 
 def _extract_html_text(html: str) -> str:
     """Extract readable text from HTML by stripping tags."""
     # Remove script and style elements
-    text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.IGNORECASE | re.DOTALL)
-    text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.IGNORECASE | re.DOTALL)
 
     # Replace common block tags with newlines
-    for tag in ('</p>', '</div>', '</h[1-6]>', '</li>', '</tr>', '</blockquote>', '</pre>'):
-        text = re.sub(tag, '\n', text, flags=re.IGNORECASE)
+    for tag in (
+        "</p>",
+        "</div>",
+        "</h[1-6]>",
+        "</li>",
+        "</tr>",
+        "</blockquote>",
+        "</pre>",
+    ):
+        text = re.sub(tag, "\n", text, flags=re.IGNORECASE)
 
     # Strip remaining HTML tags
-    text = re.sub(r'<[^>]+>', ' ', text)
+    text = re.sub(r"<[^>]+>", " ", text)
 
     # Decode common HTML entities
-    text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
-    text = text.replace('&quot;', '"').replace('&#39;', "'").replace('&nbsp;', ' ')
+    text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+    text = text.replace("&quot;", '"').replace("&#39;", "'").replace("&nbsp;", " ")
 
     # Collapse whitespace
-    text = re.sub(r'\n\s*\n', '\n\n', text)
-    text = re.sub(r' +', ' ', text)
+    text = re.sub(r"\n\s*\n", "\n\n", text)
+    text = re.sub(r" +", " ", text)
 
     return text.strip()
 
@@ -183,9 +190,7 @@ class UrlConnectorRuntime(ConnectorRuntime):
         except Exception as e:
             return {"success": False, "message": f"Connection failed: {str(e)}"}
 
-    def list_items(
-        self, config: ConnectorConfig, path: str = ""
-    ) -> list[ConnectorRuntimeItem]:
+    def list_items(self, config: ConnectorConfig, path: str = "") -> list[ConnectorRuntimeItem]:
         """URL connector returns a single item (the page itself)."""
         url = config.config.get("url", "")
         if not url:

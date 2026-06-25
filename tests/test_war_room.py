@@ -6,7 +6,9 @@ All tests run offline without real LLM or API keys.
 from __future__ import annotations
 
 import pytest
+from typer.testing import CliRunner
 
+from decision_system.cli import app
 from decision_system.insights.models import Insight, InsightStore
 from decision_system.insights.store import save_insights
 from decision_system.war_room.context_builder import build_higher_context
@@ -24,11 +26,7 @@ from decision_system.war_room.sandbox import validate_tool_call
 from decision_system.war_room.store import (
     load_latest_run,
     load_war_room_run,
-    save_war_room_run,
 )
-from typer.testing import CliRunner
-from decision_system.cli import app
-
 
 # ================================================================
 # Dispatcher / dispatch tests
@@ -81,9 +79,7 @@ class TestDispatch:
     def test_run_war_room_saves_json(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         run = run_war_room("Where are we losing money?")
-        saved = (
-            tmp_path / ".decision_system" / "war_room" / "runs" / f"{run.run_id}.json"
-        )
+        saved = tmp_path / ".decision_system" / "war_room" / "runs" / f"{run.run_id}.json"
         assert saved.exists()
 
     def test_inspect_war_room_exits_zero(self, tmp_path, monkeypatch):
@@ -352,13 +348,9 @@ class TestWarRoomRunner:
         run = run_war_room("Where are we losing money?")
 
         assert any(
-            "ins-high-financial" in artifact.insight_ids
-            for artifact in run.workspace.artifacts
+            "ins-high-financial" in artifact.insight_ids for artifact in run.workspace.artifacts
         )
-        assert any(
-            intervention.requires_human_review
-            for intervention in run.judge_interventions
-        )
+        assert any(intervention.requires_human_review for intervention in run.judge_interventions)
 
     def test_run_war_room_creates_war_room_run(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
@@ -389,11 +381,13 @@ class TestWarRoomRunner:
 
 def _inspect_war_room(run):
     from decision_system.war_room.inspector import inspect_war_room
+
     return inspect_war_room(run)
 
 
 def _render_war_room_inspection(summary):
     from decision_system.war_room.inspector import render_inspection
+
     return render_inspection(summary)
 
 

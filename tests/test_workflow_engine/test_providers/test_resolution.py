@@ -19,20 +19,22 @@ def store_with_providers() -> ProviderStore:
     """Provider store with multiple named providers."""
     tmp = Path(tempfile.mkdtemp())
     store = ProviderStore(tmp / "providers.json")
-    store.save([
-        ProviderConfig(
-            name="default-provider",
-            api_base="https://default.api/v1",
-            api_key_env="DEFAULT_KEY",
-            default_model="default-model",
-        ),
-        ProviderConfig(
-            name="secondary",
-            api_base="https://second.api/v1",
-            api_key_env="SECOND_KEY",
-            default_model="second-model",
-        ),
-    ])
+    store.save(
+        [
+            ProviderConfig(
+                name="default-provider",
+                api_base="https://default.api/v1",
+                api_key_env="DEFAULT_KEY",
+                default_model="default-model",
+            ),
+            ProviderConfig(
+                name="secondary",
+                api_base="https://second.api/v1",
+                api_key_env="SECOND_KEY",
+                default_model="second-model",
+            ),
+        ]
+    )
     return store
 
 
@@ -54,6 +56,7 @@ def _ctx(store: ProviderStore | None = None) -> ExecutionContext:
 
 
 # ── Tests ─────────────────────────────────────────────────────────────
+
 
 class TestResolveProvider:
     """ExecutionContext.resolve_provider() resolution order."""
@@ -90,9 +93,7 @@ class TestResolveProvider:
         ctx = _ctx(empty_store)
         assert ctx.resolve_provider() is None
 
-    def test_resolve_invalid_provider_falls_to_default(
-        self, store_with_providers: ProviderStore
-    ):
+    def test_resolve_invalid_provider_falls_to_default(self, store_with_providers: ProviderStore):
         """Nonexistent provider name → falls to system default."""
         ctx = _ctx(store_with_providers)
         result = ctx.resolve_provider(provider_name="does-not-exist")
@@ -100,9 +101,7 @@ class TestResolveProvider:
         provider_cfg, _ = result
         assert provider_cfg.name == "default-provider"
 
-    def test_resolve_invalid_provider_with_empty_store(
-        self, empty_store: ProviderStore
-    ):
+    def test_resolve_invalid_provider_with_empty_store(self, empty_store: ProviderStore):
         """Nonexistent provider + empty store → None."""
         ctx = _ctx(empty_store)
         result = ctx.resolve_provider(provider_name="anything")
@@ -113,9 +112,7 @@ class TestResolveProvider:
         ctx = _ctx(None)
         assert ctx.resolve_provider() is None
 
-    def test_resolve_empty_provider_name_uses_default(
-        self, store_with_providers: ProviderStore
-    ):
+    def test_resolve_empty_provider_name_uses_default(self, store_with_providers: ProviderStore):
         """Empty string provider name → default."""
         ctx = _ctx(store_with_providers)
         result = ctx.resolve_provider(provider_name="")

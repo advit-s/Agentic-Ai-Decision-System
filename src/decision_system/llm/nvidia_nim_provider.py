@@ -5,7 +5,6 @@ from typing import Any, TypeVar
 from pydantic import BaseModel
 
 from decision_system.config import Settings
-from decision_system.models import AgentMemo, Claim, DecisionReport, EvidenceChunk
 from decision_system.llm.structured_io import (
     ClaimsEnvelope,
     claim_prompt,
@@ -14,6 +13,7 @@ from decision_system.llm.structured_io import (
     system_prompt,
     technical_prompt,
 )
+from decision_system.models import AgentMemo, Claim, DecisionReport, EvidenceChunk
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -77,7 +77,9 @@ class NvidiaNimProvider:
         evidence: list[EvidenceChunk],
     ) -> DecisionReport:
         """Provider-side reports are not used; local renderer owns reports."""
-        raise NotImplementedError("NvidiaNimProvider report writing is handled by the local renderer.")
+        raise NotImplementedError(
+            "NvidiaNimProvider report writing is handled by the local renderer."
+        )
 
     def _complete_json(
         self,

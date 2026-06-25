@@ -12,7 +12,6 @@ from decision_system.data_catalog.models import (
     dataset_id_from_filename,
 )
 
-
 DEFAULT_DATA_ROOT = Path("company_data")
 MANIFEST_FILENAME = "manifest.json"
 

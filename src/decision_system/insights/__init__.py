@@ -10,7 +10,12 @@ testable. Insights are persisted to ``.decision_system/insights/insights.json``.
 
 from __future__ import annotations
 
-from decision_system.insights.models import Insight, InsightCategory, InsightStore, InsightSeverity
+from decision_system.insights.models import (
+    Insight,
+    InsightCategory,
+    InsightSeverity,
+    InsightStore,
+)
 from decision_system.insights.store import (
     DEFAULT_INSIGHTS_FILENAME,
     _insights_path,

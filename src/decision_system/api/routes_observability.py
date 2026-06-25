@@ -8,11 +8,10 @@ scaffolding not yet wired into the core workflow).
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from fastapi import APIRouter
-
-from dataclasses import asdict
 
 from decision_system.observability.store import (
     compute_metric_summary,
@@ -29,9 +28,10 @@ def __dataclass_to_dict(obj):
     d = asdict(obj)
     # Convert datetime objects to ISO strings
     for k, v in d.items():
-        if hasattr(v, 'isoformat'):
+        if hasattr(v, "isoformat"):
             d[k] = v.isoformat()
     return d
+
 
 router = APIRouter(prefix="/observability", tags=["observability"])
 

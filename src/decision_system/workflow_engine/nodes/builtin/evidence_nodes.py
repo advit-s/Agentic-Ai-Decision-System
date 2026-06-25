@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from decision_system.workflow_engine.models import (
-    WorkflowNode,
     ExecutionContext,
+    WorkflowNode,
 )
 
 
@@ -57,7 +57,6 @@ class EvidenceSearchNode(WorkflowNode):
         try:
             from decision_system.config import load_settings
             from decision_system.rag.retriever import retrieve_evidence
-            from decision_system.data_sources.models import EvidenceSearchResult
 
             settings = load_settings()
             chunks = retrieve_evidence(

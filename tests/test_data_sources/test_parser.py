@@ -1,11 +1,11 @@
 """Tests for document parsing and CSV/JSON profiling."""
 
 from decision_system.data_sources.parser import (
+    get_supported_extensions,
+    is_parsable,
     parse_document,
     profile_csv,
     profile_json_content,
-    get_supported_extensions,
-    is_parsable,
 )
 
 

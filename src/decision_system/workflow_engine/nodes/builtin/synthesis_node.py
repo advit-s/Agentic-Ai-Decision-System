@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from decision_system.workflow_engine.models import (
-    WorkflowNode,
     ExecutionContext,
+    WorkflowNode,
 )
 
 
@@ -42,11 +42,17 @@ class EvidenceSynthesisNode(WorkflowNode):
         evidence_results = inputs.get("evidence_results") or self.config.get("evidence_results", [])
         provider_id = inputs.get("provider_id") or self.config.get("provider_id", "")
         model = inputs.get("model") or self.config.get("model", "")
-        synthesis_mode = inputs.get("synthesis_mode") or self.config.get("synthesis_mode", "summary")
+        synthesis_mode = inputs.get("synthesis_mode") or self.config.get(
+            "synthesis_mode", "summary"
+        )
         auto_verify = inputs.get("auto_verify") or self.config.get("auto_verify", False)
 
         if not workspace_id:
-            return {"error": "workspace_id is required", "claim_ids": [], "result_count": 0}
+            return {
+                "error": "workspace_id is required",
+                "claim_ids": [],
+                "result_count": 0,
+            }
         if not question:
             return {"error": "question is required", "claim_ids": [], "result_count": 0}
 
@@ -54,7 +60,11 @@ class EvidenceSynthesisNode(WorkflowNode):
         provider_config = None
         if provider_id:
             try:
-                from decision_system.providers.store import get_provider, get_provider_by_name
+                from decision_system.providers.store import (
+                    get_provider,
+                    get_provider_by_name,
+                )
+
                 provider_config = get_provider(provider_id) or get_provider_by_name(provider_id)
             except Exception:
                 pass
@@ -62,6 +72,7 @@ class EvidenceSynthesisNode(WorkflowNode):
         # Run synthesis
         try:
             from decision_system.synthesis.service import run_synthesis
+
             result = run_synthesis(
                 workspace_id=workspace_id,
                 question=question,
@@ -86,6 +97,7 @@ class EvidenceSynthesisNode(WorkflowNode):
                 for dc in result.draft_claims:
                     from decision_system.ledger.models import Claim
                     from decision_system.ledger.store import ClaimLedgerStore
+
                     store = ClaimLedgerStore()
                     claim = Claim(
                         claim_text=dc.claim_text,
@@ -111,15 +123,20 @@ class EvidenceSynthesisNode(WorkflowNode):
         if auto_verify and claim_ids:
             try:
                 from decision_system.verification.verifier import VerifierService
+
                 verifier = VerifierService()
                 v_results = []
                 for cid in claim_ids:
                     v = verifier.verify_claim(cid, workspace_id)
                     if v:
-                        v_results.append(v.model_dump(mode="json") if hasattr(v, "model_dump") else v)
+                        v_results.append(
+                            v.model_dump(mode="json") if hasattr(v, "model_dump") else v
+                        )
                 verification_summary = {
                     "total": len(v_results),
-                    "verified": sum(1 for v in v_results if isinstance(v, dict) and v.get("status") != "error"),
+                    "verified": sum(
+                        1 for v in v_results if isinstance(v, dict) and v.get("status") != "error"
+                    ),
                     "results": v_results,
                 }
             except Exception:
@@ -155,7 +172,13 @@ class EvidenceSynthesisNode(WorkflowNode):
                     "type": "string",
                     "title": "Synthesis Mode",
                     "default": "summary",
-                    "enum": ["summary", "risks", "opportunities", "claims", "report_outline"],
+                    "enum": [
+                        "summary",
+                        "risks",
+                        "opportunities",
+                        "claims",
+                        "report_outline",
+                    ],
                 },
                 "provider_id": {
                     "type": "string",

@@ -3,38 +3,33 @@
 from __future__ import annotations
 
 import csv
-import json
 from pathlib import Path
 from typing import Any
 
-import pytest
+from typer.testing import CliRunner
 
+from decision_system.cli import app
 from decision_system.data_catalog.models import (
     ColumnProfile,
-    DataProfileStore,
     DataCategory,
+    DataProfileStore,
     DatasetProfile,
 )
 from decision_system.graphing.models import (
     Entity,
-    EntityType,
     KnowledgeGraph,
     Relationship,
-    RelationType,
 )
 from decision_system.insights.detectors import run_detectors
-from decision_system.insights.inspector import inspect_insights, render_insight_inspection
+from decision_system.insights.inspector import (
+    inspect_insights,
+    render_insight_inspection,
+)
 from decision_system.insights.models import (
     Insight,
-    InsightCategory,
     InsightStore,
-    InsightSeverity,
 )
 from decision_system.insights.store import load_insights, save_insights
-from typer.testing import CliRunner
-
-from decision_system.cli import app
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -116,12 +111,8 @@ class TestInsightModel:
     def test_insight_store_add_and_counts(self):
         store = InsightStore()
         assert store.insights == []
-        insight_a = Insight(
-            insight_id="a:1", title="A", category="missing_data", severity="high"
-        )
-        insight_b = Insight(
-            insight_id="b:1", title="B", category="data_quality", severity="medium"
-        )
+        insight_a = Insight(insight_id="a:1", title="A", category="missing_data", severity="high")
+        insight_b = Insight(insight_id="b:1", title="B", category="data_quality", severity="medium")
         store.add(insight_a)
         store.add(insight_b)
         assert len(store.insights) == 2
@@ -134,10 +125,16 @@ class TestInsightModel:
     def test_insight_store_deduplication(self):
         store = InsightStore()
         first = Insight(
-            insight_id="x:1", title="Same title", category="missing_data", severity="medium"
+            insight_id="x:1",
+            title="Same title",
+            category="missing_data",
+            severity="medium",
         )
         duplicate = Insight(
-            insight_id="x:1", title="Different title", category="missing_data", severity="high"
+            insight_id="x:1",
+            title="Different title",
+            category="missing_data",
+            severity="high",
         )
         store.add(first)
         store.add(duplicate)
@@ -191,9 +188,24 @@ class TestInspector:
     def test_inspect_insights_basic(self):
         store = InsightStore(
             insights=[
-                Insight(insight_id="a:1", title="A", category="missing_data", severity="high"),
-                Insight(insight_id="b:1", title="B", category="data_quality", severity="medium"),
-                Insight(insight_id="c:1", title="C", category="missing_data", severity="medium"),
+                Insight(
+                    insight_id="a:1",
+                    title="A",
+                    category="missing_data",
+                    severity="high",
+                ),
+                Insight(
+                    insight_id="b:1",
+                    title="B",
+                    category="data_quality",
+                    severity="medium",
+                ),
+                Insight(
+                    insight_id="c:1",
+                    title="C",
+                    category="missing_data",
+                    severity="medium",
+                ),
             ]
         )
         summary = inspect_insights(store)
@@ -239,9 +251,7 @@ class TestInspector:
 
 class TestMissingDataDetector:
     def test_medium_missing_creates_insight(self):
-        col = ColumnProfile(
-            name="email", missing_count=3, missing_pct=0.30, unique_count=10
-        )
+        col = ColumnProfile(name="email", missing_count=3, missing_pct=0.30, unique_count=10)
         profile = _profile_with(
             filename="customers.csv",
             category="customers",
@@ -257,17 +267,13 @@ class TestMissingDataDetector:
         assert "email" in ins.title
 
     def test_high_missing_creates_high_severity(self):
-        col = ColumnProfile(
-            name="notes", missing_count=6, missing_pct=0.60, unique_count=2
-        )
+        col = ColumnProfile(name="notes", missing_count=6, missing_pct=0.60, unique_count=2)
         profile = _profile_with(columns=[col], row_count=10)
         store = run_detectors(profiles=DataProfileStore(profiles=[profile]))
         assert store.insights[0].severity == "high"
 
     def test_below_threshold_no_insight(self):
-        col = ColumnProfile(
-            name="email", missing_count=1, missing_pct=0.10, unique_count=9
-        )
+        col = ColumnProfile(name="email", missing_count=1, missing_pct=0.10, unique_count=9)
         profile = _profile_with(columns=[col], row_count=10)
         store = run_detectors(profiles=DataProfileStore(profiles=[profile]))
         assert not any(i.category == "missing_data" for i in store.insights)
@@ -383,12 +389,8 @@ class TestCustomerConcentration:
 class TestRevenueRisk:
     def test_high_expense_ratio_creates_insight(self, tmp_path: Path):
         rows = [
-            _make_row(
-                month="2025-01", product="Vertex", revenue="12000", expenses="11850"
-            ),
-            _make_row(
-                month="2025-02", product="Vertex", revenue="12000", expenses="11200"
-            ),
+            _make_row(month="2025-01", product="Vertex", revenue="12000", expenses="11850"),
+            _make_row(month="2025-02", product="Vertex", revenue="12000", expenses="11200"),
         ]
         headers = ["month", "product", "revenue", "expenses"]
         _write_csv(tmp_path, "financial", "demo_financials.csv", rows, headers)
@@ -453,9 +455,7 @@ class TestRevenueRisk:
             profiles=DataProfileStore(profiles=[profile]),
             csv_root=tmp_path,
         )
-        margin_insights = [
-            i for i in store.insights if i.category == "profit_margin_risk"
-        ]
+        margin_insights = [i for i in store.insights if i.category == "profit_margin_risk"]
         assert len(margin_insights) >= 1
 
     def test_no_risk_when_csv_missing(self, tmp_path: Path):
@@ -464,14 +464,24 @@ class TestRevenueRisk:
             missing_count=0,
             missing_pct=0.0,
             unique_count=1,
-            numeric_summary={"min": 1000.0, "max": 1000.0, "mean": 1000.0, "median": 1000.0},
+            numeric_summary={
+                "min": 1000.0,
+                "max": 1000.0,
+                "mean": 1000.0,
+                "median": 1000.0,
+            },
         )
         col_exp = ColumnProfile(
             name="expenses",
             missing_count=0,
             missing_pct=0.0,
             unique_count=1,
-            numeric_summary={"min": 500.0, "max": 500.0, "mean": 500.0, "median": 500.0},
+            numeric_summary={
+                "min": 500.0,
+                "max": 500.0,
+                "mean": 500.0,
+                "median": 500.0,
+            },
         )
         profile = _profile_with(columns=[col_rev, col_exp])
         store = run_detectors(profiles=DataProfileStore(profiles=[profile]), csv_root=tmp_path)
@@ -498,14 +508,24 @@ class TestMarketingROI:
             missing_count=0,
             missing_pct=0.0,
             unique_count=1,
-            numeric_summary={"min": 1200.0, "max": 1200.0, "mean": 1200.0, "median": 1200.0},
+            numeric_summary={
+                "min": 1200.0,
+                "max": 1200.0,
+                "mean": 1200.0,
+                "median": 1200.0,
+            },
         )
         col_rev = ColumnProfile(
             name="revenue",
             missing_count=0,
             missing_pct=0.0,
             unique_count=1,
-            numeric_summary={"min": 600.0, "max": 600.0, "mean": 600.0, "median": 600.0},
+            numeric_summary={
+                "min": 600.0,
+                "max": 600.0,
+                "mean": 600.0,
+                "median": 600.0,
+            },
         )
         col_conv = ColumnProfile(
             name="conversions",
@@ -532,15 +552,30 @@ class TestMarketingROI:
 class TestCustomerConcentrationCSV:
     def test_customer_concentration_from_csv(self, tmp_path: Path):
         rows = [
-            _make_row(city="NY", segment="enterprise", signup_month="2025-01", lifetime_value="5000")
+            _make_row(
+                city="NY",
+                segment="enterprise",
+                signup_month="2025-01",
+                lifetime_value="5000",
+            )
             for _ in range(8)
         ]
         rows += [
-            _make_row(city="Austin", segment="smb", signup_month="2025-01", lifetime_value="3000")
+            _make_row(
+                city="Austin",
+                segment="smb",
+                signup_month="2025-01",
+                lifetime_value="3000",
+            )
             for _ in range(4)
         ]
         rows += [
-            _make_row(city="Seattle", segment="startup", signup_month="2025-01", lifetime_value="2000")
+            _make_row(
+                city="Seattle",
+                segment="startup",
+                signup_month="2025-01",
+                lifetime_value="2000",
+            )
             for _ in range(3)
         ]
         headers = ["city", "segment", "signup_month", "lifetime_value"]
@@ -571,11 +606,23 @@ class TestCustomerConcentrationCSV:
 class TestSalesChannelConcentrationCSV:
     def test_sales_channel_concentration_from_csv(self, tmp_path: Path):
         rows = [
-            _make_row(month="2025-01", product="A", region="N", sales_amount="100", lead_source="Organic")
+            _make_row(
+                month="2025-01",
+                product="A",
+                region="N",
+                sales_amount="100",
+                lead_source="Organic",
+            )
             for _ in range(7)
         ]
         rows += [
-            _make_row(month="2025-01", product="A", region="N", sales_amount="200", lead_source="Paid")
+            _make_row(
+                month="2025-01",
+                product="A",
+                region="N",
+                sales_amount="200",
+                lead_source="Paid",
+            )
             for _ in range(3)
         ]
         headers = ["month", "product", "region", "sales_amount", "lead_source"]
@@ -613,15 +660,21 @@ class TestGraphDetectors:
 
     def test_dependency_risk_two_incoming(self):
         e1 = Entity(
-            entity_id="e-billing", name="Billing", entity_type="system",
+            entity_id="e-billing",
+            name="Billing",
+            entity_type="system",
             confidence="medium",
         )
         e2 = Entity(
-            entity_id="e-auth", name="Auth", entity_type="system",
+            entity_id="e-auth",
+            name="Auth",
+            entity_type="system",
             confidence="medium",
         )
         e3 = Entity(
-            entity_id="e-db", name="Database", entity_type="system",
+            entity_id="e-db",
+            name="Database",
+            entity_type="system",
             confidence="medium",
         )
         rels = [
@@ -649,7 +702,12 @@ class TestGraphDetectors:
     def test_dependency_multiple_high_severity(self):
         e_db = Entity(entity_id="e-db", name="DB", entity_type="system", confidence="medium")
         apps = [
-            Entity(entity_id=f"e-app{i}", name=f"App{i}", entity_type="system", confidence="medium")
+            Entity(
+                entity_id=f"e-app{i}",
+                name=f"App{i}",
+                entity_type="system",
+                confidence="medium",
+            )
             for i in range(1, 5)
         ]
         rels = [
@@ -668,8 +726,18 @@ class TestGraphDetectors:
         assert deps[0].severity == "high"
 
     def test_contradiction_detector(self):
-        e_src = Entity(entity_id="e-src", name="Plan A", entity_type="decision", confidence="medium")
-        e_tgt = Entity(entity_id="e-tgt", name="Plan B", entity_type="decision", confidence="medium")
+        e_src = Entity(
+            entity_id="e-src",
+            name="Plan A",
+            entity_type="decision",
+            confidence="medium",
+        )
+        e_tgt = Entity(
+            entity_id="e-tgt",
+            name="Plan B",
+            entity_type="decision",
+            confidence="medium",
+        )
         rel = Relationship(
             relationship_id="r-con",
             source_entity_id=e_src.entity_id,
@@ -685,7 +753,12 @@ class TestGraphDetectors:
         assert "Plan B" in contras[0].title
 
     def test_ownership_gap_system_without_owner(self):
-        e_sys = Entity(entity_id="e-sys", name="LegacyAuth", entity_type="system", confidence="medium")
+        e_sys = Entity(
+            entity_id="e-sys",
+            name="LegacyAuth",
+            entity_type="system",
+            confidence="medium",
+        )
         e_app = Entity(entity_id="e-app", name="App", entity_type="system", confidence="medium")
         rels = [
             Relationship(
@@ -697,7 +770,9 @@ class TestGraphDetectors:
             ),
         ]
         store = run_detectors(graph=self._make_graph([e_sys, e_app], rels))
-        gaps = [i for i in store.insights if i.category in ("strategic_gap", "operations_bottleneck")]
+        gaps = [
+            i for i in store.insights if i.category in ("strategic_gap", "operations_bottleneck")
+        ]
         system_gaps = [g for g in gaps if "LegacyAuth" in g.title]
         assert len(system_gaps) >= 1
 
@@ -722,7 +797,9 @@ class TestDetectPatternsCLI:
         result = CliRunner().invoke(app, ["detect-patterns"])
         assert result.exit_code == 0
         # Strip ANSI color codes for assertion
-        output_no_ansi = result.output.replace("\x1b[1;36m", "").replace("\x1b[0m", "").replace("\x1b[1m", "")
+        output_no_ansi = (
+            result.output.replace("\x1b[1;36m", "").replace("\x1b[0m", "").replace("\x1b[1m", "")
+        )
         assert "Insights detected:" in output_no_ansi
 
 

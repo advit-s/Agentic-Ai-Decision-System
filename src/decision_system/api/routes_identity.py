@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from decision_system.api.models import api_error
@@ -20,7 +20,6 @@ from decision_system.identity.models import (
     Permission,
     UserRole,
     WorkspaceMembership,
-    get_default_local_user,
 )
 from decision_system.identity.permissions import (
     get_current_user,
@@ -32,7 +31,6 @@ from decision_system.identity.store import (
     create_user,
     delete_membership,
     delete_user,
-    ensure_owner_membership,
     get_membership,
     get_user,
     list_memberships,
@@ -86,6 +84,7 @@ def get_my_identity(
 ) -> dict[str, Any]:
     """Return the current user identity and effective permissions."""
     from decision_system.identity.models import ROLE_PERMISSIONS
+
     perms = sorted(p.value for p in ROLE_PERMISSIONS.get(user.role, set()))
     return {
         "user": user.model_dump(mode="json"),
@@ -204,7 +203,11 @@ def update_workspace_membership(
     """Update a user's role in a workspace."""
     membership = get_membership(id, user_id)
     if membership is None:
-        raise api_error(404, "membership_not_found", f"Membership not found for user '{user_id}' in workspace '{id}'.")
+        raise api_error(
+            404,
+            "membership_not_found",
+            f"Membership not found for user '{user_id}' in workspace '{id}'.",
+        )
     membership.role = body.role
     save_membership(membership)
     return membership.model_dump(mode="json")
@@ -218,7 +221,11 @@ def remove_workspace_membership(
 ) -> dict[str, str]:
     """Remove a user from a workspace."""
     if not delete_membership(id, user_id):
-        raise api_error(404, "membership_not_found", f"Membership not found for user '{user_id}' in workspace '{id}'.")
+        raise api_error(
+            404,
+            "membership_not_found",
+            f"Membership not found for user '{user_id}' in workspace '{id}'.",
+        )
     return {"status": "removed", "workspace_id": id, "user_id": user_id}
 
 

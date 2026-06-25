@@ -7,7 +7,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Public types
 # ---------------------------------------------------------------------------
@@ -47,6 +46,7 @@ ALL_CATEGORIES: list[str] = list(CATEGORY_DESCRIPTIONS.keys())
 # Sub-models
 # ---------------------------------------------------------------------------
 
+
 class ColumnProfile(BaseModel):
     """Profile summary for a single column."""
 
@@ -76,6 +76,7 @@ class DatasetProfile(BaseModel):
 # ---------------------------------------------------------------------------
 # Manifest / store
 # ---------------------------------------------------------------------------
+
 
 class DataSourceManifest(BaseModel):
     """Registry describing supported data categories."""

@@ -5,16 +5,17 @@ permission system, workspace membership, and audit log. No cloud auth,
 passwords, or sessions are required — identity is an opt-in governance
 layer that defaults to a local owner user in demo mode.
 """
+
 from __future__ import annotations
 
 from decision_system.identity.models import (
+    ALL_PERMISSIONS,
+    ROLE_PERMISSIONS,
     LocalUser,
+    Permission,
     UserRole,
     WorkspaceMembership,
     get_default_local_user,
-    ROLE_PERMISSIONS,
-    Permission,
-    ALL_PERMISSIONS,
 )
 
 __all__ = [

@@ -128,12 +128,16 @@ def test_cli_import_and_inspect_commands_exit_zero(tmp_path, monkeypatch):
     _write_csv(source_dir / "Online Retail.csv")
     runner = CliRunner()
 
-    import_result = runner.invoke(app, ["import-datasets", "--source-dir", str(source_dir), "--max-rows", "2"])
+    import_result = runner.invoke(
+        app, ["import-datasets", "--source-dir", str(source_dir), "--max-rows", "2"]
+    )
     inspect_result = runner.invoke(app, ["inspect-imports"])
 
     assert import_result.exit_code == 0
     # Strip ANSI color codes for assertion
-    output_no_ansi = import_result.output.replace("\x1b[1;36m", "").replace("\x1b[0m", "").replace("\x1b[1m", "")
+    output_no_ansi = (
+        import_result.output.replace("\x1b[1;36m", "").replace("\x1b[0m", "").replace("\x1b[1m", "")
+    )
     assert "Imported datasets: 1" in output_no_ansi
     assert inspect_result.exit_code == 0
     assert "# Dataset Import Inspection" in inspect_result.output

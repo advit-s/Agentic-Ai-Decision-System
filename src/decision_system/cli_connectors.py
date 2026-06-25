@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -24,11 +23,8 @@ from decision_system.connectors.inspector import (
 from decision_system.connectors.registry import (
     get_connector_definition,
     get_registry,
-    list_connectors,
 )
 from decision_system.connectors.store import (
-    delete_job,
-    get_job,
     load_jobs,
 )
 
@@ -65,9 +61,7 @@ def connectors_list() -> None:
 
 @connectors_app.command("inspect")
 def connectors_inspect(
-    connector_id: str = typer.Argument(
-        ..., help="Connector id, e.g. local-files."
-    ),
+    connector_id: str = typer.Argument(..., help="Connector id, e.g. local-files."),
 ) -> None:
     """Show capability details for a single connector."""
     definition = get_connector_definition(connector_id)
@@ -87,12 +81,8 @@ def connectors_inspect(
 
 @connectors_app.command("dry-run")
 def connectors_dry_run(
-    connector_id: str = typer.Argument(
-        ..., help="Connector id, e.g. local-files."
-    ),
-    path: str = typer.Option(
-        ..., "--path", help="Local source path to scan."
-    ),
+    connector_id: str = typer.Argument(..., help="Connector id, e.g. local-files."),
+    path: str = typer.Option(..., "--path", help="Local source path to scan."),
 ) -> None:
     """Preview what a connector would import without writing files."""
     definition = get_connector_definition(connector_id)
@@ -142,12 +132,8 @@ def connectors_dry_run(
 
 @connectors_app.command("import")
 def connectors_import(
-    connector_id: str = typer.Argument(
-        ..., help="Connector id, e.g. local-files."
-    ),
-    path: str = typer.Option(
-        ..., "--path", help="Local source path to import from."
-    ),
+    connector_id: str = typer.Argument(..., help="Connector id, e.g. local-files."),
+    path: str = typer.Option(..., "--path", help="Local source path to import from."),
 ) -> None:
     """Execute a real import for a connector.
 
@@ -166,15 +152,10 @@ def connectors_import(
     result = _run_import(connector_id, path)
     summary = inspect_import_job(result.job)
 
-    console.print(
-        f"Import job [{summary['job_id']}] for [{connector_id}]"
-    )
+    console.print(f"Import job [{summary['job_id']}] for [{connector_id}]")
     console.print(f"Status: {summary['status']}")
     console.print(f"Source: {summary['source_path']}")
-    console.print(
-        f"Imported: {summary['imported_count']}, "
-        f"Skipped: {summary['skipped_count']}"
-    )
+    console.print(f"Imported: {summary['imported_count']}, Skipped: {summary['skipped_count']}")
 
     if result.job.output_paths:
         console.print("\nOutput files:")
@@ -194,9 +175,7 @@ def connectors_import(
 
 @connectors_app.command("inspect-jobs")
 def connectors_inspect_jobs(
-    json_output: bool = typer.Option(
-        False, "--json", help="Print structured JSON."
-    ),
+    json_output: bool = typer.Option(False, "--json", help="Print structured JSON."),
 ) -> None:
     """Inspect persisted connector import jobs."""
     jobs = load_jobs()
@@ -205,9 +184,7 @@ def connectors_inspect_jobs(
         raise typer.Exit(code=0)
 
     if json_output:
-        payload = [
-            inspect_import_job(job) for job in jobs
-        ]
+        payload = [inspect_import_job(job) for job in jobs]
         typer.echo(json.dumps(payload, indent=2))
         return
 
@@ -226,9 +203,7 @@ def connectors_inspect_jobs(
             job.status,
             str(len(job.imported_files)),
             str(len(job.skipped_files)),
-            job.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            if job.created_at
-            else "(unknown)",
+            job.created_at.strftime("%Y-%m-%d %H:%M:%S") if job.created_at else "(unknown)",
         )
 
     console.print(table)

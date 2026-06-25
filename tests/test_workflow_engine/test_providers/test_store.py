@@ -10,10 +10,10 @@ from pathlib import Path
 import pytest
 
 from decision_system.workflow_engine.providers.store import (
-    ProviderConfig,
-    ProviderStore,
     DuplicateProviderError,
+    ProviderConfig,
     ProviderNotFoundError,
+    ProviderStore,
 )
 
 
@@ -113,16 +113,20 @@ class TestProviderStore:
         """Existing valid file is loaded correctly."""
         store, prov_file = self._make_store()
         prov_file.parent.mkdir(parents=True, exist_ok=True)
-        prov_file.write_text(json.dumps({
-            "providers": [
+        prov_file.write_text(
+            json.dumps(
                 {
-                    "name": "my-provider",
-                    "api_base": "https://my.api/v1",
-                    "api_key_env": "MY_KEY",
-                    "default_model": "my-model",
-                },
-            ],
-        }))
+                    "providers": [
+                        {
+                            "name": "my-provider",
+                            "api_base": "https://my.api/v1",
+                            "api_key_env": "MY_KEY",
+                            "default_model": "my-model",
+                        },
+                    ],
+                }
+            )
+        )
 
         providers = store.load()
         assert len(providers) == 1
@@ -148,10 +152,12 @@ class TestProviderStore:
     def test_get_default_returns_first(self):
         """First provider in list is the default."""
         store, prov_file = self._make_store()
-        store.save([
-            ProviderConfig(name="first", api_base="https://a.com/v1", default_model="m1"),
-            ProviderConfig(name="second", api_base="https://b.com/v1", default_model="m2"),
-        ])
+        store.save(
+            [
+                ProviderConfig(name="first", api_base="https://a.com/v1", default_model="m1"),
+                ProviderConfig(name="second", api_base="https://b.com/v1", default_model="m2"),
+            ]
+        )
         default = store.get_default()
         assert default is not None
         assert default.name == "first"
@@ -167,9 +173,11 @@ class TestProviderStore:
     def test_get_by_name(self):
         """Finds provider by name."""
         store, prov_file = self._make_store()
-        store.save([
-            ProviderConfig(name="alpha", api_base="https://a.com/v1", default_model="m1"),
-        ])
+        store.save(
+            [
+                ProviderConfig(name="alpha", api_base="https://a.com/v1", default_model="m1"),
+            ]
+        )
         found = store.get("alpha")
         assert found is not None
         assert found.name == "alpha"
@@ -243,10 +251,12 @@ class TestProviderStore:
     def test_remove_default_then_new_default(self):
         """Removing the first provider promotes next element as default."""
         store, prov_file = self._make_store()
-        store.save([
-            ProviderConfig(name="first", api_base="https://a.com/v1", default_model="m1"),
-            ProviderConfig(name="second", api_base="https://b.com/v1", default_model="m2"),
-        ])
+        store.save(
+            [
+                ProviderConfig(name="first", api_base="https://a.com/v1", default_model="m1"),
+                ProviderConfig(name="second", api_base="https://b.com/v1", default_model="m2"),
+            ]
+        )
         store.remove("first")
         assert store.get_default() is not None
         assert store.get_default().name == "second"
@@ -256,11 +266,13 @@ class TestProviderStore:
     def test_set_default_reorders(self):
         """set_default moves named provider to first position."""
         store, prov_file = self._make_store()
-        store.save([
-            ProviderConfig(name="alpha", api_base="https://a.com/v1", default_model="m1"),
-            ProviderConfig(name="beta", api_base="https://b.com/v1", default_model="m2"),
-            ProviderConfig(name="gamma", api_base="https://c.com/v1", default_model="m3"),
-        ])
+        store.save(
+            [
+                ProviderConfig(name="alpha", api_base="https://a.com/v1", default_model="m1"),
+                ProviderConfig(name="beta", api_base="https://b.com/v1", default_model="m2"),
+                ProviderConfig(name="gamma", api_base="https://c.com/v1", default_model="m3"),
+            ]
+        )
         store.set_default("beta")
         providers = store.load()
         assert providers[0].name == "beta"
@@ -274,10 +286,12 @@ class TestProviderStore:
     def test_set_default_already_first(self):
         """Setting the first provider as default is a no-op."""
         store, prov_file = self._make_store()
-        store.save([
-            ProviderConfig(name="first", api_base="https://a.com/v1", default_model="m1"),
-            ProviderConfig(name="second", api_base="https://b.com/v1", default_model="m2"),
-        ])
+        store.save(
+            [
+                ProviderConfig(name="first", api_base="https://a.com/v1", default_model="m1"),
+                ProviderConfig(name="second", api_base="https://b.com/v1", default_model="m2"),
+            ]
+        )
         store.set_default("first")
         assert store.get_default().name == "first"
 
@@ -286,12 +300,22 @@ class TestProviderStore:
     def test_check_returns_key_status(self):
         """check() returns list with api_key_configured booleans."""
         store, prov_file = self._make_store()
-        store.save([
-            ProviderConfig(name="with-key", api_base="https://a.com/v1",
-                           api_key_env="EXISTING_VAR", default_model="m1"),
-            ProviderConfig(name="no-key", api_base="https://b.com/v1",
-                           api_key_env="MISSING_VAR", default_model="m2"),
-        ])
+        store.save(
+            [
+                ProviderConfig(
+                    name="with-key",
+                    api_base="https://a.com/v1",
+                    api_key_env="EXISTING_VAR",
+                    default_model="m1",
+                ),
+                ProviderConfig(
+                    name="no-key",
+                    api_base="https://b.com/v1",
+                    api_key_env="MISSING_VAR",
+                    default_model="m2",
+                ),
+            ]
+        )
         # Temporarily set a known env var
         os.environ["EXISTING_VAR"] = "sk-test"
         try:

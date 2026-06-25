@@ -9,12 +9,12 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 
+from decision_system._data_root import get_data_root
 from decision_system.connectors.models import ConnectorFetchedContent
 
 logger = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DuplicateResult:
     """Result of duplicate detection for a single item."""
+
     is_duplicate: bool = False
     is_unchanged: bool = False
     is_changed: bool = False
@@ -60,7 +61,9 @@ class DuplicateDetector:
             return {}
 
     def _save_hashes(
-        self, connector_id: str, data: dict[str, Any],
+        self,
+        connector_id: str,
+        data: dict[str, Any],
         workspace_id: str | None = None,
     ) -> None:
         path = self._store_path(connector_id, workspace_id)

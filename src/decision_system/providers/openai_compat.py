@@ -17,7 +17,9 @@ from typing import Any
 import httpx
 
 from decision_system.providers.runtime import (
-    BaseProvider, ChatRequest, ChatResponse,
+    BaseProvider,
+    ChatRequest,
+    ChatResponse,
 )
 
 DEFAULT_TIMEOUT = 30.0

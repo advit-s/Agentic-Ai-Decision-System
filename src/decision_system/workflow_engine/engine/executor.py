@@ -13,16 +13,23 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 from uuid import uuid4
 
-from decision_system.workflow_engine.models import (
-    WorkflowDefinition, NodeConfig, ExecutionState, NodeExecutionState,
-    ExecutionContext, ErrorPolicy, RetryConfig, WorkflowNode,
-)
 from decision_system.workflow_engine.engine.dag import DAGValidator, TopologicalSort
 from decision_system.workflow_engine.engine.events import ExecutionEvent
+from decision_system.workflow_engine.models import (
+    ErrorPolicy,
+    ExecutionContext,
+    ExecutionState,
+    NodeConfig,
+    NodeExecutionState,
+    RetryConfig,
+    WorkflowDefinition,
+    WorkflowNode,
+)
 from decision_system.workflow_engine.nodes.registry import NodeRegistry
 from decision_system.workflow_engine.providers.store import ProviderStore
 from decision_system.workflow_engine.stores.base import (
-    WorkflowStore, ExecutionStore,
+    ExecutionStore,
+    WorkflowStore,
 )
 
 
@@ -78,11 +85,13 @@ class DAGEngine:
         )
         self.execution_store.save(state)
 
-        self._emit(ExecutionEvent(
-            execution_id=state.execution_id,
-            event_type="workflow_started",
-            data={"workflow_id": workflow.id, "workflow_name": workflow.name},
-        ))
+        self._emit(
+            ExecutionEvent(
+                execution_id=state.execution_id,
+                event_type="workflow_started",
+                data={"workflow_id": workflow.id, "workflow_name": workflow.name},
+            )
+        )
 
         try:
             # Validate
@@ -119,10 +128,16 @@ class DAGEngine:
                     if node_has_paused_dep:
                         continue
 
-                    tasks.append(self._execute_node(
-                        state, node_id, node_configs[node_id],
-                        deps[node_id], global_inputs, schedule_id,
-                    ))
+                    tasks.append(
+                        self._execute_node(
+                            state,
+                            node_id,
+                            node_configs[node_id],
+                            deps[node_id],
+                            global_inputs,
+                            schedule_id,
+                        )
+                    )
 
                 if not tasks:
                     continue
@@ -135,7 +150,9 @@ class DAGEngine:
                     if ncfg and ncfg.type == "decision_system.review_gate":
                         ns = state.node_states.get(node_id)
                         if ns and ns.outputs and ns.outputs.get("status") == "pending_review":
-                            await self._pause_for_review(state, node_id, ns, workflow, layers, layer_idx)
+                            await self._pause_for_review(
+                                state, node_id, ns, workflow, layers, layer_idx
+                            )
 
                 # If paused for review, stop executing further layers
                 if state.status == "awaiting_review":
@@ -150,11 +167,13 @@ class DAGEngine:
                 self.execution_store.save(state)
             elif state.status != "awaiting_review":
                 self.execution_store.save(state)
-            self._emit(ExecutionEvent(
-                execution_id=state.execution_id,
-                event_type="workflow_completed",
-                data={"status": state.status},
-            ))
+            self._emit(
+                ExecutionEvent(
+                    execution_id=state.execution_id,
+                    event_type="workflow_completed",
+                    data={"status": state.status},
+                )
+            )
 
         except Exception as exc:
             self._fail_workflow(state, f"{type(exc).__name__}: {exc}")
@@ -187,11 +206,13 @@ class DAGEngine:
             state.status = "rejected"
             state.completed_at = datetime.now(timezone.utc)
             self.execution_store.save(state)
-            self._emit(ExecutionEvent(
-                execution_id=execution_id,
-                event_type="workflow_rejected",
-                data={"reason": "Review rejected"},
-            ))
+            self._emit(
+                ExecutionEvent(
+                    execution_id=execution_id,
+                    event_type="workflow_rejected",
+                    data={"reason": "Review rejected"},
+                )
+            )
             return state
 
         # Resume: load the workflow and continue from paused node
@@ -218,11 +239,13 @@ class DAGEngine:
         state.review_id = None
         self.execution_store.save(state)
 
-        self._emit(ExecutionEvent(
-            execution_id=execution_id,
-            event_type="workflow_resumed",
-            data={"paused_node_id": paused_node_id},
-        ))
+        self._emit(
+            ExecutionEvent(
+                execution_id=execution_id,
+                event_type="workflow_resumed",
+                data={"paused_node_id": paused_node_id},
+            )
+        )
 
         # Continue executing remaining layers
         try:
@@ -259,10 +282,16 @@ class DAGEngine:
                     if node_has_paused_dep:
                         continue
 
-                    tasks.append(self._execute_node(
-                        state, node_id, node_configs[node_id],
-                        deps.get(node_id, []), {}, None,
-                    ))
+                    tasks.append(
+                        self._execute_node(
+                            state,
+                            node_id,
+                            node_configs[node_id],
+                            deps.get(node_id, []),
+                            {},
+                            None,
+                        )
+                    )
 
                 if not tasks:
                     continue
@@ -316,21 +345,23 @@ class DAGEngine:
 
         # Record downstream nodes that should not start
         downstream = []
-        for layer in layers[current_layer_idx + 1:]:
+        for layer in layers[current_layer_idx + 1 :]:
             for nid in layer:
                 downstream.append(nid)
         state.downstream_nodes_not_started = downstream
 
         self.execution_store.save(state)
-        self._emit(ExecutionEvent(
-            execution_id=state.execution_id,
-            event_type="workflow_paused",
-            node_id=node_id,
-            data={
-                "review_id": state.review_id,
-                "reason": "awaiting_review",
-            },
-        ))
+        self._emit(
+            ExecutionEvent(
+                execution_id=state.execution_id,
+                event_type="workflow_paused",
+                node_id=node_id,
+                data={
+                    "review_id": state.review_id,
+                    "reason": "awaiting_review",
+                },
+            )
+        )
 
     def _fail_workflow(self, state: ExecutionState, error: str) -> ExecutionState:
         """Mark execution as failed and persist."""
@@ -338,11 +369,13 @@ class DAGEngine:
         state.error = error
         state.completed_at = datetime.now(timezone.utc)
         self.execution_store.save(state)
-        self._emit(ExecutionEvent(
-            execution_id=state.execution_id,
-            event_type="workflow_failed",
-            data={"error": error},
-        ))
+        self._emit(
+            ExecutionEvent(
+                execution_id=state.execution_id,
+                event_type="workflow_failed",
+                data={"error": error},
+            )
+        )
         return state
 
     async def _execute_node(
@@ -361,12 +394,14 @@ class DAGEngine:
         ns.attempts += 1
         self.execution_store.save(state)
 
-        self._emit(ExecutionEvent(
-            execution_id=state.execution_id,
-            event_type="node_started",
-            node_id=node_id,
-            data={"node_type": config.type},
-        ))
+        self._emit(
+            ExecutionEvent(
+                execution_id=state.execution_id,
+                event_type="node_started",
+                node_id=node_id,
+                data={"node_type": config.type},
+            )
+        )
 
         try:
             # Collect inputs from upstream nodes
@@ -400,12 +435,14 @@ class DAGEngine:
             ns.completed_at = datetime.now(timezone.utc)
             self.execution_store.save(state)
 
-            self._emit(ExecutionEvent(
-                execution_id=state.execution_id,
-                event_type="node_completed",
-                node_id=node_id,
-                data={"outputs": outputs},
-            ))
+            self._emit(
+                ExecutionEvent(
+                    execution_id=state.execution_id,
+                    event_type="node_completed",
+                    node_id=node_id,
+                    data={"outputs": outputs},
+                )
+            )
 
         except Exception as exc:
             error_msg = f"{type(exc).__name__}: {exc}"
@@ -415,12 +452,14 @@ class DAGEngine:
             if config.error_policy == ErrorPolicy.SKIP:
                 ns.status = "skipped"
                 self.execution_store.save(state)
-                self._emit(ExecutionEvent(
-                    execution_id=state.execution_id,
-                    event_type="node_failed",
-                    node_id=node_id,
-                    data={"error": error_msg, "action": "skipped"},
-                ))
+                self._emit(
+                    ExecutionEvent(
+                        execution_id=state.execution_id,
+                        event_type="node_failed",
+                        node_id=node_id,
+                        data={"error": error_msg, "action": "skipped"},
+                    )
+                )
 
             elif config.error_policy == ErrorPolicy.RETRY:
                 retry_cfg = config.retry_config or RetryConfig()
@@ -430,37 +469,45 @@ class DAGEngine:
                         retry_cfg.max_delay,
                     )
                     await asyncio.sleep(delay)
-                    await self._execute_node(state, node_id, config, dependencies, global_inputs, schedule_id)
+                    await self._execute_node(
+                        state, node_id, config, dependencies, global_inputs, schedule_id
+                    )
                 else:
                     ns.status = "failed"
                     state.status = "failed"
                     state.error = error_msg
                     self.execution_store.save(state)
-                    self._emit(ExecutionEvent(
-                        execution_id=state.execution_id,
-                        event_type="node_failed",
-                        node_id=node_id,
-                        data={"error": error_msg, "action": "failed"},
-                    ))
+                    self._emit(
+                        ExecutionEvent(
+                            execution_id=state.execution_id,
+                            event_type="node_failed",
+                            node_id=node_id,
+                            data={"error": error_msg, "action": "failed"},
+                        )
+                    )
 
             elif config.error_policy == ErrorPolicy.FAIL_NODE:
                 ns.status = "failed"
                 self.execution_store.save(state)
-                self._emit(ExecutionEvent(
-                    execution_id=state.execution_id,
-                    event_type="node_failed",
-                    node_id=node_id,
-                    data={"error": error_msg, "action": "failed_continue"},
-                ))
+                self._emit(
+                    ExecutionEvent(
+                        execution_id=state.execution_id,
+                        event_type="node_failed",
+                        node_id=node_id,
+                        data={"error": error_msg, "action": "failed_continue"},
+                    )
+                )
 
             else:  # FAIL_WORKFLOW (default)
                 ns.status = "failed"
                 state.status = "failed"
                 state.error = error_msg
                 self.execution_store.save(state)
-                self._emit(ExecutionEvent(
-                    execution_id=state.execution_id,
-                    event_type="node_failed",
-                    node_id=node_id,
-                    data={"error": error_msg, "action": "failed_workflow"},
-                ))
+                self._emit(
+                    ExecutionEvent(
+                        execution_id=state.execution_id,
+                        event_type="node_failed",
+                        node_id=node_id,
+                        data={"error": error_msg, "action": "failed_workflow"},
+                    )
+                )

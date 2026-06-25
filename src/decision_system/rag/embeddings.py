@@ -5,9 +5,9 @@ stable vectors without API keys so v0.1 tests and smoke runs can prove the RAG
 plumbing before real provider choices are introduced.
 """
 
-from hashlib import sha256
 import math
 import re
+from hashlib import sha256
 
 
 class HashEmbeddingFunction:

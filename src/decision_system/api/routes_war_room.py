@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from decision_system.api.models import ApiRunResponse, ApiStatusResponse, QuestionRequest, to_jsonable
+from decision_system.api.models import (
+    ApiRunResponse,
+    ApiStatusResponse,
+    QuestionRequest,
+    to_jsonable,
+)
 from decision_system.war_room.dispatcher import build_dispatch_spec
 from decision_system.war_room.runner import run_war_room
 from decision_system.war_room.store import load_latest_run
-
 
 router = APIRouter(tags=["war-room"])
 

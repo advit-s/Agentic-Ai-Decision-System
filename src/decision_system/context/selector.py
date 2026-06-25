@@ -5,9 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from decision_system.insights.models import Insight, InsightStore
-from decision_system.ontology.models import OntologyConcept, OntologyMap
+from decision_system.ontology.models import OntologyMap
 from decision_system.orchestration.problem_analyzer import ProblemAnalysis
-
 
 # Category keywords for matching insights to questions
 _CATEGORY_KEYWORDS: dict[str, list[str]] = {
@@ -15,17 +14,48 @@ _CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "profit_margin_risk": ["margin", "profit", "profitability"],
     "customer_concentration": ["customer", "churn", "retention", "loyalty", "segment"],
     "sales_channel_risk": ["sales", "region", "lead", "pipeline", "quota", "territory"],
-    "marketing_roi_risk": ["marketing", "ad", "channel", "roas", "campaign", "impressions", "ctr"],
+    "marketing_roi_risk": [
+        "marketing",
+        "ad",
+        "channel",
+        "roas",
+        "campaign",
+        "impressions",
+        "ctr",
+    ],
     "feedback_risk": ["complaint", "ticket", "refund", "feedback", "sentiment", "nps"],
     "product_risk": ["product", "return", "usage", "feature", "catalog", "inventory"],
     "competitor_risk": ["competitor", "pricing", "market share", "competitive"],
-    "operations_bottleneck": ["delivery", "manufacturing", "inventory", "bottleneck", "supply chain", "logistics", "delay"],
-    "analytics_conversion_risk": ["website", "app", "traffic", "conversion", "bounce", "session", "page"],
+    "operations_bottleneck": [
+        "delivery",
+        "manufacturing",
+        "inventory",
+        "bottleneck",
+        "supply chain",
+        "logistics",
+        "delay",
+    ],
+    "analytics_conversion_risk": [
+        "website",
+        "app",
+        "traffic",
+        "conversion",
+        "bounce",
+        "session",
+        "page",
+    ],
     "data_quality": ["data quality", "quality", "warning"],
     "missing_data": ["missing", "null", "empty"],
     "dependency_risk": ["dependency", "depends", "coupling"],
     "contradiction": ["contradiction", "conflict", "contradict"],
-    "strategic_gap": ["goal", "strategy", "objective", "strategic", "initiative", "target"],
+    "strategic_gap": [
+        "goal",
+        "strategy",
+        "objective",
+        "strategic",
+        "initiative",
+        "target",
+    ],
     "security_risk": ["security", "vulnerability", "threat", "compliance"],
 }
 
@@ -40,7 +70,9 @@ def _question_matches_category(question: str, category: str) -> bool:
     return False
 
 
-def _data_category_matches_insight_category(data_categories: list[str], insight_category: str) -> bool:
+def _data_category_matches_insight_category(
+    data_categories: list[str], insight_category: str
+) -> bool:
     """Check if required data categories align with insight category."""
     category_to_data = {
         "revenue_risk": ["financial"],
@@ -95,14 +127,16 @@ def select_relevant_ontology_concepts(
     for concept in omap.concepts:
         if concept.concept_id in matched_ids:
             is_required = concept.concept_id in required_ids
-            result.append({
-                "concept_id": concept.concept_id,
-                "name": concept.name,
-                "type": concept.concept_type,
-                "description": concept.description,
-                "category": concept.category,
-                "required": is_required,
-            })
+            result.append(
+                {
+                    "concept_id": concept.concept_id,
+                    "name": concept.name,
+                    "type": concept.concept_type,
+                    "description": concept.description,
+                    "category": concept.category,
+                    "required": is_required,
+                }
+            )
 
     # Sort: required first, then alphabetical
     result.sort(key=lambda x: (0 if x["required"] else 1, x["concept_id"]))

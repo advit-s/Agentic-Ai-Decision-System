@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import tempfile
 from datetime import datetime, timezone
@@ -25,29 +24,24 @@ from decision_system.connectors.local_files import (
     _should_skip_directory,
     _should_skip_file,
     _target_category,
+)
+from decision_system.connectors.local_files import (
     run_dry_run as local_dry_run,
+)
+from decision_system.connectors.local_files import (
     run_local_files_import as local_import,
 )
 from decision_system.connectors.models import (
     ConnectorCapability,
-    ConnectorDefinition,
     ConnectorDryRunFile,
     ConnectorDryRunResult,
     ConnectorImportJob,
-    ConnectorImportResult,
-    ConnectorImportResult,
     ConnectorStatus,
-    ConnectorType,
 )
 from decision_system.connectors.registry import (
     get_connector_definition,
     get_registry,
     list_connectors,
-)
-from decision_system.connectors.stubs import (
-    ExternalConnectorError,
-    run_stub_dry_run,
-    run_stub_import,
 )
 from decision_system.connectors.store import (
     ConnectorJobStore,
@@ -56,7 +50,11 @@ from decision_system.connectors.store import (
     load_jobs,
     save_job,
 )
-
+from decision_system.connectors.stubs import (
+    ExternalConnectorError,
+    run_stub_dry_run,
+    run_stub_import,
+)
 
 # ---------------------------------------------------------------------------
 # Registry tests
@@ -501,7 +499,6 @@ class TestStore:
         assert store.delete("del-001") is False
 
     def test_module_level_functions(self, tmp_path, monkeypatch):
-        import decision_system.connectors.store as store_mod
         monkeypatch.setenv("DECISION_SYSTEM_DATA_DIR", str(tmp_path))
 
         job = ConnectorImportJob(

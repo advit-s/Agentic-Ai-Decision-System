@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-import json
-import sys
-import types
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
@@ -14,9 +10,10 @@ from typer.testing import CliRunner
 
 from decision_system.cli import app
 from decision_system.config import Settings
-from decision_system.llm.fake_provider import FakeProvider
-from decision_system.llm.factory import get_provider
-from decision_system.models import AgentMemo, Claim, EvidenceChunk
+from decision_system.provider_experiments.inspector import (
+    inspect_provider_experiments,
+    render_provider_experiments,
+)
 from decision_system.provider_experiments.models import (
     ProviderExperimentCase,
     ProviderExperimentResult,
@@ -32,10 +29,6 @@ from decision_system.provider_experiments.store import (
     load_latest_provider_results,
     save_experiment_results,
 )
-from decision_system.provider_experiments.inspector import (
-    inspect_provider_experiments,
-    render_provider_experiments,
-)
 
 runner = CliRunner()
 
@@ -43,6 +36,7 @@ runner = CliRunner()
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def _settings(provider="fake", api_key="", model="", ollama_model="", **kw):
     return Settings(
@@ -71,10 +65,13 @@ def _settings(provider="fake", api_key="", model="", ollama_model="", **kw):
 # Model tests
 # ------------------------------------------------------------------
 
+
 class TestProviderExperimentModels:
     def test_case_defaults(self):
         case = ProviderExperimentCase(
-            case_id="c1", question="Q?", evidence_texts=["e1"],
+            case_id="c1",
+            question="Q?",
+            evidence_texts=["e1"],
         )
         assert case.case_id == "c1"
         assert case.provider_name == "fake"
@@ -94,11 +91,20 @@ class TestProviderExperimentModels:
 
     def test_suite_result_with_results(self):
         result = ProviderExperimentResult(
-            case_id="c1", provider_name="fake", status="passed",
-            technical_memo_valid=True, risk_memo_valid=True, claims_valid=True, claim_count=2,
+            case_id="c1",
+            provider_name="fake",
+            status="passed",
+            technical_memo_valid=True,
+            risk_memo_valid=True,
+            claims_valid=True,
+            claim_count=2,
         )
         suite = ProviderExperimentSuiteResult(
-            provider_name="fake", total_cases=1, passed_cases=1, failed_cases=0, results=[result],
+            provider_name="fake",
+            total_cases=1,
+            passed_cases=1,
+            failed_cases=0,
+            results=[result],
         )
         assert suite.passed_cases == 1
         assert len(suite.results) == 1
@@ -107,6 +113,7 @@ class TestProviderExperimentModels:
 # ------------------------------------------------------------------
 # _make_evidence helper
 # ------------------------------------------------------------------
+
 
 class TestMakeEvidence:
     def test_empty_texts(self):
@@ -130,6 +137,7 @@ class TestMakeEvidence:
 # run_experiment_case tests
 # ------------------------------------------------------------------
 
+
 class TestRunExperimentCase:
     def test_fake_provider_passes(self):
         case = ProviderExperimentCase(
@@ -151,7 +159,10 @@ class TestRunExperimentCase:
 
     def test_unknown_provider_skips(self):
         case = ProviderExperimentCase(
-            case_id="c1", question="Q?", evidence_texts=[], provider_name="unknown",
+            case_id="c1",
+            question="Q?",
+            evidence_texts=[],
+            provider_name="unknown",
         )
         result = run_experiment_case(case, settings=_settings())
         assert result.status == "skipped"
@@ -159,7 +170,10 @@ class TestRunExperimentCase:
 
     def test_ollama_missing_model_skips(self):
         case = ProviderExperimentCase(
-            case_id="c1", question="Q?", evidence_texts=[], provider_name="ollama",
+            case_id="c1",
+            question="Q?",
+            evidence_texts=[],
+            provider_name="ollama",
         )
         result = run_experiment_case(case, settings=_settings(provider="ollama", ollama_model=""))
         assert result.status == "skipped"
@@ -167,7 +181,9 @@ class TestRunExperimentCase:
 
     def test_empty_evidence_returns_nonempty_report(self):
         case = ProviderExperimentCase(
-            case_id="empty_context", question="Should we migrate billing?", evidence_texts=[],
+            case_id="empty_context",
+            question="Should we migrate billing?",
+            evidence_texts=[],
         )
         result = run_experiment_case(case, settings=_settings())
         assert result.status == "passed"
@@ -209,14 +225,21 @@ class TestRunExperimentCase:
 # run_experiment_suite tests
 # ------------------------------------------------------------------
 
+
 class TestRunExperimentSuite:
     def test_suite_aggregation(self):
         cases = [
             ProviderExperimentCase(
-                case_id="c1", question="Q1?", evidence_texts=["text1"], provider_name="fake",
+                case_id="c1",
+                question="Q1?",
+                evidence_texts=["text1"],
+                provider_name="fake",
             ),
             ProviderExperimentCase(
-                case_id="c2", question="Q2?", evidence_texts=[], provider_name="fake",
+                case_id="c2",
+                question="Q2?",
+                evidence_texts=[],
+                provider_name="fake",
             ),
         ]
         suite = run_experiment_suite(cases, provider_name="fake", settings=_settings())
@@ -227,7 +250,10 @@ class TestRunExperimentSuite:
 
     def test_suite_overrides_case_provider(self):
         case = ProviderExperimentCase(
-            case_id="c1", question="Q?", evidence_texts=[], provider_name="nvidia_nim",
+            case_id="c1",
+            question="Q?",
+            evidence_texts=[],
+            provider_name="nvidia_nim",
         )
         # Suite forces provider to fake, so it should pass
         suite = run_experiment_suite([case], provider_name="fake", settings=_settings())
@@ -267,6 +293,7 @@ class TestRunExperimentSuite:
 # load_eval_cases tests
 # ------------------------------------------------------------------
 
+
 class TestLoadEvalCases:
     def test_loads_provider_cases(self):
         cases = load_eval_cases()
@@ -285,14 +312,24 @@ class TestLoadEvalCases:
 # store tests
 # ------------------------------------------------------------------
 
+
 class TestProviderExperimentStore:
     def test_save_and_load(self, tmp_path):
         result = ProviderExperimentResult(
-            case_id="c1", provider_name="fake", status="passed",
-            technical_memo_valid=True, risk_memo_valid=True, claims_valid=True, claim_count=1,
+            case_id="c1",
+            provider_name="fake",
+            status="passed",
+            technical_memo_valid=True,
+            risk_memo_valid=True,
+            claims_valid=True,
+            claim_count=1,
         )
         suite = ProviderExperimentSuiteResult(
-            provider_name="fake", total_cases=1, passed_cases=1, failed_cases=0, results=[result],
+            provider_name="fake",
+            total_cases=1,
+            passed_cases=1,
+            failed_cases=0,
+            results=[result],
         )
         saved = save_experiment_results(suite, results_dir=tmp_path)
         assert saved.exists()
@@ -311,14 +348,23 @@ class TestProviderExperimentStore:
 # inspector tests
 # ------------------------------------------------------------------
 
+
 class TestProviderExperimentInspector:
     def test_inspect(self):
         result = ProviderExperimentResult(
-            case_id="c1", provider_name="fake", status="passed",
-            technical_memo_valid=True, claims_valid=True, claim_count=1,
+            case_id="c1",
+            provider_name="fake",
+            status="passed",
+            technical_memo_valid=True,
+            claims_valid=True,
+            claim_count=1,
         )
         suite = ProviderExperimentSuiteResult(
-            provider_name="fake", total_cases=1, passed_cases=1, failed_cases=0, results=[result],
+            provider_name="fake",
+            total_cases=1,
+            passed_cases=1,
+            failed_cases=0,
+            results=[result],
         )
         summary = inspect_provider_experiments(suite)
         assert summary["provider_name"] == "fake"
@@ -327,10 +373,16 @@ class TestProviderExperimentInspector:
 
     def test_render(self):
         result = ProviderExperimentResult(
-            case_id="c1", provider_name="fake", status="passed",
+            case_id="c1",
+            provider_name="fake",
+            status="passed",
         )
         suite = ProviderExperimentSuiteResult(
-            provider_name="fake", total_cases=1, passed_cases=1, failed_cases=0, results=[result],
+            provider_name="fake",
+            total_cases=1,
+            passed_cases=1,
+            failed_cases=0,
+            results=[result],
         )
         output = render_provider_experiments(suite)
         assert "fake" in output

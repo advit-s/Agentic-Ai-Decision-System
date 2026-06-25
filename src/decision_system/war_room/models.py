@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 ConfidenceLevel = Literal["low", "medium", "high"]
@@ -23,8 +23,15 @@ RoleType = Literal[
     "unknown",
 ]
 ArtifactType = Literal[
-    "analysis", "risk_assessment", "recommendation",
-    "data_quality", "dependency", "market", "legal", "judgment", "general",
+    "analysis",
+    "risk_assessment",
+    "recommendation",
+    "data_quality",
+    "dependency",
+    "market",
+    "legal",
+    "judgment",
+    "general",
 ]
 
 
@@ -57,6 +64,7 @@ def _freeze_value(value: Any) -> Any:
 
 class HigherContext(BaseModel):
     """Immutable read-only context shared by all war-room agents."""
+
     model_config = {"frozen": True}
 
     run_id: str
@@ -81,6 +89,7 @@ class HigherContext(BaseModel):
 
 class PersonalAgentContext(BaseModel):
     """Read-only context for one specialist agent."""
+
     model_config = {"frozen": True}
 
     agent_id: str
@@ -102,6 +111,7 @@ class PersonalAgentContext(BaseModel):
 
 class WorkspaceArtifact(BaseModel):
     """One artifact written to the append-only common workspace."""
+
     model_config = {"frozen": True}
 
     artifact_id: str
@@ -119,6 +129,7 @@ class WorkspaceArtifact(BaseModel):
 
 class CommonWorkspace(BaseModel):
     """Append-only common workspace. No agent can delete externally-written artifacts."""
+
     model_config = {"extra": "forbid", "frozen": True}
 
     run_id: str
@@ -136,6 +147,7 @@ class CommonWorkspace(BaseModel):
 
 class AgentDispatchSpec(BaseModel):
     """Spec for dispatching specialist agents."""
+
     run_id: str
     higher_context: HigherContext
     personal_contexts: list[PersonalAgentContext] = Field(default_factory=list)
@@ -146,6 +158,7 @@ class AgentDispatchSpec(BaseModel):
 
 class AgentRunResult(BaseModel):
     """Result of running one specialist agent."""
+
     agent_id: str
     role_name: str
     status: str = "completed"  # completed | skipped | failed
@@ -156,6 +169,7 @@ class AgentRunResult(BaseModel):
 
 class JudgeIntervention(BaseModel):
     """A judge flag against a workspace artifact."""
+
     intervention_id: str
     run_id: str
     target_artifact_id: str
@@ -167,6 +181,7 @@ class JudgeIntervention(BaseModel):
 
 class WarRoomRun(BaseModel):
     """Full record of one war-room execution."""
+
     run_id: str
     question: str
     higher_context: HigherContext | None = None

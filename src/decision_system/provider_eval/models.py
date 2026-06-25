@@ -7,7 +7,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 ProviderEvalBehavior = Literal[
     "structured_memo",
     "structured_claims",

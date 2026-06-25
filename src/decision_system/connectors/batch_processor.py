@@ -6,34 +6,26 @@ checkpoint-based resume, and cancel support.
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Callable
-from uuid import uuid4
+from typing import Callable
 
 from decision_system.connectors.models import (
-    ConnectorConfig,
     ConnectorFetchedContent,
     ConnectorImportJob,
     ConnectorRuntimeItem,
-    ConnectorType,
-    JobProgress,
-)
-from decision_system.connectors.store import ConnectorJobStore, save_job
-from decision_system.connectors.pagination import paginate_items
-from decision_system.connectors.retry_policy import (
-    RetryPolicy,
-    RetryAttempt,
-    get_retry_policy,
 )
 from decision_system.connectors.rate_limiter import (
     RateLimiter,
     get_rate_limiter,
 )
+from decision_system.connectors.retry_policy import (
+    RetryPolicy,
+    get_retry_policy,
+)
+from decision_system.connectors.store import ConnectorJobStore, save_job
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BatchResult:
     """Result of processing a single batch."""
+
     batch_number: int
     items_processed: int = 0
     items_imported: int = 0
@@ -118,7 +111,9 @@ class BatchProcessor:
         if start_offset > 0:
             logger.info(
                 "Resuming job %s from checkpoint: %d/%d items already processed",
-                job.job_id, start_offset, total,
+                job.job_id,
+                start_offset,
+                total,
             )
             job.processed_items = start_offset
 
@@ -139,7 +134,7 @@ class BatchProcessor:
             if start_idx < start_offset:
                 continue
 
-            batch_items = items[start_idx:start_idx + self.batch_size]
+            batch_items = items[start_idx : start_idx + self.batch_size]
             if not batch_items:
                 break
 
@@ -183,7 +178,10 @@ class BatchProcessor:
         save_job(job)
         logger.info(
             "Job %s completed: %d/%d items, %d failed",
-            job.job_id, job.items_imported, total, job.items_failed,
+            job.job_id,
+            job.items_imported,
+            total,
+            job.items_failed,
         )
         return job
 
@@ -203,12 +201,12 @@ class BatchProcessor:
             if self.rate_limiter.check_rate_limited(job.connector_id):
                 retry_after = self.rate_limiter.get_retry_after(job.connector_id)
                 result.items_rate_limited += 1
-                result.warnings.append(
-                    f"Rate-limited, retry-after: {retry_after:.0f}s"
-                )
+                result.warnings.append(f"Rate-limited, retry-after: {retry_after:.0f}s")
                 logger.info(
                     "Rate-limited during batch %d, item %s, retry-after: %.0fs",
-                    batch_num, item.external_id, retry_after,
+                    batch_num,
+                    item.external_id,
+                    retry_after,
                 )
                 continue
 
@@ -219,7 +217,8 @@ class BatchProcessor:
             try:
                 # Fetch with retry
                 content, attempts = self.retry_policy.execute_with_retry(
-                    fetch_fn, item,
+                    fetch_fn,
+                    item,
                 )
 
                 if content and (content.content_text or content.content_bytes):
@@ -227,9 +226,7 @@ class BatchProcessor:
                 else:
                     # Empty content - skip with warning
                     result.items_skipped += 1
-                    result.warnings.append(
-                        f"Item '{item.external_id}' returned empty content"
-                    )
+                    result.warnings.append(f"Item '{item.external_id}' returned empty content")
 
             except Exception as e:
                 error_str = str(e)
@@ -237,7 +234,9 @@ class BatchProcessor:
                 result.errors.append(f"Item '{item.external_id}': {error_str}")
 
                 # Check if this was a rate-limit error
-                if any(kw in error_str.lower() for kw in ("429", "rate limit", "too many requests")):
+                if any(
+                    kw in error_str.lower() for kw in ("429", "rate limit", "too many requests")
+                ):
                     result.items_rate_limited += 1
                     self.rate_limiter.record_429(job.connector_id, source_url=item.source_url or "")
 

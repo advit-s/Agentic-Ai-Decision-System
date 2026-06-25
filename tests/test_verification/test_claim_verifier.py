@@ -6,11 +6,9 @@ statuses. All tests are offline and deterministic.
 
 from __future__ import annotations
 
-import pytest
-
 from decision_system.models import Claim
-from decision_system.verification.verifier import ClaimVerifier
 from decision_system.verification.quality import EvidenceQualityScorer
+from decision_system.verification.verifier import ClaimVerifier
 
 
 class TestClaimVerifier:
@@ -132,10 +130,20 @@ class TestClaimVerifier:
     def test_verify_multiple_claims(self):
         """Verify multiple claims at once."""
         claims = [
-            Claim(claim_id="m1", run_id="run-1", source_agent="test",
-                  claim_text="Claim one.", claim_type="assumption"),
-            Claim(claim_id="m2", run_id="run-1", source_agent="test",
-                  claim_text="Claim two.", claim_type="recommendation"),
+            Claim(
+                claim_id="m1",
+                run_id="run-1",
+                source_agent="test",
+                claim_text="Claim one.",
+                claim_type="assumption",
+            ),
+            Claim(
+                claim_id="m2",
+                run_id="run-1",
+                source_agent="test",
+                claim_text="Claim two.",
+                claim_type="recommendation",
+            ),
         ]
         verifier = ClaimVerifier()
         results = verifier.verify_claims(claims, workspace_id="ws-none")
@@ -150,6 +158,7 @@ class TestEvidenceQualityScorer:
     def test_quality_missing(self):
         """No evidence gets missing label."""
         from decision_system.models import VerificationResult
+
         scorer = EvidenceQualityScorer()
         result = VerificationResult(
             claim_id="t1",
@@ -163,6 +172,7 @@ class TestEvidenceQualityScorer:
     def test_quality_weak_single_evidence(self):
         """Single evidence gets moderate (if no contradiction)."""
         from decision_system.models import VerificationResult
+
         scorer = EvidenceQualityScorer()
         result = VerificationResult(
             claim_id="t2",
@@ -178,6 +188,7 @@ class TestEvidenceQualityScorer:
     def test_quality_contradicted(self):
         """Contradicted evidence gets contradicted label."""
         from decision_system.models import VerificationResult
+
         scorer = EvidenceQualityScorer()
         result = VerificationResult(
             claim_id="t3",
@@ -193,6 +204,7 @@ class TestEvidenceQualityScorer:
     def test_quality_strong(self):
         """Multiple resolved evidence from multiple sources gets strong."""
         from decision_system.models import VerificationResult
+
         scorer = EvidenceQualityScorer()
         result = VerificationResult(
             claim_id="t4",

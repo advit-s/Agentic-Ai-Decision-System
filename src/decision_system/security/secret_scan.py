@@ -97,9 +97,7 @@ _PATTERNS: list[tuple[str, str, str]] = [
     ),
     (
         "aws_key",
-        (
-            r"(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA)[0-9A-Z]{16}"
-        ),
+        (r"(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA)[0-9A-Z]{16}"),
         "high",
     ),
     (
@@ -129,9 +127,7 @@ _PATTERNS: list[tuple[str, str, str]] = [
     ),
     (
         "generic_secret",
-        (
-            r"(?i)^\s*(?:PASSWORD|PASS|SECRET|CREDENTIAL)\s*=\s*.+$"
-        ),
+        (r"(?i)^\s*(?:PASSWORD|PASS|SECRET|CREDENTIAL)\s*=\s*.+$"),
         "medium",
     ),
     (
@@ -158,14 +154,14 @@ _TYPE_MAP: dict[str, str] = {
 }
 
 _COMPILED: list[tuple[str, re.Pattern[str], str]] = [
-    (name, re.compile(pat, re.MULTILINE | re.DOTALL), sev)
-    for name, pat, sev in _PATTERNS
+    (name, re.compile(pat, re.MULTILINE | re.DOTALL), sev) for name, pat, sev in _PATTERNS
 ]
 
 
 # ---------------------------------------------------------------------------
 # Scanning logic
 # ---------------------------------------------------------------------------
+
 
 def _extension(path: Path) -> str:
     """Return the file extension, handling dotfiles like ``.env`` correctly."""
@@ -179,7 +175,7 @@ def _extension(path: Path) -> str:
 
 def _is_ignored(path: Path, root: Path) -> bool:
     """Return True when *path* should be skipped (binary file or ignored dir)."""
-    rel_str = str(path.relative_to(root))
+    str(path.relative_to(root))
 
     # Skip binary files by extension.
     if _extension(path) not in _TEXT_EXTENSIONS:
@@ -214,9 +210,7 @@ def scan_repo(
 ) -> SecretScanResult:
     """Scan *root* for secrets and return aggregated results."""
     root_path = Path(root).resolve()
-    ignored: frozenset[str] = _IGNORE_DIRS | frozenset(
-        extra_ignore_dirs or []
-    )
+    ignored: frozenset[str] = _IGNORE_DIRS | frozenset(extra_ignore_dirs or [])
 
     findings: list[SecretFinding] = []
     files_scanned = 0
@@ -263,7 +257,7 @@ def scan_repo(
                 continue
             # Skip lines that read env vars dynamically (os.getenv, os.environ.get)
             # — these are not hardcoded secrets.
-            if "os.getenv(" in stripped or 'os.environ.get(' in stripped:
+            if "os.getenv(" in stripped or "os.environ.get(" in stripped:
                 continue
             for pattern_name, compiled, default_sev in _COMPILED:
                 for match in compiled.finditer(line):

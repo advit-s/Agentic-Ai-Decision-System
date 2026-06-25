@@ -9,10 +9,10 @@ No external services are contacted.
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from decision_system._data_root import get_data_root
 from datetime import datetime, timezone
+from pathlib import Path
 
+from decision_system._data_root import get_data_root
 from decision_system.security.models import (
     ApprovalRequest,
     AuditEvent,
@@ -24,6 +24,7 @@ from decision_system.security.models import (
 # ---------------------------------------------------------------------------
 # Default paths
 # ---------------------------------------------------------------------------
+
 
 def _get_security_dir() -> Path:
     """Return the security data directory (lazy)."""
@@ -38,6 +39,8 @@ def _get_scan_dir() -> Path:
 def _get_scan_json() -> Path:
     """Return the latest scan JSON path (lazy)."""
     return _get_scan_dir() / "latest_scan.json"
+
+
 DEFAULT_AUDIT_DIR = _get_security_dir() / "audit"
 DEFAULT_AUDIT_LOG = DEFAULT_AUDIT_DIR / "audit_log.jsonl"
 DEFAULT_POLICY_RESULT = _get_security_dir() / "policy" / "latest.json"
@@ -113,7 +116,9 @@ def save_policy_result(result: PolicyCheckResult) -> Path:
     return _save_json(DEFAULT_POLICY_RESULT, result.model_dump(mode="json"))
 
 
-def load_policy_result(path: Path | str = DEFAULT_POLICY_RESULT) -> PolicyCheckResult | None:
+def load_policy_result(
+    path: Path | str = DEFAULT_POLICY_RESULT,
+) -> PolicyCheckResult | None:
     p = Path(path)
     raw = _load_json(p)
     if raw is None:
@@ -208,7 +213,9 @@ def _load_approval_index() -> dict:
     return {}
 
 
-def load_approval_requests(path: Path | str = DEFAULT_APPROVALS_INDEX) -> list[ApprovalRequest]:
+def load_approval_requests(
+    path: Path | str = DEFAULT_APPROVALS_INDEX,
+) -> list[ApprovalRequest]:
     """Load all approval requests from the index."""
     p = Path(path)
     if not p.exists():

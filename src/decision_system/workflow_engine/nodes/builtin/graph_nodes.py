@@ -13,16 +13,18 @@ import time
 
 from decision_system.graphing.audit import (
     graph_extraction_completed,
-    graph_extraction_failed,
     graph_extraction_started,
+)
+from decision_system.graphing.audit import (
     metric_extraction_completed as audit_metric_extraction_completed,
+)
+from decision_system.graphing.audit import (
     risk_extraction_completed as audit_risk_extraction_completed,
 )
 from decision_system.workflow_engine.models import (
     ExecutionContext,
     WorkflowNode,
 )
-
 
 # ---------------------------------------------------------------------------
 # GraphExtractionNode v2
@@ -57,6 +59,7 @@ class GraphExtractionNodeV2(WorkflowNode):
 
         if not raw_texts:
             from decision_system.graphing.store import record_extraction_run
+
             record_extraction_run(
                 workspace_id=workspace_id,
                 status="failed",
@@ -79,11 +82,13 @@ class GraphExtractionNodeV2(WorkflowNode):
                 t.get("chunk_id", "") if isinstance(t, dict) else "",
             )
             for t in raw_texts
-            if (isinstance(t, dict) and t.get("text", "").strip()) or (isinstance(t, str) and t.strip())
+            if (isinstance(t, dict) and t.get("text", "").strip())
+            or (isinstance(t, str) and t.strip())
         ]
 
         if not text_tuples:
             from decision_system.graphing.store import record_extraction_run
+
             record_extraction_run(
                 workspace_id=workspace_id,
                 status="failed",
@@ -137,6 +142,7 @@ class GraphExtractionNodeV2(WorkflowNode):
 
         # Record extraction run
         from decision_system.graphing.store import record_extraction_run
+
         record_extraction_run(
             workspace_id=workspace_id,
             status="completed",
@@ -233,7 +239,11 @@ class RiskExtractionNode(WorkflowNode):
         raw_texts = inputs.get("texts") or []
 
         if not raw_texts:
-            return {"risks_extracted": 0, "risks": [], "warnings": ["No texts provided"]}
+            return {
+                "risks_extracted": 0,
+                "risks": [],
+                "warnings": ["No texts provided"],
+            }
 
         text_tuples = [
             (
@@ -243,11 +253,16 @@ class RiskExtractionNode(WorkflowNode):
                 t.get("chunk_id", "") if isinstance(t, dict) else "",
             )
             for t in raw_texts
-            if (isinstance(t, dict) and t.get("text", "").strip()) or (isinstance(t, str) and t.strip())
+            if (isinstance(t, dict) and t.get("text", "").strip())
+            or (isinstance(t, str) and t.strip())
         ]
 
         if not text_tuples:
-            return {"risks_extracted": 0, "risks": [], "warnings": ["No non-empty texts found"]}
+            return {
+                "risks_extracted": 0,
+                "risks": [],
+                "warnings": ["No non-empty texts found"],
+            }
 
         from decision_system.graphing.extractor_v2 import extract_intelligence
         from decision_system.graphing.store import get_default_data_root, upsert_risk
@@ -336,7 +351,11 @@ class MetricExtractionNode(WorkflowNode):
         raw_texts = inputs.get("texts") or []
 
         if not raw_texts:
-            return {"metrics_extracted": 0, "metrics": [], "warnings": ["No texts provided"]}
+            return {
+                "metrics_extracted": 0,
+                "metrics": [],
+                "warnings": ["No texts provided"],
+            }
 
         text_tuples = [
             (
@@ -346,11 +365,16 @@ class MetricExtractionNode(WorkflowNode):
                 t.get("chunk_id", "") if isinstance(t, dict) else "",
             )
             for t in raw_texts
-            if (isinstance(t, dict) and t.get("text", "").strip()) or (isinstance(t, str) and t.strip())
+            if (isinstance(t, dict) and t.get("text", "").strip())
+            or (isinstance(t, str) and t.strip())
         ]
 
         if not text_tuples:
-            return {"metrics_extracted": 0, "metrics": [], "warnings": ["No non-empty texts found"]}
+            return {
+                "metrics_extracted": 0,
+                "metrics": [],
+                "warnings": ["No non-empty texts found"],
+            }
 
         from decision_system.graphing.extractor_v2 import extract_intelligence
         from decision_system.graphing.store import get_default_data_root, upsert_metric
@@ -447,7 +471,7 @@ class GraphSummaryNode(WorkflowNode):
             list_risks,
         )
 
-        meta = get_workspace_meta(workspace_id, data_root=get_default_data_root())
+        get_workspace_meta(workspace_id, data_root=get_default_data_root())
         nodes = list_nodes(workspace_id, data_root=get_default_data_root())
         edges = list_edges(workspace_id, data_root=get_default_data_root())
         risks = list_risks(workspace_id, data_root=get_default_data_root())
@@ -466,15 +490,16 @@ class GraphSummaryNode(WorkflowNode):
             risks_by_severity[s] = risks_by_severity.get(s, 0) + 1
 
         # Top risks by severity
-        top_risks = sorted(risks, key=lambda r: ["low", "medium", "high", "critical"].index(
-            r.severity if r.severity in ("low", "medium", "high", "critical") else "medium"
-        ), reverse=True)[:5]
+        top_risks = sorted(
+            risks,
+            key=lambda r: ["low", "medium", "high", "critical"].index(
+                r.severity if r.severity in ("low", "medium", "high", "critical") else "medium"
+            ),
+            reverse=True,
+        )[:5]
 
         # Key metrics
-        metrics_by_name = [
-            {"name": m.name, "value": m.value, "unit": m.unit}
-            for m in metrics[:10]
-        ]
+        metrics_by_name = [{"name": m.name, "value": m.value, "unit": m.unit} for m in metrics[:10]]
 
         # Build summary text
         limitations = [

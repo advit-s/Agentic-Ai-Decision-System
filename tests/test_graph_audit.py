@@ -26,6 +26,7 @@ from decision_system.observability.store import (
 def _clean_metrics():
     """Clean up any test metric data before and after."""
     import shutil
+
     paths = get_paths()
     try:
         shutil.rmtree(paths.metrics)

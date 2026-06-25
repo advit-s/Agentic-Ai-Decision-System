@@ -20,7 +20,6 @@ from decision_system.workflow_engine.providers.exceptions import (
     ModelNotFoundError,
     ProviderError,
     RateLimitError,
-    TimeoutError,
 )
 from decision_system.workflow_engine.providers.store import ProviderConfig
 
@@ -180,9 +179,7 @@ class LLMClient:
                 f"Authentication failed for provider '{self._config.name}': {error_body}"
             )
         elif status == 429:
-            raise RateLimitError(
-                f"Rate limited by provider '{self._config.name}': {error_body}"
-            )
+            raise RateLimitError(f"Rate limited by provider '{self._config.name}': {error_body}")
         elif status == 404:
             raise ModelNotFoundError(
                 f"Model not found on provider '{self._config.name}': {error_body}"

@@ -15,13 +15,15 @@ def inspect_war_room(run: WarRoomRun) -> dict[str, object]:
                 if res.agent_id == art.author_agent_id:
                     role = res.role_name
                     break
-            artifacts_summary.append({
-                "title": art.title,
-                "role": role,
-                "confidence": art.confidence,
-                "evidence_ids": art.evidence_ids,
-                "insight_ids": art.insight_ids,
-            })
+            artifacts_summary.append(
+                {
+                    "title": art.title,
+                    "role": role,
+                    "confidence": art.confidence,
+                    "evidence_ids": art.evidence_ids,
+                    "insight_ids": art.insight_ids,
+                }
+            )
 
     return {
         "run_id": str(run.run_id),
@@ -30,9 +32,7 @@ def inspect_war_room(run: WarRoomRun) -> dict[str, object]:
         "skipped_roles": list(run.dispatch_spec.skipped_roles) if run.dispatch_spec else [],
         "artifact_count": len(run.workspace.artifacts) if run.workspace else 0,
         "judge_intervention_count": len(run.judge_interventions),
-        "human_review_required": sum(
-            1 for i in run.judge_interventions if i.requires_human_review
-        ),
+        "human_review_required": sum(1 for i in run.judge_interventions if i.requires_human_review),
         "final_summary": run.final_summary,
         "higher_context_summary": _summarise_higher_context(run.higher_context),
         "artifacts": artifacts_summary,
@@ -51,9 +51,15 @@ def inspect_war_room(run: WarRoomRun) -> dict[str, object]:
 def render_inspection(summary: dict[str, object]) -> str:
     """Render a war-room summary dict as a human-readable Markdown string."""
     lines = ["# War-Cabinet Inspection", ""]
-    for key in ("run_id", "question", "roles", "artifact_count",
-                "judge_intervention_count", "human_review_required",
-                "final_summary"):
+    for key in (
+        "run_id",
+        "question",
+        "roles",
+        "artifact_count",
+        "judge_intervention_count",
+        "human_review_required",
+        "final_summary",
+    ):
         val = summary.get(key)
         if isinstance(val, list | tuple):
             val = _format_sequence(val)
@@ -80,10 +86,7 @@ def render_inspection(summary: dict[str, object]) -> str:
         if jic > 0:
             lines.append("## Judge Interventions")
             for intervention in summary.get("interventions", []):
-                lines.append(
-                    f"- [{intervention['severity'].upper()}] "
-                    f"{intervention['reason']}"
-                )
+                lines.append(f"- [{intervention['severity'].upper()}] {intervention['reason']}")
                 if intervention.get("requires_human_review"):
                     lines.append("  - *WARNING: human review required.*")
     return "\n".join(lines).rstrip()

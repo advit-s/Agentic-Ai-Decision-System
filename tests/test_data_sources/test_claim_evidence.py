@@ -13,7 +13,7 @@ def test_claim_with_evidence_ids():
         run_id="r1",
         source_agent="test",
         claim_text="Test claim",
-    claim_type="assumption",
+        claim_type="assumption",
         evidence_ids=["ev1", "ev2"],
         source_ids=["src1"],
         chunk_ids=["chunk1"],

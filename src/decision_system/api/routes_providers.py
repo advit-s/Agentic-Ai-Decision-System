@@ -8,30 +8,27 @@ from __future__ import annotations
 
 import os
 import time
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from decision_system.api.models import api_error
-from decision_system.security.audit import append_event
 from decision_system.identity.models import LocalUser, Permission
 from decision_system.identity.permissions import require_permission
 from decision_system.providers import (
     ProviderConfig,
     ProviderCreateRequest,
-    ProviderUpdateRequest,
+    ProviderListResponse,
     ProviderStatusResponse,
     ProviderTestResult,
-    ProviderListResponse,
-    ProviderType,
+    ProviderUpdateRequest,
     create_provider,
+    delete_provider,
     get_provider,
     list_providers,
     update_provider,
-    delete_provider,
-    provider_exists,
-    get_providers_by_type,
 )
-
+from decision_system.security.audit import append_event
 
 router = APIRouter(prefix="/providers", tags=["providers"])
 
@@ -52,10 +49,14 @@ def create_new_provider(
     try:
         config = create_provider(request)
         try:
-            append_event("provider_created", f"Provider {config.name} created", metadata={
-                "provider_id": config.provider_id,
-                "provider_type": config.provider_type,
-            })
+            append_event(
+                "provider_created",
+                f"Provider {config.name} created",
+                metadata={
+                    "provider_id": config.provider_id,
+                    "provider_type": config.provider_type,
+                },
+            )
         except Exception:
             pass
         return config
@@ -66,7 +67,9 @@ def create_new_provider(
 
 
 @router.post("/default", response_model=ProviderConfig)
-def set_default_provider(request: ProviderCreateRequest | None = None, provider_id: str | None = None):
+def set_default_provider(
+    request: ProviderCreateRequest | None = None, provider_id: str | None = None
+):
     """Set a provider as the default (stored in the first provider slot)."""
     # We use a simple convention: the first provider in the list is the default
     # This endpoint ensures the provider exists and returns it
@@ -110,9 +113,13 @@ def update_provider_by_id(
     if config is None:
         raise api_error(404, "provider_not_found", f"Provider '{provider_id}' not found")
     try:
-        append_event("provider_updated", f"Provider {config.name} updated", metadata={
-            "provider_id": provider_id,
-        })
+        append_event(
+            "provider_updated",
+            f"Provider {config.name} updated",
+            metadata={
+                "provider_id": provider_id,
+            },
+        )
     except Exception:
         pass
     return config
@@ -127,9 +134,13 @@ def delete_provider_by_id(
     if not delete_provider(provider_id):
         raise api_error(404, "provider_not_found", f"Provider '{provider_id}' not found")
     try:
-        append_event("provider_deleted", f"Provider {provider_id} deleted", metadata={
-            "provider_id": provider_id,
-        })
+        append_event(
+            "provider_deleted",
+            f"Provider {provider_id} deleted",
+            metadata={
+                "provider_id": provider_id,
+            },
+        )
     except Exception:
         pass
     return None
@@ -170,9 +181,13 @@ def test_provider_connection(provider_id: str):
         raise api_error(404, "provider_not_found", f"Provider '{provider_id}' not found")
 
     try:
-        append_event("provider_tested", f"Provider {config.name} tested", metadata={
-            "provider_id": provider_id,
-        })
+        append_event(
+            "provider_tested",
+            f"Provider {config.name} tested",
+            metadata={
+                "provider_id": provider_id,
+            },
+        )
     except Exception:
         pass
 
@@ -201,6 +216,7 @@ def test_provider_connection(provider_id: str):
     if config.provider_type in ("ollama", "openai_compatible"):
         try:
             import httpx
+
             start = time.time()
             # Simple GET to base URL
             with httpx.Client(timeout=5.0) as client:
@@ -251,14 +267,17 @@ def list_provider_types():
     return ["fake", "ollama", "openai_compatible", "openai", "anthropic"]
 
 
-
 @router.post("/system/default")
 def set_default_provider_system(body: dict[str, str]) -> dict[str, Any]:
     """Backward-compat alias: POST /providers/system/default -> POST /providers/default.
 
     Legacy endpoint used by older frontend clients and tests.
     """
-    from decision_system.identity.permissions import get_current_user, user_has_permission
+    from decision_system.identity.permissions import (
+        get_current_user,
+        user_has_permission,
+    )
+
     user = get_current_user()
     if not user_has_permission(user, Permission.PROVIDER_MANAGE):
         raise api_error(403, "permission_denied", "You do not have permission to manage providers.")
@@ -268,6 +287,7 @@ def set_default_provider_system(body: dict[str, str]) -> dict[str, Any]:
 
     try:
         from decision_system.providers import get_provider_by_name
+
         config = get_provider_by_name(name)
     except Exception:
         config = None
@@ -286,6 +306,7 @@ def set_default_provider_system(body: dict[str, str]) -> dict[str, Any]:
 def get_provider_by_name_route(name: str) -> dict[str, Any]:
     """Look up a provider by its human-readable name."""
     from decision_system.providers import get_provider_by_name as _get_by_name
+
     config = _get_by_name(name)
     if config is None:
         raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
@@ -296,23 +317,32 @@ def get_provider_by_name_route(name: str) -> dict[str, Any]:
 def test_provider_by_name(name: str) -> dict[str, Any]:
     """Test a provider connection by its human-readable name."""
     from decision_system.providers import get_provider_by_name as _get_by_name
+
     config = _get_by_name(name)
     if config is None:
         raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
     # Test via the provider store
     from decision_system.providers.store import test_provider as _test_provider
+
     result = _test_provider(config.provider_id)
-    return {"status": "ok", "provider": config.name, "model": result.get("model", ""), "response": "ok"}
+    return {
+        "status": "ok",
+        "provider": config.name,
+        "model": result.get("model", ""),
+        "response": "ok",
+    }
 
 
 @router.delete("/by-name/{name}", status_code=204)
 def delete_provider_by_name(name: str) -> None:
     """Delete a provider by its human-readable name."""
     from decision_system.providers import get_provider_by_name as _get_by_name
+
     config = _get_by_name(name)
     if config is None:
         raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
     from decision_system.providers.store import delete_provider as _delete_provider
+
     _delete_provider(config.provider_id)
     return None
 
@@ -321,11 +351,18 @@ def delete_provider_by_name(name: str) -> None:
 def update_provider_by_name(name: str, body: dict[str, Any]) -> dict[str, Any]:
     """Update a provider by its human-readable name."""
     from decision_system.providers import get_provider_by_name as _get_by_name
+
     config = _get_by_name(name)
     if config is None:
         raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
     from decision_system.providers.store import update_provider as _update_provider
+
     _update_provider(config.provider_id, body)
     from decision_system.providers.store import get_provider
+
     updated = get_provider(config.provider_id)
-    return updated.model_dump(mode="json") if updated else {"status": "updated", "provider_id": config.provider_id}
+    return (
+        updated.model_dump(mode="json")
+        if updated
+        else {"status": "updated", "provider_id": config.provider_id}
+    )

@@ -6,20 +6,15 @@ pattern used by the insights, graph, data-catalog, and war-room subsystems.
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from decision_system.security.models import (
     ApprovalRequest,
     AuditEvent,
-    PolicyCheck,
     PolicyCheckResult,
-    RedactionFinding,
     RedactionPreviewResult,
-    SecretFinding,
     SecretScanResult,
 )
-
 
 # ---------------------------------------------------------------------------
 # Secret scan inspector
@@ -78,7 +73,9 @@ def render_secret_scan(summary: dict[str, Any]) -> str:
         lines.append("Top findings:")
         lines.append("")
         for f in top:
-            lines.append(f"- [{f['severity'].upper()}] {f['secret_type']} in {f['source_path']}:{f['line_number']}")
+            lines.append(
+                f"- [{f['severity'].upper()}] {f['secret_type']} in {f['source_path']}:{f['line_number']}"
+            )
             lines.append(f"  Preview: {f['matched_preview']}")
         lines.append("")
     lines.append(f"Run at: {summary.get('created_at', 'unknown')}")
@@ -204,10 +201,7 @@ def render_policy(summary: dict[str, Any]) -> str:
     tag = summary.get("overall_status", "unknown").upper()
     status_display = {"ok": "PASS", "warn": "WARN", "fail": "FAIL"}.get(tag, tag)
     lines.append(f"Overall: {status_display}")
-    lines.append(
-        f"Passed: {summary.get('passed_count', 0)} / "
-        f"{summary.get('check_count', 0)}"
-    )
+    lines.append(f"Passed: {summary.get('passed_count', 0)} / {summary.get('check_count', 0)}")
     if summary.get("failure_count"):
         lines.append(f"Failures: {summary.get('failure_count', 0)}")
     if summary.get("warning_count"):

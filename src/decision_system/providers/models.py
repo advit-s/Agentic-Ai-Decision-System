@@ -11,7 +11,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-
 ProviderType = Literal["fake", "ollama", "openai_compatible", "openai", "anthropic"]
 ProviderStatus = Literal["configured", "missing_config", "offline", "healthy", "error"]
 
@@ -65,7 +64,9 @@ class ProviderConfig(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         """Auto-generate provider_id if not set."""
         if not self.provider_id:
-            self.provider_id = f"prov-{self.name.lower().replace(' ', '-')}-{int(self.created_at.timestamp())}"
+            self.provider_id = (
+                f"prov-{self.name.lower().replace(' ', '-')}-{int(self.created_at.timestamp())}"
+            )
 
 
 class ProviderCreateRequest(BaseModel):

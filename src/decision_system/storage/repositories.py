@@ -1,8 +1,9 @@
 """Repository classes for workspace, artifact, and settings CRUD."""
+
 from __future__ import annotations
+
 import json
 from datetime import datetime, timezone
-from uuid import uuid4
 from typing import Any
 
 from decision_system.storage.models import (
@@ -65,9 +66,7 @@ class WorkspaceRepository:
         return [_row_to_workspace(r) for r in cur.fetchall()]
 
     def get_active(self) -> Workspace | None:
-        cur = self._conn.execute(
-            "SELECT * FROM workspaces WHERE active = 1 LIMIT 1"
-        )
+        cur = self._conn.execute("SELECT * FROM workspaces WHERE active = 1 LIMIT 1")
         row = cur.fetchone()
         return _row_to_workspace(row) if row else None
 
@@ -80,9 +79,7 @@ class WorkspaceRepository:
         self._conn.connect().commit()
 
     def update(self, workspace: Workspace) -> Workspace:
-        updated = workspace.model_copy(
-            update={"updated_at": datetime.now(timezone.utc)}
-        )
+        updated = workspace.model_copy(update={"updated_at": datetime.now(timezone.utc)})
         self._conn.execute(
             """
             UPDATE workspaces
@@ -177,24 +174,14 @@ class ArtifactRepository:
             "SELECT * FROM artifacts WHERE workspace_id = ? ORDER BY created_at DESC",
             (workspace_id,),
         )
-        return [
-            a
-            for a in (_row_to_artifact(r) for r in cur.fetchall())
-            if a is not None
-        ]
+        return [a for a in (_row_to_artifact(r) for r in cur.fetchall()) if a is not None]
 
-    def get_by_type(
-        self, workspace_id: str, artifact_type: ArtifactType
-    ) -> list[StoredArtifact]:
+    def get_by_type(self, workspace_id: str, artifact_type: ArtifactType) -> list[StoredArtifact]:
         cur = self._conn.execute(
             "SELECT * FROM artifacts WHERE workspace_id = ? AND artifact_type = ? ORDER BY created_at DESC",
             (workspace_id, artifact_type.value),
         )
-        return [
-            a
-            for a in (_row_to_artifact(r) for r in cur.fetchall())
-            if a is not None
-        ]
+        return [a for a in (_row_to_artifact(r) for r in cur.fetchall()) if a is not None]
 
     def count_by_type(self, workspace_id: str) -> dict[str, int]:
         cur = self._conn.execute(
@@ -279,6 +266,7 @@ class SettingsRepository:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)

@@ -6,9 +6,7 @@ source diversity, contradictions, and overlap strength.
 
 from __future__ import annotations
 
-from typing import Any
-
-from decision_system.models import EvidenceQuality, VerificationResult, EvidenceQuality
+from decision_system.models import EvidenceQuality, VerificationResult
 
 
 class EvidenceQualityScorer:
@@ -42,7 +40,8 @@ class EvidenceQualityScorer:
 
         # Resolved vs missing
         resolved_ids = [
-            eid for eid in (verification.evidence_ids or [])
+            eid
+            for eid in (verification.evidence_ids or [])
             if eid and eid not in (verification.contradicting_evidence_ids or [])
         ]
         resolved_count = len(resolved_ids)

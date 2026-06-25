@@ -58,3 +58,31 @@ include = [
 asyncio_mode = "auto"
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",    # line-too-long (handled by formatter)
+    "E402",    # module-import-not-at-top-of-file (needed for lazy imports)
+    "E741",    # ambiguous variable name (pre-existing legacy)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F841"]  # Allow unused vars in tests
+"src/decision_system/__init__.py" = ["F401"]  # Re-exports
+"src/decision_system/providers/__init__.py" = ["F401"]  # Re-exports
+"src/decision_system/insights/__init__.py" = ["F401"]  # Re-exports
+"src/decision_system/graphing/*" = ["F821"]  # Type names in string annotations with from __future__ import annotations
+"src/decision_system/orchestration/*" = ["F821"]  # Type names in string annotations
+"src/decision_system/storage/migrations.py" = ["F821"]  # sqlite3 in string annotation
+"src/decision_system/workflow_engine/cli.py" = ["F821"]  # ScheduleStore in string annotation
+"src/decision_system/workflow_engine/providers/client.py" = ["F821"]  # Coroutine in string annotation
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

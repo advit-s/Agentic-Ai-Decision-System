@@ -14,11 +14,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from decision_system.data_catalog.loader import load_csv
-from decision_system.data_catalog.models import ALL_CATEGORIES, DataProfileStore
+from decision_system.data_catalog.models import DataProfileStore
 from decision_system.graphing.models import KnowledgeGraph
 from decision_system.insights.models import (
     Insight,
-    InsightCategory,
     InsightSeverity,
     InsightStore,
 )
@@ -258,18 +257,19 @@ def _detect_data_quality(store: InsightStore, profile) -> None:
         confidence="high",
         source_type="profile",
         source_ids=[profile.dataset_id],
-        evidence_summary="; ".join(f"{i+1}. {w}" for i, w in enumerate(profile.warnings[:5])),
+        evidence_summary="; ".join(f"{i + 1}. {w}" for i, w in enumerate(profile.warnings[:5])),
         recommended_action="Review and resolve profiling warnings before using this dataset for decision-making.",
         ontology_concepts=["data_quality", "risk"],
     )
     store.add(insight)
 
 
-def _detect_sales_channel_concentration(
-    store: InsightStore, profiles: list, csv_root
-) -> None:
+def _detect_sales_channel_concentration(store: InsightStore, profiles: list, csv_root) -> None:
     for profile in profiles:
-        col = _find_column(profile, ["lead_source", "channel", "source", "sales_channel", "source_channel"])
+        col = _find_column(
+            profile,
+            ["lead_source", "channel", "source", "sales_channel", "source_channel"],
+        )
         if col is None or not col.top_values or profile.row_count == 0:
             continue
         top_name, top_count = col.top_values[0]
@@ -290,21 +290,22 @@ def _detect_sales_channel_concentration(
             source_type="profile",
             source_ids=[profile.dataset_id],
             evidence_summary=(
-                f"Top channel '{top_name}': {top_count} / {profile.row_count} "
-                f"rows ({share:.0%})"
+                f"Top channel '{top_name}': {top_count} / {profile.row_count} rows ({share:.0%})"
             ),
             recommended_action=(
                 "Diversify sales channels to reduce concentration risk. "
                 "Invest in underperforming channels."
             ),
-            ontology_concepts=["lead_source", "marketing_channel", "sales_channel_risk"],
+            ontology_concepts=[
+                "lead_source",
+                "marketing_channel",
+                "sales_channel_risk",
+            ],
         )
         store.add(insight)
 
 
-def _detect_customer_concentration(
-    store: InsightStore, profiles: list, csv_root
-) -> None:
+def _detect_customer_concentration(store: InsightStore, profiles: list, csv_root) -> None:
     segment_names = ["segment", "city", "region", "country", "industry", "vertical"]
     for profile in profiles:
         col = _find_column(profile, segment_names)
@@ -329,13 +330,17 @@ def _detect_customer_concentration(
             source_type="profile",
             source_ids=[profile.dataset_id],
             evidence_summary=(
-                f"Top segment '{top_name}': {top_count} / {profile.row_count} "
-                f"rows ({share:.0%})"
+                f"Top segment '{top_name}': {top_count} / {profile.row_count} rows ({share:.0%})"
             ),
             recommended_action=(
                 "Diversify customer base to reduce single-segment dependency risk."
             ),
-            ontology_concepts=["customer_segment", "city", "region", "customer_concentration"],
+            ontology_concepts=[
+                "customer_segment",
+                "city",
+                "region",
+                "customer_concentration",
+            ],
         )
         store.add(insight)
 
@@ -374,8 +379,7 @@ def _detect_revenue_risk(store: InsightStore, profiles: list, csv_root) -> None:
                 source_type="profile",
                 source_ids=[profile.dataset_id],
                 evidence_summary=(
-                    f"Mean profit_margin={mean_margin:.4f} across "
-                    f"{profile.row_count} rows"
+                    f"Mean profit_margin={mean_margin:.4f} across {profile.row_count} rows"
                 ),
                 recommended_action="Investigate drivers of declining margins - cost structure, pricing, or mix shift.",
                 ontology_concepts=["profit_margin", "revenue", "expense"],
@@ -395,7 +399,7 @@ def _detect_revenue_risk(store: InsightStore, profiles: list, csv_root) -> None:
             affected_months: set[str] = set()
 
             month_col = _find_column(profile, ["month", "period", "date", "date_month"])
-            product_col = _find_column(profile, ["product", "product_name"])
+            _find_column(profile, ["product", "product_name"])
 
             for row in loaded.rows:
                 rev = _safe_float(row.get(rev_col.name, ""))
@@ -416,7 +420,9 @@ def _detect_revenue_risk(store: InsightStore, profiles: list, csv_root) -> None:
                 severity = "high" if avg_ratio >= 0.95 or len(breach_rows) > 1 else "medium"
                 parts = []
                 if breach_rows:
-                    parts.append(f"{len(breach_rows)} row(s) with expenses >= {EXPENSE_REVENUE_RISK_RATIO:.0%} of revenue")
+                    parts.append(
+                        f"{len(breach_rows)} row(s) with expenses >= {EXPENSE_REVENUE_RISK_RATIO:.0%} of revenue"
+                    )
                 if avg_ratio >= 0.80:
                     parts.append(f"average expense/revenue ratio is {avg_ratio:.1%}")
                 evidence = "; ".join(parts)
@@ -457,7 +463,9 @@ def _detect_marketing_roi(store: InsightStore, profiles: list, csv_root) -> None
         if loaded is None:
             continue
 
-        channel_col = _find_column(profile, ["channel", "campaign_channel", "source", "source_channel"])
+        channel_col = _find_column(
+            profile, ["channel", "campaign_channel", "source", "source_channel"]
+        )
 
         # Aggregate by channel if available
         by_channel: dict[str, list[dict]] = defaultdict(list)
@@ -497,8 +505,7 @@ def _detect_marketing_roi(store: InsightStore, profiles: list, csv_root) -> None
                 insight_id=_make_id("marketing_roi_risk", profile.dataset_id, channel),
                 title=f"Marketing ROI risk: {channel} in {profile.filename}",
                 description=(
-                    f"Channel '{channel}' shows marketing ROI concerns: "
-                    f"{'; '.join(reasons)}."
+                    f"Channel '{channel}' shows marketing ROI concerns: {'; '.join(reasons)}."
                 ),
                 category="marketing_roi_risk",
                 severity=sev,
@@ -510,7 +517,13 @@ def _detect_marketing_roi(store: InsightStore, profiles: list, csv_root) -> None
                     "Review campaign performance. Consider pausing underperforming "
                     "spend and reallocating budget to higher-ROAS channels."
                 ),
-                ontology_concepts=["marketing_spend", "revenue", "conversion_count", "marketing_channel", "traffic_source"],
+                ontology_concepts=[
+                    "marketing_spend",
+                    "revenue",
+                    "conversion_count",
+                    "marketing_channel",
+                    "traffic_source",
+                ],
             )
             store.add(insight)
 
@@ -524,7 +537,7 @@ def _detect_feedback_risk(store: InsightStore, profiles: list, csv_root) -> None
         issue_col = _find_column(profile, ["issue_type", "issue", "ticket_type", "problem_type"])
         sentiment_col = _find_column(profile, ["sentiment", "tone"])
         refund_col = _find_column(profile, ["refund_requested", "refund", "requested_refund"])
-        segment_col = _find_column(profile, ["customer_segment", "segment", "customer_id"])
+        _find_column(profile, ["customer_segment", "segment", "customer_id"])
 
         total = loaded.row_count
 
@@ -541,7 +554,9 @@ def _detect_feedback_risk(store: InsightStore, profiles: list, csv_root) -> None
                 if share > FB_ISSUE_REPEAT_SHARE:
                     sev = "high" if share > 0.50 else "medium"
                     insight = Insight(
-                        insight_id=_make_id("feedback_risk", profile.dataset_id, "issue_type", top_issue),
+                        insight_id=_make_id(
+                            "feedback_risk", profile.dataset_id, "issue_type", top_issue
+                        ),
                         title=f"Feedback concentration: {top_issue} in {profile.filename}",
                         description=(
                             f"Issue type '{top_issue}' represents {share:.0%} of "
@@ -554,7 +569,11 @@ def _detect_feedback_risk(store: InsightStore, profiles: list, csv_root) -> None
                         source_ids=[profile.dataset_id],
                         evidence_summary=f"'{top_issue}': {top_count}/{total} rows ({share:.0%})",
                         recommended_action="Investigate root cause of the dominant issue type and prioritise remediation.",
-                        ontology_concepts=["complaint_issue", "customer_segment", "feedback_risk"],
+                        ontology_concepts=[
+                            "complaint_issue",
+                            "customer_segment",
+                            "feedback_risk",
+                        ],
                     )
                     store.add(insight)
 
@@ -573,14 +592,14 @@ def _detect_feedback_risk(store: InsightStore, profiles: list, csv_root) -> None
                 title=f"High negative sentiment in {profile.filename}",
                 description=(
                     f"Negative sentiment appears in {negative_count}/{total} records "
-                    f"({negative_count/total:.0%}) in '{profile.filename}'."
+                    f"({negative_count / total:.0%}) in '{profile.filename}'."
                 ),
                 category="feedback_risk",
                 severity="medium",
                 confidence="high",
                 source_type="csv",
                 source_ids=[profile.dataset_id],
-                evidence_summary=f"Negative sentiment: {negative_count}/{total} rows ({negative_count/total:.0%})",
+                evidence_summary=f"Negative sentiment: {negative_count}/{total} rows ({negative_count / total:.0%})",
                 recommended_action="Review negative feedback themes and prioritise top issues for product or support teams.",
                 ontology_concepts=["sentiment", "complaint_issue", "feedback_risk"],
             )
@@ -592,14 +611,14 @@ def _detect_feedback_risk(store: InsightStore, profiles: list, csv_root) -> None
                 title=f"High refund request rate in {profile.filename}",
                 description=(
                     f"Refund requests appear in {refund_count}/{total} records "
-                    f"({refund_count/total:.0%}) in '{profile.filename}'."
+                    f"({refund_count / total:.0%}) in '{profile.filename}'."
                 ),
                 category="feedback_risk",
                 severity="high",
                 confidence="high",
                 source_type="csv",
                 source_ids=[profile.dataset_id],
-                evidence_summary=f"Refund requests: {refund_count}/{total} rows ({refund_count/total:.0%})",
+                evidence_summary=f"Refund requests: {refund_count}/{total} rows ({refund_count / total:.0%})",
                 recommended_action="Investigate refund drivers - billing accuracy, product quality, or expectation mismatch.",
                 ontology_concepts=["refund_requested", "feedback_risk"],
             )
@@ -646,10 +665,14 @@ def _detect_product_risk(store: InsightStore, profiles: list, csv_root) -> None:
                         + (f", units_sold={int(units)}" if units is not None else "")
                     ),
                     recommended_action=(
-                        "Review pricing, cost structure, and return reasons "
-                        f"for '{product_name}'."
+                        f"Review pricing, cost structure, and return reasons for '{product_name}'."
                     ),
-                    ontology_concepts=["product", "profit_margin", "return_rate", "product_risk"],
+                    ontology_concepts=[
+                        "product",
+                        "profit_margin",
+                        "return_rate",
+                        "product_risk",
+                    ],
                 )
                 store.add(insight)
 
@@ -701,7 +724,13 @@ def _detect_competitor_risk(store: InsightStore, profiles: list, csv_root) -> No
                         "Evaluate whether to match competitor pricing or "
                         "differentiate on features and value."
                     ),
-                    ontology_concepts=["competitor", "competitor_price", "our_price", "review_score", "product"],
+                    ontology_concepts=[
+                        "competitor",
+                        "competitor_price",
+                        "our_price",
+                        "review_score",
+                        "product",
+                    ],
                 )
                 store.add(insight)
 
@@ -712,7 +741,9 @@ def _detect_operations_bottleneck(store: InsightStore, profiles: list, csv_root)
         if loaded is None or loaded.row_count == 0:
             continue
 
-        delay_col = _find_column(profile, ["average_delay_days", "delay_days", "avg_delay", "delay"])
+        delay_col = _find_column(
+            profile, ["average_delay_days", "delay_days", "avg_delay", "delay"]
+        )
         bottleneck_col = _find_column(profile, ["bottleneck", "is_bottleneck"])
         cost_col = _find_column(profile, ["cost", "monthly_cost", "avg_cost"])
         process_col = _find_column(profile, ["process", "operation", "process_name"])
@@ -730,12 +761,9 @@ def _detect_operations_bottleneck(store: InsightStore, profiles: list, csv_root)
                 bv = row.get(bottleneck_col.name, "").strip().lower()
                 is_bottleneck = bv in ("true", "yes", "1")
 
-            is_risk = False
             if is_bottleneck and delay >= OPS_BOTTLENECK_THRESHOLD:
-                is_risk = True
                 sev = "high" if delay >= 8 else "medium"
             elif delay >= OPS_DELAY_THRESHOLD:
-                is_risk = True
                 sev = "medium"
             else:
                 continue
@@ -794,10 +822,12 @@ def _detect_analytics_conversion(store: InsightStore, profiles: list, csv_root) 
             # Low conversion with high sessions
             if sessions_col:
                 sessions = _safe_float(row.get(sessions_col.name, ""))
-                if sessions is not None and sessions > ANALYTICS_LOW_CONV_WITH_HIGH_SESSIONS and conv < ANALYTICS_LOW_CONVERSION:
-                    reasons.append(
-                        f"{int(sessions)} sessions with only {conv:.1%} conversion"
-                    )
+                if (
+                    sessions is not None
+                    and sessions > ANALYTICS_LOW_CONV_WITH_HIGH_SESSIONS
+                    and conv < ANALYTICS_LOW_CONVERSION
+                ):
+                    reasons.append(f"{int(sessions)} sessions with only {conv:.1%} conversion")
 
             # High bounce rate
             if bounce_col:
@@ -824,14 +854,18 @@ def _detect_analytics_conversion(store: InsightStore, profiles: list, csv_root) 
                 confidence="high",
                 source_type="csv",
                 source_ids=[profile.dataset_id],
-                evidence_summary=(
-                    f"page={page}, traffic_source={source}; " + "; ".join(reasons)
-                ),
+                evidence_summary=(f"page={page}, traffic_source={source}; " + "; ".join(reasons)),
                 recommended_action=(
                     "Optimise landing page experience, reduce friction, "
                     "and review traffic-source quality."
                 ),
-                ontology_concepts=["page", "session_count", "bounce_rate", "conversion_rate", "traffic_source"],
+                ontology_concepts=[
+                    "page",
+                    "session_count",
+                    "bounce_rate",
+                    "conversion_rate",
+                    "traffic_source",
+                ],
             )
             store.add(insight)
 
@@ -856,12 +890,11 @@ def _detect_strategic_gap(store: InsightStore, profiles: list, csv_root) -> None
                 if constraint:
                     goal = row.get(goal_col.name, "Unknown goal") if goal_col else "Unknown goal"
                     insight = Insight(
-                        insight_id=_make_id("strategic_gap", profile.dataset_id, goal, "constraint"),
-                        title=f"Strategic gap: {goal} faces constraints",
-                        description=(
-                            f"High-priority goal '{goal}' is blocked by: "
-                            f"'{constraint}'."
+                        insight_id=_make_id(
+                            "strategic_gap", profile.dataset_id, goal, "constraint"
                         ),
+                        title=f"Strategic gap: {goal} faces constraints",
+                        description=(f"High-priority goal '{goal}' is blocked by: '{constraint}'."),
                         category="strategic_gap",
                         severity="medium",
                         confidence="high",
@@ -881,7 +914,9 @@ def _detect_strategic_gap(store: InsightStore, profiles: list, csv_root) -> None
                 if not owner and goal_col:
                     goal = row.get(goal_col.name, "Unknown goal")
                     insight = Insight(
-                        insight_id=_make_id("strategic_gap", profile.dataset_id, goal, "missing_owner"),
+                        insight_id=_make_id(
+                            "strategic_gap", profile.dataset_id, goal, "missing_owner"
+                        ),
                         title=f"Ownership gap: {goal} has no owner",
                         description=(
                             f"Goal '{goal}' in '{profile.filename}' does not "
@@ -937,7 +972,11 @@ def _detect_dependency_risk(store: InsightStore, graph: KnowledgeGraph) -> None:
                 severity=sev,
                 confidence="medium",
                 source_type="graph",
-                source_ids=[r.relationship_id for r in graph.relationships if r.target_entity_id == entity_id],
+                source_ids=[
+                    r.relationship_id
+                    for r in graph.relationships
+                    if r.target_entity_id == entity_id
+                ],
                 evidence_summary=f"{count} 'depends_on' edges pointing to '{name}'",
                 recommended_action=(
                     "Assess whether the dependency is a single point of "
@@ -970,9 +1009,7 @@ def _detect_contradiction(store: InsightStore, graph: KnowledgeGraph) -> None:
             confidence="medium",
             source_type="graph",
             source_ids=[rel.relationship_id],
-            evidence_summary=(
-                f"contradicts: '{source_name}' <-> '{target_name}'"
-            ),
+            evidence_summary=(f"contradicts: '{source_name}' <-> '{target_name}'"),
             recommended_action=(
                 "Investigate these contradictory statements and determine "
                 "which is correct based on current evidence."
@@ -1007,8 +1044,7 @@ def _detect_ownership_gap(store: InsightStore, graph: KnowledgeGraph) -> None:
 
         # Conservative: only flag if the entity has at least one relationship
         incoming_count = sum(
-            1 for rel in graph.relationships
-            if rel.target_entity_id == entity.entity_id
+            1 for rel in graph.relationships if rel.target_entity_id == entity.entity_id
         )
         if incoming_count == 0 and _outgoing_count(entity.entity_id, graph.relationships) == 0:
             continue  # Isolated entity — skip to avoid noise
@@ -1021,9 +1057,7 @@ def _detect_ownership_gap(store: InsightStore, graph: KnowledgeGraph) -> None:
                 f"have an 'owned_by' relationship in the knowledge graph."
             ),
             category=(
-                "operations_bottleneck"
-                if entity.entity_type == "system"
-                else "strategic_gap"
+                "operations_bottleneck" if entity.entity_type == "system" else "strategic_gap"
             ),
             severity="low",
             confidence="low",
@@ -1034,8 +1068,7 @@ def _detect_ownership_gap(store: InsightStore, graph: KnowledgeGraph) -> None:
                 f"entity '{entity.name}' ({entity.entity_type})"
             ),
             recommended_action=(
-                "Assign an owner to this entity for accountability and "
-                "incident response."
+                "Assign an owner to this entity for accountability and incident response."
             ),
             ontology_concepts=["owner", "dependency"],
         )

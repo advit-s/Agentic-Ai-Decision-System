@@ -10,13 +10,13 @@ v1.30 — Connector Expansion + OAuth/Token Setup UX
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any
 
 from pydantic import BaseModel, Field
 
 
 class FieldType(StrEnum):
     """Input field types for connector setup forms."""
+
     STRING = "string"
     PASSWORD = "password"
     URL = "url"
@@ -28,6 +28,7 @@ class FieldType(StrEnum):
 
 class SetupField(BaseModel):
     """A single field in a connector setup form."""
+
     key: str = Field(description="Field identifier (snake_case)")
     label: str = Field(description="Human-readable label")
     field_type: FieldType = Field(default=FieldType.STRING, description="Input type")
@@ -43,6 +44,7 @@ class SetupField(BaseModel):
 
 class ConnectorCapabilityDetail(BaseModel):
     """Description of a single read-only capability."""
+
     capability: str = Field(description="Capability identifier")
     label: str = Field(description="Human-readable label")
     description: str = Field(description="What this capability allows")
@@ -55,6 +57,7 @@ class ConnectorSetupSchema(BaseModel):
     Frontends use this to render dynamic configuration forms with
     appropriate field types, validation, and credential guidance.
     """
+
     connector_type: str = Field(description="Connector type identifier")
     display_name: str = Field(description="Human-readable name")
     description: str = Field(description="What this connector does")

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
-from uuid import uuid4
 
 from decision_system.models import (
     Claim,
@@ -15,9 +14,9 @@ from decision_system.models import (
     VerificationResult,
     VerificationSummary,
 )
-from decision_system.verification.verifier import ClaimVerifier
 from decision_system.verification.contradictions import ContradictionDetector
 from decision_system.verification.quality import EvidenceQualityScorer
+from decision_system.verification.verifier import ClaimVerifier
 
 
 class VerificationService:
@@ -87,7 +86,9 @@ class VerificationService:
             claims = [c for c in claims if c.workspace_id == workspace_id]
         results = []
         for claim in claims:
-            result, quality = self.verify_claim(claim, workspace_id=workspace_id or claim.workspace_id)
+            result, quality = self.verify_claim(
+                claim, workspace_id=workspace_id or claim.workspace_id
+            )
             results.append((result, quality))
         return results
 
@@ -156,9 +157,7 @@ class VerificationService:
         if not self._claim_store:
             return VerificationSummary()
 
-        claims = self._claim_store.list(
-            workspace_id=workspace_id, execution_id=execution_id
-        )
+        claims = self._claim_store.list(workspace_id=workspace_id, execution_id=execution_id)
 
         if not claims:
             return VerificationSummary()
@@ -172,14 +171,10 @@ class VerificationService:
 
         # Confidence
         confidences = {"high": 1.0, "medium": 0.5, "low": 0.0}
-        avg_conf = (
-            sum(confidences.get(c.confidence, 0.0) for c in claims) / max(total, 1)
-        )
+        avg_conf = sum(confidences.get(c.confidence, 0.0) for c in claims) / max(total, 1)
 
         # Coverage
-        with_evidence = sum(
-            1 for c in claims if c.evidence_ids or c.evidence_snippets
-        )
+        with_evidence = sum(1 for c in claims if c.evidence_ids or c.evidence_snippets)
         coverage = round(with_evidence / max(total, 1), 2)
 
         # Evidence quality counts
@@ -204,9 +199,7 @@ class VerificationService:
                 missing += 1
 
         # Also count contradictions from claim contradicting_evidence_ids
-        claim_contradictions = sum(
-            1 for c in claims if c.contradicting_evidence_ids
-        )
+        claim_contradictions = sum(1 for c in claims if c.contradicting_evidence_ids)
 
         return VerificationSummary(
             total_claims=total,
@@ -241,24 +234,25 @@ class VerificationService:
         if claim is None:
             return
 
-        updated = claim.model_copy(update={
-            "status": result.status,
-            "confidence": result.confidence,
-            "verification_notes": result.verification_notes,
-            "evidence_ids": result.evidence_ids or claim.evidence_ids,
-            "source_ids": result.source_ids or claim.source_ids,
-            "chunk_ids": result.chunk_ids or claim.chunk_ids,
-            "evidence_snippets": result.evidence_snippets or claim.evidence_snippets,
-            "contradicting_evidence_ids": result.contradicting_evidence_ids or claim.contradicting_evidence_ids,
-            "evidence_quality": quality.quality_label,
-            "verification_method": result.verification_method,
-            "updated_at": datetime.now(timezone.utc),
-        })
+        updated = claim.model_copy(
+            update={
+                "status": result.status,
+                "confidence": result.confidence,
+                "verification_notes": result.verification_notes,
+                "evidence_ids": result.evidence_ids or claim.evidence_ids,
+                "source_ids": result.source_ids or claim.source_ids,
+                "chunk_ids": result.chunk_ids or claim.chunk_ids,
+                "evidence_snippets": result.evidence_snippets or claim.evidence_snippets,
+                "contradicting_evidence_ids": result.contradicting_evidence_ids
+                or claim.contradicting_evidence_ids,
+                "evidence_quality": quality.quality_label,
+                "verification_method": result.verification_method,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        )
         self._claim_store.save(updated)
 
-    def _get_workspace_evidence_texts(
-        self, workspace_id: str
-    ) -> list[dict[str, str]]:
+    def _get_workspace_evidence_texts(self, workspace_id: str) -> list[dict[str, str]]:
         """Get evidence texts for a workspace for contradiction scanning."""
         texts: list[dict[str, str]] = []
 
@@ -268,16 +262,22 @@ class VerificationService:
 
             store = DataSourceStore()
             # Get a broad sample of evidence chunks
-            chunks = store.search_chunks_keyword(
-                workspace_id=workspace_id, query="", limit=50
-            )
+            chunks = store.search_chunks_keyword(workspace_id=workspace_id, query="", limit=50)
             for chunk in chunks:
-                d = chunk if isinstance(chunk, dict) else chunk.model_dump(mode="json") if hasattr(chunk, "model_dump") else {}
-                texts.append({
-                    "id": d.get("evidence_id", d.get("id", "")),
-                    "chunk_id": d.get("chunk_id", ""),
-                    "text": d.get("text", d.get("chunk_text", "")),
-                })
+                d = (
+                    chunk
+                    if isinstance(chunk, dict)
+                    else chunk.model_dump(mode="json")
+                    if hasattr(chunk, "model_dump")
+                    else {}
+                )
+                texts.append(
+                    {
+                        "id": d.get("evidence_id", d.get("id", "")),
+                        "chunk_id": d.get("chunk_id", ""),
+                        "text": d.get("text", d.get("chunk_text", "")),
+                    }
+                )
         except Exception:
             pass
 

@@ -11,9 +11,10 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 from uuid import uuid4
+
+from decision_system._data_root import get_data_root
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SourceVersion:
     """A version entry for an imported data source."""
+
     version_id: str = field(default_factory=lambda: str(uuid4()))
     connector_id: str = ""
     external_id: str = ""
@@ -63,17 +65,23 @@ class ProvenanceTracker:
     """
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        self._base_dir = Path(base_dir) if base_dir else get_data_root() / "connectors" / "provenance"
+        self._base_dir = (
+            Path(base_dir) if base_dir else get_data_root() / "connectors" / "provenance"
+        )
         self._base_dir.mkdir(parents=True, exist_ok=True)
 
-    def _store_path(self, connector_id: str, external_id: str, workspace_id: str | None = None) -> Path:
+    def _store_path(
+        self, connector_id: str, external_id: str, workspace_id: str | None = None
+    ) -> Path:
         scope = workspace_id if workspace_id else "_global"
         d = self._base_dir / scope / connector_id
         d.mkdir(parents=True, exist_ok=True)
         return d / f"{external_id}.json"
 
     def get_versions(
-        self, connector_id: str, external_id: str,
+        self,
+        connector_id: str,
+        external_id: str,
         workspace_id: str | None = None,
     ) -> list[SourceVersion]:
         """Get all versions for a given item."""
@@ -87,7 +95,9 @@ class ProvenanceTracker:
             return []
 
     def get_latest_version(
-        self, connector_id: str, external_id: str,
+        self,
+        connector_id: str,
+        external_id: str,
         workspace_id: str | None = None,
     ) -> SourceVersion | None:
         """Get the latest version of an item."""
@@ -140,7 +150,9 @@ class ProvenanceTracker:
         return new_version
 
     def _save_versions(
-        self, connector_id: str, external_id: str,
+        self,
+        connector_id: str,
+        external_id: str,
         versions: list[SourceVersion],
         workspace_id: str | None = None,
     ) -> None:
@@ -152,7 +164,9 @@ class ProvenanceTracker:
         )
 
     def get_source_id_for_version(
-        self, connector_id: str, external_id: str,
+        self,
+        connector_id: str,
+        external_id: str,
         version_number: int,
         workspace_id: str | None = None,
     ) -> str | None:

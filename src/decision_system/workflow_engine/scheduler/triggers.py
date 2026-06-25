@@ -12,7 +12,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-
 # ─── Cron Evaluator ──────────────────────────────────────────────────────────
 
 
@@ -106,6 +105,8 @@ def _parse_cron(expression: str) -> tuple:
         parsed.append(_parse_cron_field(part, min_v, max_v))
 
     return tuple(parsed)  # type: ignore
+
+
 def _cron_matches(expression: str, dt: datetime) -> bool:
     """Check whether *dt* matches a cron expression."""
     try:

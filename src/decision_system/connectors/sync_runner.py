@@ -8,41 +8,35 @@ from __future__ import annotations
 
 import time
 from datetime import datetime, timezone
-from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel
 
-from decision_system.connectors.sync_state import (
-    SyncStateItem,
-    SyncStateStore,
-    get_sync_state_store,
-)
-from decision_system.connectors.schedule import (
-    ConnectorSchedule,
-    ScheduleStore,
-    get_schedule_store,
-)
-from decision_system.connectors.runtime_dispatch import sync as runtime_sync
-from decision_system.connectors.config_store import get_config_store
-from decision_system.connectors.store import save_job
-from decision_system.connectors.models import (
-    ConnectorConfig,
-    ConnectorImportJob,
-    ConnectorImportResult,
-)
 from decision_system.connectors.audit import (
-    record_sync_started,
     record_sync_completed,
     record_sync_failed,
-    record_sync_item_new,
     record_sync_item_changed,
+    record_sync_item_new,
     record_sync_item_unchanged,
-    record_sync_item_failed,
+    record_sync_started,
 )
+from decision_system.connectors.config_store import get_config_store
 from decision_system.connectors.metrics import (
     record_sync_duration,
     record_sync_items_count,
+)
+from decision_system.connectors.models import (
+    ConnectorImportJob,
+)
+from decision_system.connectors.runtime_dispatch import sync as runtime_sync
+from decision_system.connectors.schedule import (
+    ScheduleStore,
+    get_schedule_store,
+)
+from decision_system.connectors.store import save_job
+from decision_system.connectors.sync_state import (
+    SyncStateStore,
+    get_sync_state_store,
 )
 
 
@@ -160,7 +154,9 @@ class SyncRunner:
                     )
 
                 self._sync_store.mark_seen(
-                    workspace_id, connector_id, external_id,
+                    workspace_id,
+                    connector_id,
+                    external_id,
                     content_hash=content_hash,
                     status=status,
                 )
@@ -190,7 +186,8 @@ class SyncRunner:
             # Record metrics
             duration_ms = (time.time() - start_time) * 1000
             record_sync_duration(
-                connector_id, duration_ms,
+                connector_id,
+                duration_ms,
                 items_new=result.items_new,
                 items_changed=result.items_changed,
                 items_unchanged=result.items_unchanged,

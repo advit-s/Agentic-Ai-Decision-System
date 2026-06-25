@@ -26,6 +26,22 @@ jobs:
       - name: Run Python tests
         run: python -m pytest -q --tb=short
 
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pre-commit and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pre-commit ruff
+          python -m pip install -e ".[dev]"
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files --show-diff-on-failure
+
   frontend:
     runs-on: ubuntu-latest
     steps:

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
-
 from decision_system.context.builder import DecisionContextBuilder
 from decision_system.orchestration.problem_analyzer import analyze_problem
 from decision_system.orchestration.session import create_session
@@ -54,7 +52,16 @@ def build_higher_context(question: str) -> HigherContext:
         required_ontology_concepts=ontology_concepts,
         relevant_insight_ids=relevant_insight_ids,
         relevant_storage_tiers=relevant_storage_tiers,
-        constraints=["All outputs must cite evidence or insight IDs", "No destructive tool actions"],
-        allowed_tools=["read_profiles", "read_graph", "read_insights", "read_context", "save_artifact"],
+        constraints=[
+            "All outputs must cite evidence or insight IDs",
+            "No destructive tool actions",
+        ],
+        allowed_tools=[
+            "read_profiles",
+            "read_graph",
+            "read_insights",
+            "read_context",
+            "save_artifact",
+        ],
         evidence_requirements={"minimum_sources": 1, "must_cite_insight_ids": True},
     )

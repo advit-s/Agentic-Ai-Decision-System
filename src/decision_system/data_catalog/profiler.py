@@ -9,7 +9,6 @@ from statistics import mean, median, stdev
 from decision_system.data_catalog.loader import LoadedDataset
 from decision_system.data_catalog.models import ColumnProfile, DatasetProfile
 
-
 _DATE_RE = re.compile(r"date|time|month|year|day|period|week", re.IGNORECASE)
 _NUMERIC_RE = re.compile(
     r"amount|revenue|cost|price|margin|value|count|\$",
@@ -105,9 +104,7 @@ def profile_dataset(dataset: LoadedDataset) -> DatasetProfile:
         warnings.append("Dataset has no data rows")
     for column in columns:
         if column.missing_pct > 0.5:
-            warnings.append(
-                f"Column '{column.name}' is >50% missing ({column.missing_pct:.0%})"
-            )
+            warnings.append(f"Column '{column.name}' is >50% missing ({column.missing_pct:.0%})")
 
     return DatasetProfile(
         dataset_id=dataset.dataset_id,

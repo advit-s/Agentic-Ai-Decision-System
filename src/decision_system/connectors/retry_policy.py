@@ -6,18 +6,19 @@ exponential backoff, and records retry attempts.
 
 from __future__ import annotations
 
-import time
-import random
 import logging
+import random
+import time
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Callable
-from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
 
 class RetryableError(StrEnum):
     """Error types that are safe to retry."""
+
     NETWORK_TIMEOUT = "network_timeout"
     HTTP_429 = "http_429"
     HTTP_500 = "http_500"
@@ -31,6 +32,7 @@ class RetryableError(StrEnum):
 
 class NonRetryableError(StrEnum):
     """Error types that must fail fast."""
+
     HTTP_401 = "http_401"
     HTTP_403 = "http_403"
     UNSUPPORTED_FILE_TYPE = "unsupported_file_type"
@@ -42,24 +44,47 @@ class NonRetryableError(StrEnum):
 
 
 RETRYABLE_KEYWORDS: list[str] = [
-    "timeout", "timed out", "connection reset", "connection refused",
-    "connection aborted", "name resolution", "temporarily unavailable",
-    "rate limit", "429", "500", "502", "503", "504",
-    "service unavailable", "too many requests", "retry later",
-    "network is unreachable", "reset by peer",
+    "timeout",
+    "timed out",
+    "connection reset",
+    "connection refused",
+    "connection aborted",
+    "name resolution",
+    "temporarily unavailable",
+    "rate limit",
+    "429",
+    "500",
+    "502",
+    "503",
+    "504",
+    "service unavailable",
+    "too many requests",
+    "retry later",
+    "network is unreachable",
+    "reset by peer",
 ]
 
 NON_RETRYABLE_KEYWORDS: list[str] = [
-    "401", "403", "unauthorized", "forbidden", "not found",
-    "unsupported file", "path traversal", "blocked",
-    "file too large", "malformed config", "invalid config",
-    "permission denied", "access denied",
+    "401",
+    "403",
+    "unauthorized",
+    "forbidden",
+    "not found",
+    "unsupported file",
+    "path traversal",
+    "blocked",
+    "file too large",
+    "malformed config",
+    "invalid config",
+    "permission denied",
+    "access denied",
 ]
 
 
 @dataclass
 class RetryAttempt:
     """Record of a single retry attempt."""
+
     attempt_number: int
     error: str
     delay_seconds: float
@@ -72,6 +97,7 @@ class RetryPolicy:
 
     Default: max 3 retries, exponential backoff (1s, 2s, 4s) + jitter.
     """
+
     max_retries: int = 3
     base_delay_seconds: float = 1.0
     max_delay_seconds: float = 30.0
@@ -151,7 +177,10 @@ class RetryPolicy:
 
                 logger.info(
                     "Retry attempt %d/%d after %.1fs: %s",
-                    attempt, self.max_retries, delay, error_str,
+                    attempt,
+                    self.max_retries,
+                    delay,
+                    error_str,
                 )
 
                 if attempt <= self.max_retries:

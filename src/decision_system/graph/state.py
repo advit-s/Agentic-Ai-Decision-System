@@ -1,6 +1,12 @@
 from typing import TypedDict
 
-from decision_system.models import AgentMemo, Claim, DecisionReport, EvidenceChunk, VerificationResult
+from decision_system.models import (
+    AgentMemo,
+    Claim,
+    DecisionReport,
+    EvidenceChunk,
+    VerificationResult,
+)
 
 
 class WorkflowState(TypedDict, total=False):

@@ -193,13 +193,16 @@ def redact_connector_token(text: str) -> str:
     Returns the text with tokens safely masked.
     """
     token_patterns = [
-        (r'(?i)(token|secret|api_key|password|auth)\s*[=:]\s*\S+', r'\1=[REDACTED]'),
-        (r'(?i)(github_token|notion_api_key|google_drive_token)\s*[=:]\s*\S+', r'\1=[REDACTED]'),
-        (r'(?i)(bearer\s+)\S+', r'\1[REDACTED]'),
-        (r'(?i)(Authorization:\s*Bearer\s+)\S+', r'\1[REDACTED]'),
-        (r'(?:ghp_|gho_|github_pat_|nvapi-)[A-Za-z0-9_\-]{10,}', '[REDACTED_TOKEN]'),
-        (r'(?:sk-[A-Za-z0-9]{10,})', '[REDACTED_TOKEN]'),
-        (r'(?:xox[bpsra]-)[A-Za-z0-9\-]{10,}', '[REDACTED_TOKEN]'),
+        (r"(?i)(token|secret|api_key|password|auth)\s*[=:]\s*\S+", r"\1=[REDACTED]"),
+        (
+            r"(?i)(github_token|notion_api_key|google_drive_token)\s*[=:]\s*\S+",
+            r"\1=[REDACTED]",
+        ),
+        (r"(?i)(bearer\s+)\S+", r"\1[REDACTED]"),
+        (r"(?i)(Authorization:\s*Bearer\s+)\S+", r"\1[REDACTED]"),
+        (r"(?:ghp_|gho_|github_pat_|nvapi-)[A-Za-z0-9_\-]{10,}", "[REDACTED_TOKEN]"),
+        (r"(?:sk-[A-Za-z0-9]{10,})", "[REDACTED_TOKEN]"),
+        (r"(?:xox[bpsra]-)[A-Za-z0-9\-]{10,}", "[REDACTED_TOKEN]"),
     ]
 
     result = text
@@ -216,6 +219,7 @@ def safe_credential_status(env_var_name: str) -> dict:
         env_var_name (str), missing_message (str)
     """
     import os
+
     token_value = os.environ.get(env_var_name, "")
     token_present = bool(token_value)
     return {
@@ -224,6 +228,7 @@ def safe_credential_status(env_var_name: str) -> dict:
         "env_var_name": env_var_name,
         "missing_message": (
             f"Set the {env_var_name} environment variable to enable authenticated access."
-            if not token_present else ""
+            if not token_present
+            else ""
         ),
     }

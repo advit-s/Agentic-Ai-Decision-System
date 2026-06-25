@@ -154,6 +154,7 @@ def _cmd_audit_log(
         from decision_system.security.inspector import (  # noqa: PLC0415
             inspect_audit_log,
         )
+
         payload = inspect_audit_log(events)
         typer.echo(json.dumps(payload, indent=2))
     else:

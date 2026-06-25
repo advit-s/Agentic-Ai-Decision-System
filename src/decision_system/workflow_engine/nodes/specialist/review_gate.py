@@ -13,8 +13,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from decision_system.workflow_engine.models import WorkflowNode, ExecutionContext
-
+from decision_system.workflow_engine.models import ExecutionContext, WorkflowNode
 
 _APPROVED = "approved"
 _REJECTED = "rejected"
@@ -22,9 +21,8 @@ _PENDING_REVIEW = "pending_review"
 _SKIPPED = "skipped"
 
 import os as _os
-_REVIEWS_DIR = Path(
-    _os.environ.get("DECISION_SYSTEM_DATA_DIR", ".decision_system")
-) / "reviews"
+
+_REVIEWS_DIR = Path(_os.environ.get("DECISION_SYSTEM_DATA_DIR", ".decision_system")) / "reviews"
 
 
 def _ensure_reviews_dir() -> Path:
@@ -224,7 +222,9 @@ def resolve_review(
         return None
 
     if review.get("status") != _PENDING_REVIEW:
-        raise ValueError(f"Review '{review_id}' is already resolved (status={review.get('status')})")
+        raise ValueError(
+            f"Review '{review_id}' is already resolved (status={review.get('status')})"
+        )
 
     now = datetime.now().isoformat()
 

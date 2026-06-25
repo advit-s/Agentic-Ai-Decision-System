@@ -1,5 +1,5 @@
 // App.jsx — Root component
-import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo, Suspense, lazy } from "react";
 import { ReactFlowProvider, useReactFlow } from "reactflow";
 import WorkflowCanvas from "./components/WorkflowCanvas";
 import WorkflowToolbar from "./components/WorkflowToolbar";
@@ -19,15 +19,15 @@ import ShortcutsHelp from "./components/ShortcutsHelp";
 import ValidationDialog from "./components/ValidationDialog";
 import OnboardingPanel from "./components/OnboardingPanel";
 import AppNav from "./components/AppNav";
-import DataSourcesPage from "./components/DataSourcesPage";
-import EvidenceSearchPage from "./components/EvidenceSearchPage";
-import ClaimLedgerPage from "./components/ClaimLedgerPage";
-import GraphPage from "./components/GraphPage";
-import RiskDashboard from "./components/RiskDashboard";
-import ReportsPage from "./components/ReportsPage";
-import SettingsPage from "./components/SettingsPage";
-import ConnectorsPage from "./components/ConnectorsPage";
-import DemoFlow from "./components/DemoFlow";
+const DataSourcesPage = lazy(() => import("./components/DataSourcesPage"));
+const EvidenceSearchPage = lazy(() => import("./components/EvidenceSearchPage"));
+const ClaimLedgerPage = lazy(() => import("./components/ClaimLedgerPage"));
+const GraphPage = lazy(() => import("./components/GraphPage"));
+const RiskDashboard = lazy(() => import("./components/RiskDashboard"));
+const ReportsPage = lazy(() => import("./components/ReportsPage"));
+const SettingsPage = lazy(() => import("./components/SettingsPage"));
+const ConnectorsPage = lazy(() => import("./components/ConnectorsPage"));
+const DemoFlow = lazy(() => import("./components/DemoFlow"));
 import { PermissionProvider, usePermission } from "./hooks/usePermission";
 import { ToastProvider, useToast } from "./components/Toast";
 import useKeyboardShortcuts from "./hooks/useKeyboardShortcuts";
@@ -1072,7 +1072,7 @@ function App() {
       <div className="app-content">
         <ReactFlowProvider>
           <ToastProvider>
-            {renderSection()}
+            <Suspense fallback={<div className="section-loading">Loading section…</div>}>{renderSection()}</Suspense>
             <ShortcutsHelpGlobal />
           </ToastProvider>
         </ReactFlowProvider>

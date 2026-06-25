@@ -7,7 +7,6 @@ from fastapi import APIRouter
 from decision_system.api.models import ApiRunResponse, QuestionRequest, to_jsonable
 from decision_system.context.builder import DecisionContextBuilder
 
-
 router = APIRouter(tags=["context"])
 
 

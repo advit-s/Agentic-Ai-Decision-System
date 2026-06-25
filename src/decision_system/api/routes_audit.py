@@ -49,9 +49,11 @@ def list_audit_events(
             unique_events.append(ev)
 
     # Filter by workspace_id
-    filtered = [e for e in unique_events
-                if e.metadata.get("workspace_id") == id
-                or e.event_type.startswith("workspace_")]
+    filtered = [
+        e
+        for e in unique_events
+        if e.metadata.get("workspace_id") == id or e.event_type.startswith("workspace_")
+    ]
 
     # Apply additional filters
     if event_type:
@@ -59,17 +61,9 @@ def list_audit_events(
     if actor:
         filtered = [e for e in filtered if e.actor == actor]
     if artifact_type:
-        filtered = [
-            e
-            for e in filtered
-            if e.metadata.get("artifact_type") == artifact_type
-        ]
+        filtered = [e for e in filtered if e.metadata.get("artifact_type") == artifact_type]
     if artifact_id:
-        filtered = [
-            e
-            for e in filtered
-            if e.metadata.get("artifact_id") == artifact_id
-        ]
+        filtered = [e for e in filtered if e.metadata.get("artifact_id") == artifact_id]
 
     # Sort by created_at descending
     filtered.sort(key=lambda e: e.created_at, reverse=True)
@@ -97,9 +91,11 @@ def audit_summary(
     all_events = events + store_events
 
     # Filter by workspace_id
-    ws_events = [e for e in all_events
-                 if e.metadata.get("workspace_id") == id
-                 or e.event_type.startswith("workspace_")]
+    ws_events = [
+        e
+        for e in all_events
+        if e.metadata.get("workspace_id") == id or e.event_type.startswith("workspace_")
+    ]
 
     # Event type counts
     type_counts: dict[str, int] = {}

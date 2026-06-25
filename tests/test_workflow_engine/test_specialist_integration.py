@@ -1,4 +1,5 @@
 """Integration tests for specialist agent node chaining — Researcher, Critic, Synthesizer."""
+
 from __future__ import annotations
 
 import tempfile
@@ -6,13 +7,16 @@ from pathlib import Path
 
 import pytest
 
-from decision_system.workflow_engine.models import (
-    WorkflowDefinition, NodeConfig, Connection,
-)
 from decision_system.workflow_engine.engine.executor import DAGEngine
+from decision_system.workflow_engine.models import (
+    Connection,
+    NodeConfig,
+    WorkflowDefinition,
+)
 from decision_system.workflow_engine.nodes import create_default_registry
 from decision_system.workflow_engine.stores.json_store import (
-    JSONWorkflowStore, JSONExecutionStore,
+    JSONExecutionStore,
+    JSONWorkflowStore,
 )
 
 
@@ -55,10 +59,12 @@ class TestResearcherToCriticChain:
                 ),
             ],
         )
-        state = asyncio.run(engine.execute(
-            wf,
-            global_inputs={"query": "revenue growth"},
-        ))
+        state = asyncio.run(
+            engine.execute(
+                wf,
+                global_inputs={"query": "revenue growth"},
+            )
+        )
         assert state.status == "completed"
 
         # Researcher should have produced findings
@@ -118,10 +124,15 @@ class TestMultiStreamToSynthesizer:
                 ),
             ],
         )
-        state = asyncio.run(engine.execute(
-            wf,
-            global_inputs={"query": "market analysis", "question": "Should we invest?"},
-        ))
+        state = asyncio.run(
+            engine.execute(
+                wf,
+                global_inputs={
+                    "query": "market analysis",
+                    "question": "Should we invest?",
+                },
+            )
+        )
         assert state.status == "completed"
 
         # All nodes completed
@@ -172,10 +183,15 @@ class TestSynthesizerToCriticValidationGate:
                 ),
             ],
         )
-        state = asyncio.run(engine.execute(
-            wf,
-            global_inputs={"query": "risk analysis", "question": "Should we invest?"},
-        ))
+        state = asyncio.run(
+            engine.execute(
+                wf,
+                global_inputs={
+                    "query": "risk analysis",
+                    "question": "Should we invest?",
+                },
+            )
+        )
         assert state.status == "completed"
 
         for node_id in ("researcher", "synthesizer", "critic"):
@@ -218,10 +234,12 @@ class TestProviderResolutionOrder:
                 ),
             ],
         )
-        state = asyncio.run(engine.execute(
-            wf,
-            global_inputs={"query": "test"},
-        ))
+        state = asyncio.run(
+            engine.execute(
+                wf,
+                global_inputs={"query": "test"},
+            )
+        )
         assert state.status == "completed"
         assert state.node_states["researcher"].status == "completed"
         assert state.node_states["critic"].status == "completed"

@@ -6,27 +6,19 @@ import json
 import os
 from unittest.mock import patch
 
-import pytest
-
-from decision_system.connectors.setup_schemas import (
-    ConnectorSetupSchema,
-    SetupField,
-    get_setup_schema,
-    list_setup_schemas,
-    LOCAL_FILES_SCHEMA,
-    GITHUB_SCHEMA,
-    URL_IMPORT_SCHEMA,
-    NOTION_SCHEMA,
-    GOOGLE_DRIVE_SCHEMA,
-    FieldType,
-)
 from decision_system.connectors.models import (
-    ConnectorCredentialStatus,
     ConnectorTestDiagnostics,
 )
 from decision_system.connectors.registry import (
     get_credential_status,
     list_connectors_with_schemas,
+)
+from decision_system.connectors.setup_schemas import (
+    GITHUB_SCHEMA,
+    FieldType,
+    SetupField,
+    get_setup_schema,
+    list_setup_schemas,
 )
 from decision_system.security.redaction import (
     redact_connector_token,
@@ -209,8 +201,7 @@ class TestTokenRedaction:
 
     def test_mixed_content(self):
         text = (
-            "Using GITHUB_TOKEN=ghp_test123 for repo access. "
-            "Normal text here. Token: ghp_test456."
+            "Using GITHUB_TOKEN=ghp_test123 for repo access. Normal text here. Token: ghp_test456."
         )
         redacted = redact_connector_token(text)
         assert "[REDACTED]" in redacted
@@ -351,6 +342,7 @@ class TestNotionGoogleDriveStatus:
 
     def test_notion_in_registry(self):
         from decision_system.connectors.registry import get_connector_definition
+
         definition = get_connector_definition("notion")
         assert definition is not None
         assert definition.is_stub is True
@@ -359,6 +351,7 @@ class TestNotionGoogleDriveStatus:
 
     def test_google_drive_in_registry(self):
         from decision_system.connectors.registry import get_connector_definition
+
         definition = get_connector_definition("google-drive")
         assert definition is not None
         assert definition.is_stub is True
@@ -367,8 +360,13 @@ class TestNotionGoogleDriveStatus:
 
     def test_notion_fake_runtime(self):
         """Test that notion runtime returns without raising NotImplementedError."""
-        from decision_system.connectors.models import ConnectorConfig, ConnectorType, ConnectorMode
+        from decision_system.connectors.models import (
+            ConnectorConfig,
+            ConnectorMode,
+            ConnectorType,
+        )
         from decision_system.connectors.runtime_dispatch import test_connection
+
         config = ConnectorConfig(
             connector_id="test-notion",
             name="Test Notion",
@@ -381,8 +379,13 @@ class TestNotionGoogleDriveStatus:
 
     def test_google_drive_fake_runtime(self):
         """Test that google-drive runtime returns without raising NotImplementedError."""
-        from decision_system.connectors.models import ConnectorConfig, ConnectorType, ConnectorMode
+        from decision_system.connectors.models import (
+            ConnectorConfig,
+            ConnectorMode,
+            ConnectorType,
+        )
         from decision_system.connectors.runtime_dispatch import test_connection
+
         config = ConnectorConfig(
             connector_id="test-gdrive",
             name="Test Google Drive",
@@ -406,12 +409,13 @@ class TestGitHubIssuesExpansion:
 
     def test_github_issues_module_imports(self):
         from decision_system.connectors.github_issues import (
-            list_issues,
             fetch_issue,
+            list_all_github_items,
+            list_issues,
             list_pull_requests,
             list_releases,
-            list_all_github_items,
         )
+
         assert callable(list_issues)
         assert callable(fetch_issue)
         assert callable(list_pull_requests)
@@ -419,8 +423,13 @@ class TestGitHubIssuesExpansion:
         assert callable(list_all_github_items)
 
     def test_github_issues_returns_empty_for_no_config(self):
-        from decision_system.connectors.models import ConnectorConfig, ConnectorType, ConnectorMode
         from decision_system.connectors.github_issues import list_issues
+        from decision_system.connectors.models import (
+            ConnectorConfig,
+            ConnectorMode,
+            ConnectorType,
+        )
+
         config = ConnectorConfig(
             connector_id="test",
             name="test",
@@ -433,6 +442,7 @@ class TestGitHubIssuesExpansion:
 
     def test_github_issues_item_type(self):
         from decision_system.connectors.models import ConnectorRuntimeItem
+
         item = ConnectorRuntimeItem(
             external_id="issue-1",
             title="Test Issue",
@@ -448,6 +458,7 @@ class TestMetadataMapping:
 
     def test_connector_citation_github(self):
         from decision_system.connectors.models import ConnectorCitation, ConnectorType
+
         citation = ConnectorCitation(
             connector_id="test-connector",
             connector_type=ConnectorType.GITHUB,
@@ -464,6 +475,7 @@ class TestMetadataMapping:
 
     def test_connector_citation_local_files(self):
         from decision_system.connectors.models import ConnectorCitation, ConnectorType
+
         citation = ConnectorCitation(
             connector_id="test-connector",
             connector_type=ConnectorType.LOCAL_FILES,
@@ -475,6 +487,7 @@ class TestMetadataMapping:
 
     def test_connector_citation_url(self):
         from decision_system.connectors.models import ConnectorCitation, ConnectorType
+
         citation = ConnectorCitation(
             connector_id="test-connector",
             connector_type=ConnectorType.URL_IMPORT,
@@ -488,6 +501,7 @@ class TestMetadataMapping:
 
     def test_connector_citation_notion(self):
         from decision_system.connectors.models import ConnectorCitation, ConnectorType
+
         citation = ConnectorCitation(
             connector_id="test-connector",
             connector_type=ConnectorType.NOTION,
@@ -499,6 +513,7 @@ class TestMetadataMapping:
 
     def test_connector_citation_google_drive(self):
         from decision_system.connectors.models import ConnectorCitation, ConnectorType
+
         citation = ConnectorCitation(
             connector_id="test-connector",
             connector_type=ConnectorType.GOOGLE_DRIVE,
@@ -514,14 +529,15 @@ class TestAuditEvents:
 
     def test_setup_audit_event_constants(self):
         from decision_system.connectors.audit import (
-            EVENT_CONNECTOR_SETUP_STARTED,
-            EVENT_CONNECTOR_SETUP_TESTED,
-            EVENT_CONNECTOR_SETUP_COMPLETED,
-            EVENT_CONNECTOR_SETUP_FAILED,
             EVENT_CONNECTOR_CREDENTIALS_MISSING,
             EVENT_CONNECTOR_ITEM_PREVIEWED,
+            EVENT_CONNECTOR_SETUP_COMPLETED,
+            EVENT_CONNECTOR_SETUP_FAILED,
+            EVENT_CONNECTOR_SETUP_STARTED,
+            EVENT_CONNECTOR_SETUP_TESTED,
             EVENT_GITHUB_ISSUE_IMPORTED,
         )
+
         assert EVENT_CONNECTOR_SETUP_STARTED == "connector_setup_started"
         assert EVENT_CONNECTOR_SETUP_TESTED == "connector_setup_tested"
         assert EVENT_CONNECTOR_SETUP_COMPLETED == "connector_setup_completed"
@@ -532,12 +548,13 @@ class TestAuditEvents:
 
     def test_record_setup_events(self):
         from decision_system.connectors.audit import (
-            record_setup_started,
-            record_setup_tested,
+            record_credentials_missing,
             record_setup_completed,
             record_setup_failed,
-            record_credentials_missing,
+            record_setup_started,
+            record_setup_tested,
         )
+
         # These should not raise exceptions
         record_setup_started(connector_type="github")
         record_setup_tested(connector_type="github", success=True)
@@ -551,12 +568,13 @@ class TestMetrics:
 
     def test_setup_metrics_exist(self):
         from decision_system.connectors.metrics import (
-            record_setup_duration,
-            record_test_success,
-            record_test_failure,
-            record_preview_item_count,
             record_import_by_type,
+            record_preview_item_count,
+            record_setup_duration,
+            record_test_failure,
+            record_test_success,
         )
+
         # These should not raise exceptions
         record_setup_duration(connector_type="github", duration_ms=100.0)
         record_test_success(connector_type="github")
@@ -571,16 +589,20 @@ class TestWizardHelpers:
     def test_setup_field_env_var_hints(self):
         for schema in list_setup_schemas():
             for field in schema.credential_fields:
-                assert field.env_var_hint, f"{schema.connector_type}.{field.key} missing env_var_hint"
+                assert field.env_var_hint, (
+                    f"{schema.connector_type}.{field.key} missing env_var_hint"
+                )
                 assert field.secret is True, f"{schema.connector_type}.{field.key} not secret"
 
     def test_connector_has_wizard_fields(self):
         """All non-disabled connectors should have required_fields for wizard."""
         for schema in list_setup_schemas():
             if not schema.disabled:
-                assert len(schema.required_fields) > 0, f"{schema.connector_type} has no required fields"
+                assert len(schema.required_fields) > 0, (
+                    f"{schema.connector_type} has no required fields"
+                )
                 for field in schema.required_fields:
-                    assert field.label, f"Required field missing label"
+                    assert field.label, "Required field missing label"
                     assert field.hint, f"Required field {field.key} missing hint"
 
     def test_read_only_capabilities_present(self):
@@ -596,7 +618,9 @@ class TestItemPreview:
 
     def test_runtime_item_preview_fields(self):
         from datetime import datetime, timezone
+
         from decision_system.connectors.models import ConnectorRuntimeItem
+
         item = ConnectorRuntimeItem(
             external_id="test-1",
             title="Test Document",
@@ -616,6 +640,7 @@ class TestItemPreview:
 
     def test_github_issue_item_preview(self):
         from decision_system.connectors.models import ConnectorRuntimeItem
+
         item = ConnectorRuntimeItem(
             external_id="issue-42",
             title="Fix login bug",
@@ -637,6 +662,7 @@ class TestItemPreview:
 
     def test_github_pr_item_preview(self):
         from decision_system.connectors.models import ConnectorRuntimeItem
+
         item = ConnectorRuntimeItem(
             external_id="pr-7",
             title="Add new feature",
@@ -654,6 +680,7 @@ class TestRBACConnectorSetup:
 
     def test_connector_permissions_exist(self):
         from decision_system.identity.models import Permission
+
         assert hasattr(Permission, "CONNECTOR_READ")
         assert hasattr(Permission, "CONNECTOR_MANAGE")
         assert hasattr(Permission, "CONNECTOR_IMPORT")
@@ -666,5 +693,6 @@ class TestRBACConnectorSetup:
             require_permission,
             require_workspace_permission,
         )
+
         assert callable(require_permission)
         assert callable(require_workspace_permission)

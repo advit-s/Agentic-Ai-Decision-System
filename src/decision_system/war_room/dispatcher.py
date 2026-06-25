@@ -7,8 +7,11 @@ roles following the dispatch rules from the task spec.  No LLM is called.
 from __future__ import annotations
 
 from decision_system.orchestration.problem_analyzer import analyze_problem
-from decision_system.war_room.models import AgentDispatchSpec, HigherContext, PersonalAgentContext
-
+from decision_system.war_room.models import (
+    AgentDispatchSpec,
+    HigherContext,
+    PersonalAgentContext,
+)
 
 _ROLE_SELECTION: dict[str, list[str]] = {
     "financial": ["financial_analyst", "risk_analyst"],
@@ -28,16 +31,66 @@ _ROLE_SELECTION: dict[str, list[str]] = {
 }
 
 _FOCUS_AREAS: dict[str, list[str]] = {
-    "financial_analyst": ["revenue trends", "margin analysis", "cost drivers", "expense breakdown"],
-    "customer_analyst": ["customer segments", "churn signals", "retention metrics", "LTV trends"],
-    "sales_analyst": ["pipeline health", "lead conversion", "territory performance", "quota attainment"],
-    "marketing_analyst": ["channel ROI", "campaign efficiency", "ad spend trends", "conversion rates"],
-    "product_analyst": ["feature adoption", "return rates", "catalog performance", "usage trends"],
-    "operations_analyst": ["delivery timelines", "bottlenecks", "inventory levels", "supply chain risks"],
-    "strategy_analyst": ["market positioning", "competitive landscape", "strategic gaps", "resource allocation"],
-    "technical_analyst": ["system dependencies", "architecture risks", "integration points", "tech debt"],
-    "legal_analyst": ["compliance gaps", "contractual obligations", "privacy regulations", "licensing"],
-    "risk_analyst": ["risk registers", "vulnerability signals", "mitigation status", "human-review items"],
+    "financial_analyst": [
+        "revenue trends",
+        "margin analysis",
+        "cost drivers",
+        "expense breakdown",
+    ],
+    "customer_analyst": [
+        "customer segments",
+        "churn signals",
+        "retention metrics",
+        "LTV trends",
+    ],
+    "sales_analyst": [
+        "pipeline health",
+        "lead conversion",
+        "territory performance",
+        "quota attainment",
+    ],
+    "marketing_analyst": [
+        "channel ROI",
+        "campaign efficiency",
+        "ad spend trends",
+        "conversion rates",
+    ],
+    "product_analyst": [
+        "feature adoption",
+        "return rates",
+        "catalog performance",
+        "usage trends",
+    ],
+    "operations_analyst": [
+        "delivery timelines",
+        "bottlenecks",
+        "inventory levels",
+        "supply chain risks",
+    ],
+    "strategy_analyst": [
+        "market positioning",
+        "competitive landscape",
+        "strategic gaps",
+        "resource allocation",
+    ],
+    "technical_analyst": [
+        "system dependencies",
+        "architecture risks",
+        "integration points",
+        "tech debt",
+    ],
+    "legal_analyst": [
+        "compliance gaps",
+        "contractual obligations",
+        "privacy regulations",
+        "licensing",
+    ],
+    "risk_analyst": [
+        "risk registers",
+        "vulnerability signals",
+        "mitigation status",
+        "human-review items",
+    ],
 }
 
 _PERSPECTIVES: dict[str, str] = {
@@ -108,8 +161,7 @@ def build_dispatch_spec(
 
     # Build personal contexts
     personal_contexts = [
-        _build_personal_context(role, decision_type, higher_context)
-        for role in selected_roles
+        _build_personal_context(role, decision_type, higher_context) for role in selected_roles
     ]
 
     dispatch_order = selected_roles
@@ -134,9 +186,7 @@ def _detect_missing_inputs(selected_roles: list[str], ctx: HigherContext) -> lis
     if not ctx.relevant_insight_ids:
         missing.append("No relevant insights detected (run detect-patterns first).")
     if not selected_roles:
-        missing.append(
-            "No specialist roles matched (question may be too general)."
-        )
+        missing.append("No specialist roles matched (question may be too general).")
     return missing
 
 

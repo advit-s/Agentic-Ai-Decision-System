@@ -6,45 +6,27 @@ dispatch plan -> sandbox execution -> judge summary -> persistence.
 
 from __future__ import annotations
 
-import json
-import uuid
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 
-from decision_system.graphing.store import get_default_data_root
-from decision_system.data_catalog.initializer import (
-    init_data_catalog,
-)
+from decision_system._data_root import get_data_root
 from decision_system.data_catalog.models import (
     DataProfileStore,
 )
-from decision_system.data_catalog.store import (
-    load_profiles,
-)
-from decision_system.graphing.store import load_knowledge_graph
-from decision_system.insights.detectors import run_detectors
-from decision_system.insights.store import save_insights
 from decision_system.insights.models import InsightStore
 from decision_system.ontology.mapper import map_profiles_to_ontology
-from decision_system.ontology.store import save_ontology
-from decision_system.orchestration.models import (
-    DispatchPlan,
-    JudgeSummary,
-    ProblemAnalysis,
-)
+from decision_system.orchestration.dispatcher import build_dispatch_plan
+from decision_system.orchestration.judge import build_judge_summary
 from decision_system.orchestration.planner import plan_data_tools_roles
 from decision_system.orchestration.problem_analyzer import analyze_problem
-from decision_system.orchestration.dispatcher import build_dispatch_plan
-from decision_system.orchestration.session import create_session
 from decision_system.orchestration.sandbox import sandbox_execute
+from decision_system.orchestration.session import create_session
 from decision_system.orchestration.store import save_decision_session
-from decision_system.orchestration.judge import build_judge_summary
+
 
 def _default_runs_dir() -> Path:
     """Return the default runs directory (lazy)."""
     return get_data_root() / "orchestration" / "runs"
-
 
 
 def run_orchestration(
@@ -59,7 +41,6 @@ def run_orchestration(
     """
     if base_data_root is None:
         base_data_root = get_data_root() / "graph"
-
 
     # 1. Session
     session = create_session(question)

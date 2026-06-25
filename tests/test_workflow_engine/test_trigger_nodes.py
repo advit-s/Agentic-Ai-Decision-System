@@ -6,14 +6,15 @@ import pytest
 
 from decision_system.workflow_engine.models import ExecutionContext
 
-
 # ─── Test CronTriggerNode ────────────────────────────────────────────────────
+
 
 class TestCronTriggerNode:
     def test_type_and_label(self):
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             CronTriggerNode,
         )
+
         node = CronTriggerNode(id="n1")
         assert node.type == "decision_system.trigger_cron"
         assert node.label == "Cron Trigger"
@@ -23,6 +24,7 @@ class TestCronTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             CronTriggerNode,
         )
+
         node = CronTriggerNode(
             id="n1",
             type="decision_system.trigger_cron",
@@ -39,6 +41,7 @@ class TestCronTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             CronTriggerNode,
         )
+
         schema = CronTriggerNode.get_config_schema()
         assert "expression" in schema["properties"]
         assert schema["properties"]["expression"]["default"] == "0 9 * * *"
@@ -48,6 +51,7 @@ class TestCronTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             CronTriggerNode,
         )
+
         node = CronTriggerNode(
             id="n1",
             type="decision_system.trigger_cron",
@@ -58,6 +62,7 @@ class TestCronTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             CronTriggerNode,
         )
+
         schema = CronTriggerNode.get_input_schema()
         assert len(schema["properties"]) == 0
 
@@ -65,6 +70,7 @@ class TestCronTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             CronTriggerNode,
         )
+
         schema = CronTriggerNode.get_output_schema()
         assert "trigger_type" in schema["properties"]
         assert "expression" in schema["properties"]
@@ -73,6 +79,7 @@ class TestCronTriggerNode:
     @pytest.mark.asyncio
     async def test_serialize_to_node_type_info(self):
         from decision_system.workflow_engine.nodes import create_default_registry
+
         registry = create_default_registry()
         types = registry.list_types()
         cron_type = [t for t in types if t.type == "decision_system.trigger_cron"]
@@ -83,11 +90,13 @@ class TestCronTriggerNode:
 
 # ─── Test WebhookTriggerNode ─────────────────────────────────────────────────
 
+
 class TestWebhookTriggerNode:
     def test_type_and_label(self):
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             WebhookTriggerNode,
         )
+
         node = WebhookTriggerNode(id="n2")
         assert node.type == "decision_system.trigger_webhook"
         assert node.label == "Webhook Trigger"
@@ -97,6 +106,7 @@ class TestWebhookTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             WebhookTriggerNode,
         )
+
         node = WebhookTriggerNode(
             id="n1",
             type="decision_system.trigger_webhook",
@@ -112,6 +122,7 @@ class TestWebhookTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             WebhookTriggerNode,
         )
+
         schema = WebhookTriggerNode.get_config_schema()
         assert "webhook_path" in schema["properties"]
 
@@ -119,6 +130,7 @@ class TestWebhookTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             WebhookTriggerNode,
         )
+
         schema = WebhookTriggerNode.get_input_schema()
         assert "payload" in schema["properties"]
 
@@ -126,6 +138,7 @@ class TestWebhookTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             WebhookTriggerNode,
         )
+
         schema = WebhookTriggerNode.get_output_schema()
         assert "webhook_path" in schema["properties"]
 
@@ -134,6 +147,7 @@ class TestWebhookTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             WebhookTriggerNode,
         )
+
         node = WebhookTriggerNode(
             id="n1",
             type="decision_system.trigger_webhook",
@@ -146,11 +160,13 @@ class TestWebhookTriggerNode:
 
 # ─── Test FileWatchTriggerNode ───────────────────────────────────────────────
 
+
 class TestFileWatchTriggerNode:
     def test_type_and_label(self):
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             FileWatchTriggerNode,
         )
+
         node = FileWatchTriggerNode(id="n3")
         assert node.type == "decision_system.trigger_file_watch"
         assert node.label == "File Watch Trigger"
@@ -160,6 +176,7 @@ class TestFileWatchTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             FileWatchTriggerNode,
         )
+
         node = FileWatchTriggerNode(
             id="n1",
             type="decision_system.trigger_file_watch",
@@ -176,6 +193,7 @@ class TestFileWatchTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             FileWatchTriggerNode,
         )
+
         schema = FileWatchTriggerNode.get_config_schema()
         assert "directory" in schema["properties"]
         assert "pattern" in schema["properties"]
@@ -184,6 +202,7 @@ class TestFileWatchTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             FileWatchTriggerNode,
         )
+
         node = FileWatchTriggerNode(
             id="n1",
             type="decision_system.trigger_file_watch",
@@ -194,6 +213,7 @@ class TestFileWatchTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             FileWatchTriggerNode,
         )
+
         schema = FileWatchTriggerNode.get_input_schema()
         assert len(schema["properties"]) == 0
 
@@ -201,6 +221,7 @@ class TestFileWatchTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             FileWatchTriggerNode,
         )
+
         schema = FileWatchTriggerNode.get_output_schema()
         assert "changed_files" in schema["properties"]
         assert "directory" in schema["properties"]
@@ -210,6 +231,7 @@ class TestFileWatchTriggerNode:
         from decision_system.workflow_engine.nodes.builtin.trigger_nodes import (
             FileWatchTriggerNode,
         )
+
         node = FileWatchTriggerNode(
             id="n1",
             type="decision_system.trigger_file_watch",
@@ -225,23 +247,31 @@ class TestFileWatchTriggerNode:
 
 # ─── Test Registry Integration ───────────────────────────────────────────────
 
+
 class TestTriggerNodeRegistry:
     def test_all_trigger_nodes_registered_by_default(self):
         from decision_system.workflow_engine.nodes import create_default_registry
+
         registry = create_default_registry()
         types = {t.type for t in registry.list_types()}
         assert "decision_system.trigger_cron" in types
         assert "decision_system.trigger_webhook" in types
         assert "decision_system.trigger_file_watch" in types
 
-    def test_16_builtin_nodes_plus_3_trigger_plus_4_specialist_plus_review_gate_equals_24(self):
+    def test_16_builtin_nodes_plus_3_trigger_plus_4_specialist_plus_review_gate_equals_24(
+        self,
+    ):
         from decision_system.workflow_engine.nodes import create_default_registry
+
         registry = create_default_registry()
         types = registry.list_types()
-        assert len(types) == 37  # +4 for GraphExtractionNodeV2, RiskExtractionNode, MetricExtractionNode, GraphSummaryNode  # +3 for EvidenceSearch, ClaimVerifier, ContradictionScan, VerificationSummary  # 16 original + 3 trigger + 4 specialist + 1 review_gate + 4 new specialist (planner, auditor, compliance, code)
+        assert (
+            len(types) == 37
+        )  # +4 for GraphExtractionNodeV2, RiskExtractionNode, MetricExtractionNode, GraphSummaryNode  # +3 for EvidenceSearch, ClaimVerifier, ContradictionScan, VerificationSummary  # 16 original + 3 trigger + 4 specialist + 1 review_gate + 4 new specialist (planner, auditor, compliance, code)
 
     def test_new_trigger_nodes_appear_in_list_types(self):
         from decision_system.workflow_engine.nodes import create_default_registry
+
         registry = create_default_registry()
         node_types = {t.label: t for t in registry.list_types()}
         assert "Cron Trigger" in node_types
@@ -250,6 +280,7 @@ class TestTriggerNodeRegistry:
 
     def test_instantiate_cron_trigger(self):
         from decision_system.workflow_engine.nodes import create_default_registry
+
         registry = create_default_registry()
         node = registry.instantiate(
             "decision_system.trigger_cron",
@@ -261,6 +292,7 @@ class TestTriggerNodeRegistry:
 
     def test_instantiate_webhook_trigger(self):
         from decision_system.workflow_engine.nodes import create_default_registry
+
         registry = create_default_registry()
         node = registry.instantiate(
             "decision_system.trigger_webhook",
@@ -272,6 +304,7 @@ class TestTriggerNodeRegistry:
 
     def test_instantiate_file_watch_trigger(self):
         from decision_system.workflow_engine.nodes import create_default_registry
+
         registry = create_default_registry()
         node = registry.instantiate(
             "decision_system.trigger_file_watch",

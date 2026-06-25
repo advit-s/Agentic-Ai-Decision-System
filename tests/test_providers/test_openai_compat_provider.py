@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from decision_system.providers import ProviderConfig, ChatRequest, ChatMessage
+from decision_system.providers import ChatMessage, ChatRequest, ProviderConfig
 from decision_system.providers.openai_compat import OpenAICompatibleProvider
 
 
@@ -50,6 +50,7 @@ class TestOpenAICompatibleProviderMocked:
 
     def test_api_key_from_env(self):
         import os
+
         os.environ["TEST_LOCAL_KEY"] = "sk-local-test-key"
         config = ProviderConfig(
             provider_id="prov-key-test",

@@ -12,7 +12,6 @@ from decision_system.graphing.store import load_knowledge_graph
 from decision_system.insights.detectors import run_detectors
 from decision_system.insights.store import load_insights, save_insights
 
-
 router = APIRouter(tags=["insights"])
 
 

@@ -5,13 +5,14 @@ All tests are offline/local. No external services or API keys required.
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
 
 import pytest
 
+from decision_system.observability.eval_history import EvalHistory
+from decision_system.observability.inspector import print_observability_summary
+from decision_system.observability.metrics import MetricsCollector, MetricsReporter
 from decision_system.observability.models import (
     EvalRunRecord,
     EvalStatus,
@@ -22,9 +23,12 @@ from decision_system.observability.models import (
     QualityReport,
     TraceSummary,
 )
+from decision_system.observability.quality_report import (
+    generate_quality_report,
+    quality_report_summary_json,
+)
 from decision_system.observability.store import (
     compute_metric_summary,
-    get_paths,
     init_store,
     list_metric_names,
     load_eval_runs,
@@ -36,15 +40,7 @@ from decision_system.observability.store import (
     save_quality_report,
     save_trace,
 )
-from decision_system.observability.metrics import MetricsCollector, MetricsReporter
-from decision_system.observability.eval_history import EvalHistory
-from decision_system.observability.quality_report import (
-    generate_quality_report,
-    quality_report_summary_json,
-)
 from decision_system.observability.trace_summary import create_trace, get_recent_traces
-from decision_system.observability.inspector import print_observability_summary
-
 
 # ================================================================
 # Models
@@ -123,8 +119,11 @@ class TestStore:
         root = str(tmp_path / "obs")
         init_store(root)
         point = MetricPoint(
-            name="latency", value=1.5, metric_type=MetricType.TIMER,
-            timestamp=datetime.now(timezone.utc), labels={"provider": "fake"},
+            name="latency",
+            value=1.5,
+            metric_type=MetricType.TIMER,
+            timestamp=datetime.now(timezone.utc),
+            labels={"provider": "fake"},
         )
         save_metric_point(point, root)
         points = load_metric_points("latency", root)
@@ -384,10 +383,16 @@ class TestTraceSummary:
         init_store(root)
         now = datetime.now(timezone.utc)
         create_trace(
-            "decision", "q1", now, root=root,
+            "decision",
+            "q1",
+            now,
+            root=root,
         )
         create_trace(
-            "war_room", "q2", now, root=root,
+            "war_room",
+            "q2",
+            now,
+            root=root,
         )
         traces = get_recent_traces(limit=1, root=root)
         assert len(traces) == 1
@@ -400,13 +405,11 @@ class TestTraceSummary:
 
 class TestInspector:
     def test_json_summary(self, tmp_path: Path) -> None:
-        import decision_system.observability.store as store_mod
 
         root = str(tmp_path / "obs")
         init_store(root)
         monkeypatch_set = {}
         # Patch the store module's _get_default_root
-        import decision_system.observability.inspector as inspector_mod
         # We need the store functions used by inspector to use our root
         # Simplest: save some data with root explicitly
         save_eval_run(

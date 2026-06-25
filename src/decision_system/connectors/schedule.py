@@ -8,11 +8,12 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
+
+from decision_system._data_root import get_data_root
 
 
 class ConnectorSchedule(BaseModel):
@@ -33,7 +34,7 @@ class ConnectorSchedule(BaseModel):
 
     def calculate_next_run(self) -> datetime | None:
         """Calculate the next run time based on schedule type and last_run."""
-        now = datetime.now(timezone.utc)
+        datetime.now(timezone.utc)
         if not self.enabled:
             return None
         if self.schedule_type == "manual":
@@ -68,7 +69,9 @@ class ScheduleStore:
     """Persistent JSON-backed store for connector schedules."""
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        self._base_dir = Path(base_dir) if base_dir else get_data_root() / "connectors" / "schedules"
+        self._base_dir = (
+            Path(base_dir) if base_dir else get_data_root() / "connectors" / "schedules"
+        )
         self._base_dir.mkdir(parents=True, exist_ok=True)
 
     def _store_path(self, workspace_id: str | None, connector_id: str) -> Path:
@@ -87,28 +90,41 @@ class ScheduleStore:
         except Exception:
             return []
 
-    def _save_all(self, workspace_id: str | None, connector_id: str, schedules: list[ConnectorSchedule]):
+    def _save_all(
+        self,
+        workspace_id: str | None,
+        connector_id: str,
+        schedules: list[ConnectorSchedule],
+    ):
         path = self._store_path(workspace_id, connector_id)
         data = [s.model_dump(mode="json") for s in schedules]
         path.write_text(json.dumps(data, indent=2, default=str) + "\n", encoding="utf-8")
 
-    def list_schedules(self, workspace_id: str | None, connector_id: str) -> list[ConnectorSchedule]:
+    def list_schedules(
+        self, workspace_id: str | None, connector_id: str
+    ) -> list[ConnectorSchedule]:
         return self._load_all(workspace_id, connector_id)
 
-    def get_schedule(self, workspace_id: str | None, connector_id: str, schedule_id: str) -> ConnectorSchedule | None:
+    def get_schedule(
+        self, workspace_id: str | None, connector_id: str, schedule_id: str
+    ) -> ConnectorSchedule | None:
         for s in self._load_all(workspace_id, connector_id):
             if s.schedule_id == schedule_id:
                 return s
         return None
 
-    def create_schedule(self, workspace_id: str | None, schedule: ConnectorSchedule) -> ConnectorSchedule:
+    def create_schedule(
+        self, workspace_id: str | None, schedule: ConnectorSchedule
+    ) -> ConnectorSchedule:
         schedules = self._load_all(workspace_id, schedule.connector_id)
         schedule.next_run_at = schedule.calculate_next_run()
         schedules.append(schedule)
         self._save_all(workspace_id, schedule.connector_id, schedules)
         return schedule
 
-    def update_schedule(self, workspace_id: str | None, schedule: ConnectorSchedule) -> ConnectorSchedule | None:
+    def update_schedule(
+        self, workspace_id: str | None, schedule: ConnectorSchedule
+    ) -> ConnectorSchedule | None:
         schedules = self._load_all(workspace_id, schedule.connector_id)
         found = False
         for i, s in enumerate(schedules):
@@ -123,7 +139,9 @@ class ScheduleStore:
         self._save_all(workspace_id, schedule.connector_id, schedules)
         return schedule
 
-    def delete_schedule(self, workspace_id: str | None, connector_id: str, schedule_id: str) -> bool:
+    def delete_schedule(
+        self, workspace_id: str | None, connector_id: str, schedule_id: str
+    ) -> bool:
         schedules = self._load_all(workspace_id, connector_id)
         filtered = [s for s in schedules if s.schedule_id != schedule_id]
         if len(filtered) == len(schedules):
@@ -131,7 +149,9 @@ class ScheduleStore:
         self._save_all(workspace_id, connector_id, filtered)
         return True
 
-    def toggle_schedule(self, workspace_id: str | None, connector_id: str, schedule_id: str) -> ConnectorSchedule | None:
+    def toggle_schedule(
+        self, workspace_id: str | None, connector_id: str, schedule_id: str
+    ) -> ConnectorSchedule | None:
         s = self.get_schedule(workspace_id, connector_id, schedule_id)
         if s is None:
             return None
@@ -148,7 +168,6 @@ class ScheduleStore:
         for scope_dir in sorted(self._base_dir.iterdir()):
             if not scope_dir.is_dir() or scope_dir.name.startswith("."):
                 continue
-            ws_id = scope_dir.name if scope_dir.name != "_global" else None
             for f in scope_dir.glob("*.json"):
                 try:
                     data = json.loads(f.read_text(encoding="utf-8"))

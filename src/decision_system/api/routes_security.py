@@ -5,6 +5,7 @@ clients: policy status, redaction preview, and audit log.  Approval
 requests are CLI-only for now (``decision-system approval request``).
 No auth is added yet; these endpoints are development-only and assume
 callers are local."""
+
 from __future__ import annotations
 
 import json
@@ -13,8 +14,6 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from decision_system.api.models import ApiError, api_error
-from decision_system.security.audit import load_events
 from decision_system.security.models import PolicyCheckResult, RedactionPreviewResult
 from decision_system.security.policy import run_policy_checks
 from decision_system.security.redaction import redact
@@ -45,7 +44,9 @@ def get_security_audit(limit: int | None = None) -> dict[str, Any]:
     events = _load_audit_events_fn(limit=limit)
     return {
         "events": [
-            json.loads(e.model_dump_json()) if hasattr(e, "model_dump_json") else e.model_dump(mode="json")
+            json.loads(e.model_dump_json())
+            if hasattr(e, "model_dump_json")
+            else e.model_dump(mode="json")
             for e in events
         ],
         "count": len(events),

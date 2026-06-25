@@ -10,11 +10,11 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from decision_system._data_root import get_data_root
 from decision_system.identity.models import UserRole
 
 # ---------------------------------------------------------------------------
@@ -22,6 +22,7 @@ from decision_system.identity.models import UserRole
 # ---------------------------------------------------------------------------
 
 SECURITY_MODE = Literal["demo", "governed"]
+
 
 def _default_security_settings_path() -> Path:
     return get_data_root() / "identity" / "security_settings.json"

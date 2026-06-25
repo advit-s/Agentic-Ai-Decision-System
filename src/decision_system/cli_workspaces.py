@@ -13,13 +13,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from decision_system._data_root import get_data_root
 from decision_system.config import load_settings
 from decision_system.storage.export_import import (
     WorkspaceExporter,
@@ -91,9 +91,7 @@ def _cmd_init_workspace(
     """Create (or accept existing) local workspace, activating if needed."""
     settings = load_settings()
     workspace_name = name.strip()
-    workspace_id = (
-        workspace_name.lower().replace(" ", "-").replace("_", "-")
-    )
+    workspace_id = workspace_name.lower().replace(" ", "-").replace("_", "-")
 
     repo, db = _workspace_repo(settings)
     try:
@@ -112,7 +110,7 @@ def _cmd_init_workspace(
             description=description,
             active=activate,
         )
-        created = repo.create(ws)
+        repo.create(ws)
         if activate:
             repo.set_active(workspace_id)
         ws_after = repo.get_by_id(workspace_id)
@@ -182,7 +180,9 @@ def _cmd_use_workspace(name: str) -> None:
     try:
         ws = repo.get_by_name(name)
         if ws is None:
-            _fail(f"Workspace '{name}' not found. Run `decision-system init-workspace {name}` first.")
+            _fail(
+                f"Workspace '{name}' not found. Run `decision-system init-workspace {name}` first."
+            )
         repo.set_active(ws.workspace_id)
         console.print(f"Active workspace set to: {ws.name}")
         console.print(f"Database: {_get_db_path(settings)}")
@@ -473,6 +473,7 @@ def _inspect_json(status, recent) -> dict[str, Any]:
 # Artifact import rules (shared between both command paths)
 # ---------------------------------------------------------------------------
 
+
 # Mapping of source file paths to ArtifactType and title
 def _get_import_rules() -> list[tuple[Path, ArtifactType, str]]:
     """Return import rules with lazily-resolved data root paths."""
@@ -662,12 +663,10 @@ def register_workspace_commands(main_app: Any) -> None:
     @main_app.command("init-workspace")
     def _top_init_workspace(
         name: str = typer.Argument(..., help="Workspace name."),
-        description: str = typer.Option(
-            "", "--description", "-d", help="Workspace description."
+        description: str = typer.Option("", "--description", "-d", help="Workspace description."),
+        activate: bool = typer.Option(
+            True, "--activate/--no-activate", help="Activate the workspace on creation."
         ),
-    activate: bool = typer.Option(
-        True, "--activate/--no-activate", help="Activate the workspace on creation."
-    ),
     ) -> None:
         """Create (or accept existing) local workspace, activating if needed."""
         _cmd_init_workspace(name, description, activate=activate)
@@ -737,9 +736,7 @@ def register_workspace_commands(main_app: Any) -> None:
         """Import a workspace from a JSON export file."""
         resolved = input_path if input_path else (_input_flag or "")
         if not resolved:
-            raise typer.BadParameter(
-                "Provide a path as a positional argument or via --input / -i."
-            )
+            raise typer.BadParameter("Provide a path as a positional argument or via --input / -i.")
         _cmd_import_workspace(input_path=resolved, force=force)
 
     @main_app.command("import-artifacts")

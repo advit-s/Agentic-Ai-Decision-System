@@ -10,8 +10,17 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
-ClaimStatus = Literal["pending", "supported", "verified", "unsupported", "contradicted", "uncertain", "needs_review", "approved", "rejected"]
+ClaimStatus = Literal[
+    "pending",
+    "supported",
+    "verified",
+    "unsupported",
+    "contradicted",
+    "uncertain",
+    "needs_review",
+    "approved",
+    "rejected",
+]
 ConfidenceLevel = Literal["low", "medium", "high"]
 
 
@@ -66,7 +75,18 @@ class Claim(BaseModel):
     node_id: str | None = None
     source_agent: str
     claim_text: str
-    claim_type: Literal["technical", "risk", "option", "recommendation", "assumption", "fact", "metric", "prediction", "decision", "unknown"]
+    claim_type: Literal[
+        "technical",
+        "risk",
+        "option",
+        "recommendation",
+        "assumption",
+        "fact",
+        "metric",
+        "prediction",
+        "decision",
+        "unknown",
+    ]
     status: ClaimStatus = "pending"
     evidence_ids: list[str] = Field(default_factory=list)
     source_ids: list[str] = Field(default_factory=list)
@@ -79,10 +99,16 @@ class Claim(BaseModel):
     review_status: str | None = None
     evidence_quality: str | None = None
     verification_method: str | None = None
-    graph_node_refs: list[str] = Field(default_factory=list, description="Referenced graph entity node IDs")
-    graph_edge_refs: list[str] = Field(default_factory=list, description="Referenced graph relationship edge IDs")
+    graph_node_refs: list[str] = Field(
+        default_factory=list, description="Referenced graph entity node IDs"
+    )
+    graph_edge_refs: list[str] = Field(
+        default_factory=list, description="Referenced graph relationship edge IDs"
+    )
     risk_refs: list[str] = Field(default_factory=list, description="Referenced WorkspaceRisk IDs")
-    metric_refs: list[str] = Field(default_factory=list, description="Referenced WorkspaceMetric IDs")
+    metric_refs: list[str] = Field(
+        default_factory=list, description="Referenced WorkspaceMetric IDs"
+    )
     metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -90,6 +116,7 @@ class Claim(BaseModel):
 
 class EvidenceQuality(BaseModel):
     """Evidence quality assessment for a verified claim."""
+
     evidence_count: int = 0
     resolved_evidence_count: int = 0
     missing_evidence_count: int = 0
@@ -104,6 +131,7 @@ class EvidenceQuality(BaseModel):
 
 class ContradictionRecord(BaseModel):
     """A contradiction detected between two evidence sources or between a claim and evidence."""
+
     contradiction_id: str
     workspace_id: str | None = None
     claim_id: str | None = None
@@ -111,7 +139,14 @@ class ContradictionRecord(BaseModel):
     chunk_id_a: str
     source_id_b: str
     chunk_id_b: str
-    type: Literal["metric_conflict", "opposite_status", "date_conflict", "risk_conflict", "claim_contradicted", "statement_conflict"] = "statement_conflict"
+    type: Literal[
+        "metric_conflict",
+        "opposite_status",
+        "date_conflict",
+        "risk_conflict",
+        "claim_contradicted",
+        "statement_conflict",
+    ] = "statement_conflict"
     description: str
     severity: Literal["low", "medium", "high"] = "medium"
     confidence: Literal["low", "medium", "high"] = "medium"
@@ -120,6 +155,7 @@ class ContradictionRecord(BaseModel):
 
 class VerificationSummary(BaseModel):
     """Summary of verification results for a workspace or execution."""
+
     total_claims: int = 0
     supported_claims: int = 0
     contradicted_claims: int = 0
@@ -143,7 +179,14 @@ class VerificationResult(BaseModel):
     """
 
     claim_id: str
-    status: Literal["supported", "verified", "unsupported", "contradicted", "uncertain", "needs_review"]
+    status: Literal[
+        "supported",
+        "verified",
+        "unsupported",
+        "contradicted",
+        "uncertain",
+        "needs_review",
+    ]
     evidence_ids: list[str] = Field(default_factory=list)
     source_ids: list[str] = Field(default_factory=list)
     chunk_ids: list[str] = Field(default_factory=list)
@@ -156,6 +199,7 @@ class VerificationResult(BaseModel):
 
 class ReportClaimEntry(BaseModel):
     """A single claim as it appears in a trust report."""
+
     claim_id: str
     claim_text: str
     status: ClaimStatus = "pending"
@@ -175,6 +219,7 @@ class ReportClaimEntry(BaseModel):
 
 class EvidenceTableEntry(BaseModel):
     """Evidence entry in the report evidence table."""
+
     evidence_id: str
     source_name: str
     snippet: str

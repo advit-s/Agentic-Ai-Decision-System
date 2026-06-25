@@ -19,7 +19,18 @@ def validate_tool_call(tool_name: str) -> bool:
     }
     if tool_name in allowed:
         return True
-    blocked = ["delete", "remove", "rm", "exec", "shell", "http", "https", "send", "post", "drop"]
+    blocked = [
+        "delete",
+        "remove",
+        "rm",
+        "exec",
+        "shell",
+        "http",
+        "https",
+        "send",
+        "post",
+        "drop",
+    ]
     lowered = tool_name.lower()
     for pattern in blocked:
         if pattern in lowered:
@@ -39,9 +50,11 @@ def sandboxed_read(store_type: str, local_state: dict) -> object:
             return profiles
         try:
             from decision_system.data_catalog.store import load_profiles
+
             return load_profiles()
-        except Exception: # noqa: BLE001
+        except Exception:  # noqa: BLE001
             from decision_system.data_catalog.models import DataProfileStore
+
             return DataProfileStore()
 
     if store_type == "graph":
@@ -50,9 +63,11 @@ def sandboxed_read(store_type: str, local_state: dict) -> object:
             return graph
         try:
             from decision_system.graphing.store import load_knowledge_graph
+
             return load_knowledge_graph()
-        except Exception: # noqa: BLE001
+        except Exception:  # noqa: BLE001
             from decision_system.graphing.models import KnowledgeGraph
+
             return KnowledgeGraph()
 
     if store_type == "insights":
@@ -61,9 +76,11 @@ def sandboxed_read(store_type: str, local_state: dict) -> object:
             return insights
         try:
             from decision_system.insights.store import load_insights
+
             return load_insights()
-        except Exception: # noqa: BLE001
+        except Exception:  # noqa: BLE001
             from decision_system.insights.models import InsightStore
+
             return InsightStore()
 
     raise ValueError(f"Unknown store type: {store_type!r}")

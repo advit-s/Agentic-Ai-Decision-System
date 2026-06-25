@@ -8,7 +8,6 @@ from decision_system import __version__
 from decision_system.api.models import ApiStatusResponse
 from decision_system.config import load_settings
 
-
 router = APIRouter(tags=["health"])
 
 

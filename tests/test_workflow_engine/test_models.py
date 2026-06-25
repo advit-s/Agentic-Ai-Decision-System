@@ -2,22 +2,23 @@
 
 from datetime import datetime, timezone
 from uuid import uuid4
+
 import pytest
 from pydantic import ValidationError
 
-from decision_system.workflow_engine.models import (
-    WorkflowNode,
-    WorkflowDefinition,
-    Connection,
-    NodeConfig,
-    ExecutionState,
-    NodeExecutionState,
-    ExecutionContext,
-    ErrorPolicy,
-    RetryConfig,
-    NodeTypeInfo,
-)
 from decision_system.workflow_engine.engine.events import ExecutionEvent
+from decision_system.workflow_engine.models import (
+    Connection,
+    ErrorPolicy,
+    ExecutionContext,
+    ExecutionState,
+    NodeConfig,
+    NodeExecutionState,
+    NodeTypeInfo,
+    RetryConfig,
+    WorkflowDefinition,
+    WorkflowNode,
+)
 
 
 class TestConnection:
@@ -30,8 +31,10 @@ class TestConnection:
 
     def test_named_ports(self):
         c = Connection(
-            source_node="n1", source_output="verified",
-            target_node="n2", target_input="claims",
+            source_node="n1",
+            source_output="verified",
+            target_node="n2",
+            target_input="claims",
         )
         assert c.source_output == "verified"
         assert c.target_input == "claims"
@@ -80,7 +83,8 @@ class TestWorkflowDefinition:
 class TestExecutionState:
     def test_default_status(self):
         state = ExecutionState(
-            execution_id="e1", workflow_id="wf1",
+            execution_id="e1",
+            workflow_id="wf1",
         )
         assert state.status == "pending"
 
@@ -97,7 +101,8 @@ class TestExecutionState:
     def test_status_literals(self):
         with pytest.raises(ValidationError):
             ExecutionState(
-                execution_id="e1", workflow_id="wf1",
+                execution_id="e1",
+                workflow_id="wf1",
                 status="invalid_status",
             )
 

@@ -12,47 +12,44 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from decision_system.api.models import to_jsonable
-from decision_system.identity.models import LocalUser, Permission
-from decision_system.identity.permissions import (
-    require_permission,
-    require_workspace_permission,
+from decision_system.connectors.audit import (
+    record_connector_created,
+    record_connector_deleted,
+    record_connector_items_listed,
+    record_connector_tested,
+    record_connector_updated,
 )
-
 from decision_system.connectors.config_store import (
-    ConnectorConfigStore,
     get_config_store,
-    reset_config_store,
+)
+from decision_system.connectors.import_jobs import (
+    run_dry_run as _run_dry_run,
+)
+from decision_system.connectors.import_jobs import (
+    run_import as _run_import,
+)
+from decision_system.connectors.import_jobs import (
+    run_import_v2,
+    run_list_items,
+    run_test_connection,
 )
 from decision_system.connectors.inspector import (
     inspect_dry_run_result,
     inspect_import_job,
 )
-from decision_system.connectors.import_jobs import (
-    run_dry_run as _run_dry_run,
-    run_import as _run_import,
-    run_import_v2,
-    run_test_connection,
-    run_list_items,
-)
 from decision_system.connectors.models import (
-    ConnectorConfig,
-    ConnectorConfigStatus,
-    ConnectorMode,
     ConnectorSecretRef,
     ConnectorType,
 )
 from decision_system.connectors.registry import (
     get_connector_definition,
     get_registry,
-    list_connectors,
 )
 from decision_system.connectors.store import load_jobs as _load_jobs
-from decision_system.connectors.audit import (
-    record_connector_created,
-    record_connector_updated,
-    record_connector_deleted,
-    record_connector_tested,
-    record_connector_items_listed,
+from decision_system.identity.models import LocalUser, Permission
+from decision_system.identity.permissions import (
+    require_permission,
+    require_workspace_permission,
 )
 
 router = APIRouter(tags=["connectors"])
@@ -93,8 +90,19 @@ class ImportRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 _BLOCKED_ABSOLUTE_PREFIXES: tuple[str, ...] = (
-    "/tmp", "/etc", "/root", "/home", "/var", "/usr",
-    "/bin", "/sbin", "/proc", "/sys", "/dev", "/boot", "/opt",
+    "/tmp",
+    "/etc",
+    "/root",
+    "/home",
+    "/var",
+    "/usr",
+    "/bin",
+    "/sbin",
+    "/proc",
+    "/sys",
+    "/dev",
+    "/boot",
+    "/opt",
 )
 
 
@@ -128,6 +136,7 @@ def _reject_connector_path(path_str: str) -> str:
 def list_connector_schemas() -> dict[str, Any]:
     """Return all connector setup schemas for UI rendering."""
     from decision_system.connectors.setup_schemas import list_setup_schemas
+
     schemas = list_setup_schemas()
     return {"schemas": [s.model_dump(mode="json") for s in schemas]}
 
@@ -136,9 +145,12 @@ def list_connector_schemas() -> dict[str, Any]:
 def get_connector_schema(connector_id: str) -> dict[str, Any]:
     """Return the setup schema for a specific connector type."""
     from decision_system.connectors.setup_schemas import get_setup_schema
+
     schema = get_setup_schema(connector_id)
     if schema is None:
-        raise HTTPException(status_code=404, detail=f"No schema found for connector '{connector_id}'")
+        raise HTTPException(
+            status_code=404, detail=f"No schema found for connector '{connector_id}'"
+        )
     return {"schema": schema.model_dump(mode="json")}
 
 
@@ -146,6 +158,7 @@ def get_connector_schema(connector_id: str) -> dict[str, Any]:
 def get_connector_credential_status(connector_id: str) -> dict[str, Any]:
     """Return safe credential status (no token values exposed)."""
     from decision_system.connectors.registry import get_credential_status
+
     status = get_credential_status(connector_id)
     return {"credential_status": status or {}}
 
@@ -244,8 +257,7 @@ def create_connector_config(
 
     store = get_config_store()
     secret_refs = [
-        ConnectorSecretRef(**s) if isinstance(s, dict) else s
-        for s in request.secret_refs
+        ConnectorSecretRef(**s) if isinstance(s, dict) else s for s in request.secret_refs
     ]
     cfg = store.create(
         name=request.name,
@@ -298,8 +310,7 @@ def update_connector_config(
         cfg.config = request.config
     if request.secret_refs is not None:
         cfg.secret_refs = [
-            ConnectorSecretRef(**s) if isinstance(s, dict) else s
-            for s in request.secret_refs
+            ConnectorSecretRef(**s) if isinstance(s, dict) else s for s in request.secret_refs
         ]
     if request.metadata is not None:
         cfg.metadata = request.metadata
@@ -431,6 +442,7 @@ def get_connector_job(
 ) -> dict[str, Any]:
     """Get a single connector import job."""
     from decision_system.connectors.store import get_job
+
     job = get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Import job not found")
@@ -506,6 +518,7 @@ def _serialize_definition(definition: Any) -> dict[str, Any]:
     # Attach setup schema if available (v1.30)
     try:
         from decision_system.connectors.setup_schemas import get_setup_schema
+
         schema = get_setup_schema(definition.connector_id)
         if schema:
             result["setup_schema"] = schema.model_dump(mode="json")
@@ -617,11 +630,11 @@ def create_sync_schedule(
 
     Requires connector.schedule permission.
     """
+    from decision_system.connectors.audit import record_schedule_created
     from decision_system.connectors.schedule import (
         ConnectorSchedule,
         get_schedule_store,
     )
-    from decision_system.connectors.audit import record_schedule_created
 
     store = get_schedule_store()
     schedule = ConnectorSchedule(
@@ -653,8 +666,8 @@ def update_sync_schedule(
     _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_SCHEDULE)),
 ) -> dict[str, Any]:
     """Update a sync schedule."""
-    from decision_system.connectors.schedule import get_schedule_store
     from decision_system.connectors.audit import record_schedule_updated
+    from decision_system.connectors.schedule import get_schedule_store
 
     store = get_schedule_store()
     schedule = store.get_schedule(workspace_id, connector_id, schedule_id)
@@ -691,8 +704,8 @@ def delete_sync_schedule(
     _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_SCHEDULE)),
 ) -> dict[str, Any]:
     """Delete a sync schedule."""
-    from decision_system.connectors.schedule import get_schedule_store
     from decision_system.connectors.audit import record_schedule_deleted
+    from decision_system.connectors.schedule import get_schedule_store
 
     store = get_schedule_store()
     deleted = store.delete_schedule(workspace_id, connector_id, schedule_id)
@@ -753,7 +766,9 @@ def run_due_sync_schedules(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/workspaces/{workspace_id}/connectors/{connector_id}/sync-schedules/{schedule_id}/toggle")
+@router.post(
+    "/workspaces/{workspace_id}/connectors/{connector_id}/sync-schedules/{schedule_id}/toggle"
+)
 def toggle_sync_schedule(
     workspace_id: str,
     connector_id: str,
@@ -761,8 +776,8 @@ def toggle_sync_schedule(
     _user: LocalUser = Depends(require_workspace_permission(Permission.CONNECTOR_SCHEDULE)),
 ) -> dict[str, Any]:
     """Toggle a sync schedule's enabled state."""
-    from decision_system.connectors.schedule import get_schedule_store
     from decision_system.connectors.audit import record_schedule_toggled
+    from decision_system.connectors.schedule import get_schedule_store
 
     store = get_schedule_store()
     schedule = store.toggle_schedule(workspace_id, connector_id, schedule_id)
@@ -777,7 +792,9 @@ def toggle_sync_schedule(
     )
 
     return {"schedule": schedule.model_dump(mode="json")}
- # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
 # v1.31 Connector reliability endpoints: paginated items, cancel, resume, pause
 # ---------------------------------------------------------------------------
 

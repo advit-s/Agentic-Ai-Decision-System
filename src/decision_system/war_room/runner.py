@@ -9,7 +9,6 @@ from decision_system.war_room.dispatcher import build_dispatch_spec
 from decision_system.war_room.judge import run_judge
 from decision_system.war_room.models import (
     AgentRunResult,
-    ArtifactType,
     CommonWorkspace,
     PersonalAgentContext,
     WarRoomRun,
@@ -109,24 +108,17 @@ def _simulate_agent(personal_ctx, higher_context, *args, **kwargs):
     """
     if args or kwargs:
         raise TypeError(
-            "_simulate_agent() takes 3 positional arguments but "
-            "{} were given".format(2 + len(args))
+            "_simulate_agent() takes 3 positional arguments but {} were given".format(2 + len(args))
         )
 
     insights_store = sandboxed_read("insights", {})
     profile_store = sandboxed_read("profiles", {})
 
-    cats: list = (
-        getattr(higher_context, "required_data_categories", None) or []
-    )
-    relevant_insight_ids = list(
-        dict.fromkeys(getattr(higher_context, "relevant_insight_ids", []))
-    )
+    cats: list = getattr(higher_context, "required_data_categories", None) or []
+    relevant_insight_ids = list(dict.fromkeys(getattr(higher_context, "relevant_insight_ids", [])))
     for insight in insights_store.insights:
         if not cats:
-            if insight.insight_id in getattr(
-                higher_context, "relevant_insight_ids", []
-            ):
+            if insight.insight_id in getattr(higher_context, "relevant_insight_ids", []):
                 if insight.insight_id not in relevant_insight_ids:
                     relevant_insight_ids.append(insight.insight_id)
         else:
@@ -137,22 +129,19 @@ def _simulate_agent(personal_ctx, higher_context, *args, **kwargs):
                     break
 
     relevant_evidence_ids = []
-    ontology_concepts_out = list(
-        getattr(higher_context, "required_ontology_concepts", [])
-    )
+    ontology_concepts_out = list(getattr(higher_context, "required_ontology_concepts", []))
     for profile in profile_store.profiles:
         for col in profile.columns:
             for concept in ontology_concepts_out:
                 if concept.lower() in getattr(col, "name", "").lower():
-                    relevant_evidence_ids.append(
-                        "profile:{}:{}".format(profile.filename, col.name)
-                    )
+                    relevant_evidence_ids.append("profile:{}:{}".format(profile.filename, col.name))
                     break
 
     source_files = ["company_data/{}/".format(cat) for cat in cats[:3]] or ["(none)"]
 
-    title = _ARTIFACT_TITLES.get(personal_ctx.role_type,
-                                 "{} analysis".format(personal_ctx.role_type))
+    title = _ARTIFACT_TITLES.get(
+        personal_ctx.role_type, "{} analysis".format(personal_ctx.role_type)
+    )
     artifact_types = {
         "financial_analyst": "analysis",
         "risk_analyst": "risk_assessment",
@@ -175,24 +164,22 @@ def _simulate_agent(personal_ctx, higher_context, *args, **kwargs):
         "",
         "## Findings",
     ]
-    _add_findings(
-        content_lines, personal_ctx, higher_context, insights_store, profile_store
+    _add_findings(content_lines, personal_ctx, higher_context, insights_store, profile_store)
+    content_lines.extend(
+        [
+            "",
+            "## Evidence / Data Referenced",
+            "- Evidence IDs: {}".format(", ".join(relevant_evidence_ids[:5]) or "none"),
+            "- Insight IDs: {}".format(", ".join(relevant_insight_ids[:5]) or "none"),
+            "- Ontology concepts: {}".format(", ".join(ontology_concepts_out[:5]) or "none"),
+            "- Source data: {}".format(", ".join(source_files)),
+            "",
+            "## Limitations",
+            "- This artifact is a deterministic simulation, not an LLM-generated analysis.",
+            "- Conclusions are structured placeholders reflecting available local data signals.",
+            "- No agent-to-agent debate is performed.",
+        ]
     )
-    content_lines.extend([
-        "",
-        "## Evidence / Data Referenced",
-        "- Evidence IDs: {}".format(", ".join(relevant_evidence_ids[:5]) or "none"),
-        "- Insight IDs: {}".format(", ".join(relevant_insight_ids[:5]) or "none"),
-        "- Ontology concepts: {}".format(
-            ", ".join(ontology_concepts_out[:5]) or "none"
-        ),
-        "- Source data: {}".format(", ".join(source_files)),
-        "",
-        "## Limitations",
-        "- This artifact is a deterministic simulation, not an LLM-generated analysis.",
-        "- Conclusions are structured placeholders reflecting available local data signals.",
-        "- No agent-to-agent debate is performed.",
-    ])
     content = "\n".join(content_lines)
 
     artifact = WorkspaceArtifact(
@@ -212,9 +199,7 @@ def _simulate_agent(personal_ctx, higher_context, *args, **kwargs):
 
 def _add_findings(lines, ctx, higher_context, insights_store, profile_store, **kwargs):
     """Append role-specific findings to *lines* in place."""
-    cats = (
-        getattr(higher_context, "required_data_categories", None) or []
-    )
+    cats = getattr(higher_context, "required_data_categories", None) or []
 
     rt = getattr(ctx, "role_type", "")
     if rt == "risk_analyst":
@@ -232,9 +217,7 @@ def _add_findings(lines, ctx, higher_context, insights_store, profile_store, **k
         )
         for profile in profile_store.profiles:
             cats_used = (
-                [c for c in cats if c in getattr(profile, "filename", "").lower()]
-                if cats
-                else []
+                [c for c in cats if c in getattr(profile, "filename", "").lower()] if cats else []
             )
             if cats_used:
                 lines.append(
@@ -247,29 +230,22 @@ def _add_findings(lines, ctx, higher_context, insights_store, profile_store, **k
 
 
 def _add_risk_findings(lines, insights_store, cats):
-    lines.append(
-        "- Risk perspective: reviewing insight signals for the selected domains."
-    )
+    lines.append("- Risk perspective: reviewing insight signals for the selected domains.")
     high_insights = [
-        i for i in insights_store.insights
-        if getattr(i, "severity", "") in ("high", "critical")
+        i for i in insights_store.insights if getattr(i, "severity", "") in ("high", "critical")
     ]
     if high_insights:
-        lines.append(
-            "- High-severity insights detected: {}".format(len(high_insights))
-        )
+        lines.append("- High-severity insights detected: {}".format(len(high_insights)))
         for ins in high_insights[:3]:
             lines.append(
                 "  - [{}] {}: {}".format(
                     ins.severity.upper(),
                     ins.title,
-                    getattr(ins, "evidence_summary", "")
-                    or getattr(ins, "recommended_action", ""),
+                    getattr(ins, "evidence_summary", "") or getattr(ins, "recommended_action", ""),
                 )
             )
     contradiction_insights = [
-        i for i in insights_store.insights
-        if getattr(i, "category", "") == "contradiction"
+        i for i in insights_store.insights if getattr(i, "category", "") == "contradiction"
     ]
     if contradiction_insights:
         lines.append(
@@ -277,21 +253,18 @@ def _add_risk_findings(lines, insights_store, cats):
             "acting on conflicting data.".format(len(contradiction_insights))
         )
     if not high_insights and not contradiction_insights:
-        lines.append(
-            "- No high/critical insights detected for the selected data categories."
-        )
+        lines.append("- No high/critical insights detected for the selected data categories.")
 
 
 def _add_financial_findings(lines, profile_store, insights_store, cats):
     fin_profiles = [
-        p for p in profile_store.profiles
-        if "financial" in getattr(p, "filename", "").lower()
+        p for p in profile_store.profiles if "financial" in getattr(p, "filename", "").lower()
     ]
     if fin_profiles:
         pf = fin_profiles[0]
         numeric_cols = []
         stats = getattr(pf, "statistics", {})
-        stats_list = stats.get("columns", []) if isinstance(stats, dict) else []
+        stats.get("columns", []) if isinstance(stats, dict) else []
         # Try the profile_store's column access
         for col in pf.columns:
             if getattr(col, "statistics", None):
@@ -309,7 +282,8 @@ def _add_financial_findings(lines, profile_store, insights_store, cats):
             )
         )
     fin_insights = [
-        i for i in insights_store.insights
+        i
+        for i in insights_store.insights
         if i.category in ("revenue_risk", "profit_margin_risk", "marketing_roi_risk")
     ]
     if fin_insights:
@@ -321,10 +295,9 @@ def _add_financial_findings(lines, profile_store, insights_store, cats):
 
 def _add_marketing_findings(lines, insights_store, cats):
     mkt_insights = [
-        i for i in insights_store.insights
-        if i.category in (
-            "marketing_roi_risk", "sales_channel_risk", "analytics_conversion_risk"
-        )
+        i
+        for i in insights_store.insights
+        if i.category in ("marketing_roi_risk", "sales_channel_risk", "analytics_conversion_risk")
     ]
     if mkt_insights:
         for ins in mkt_insights[:3]:
@@ -339,10 +312,7 @@ def _add_marketing_findings(lines, insights_store, cats):
 
 
 def _add_technical_findings(lines, insights_store):
-    dep_insights = [
-        i for i in insights_store.insights
-        if i.category == "dependency_risk"
-    ]
+    dep_insights = [i for i in insights_store.insights if i.category == "dependency_risk"]
     if dep_insights:
         for ins in dep_insights[:3]:
             lines.append(

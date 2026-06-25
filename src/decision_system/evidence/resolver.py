@@ -167,16 +167,16 @@ class EvidenceResolver:
         )
 
     def _resolve_by_source_chunk(
-        self, source_id: str, chunk_id: str | None, workspace_id: str | None, evidence_id: str
+        self,
+        source_id: str,
+        chunk_id: str | None,
+        workspace_id: str | None,
+        evidence_id: str,
     ) -> ResolvedEvidence:
         """Resolve using source + chunk reference."""
-        chunk_data = self._find_workspace_chunk_by_source(
-            source_id, chunk_id, workspace_id
-        )
+        chunk_data = self._find_workspace_chunk_by_source(source_id, chunk_id, workspace_id)
         if chunk_data:
-            return self._chunk_data_to_resolved(
-                chunk_data, evidence_id or source_id, workspace_id
-            )
+            return self._chunk_data_to_resolved(chunk_data, evidence_id or source_id, workspace_id)
         return ResolvedEvidence(
             evidence_id=evidence_id or source_id,
             source_id=source_id,
@@ -190,9 +190,7 @@ class EvidenceResolver:
         """Resolve by chunk ID alone."""
         chunk_data = self._find_chunk_by_id(chunk_id, workspace_id)
         if chunk_data:
-            return self._chunk_data_to_resolved(
-                chunk_data, evidence_id or chunk_id, workspace_id
-            )
+            return self._chunk_data_to_resolved(chunk_data, evidence_id or chunk_id, workspace_id)
         return ResolvedEvidence(
             evidence_id=evidence_id or chunk_id,
             chunk_id=chunk_id,
@@ -223,9 +221,7 @@ class EvidenceResolver:
             pass
         return None
 
-    def _find_workspace_chunk(
-        self, evidence_id: str, workspace_id: str | None
-    ) -> Any:
+    def _find_workspace_chunk(self, evidence_id: str, workspace_id: str | None) -> Any:
         """Look for a chunk in workspace chunk store."""
         try:
             from decision_system.data_sources.store import DataSourceStore
@@ -250,7 +246,12 @@ class EvidenceResolver:
             ws_id = workspace_id or ""
             chunks = store.get_chunks(ws_id, source_id)
             if chunk_id:
-                chunks = [c for c in chunks if getattr(c, "chunk_id", None) == chunk_id or getattr(c, "id", None) == chunk_id]
+                chunks = [
+                    c
+                    for c in chunks
+                    if getattr(c, "chunk_id", None) == chunk_id
+                    or getattr(c, "id", None) == chunk_id
+                ]
             if chunks:
                 return chunks[0]
         except Exception:
@@ -269,7 +270,9 @@ class EvidenceResolver:
             pass
         return None
 
-    def _chunk_to_resolved(self, chunk: Any, evidence_id: str, workspace_id: str | None) -> ResolvedEvidence:
+    def _chunk_to_resolved(
+        self, chunk: Any, evidence_id: str, workspace_id: str | None
+    ) -> ResolvedEvidence:
         """Convert a Chroma EvidenceChunk to ResolvedEvidence."""
         return ResolvedEvidence(
             evidence_id=evidence_id,
@@ -293,7 +296,9 @@ class EvidenceResolver:
             evidence_id=evidence_id,
             source_id=getattr(chunk_data, "source_id", getattr(chunk_data, "document_id", "")),
             chunk_id=getattr(chunk_data, "chunk_id", getattr(chunk_data, "id", "")),
-            source_name=getattr(chunk_data, "source_name", getattr(chunk_data, "source_filename", "")),
+            source_name=getattr(
+                chunk_data, "source_name", getattr(chunk_data, "source_filename", "")
+            ),
             source_type="data_source",
             file_type=getattr(chunk_data, "file_type", ""),
             chunk_text=getattr(chunk_data, "text", getattr(chunk_data, "content", "")),

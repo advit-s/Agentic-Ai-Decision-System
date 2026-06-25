@@ -16,8 +16,9 @@ which hangs in Python 3.13 + anyio 4.14 (the ``start_blocking_portal``
 portal thread does not process ``call_soon_threadsafe`` callbacks).
 """
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -29,6 +30,7 @@ def pytest_sessionstart(session):
 
     async def _run_inline(func, *args, **kwargs):
         from functools import partial
+
         return partial(func, *args, **kwargs)()
 
     sc.run_in_threadpool = _run_inline
@@ -36,11 +38,12 @@ def pytest_sessionstart(session):
     # Patch 2: anyio thread sync (used by Starlette's StaticFiles.check_config
     # and other framework internals).  This patches both the module-level
     # function and the backend method to ensure all code paths are covered.
-    import anyio.to_thread as tt
     import anyio._backends._asyncio as asyncio_backend
+    import anyio.to_thread as tt
 
     async def _run_sync_inline(func, *args, **kwargs):
         from functools import partial
+
         return partial(func, *args)()
 
     tt.run_sync = _run_sync_inline
@@ -74,6 +77,7 @@ def async_client(tmp_path, monkeypatch):
     monkeypatch.delenv("OLLAMA_MODEL", raising=False)
 
     from decision_system.api.app import set_scheduler_enabled
+
     set_scheduler_enabled(False)
 
     from decision_system.api.app import app

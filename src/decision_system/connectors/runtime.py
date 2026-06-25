@@ -14,8 +14,8 @@ from typing import Any
 
 from decision_system.connectors.models import (
     ConnectorConfig,
-    ConnectorRuntimeItem,
     ConnectorFetchedContent,
+    ConnectorRuntimeItem,
 )
 
 
@@ -36,9 +36,7 @@ class ConnectorRuntime(ABC):
         ...
 
     @abstractmethod
-    def list_items(
-        self, config: ConnectorConfig, path: str = ""
-    ) -> list[ConnectorRuntimeItem]:
+    def list_items(self, config: ConnectorConfig, path: str = "") -> list[ConnectorRuntimeItem]:
         """Enumerate available items from the external source.
 
         For folder-based connectors, 'path' can narrow the listing scope.
@@ -101,9 +99,7 @@ class FakeConnectorRuntime(ConnectorRuntime):
     def test_connection(self, config: ConnectorConfig) -> dict[str, Any]:
         return {"success": True, "message": "Fake connector OK"}
 
-    def list_items(
-        self, config: ConnectorConfig, path: str = ""
-    ) -> list[ConnectorRuntimeItem]:
+    def list_items(self, config: ConnectorConfig, path: str = "") -> list[ConnectorRuntimeItem]:
         return self._items
 
     def fetch_item(

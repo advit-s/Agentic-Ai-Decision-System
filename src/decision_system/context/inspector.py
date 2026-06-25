@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from decision_system.context.models import DecisionContext, InsightEvidence
+from decision_system.context.models import DecisionContext
 
 
 def inspect_context(context: DecisionContext) -> dict[str, Any]:
@@ -81,17 +81,19 @@ def render_context_inspection(summary: dict[str, Any]) -> str:
     if summary["insights"]:
         lines.append("## Relevant Insights")
         for i in summary["insights"]:
-            lines.extend([
-                f"### {i['title']} [{i['severity'].upper()}]",
-                f"- **Insight ID:** {i['insight_id']}",
-                f"- **Category:** {i['category']}",
-                f"- **Confidence:** {i['confidence']}",
-                f"- **Evidence:** {i['evidence_summary']}",
-                f"- **Recommended Action:** {i['recommended_action']}",
-                f"- **Ontology Concepts:** {', '.join(i['ontology_concepts']) or '(none)'}",
-                f"- **Source IDs:** {', '.join(i['source_ids']) or '(none)'}",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"### {i['title']} [{i['severity'].upper()}]",
+                    f"- **Insight ID:** {i['insight_id']}",
+                    f"- **Category:** {i['category']}",
+                    f"- **Confidence:** {i['confidence']}",
+                    f"- **Evidence:** {i['evidence_summary']}",
+                    f"- **Recommended Action:** {i['recommended_action']}",
+                    f"- **Ontology Concepts:** {', '.join(i['ontology_concepts']) or '(none)'}",
+                    f"- **Source IDs:** {', '.join(i['source_ids']) or '(none)'}",
+                    "",
+                ]
+            )
         lines.append("")
 
     if summary["graph_signals"]:
@@ -103,9 +105,13 @@ def render_context_inspection(summary: dict[str, Any]) -> str:
     if summary["orchestration_available"]:
         lines.append("## Orchestration Summary")
         lines.append(f"- **Run ID:** {summary['orchestration_summary'].get('run_id', 'unknown')}")
-        lines.append(f"- **Decision Type:** {summary['orchestration_summary'].get('decision_type', 'unknown')}")
-        lines.append(f"- **Insight Count:** {summary['orchestration_summary'].get('insight_count', 0)}")
-        by_sev = summary['orchestration_summary'].get('insights_by_severity', {})
+        lines.append(
+            f"- **Decision Type:** {summary['orchestration_summary'].get('decision_type', 'unknown')}"
+        )
+        lines.append(
+            f"- **Insight Count:** {summary['orchestration_summary'].get('insight_count', 0)}"
+        )
+        by_sev = summary["orchestration_summary"].get("insights_by_severity", {})
         if by_sev:
             lines.append("- **Insights by Severity:**")
             for sev, count in sorted(by_sev.items()):

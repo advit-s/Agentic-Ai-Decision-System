@@ -58,9 +58,7 @@ class ExecutionEventStream:
         try:
             while True:
                 try:
-                    event = await asyncio.wait_for(
-                        self.queue.get(), timeout=self.timeout
-                    )
+                    event = await asyncio.wait_for(self.queue.get(), timeout=self.timeout)
                     yield event
                     if event.get("event_type") in (
                         "workflow_completed",

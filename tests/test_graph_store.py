@@ -1,18 +1,12 @@
 """Tests for the v2 workspace-scoped graph store and models."""
 
-import json
-from pathlib import Path
-
 from decision_system.graphing.models import (
     WorkspaceEdge,
     WorkspaceMetric,
     WorkspaceNode,
     WorkspaceRisk,
-    NodeType,
-    EdgeType,
 )
 from decision_system.graphing.store import (
-    get_default_data_root,
     delete_edge,
     delete_node,
     delete_workspace,
@@ -26,13 +20,12 @@ from decision_system.graphing.store import (
     list_metrics,
     list_nodes,
     list_risks,
+    search_nodes,
     upsert_edge,
     upsert_metric,
     upsert_node,
     upsert_risk,
-    search_nodes,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -260,7 +253,10 @@ def test_delete_edge(tmp_path):
 def test_list_graph_for_workspace(tmp_path):
     upsert_node(_node(node_id="n1"), data_root=tmp_path)
     upsert_node(_node(node_id="n2"), data_root=tmp_path)
-    upsert_edge(_edge(edge_id="e1", source_node_id="n1", target_node_id="n2"), data_root=tmp_path)
+    upsert_edge(
+        _edge(edge_id="e1", source_node_id="n1", target_node_id="n2"),
+        data_root=tmp_path,
+    )
 
     graph = list_graph_for_workspace(TEST_WS, data_root=tmp_path)
     assert graph.workspace_id == TEST_WS

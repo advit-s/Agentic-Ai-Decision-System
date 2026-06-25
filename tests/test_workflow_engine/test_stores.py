@@ -1,18 +1,21 @@
 """Tests for workflow and execution stores."""
 
-import json
 import tempfile
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
 from decision_system.workflow_engine.models import (
-    WorkflowDefinition, NodeConfig, Connection, ExecutionState, NodeExecutionState,
+    Connection,
+    ExecutionState,
+    NodeConfig,
+    NodeExecutionState,
+    WorkflowDefinition,
 )
-from decision_system.workflow_engine.stores.base import WorkflowStore, ExecutionStore
 from decision_system.workflow_engine.stores.json_store import (
-    JSONWorkflowStore, JSONExecutionStore,
+    JSONExecutionStore,
+    JSONWorkflowStore,
 )
 
 
@@ -65,7 +68,9 @@ class TestJSONWorkflowStore:
             store1 = JSONWorkflowStore(path)
             now = datetime.now(timezone.utc)
             wf = WorkflowDefinition(
-                name="Persist Test", created_at=now, updated_at=now,
+                name="Persist Test",
+                created_at=now,
+                updated_at=now,
             )
             store1.save(wf)
             store2 = JSONWorkflowStore(path)
@@ -88,7 +93,9 @@ class TestJSONExecutionStore:
             status="completed",
             node_states={
                 "n1": NodeExecutionState(
-                    node_id="n1", status="completed", outputs={"result": 42},
+                    node_id="n1",
+                    status="completed",
+                    outputs={"result": 42},
                 ),
             },
             started_at=datetime.now(timezone.utc),
@@ -104,7 +111,8 @@ class TestJSONExecutionStore:
     def test_list_for_workflow(self, store, sample_state):
         store.save(sample_state)
         state2 = ExecutionState(
-            execution_id="exec2", workflow_id="wf1",
+            execution_id="exec2",
+            workflow_id="wf1",
         )
         store.save(state2)
         states = store.list("wf1")
@@ -113,7 +121,8 @@ class TestJSONExecutionStore:
     def test_list_all(self, store, sample_state):
         store.save(sample_state)
         state2 = ExecutionState(
-            execution_id="exec2", workflow_id="wf2",
+            execution_id="exec2",
+            workflow_id="wf2",
         )
         store.save(state2)
         all_states = store.list()
@@ -125,7 +134,10 @@ class TestJSONVersionStore:
 
     @pytest.fixture
     def store(self, tmp_path):
-        from decision_system.workflow_engine.stores.version_store import JSONVersionStore
+        from decision_system.workflow_engine.stores.version_store import (
+            JSONVersionStore,
+        )
+
         return JSONVersionStore(tmp_path)
 
     def test_create_and_load_version(self, store):

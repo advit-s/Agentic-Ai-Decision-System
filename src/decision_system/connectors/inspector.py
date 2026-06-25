@@ -1,4 +1,5 @@
 """Inspector helpers for connector dry-run results, import jobs, and registry summaries."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -57,9 +58,7 @@ def inspect_import_job(job: ConnectorImportJob) -> dict[str, Any]:
         "output_paths": job.output_paths,
         "warnings": job.warnings,
         "created_at": job.created_at.isoformat() if job.created_at else None,
-        "completed_at": (
-            job.completed_at.isoformat() if job.completed_at else None
-        ),
+        "completed_at": (job.completed_at.isoformat() if job.completed_at else None),
     }
 
 
@@ -76,8 +75,7 @@ def render_connector_list(registry: ConnectorRegistry) -> str:
         import_tag = "yes" if definition.supports_import else "no"
         dry_run_tag = "yes" if definition.supports_dry_run else "no"
         lines.append(
-            "| {id} | {name} | {ctype} | {status} | "
-            "{real} | {imp} | {dr} |".format(
+            "| {id} | {name} | {ctype} | {status} | {real} | {imp} | {dr} |".format(
                 id=definition.connector_id,
                 name=definition.name,
                 ctype=definition.connector_type.value,
@@ -94,32 +92,19 @@ def render_connector_list(registry: ConnectorRegistry) -> str:
 def render_connector_detail(definition: ConnectorDefinition) -> str:
     """Render a human-readable detail block for one connector."""
     lines = [
-        "# {name} ({id})".format(
-            name=definition.name, id=definition.connector_id
-        ),
+        "# {name} ({id})".format(name=definition.name, id=definition.connector_id),
         "",
         "- **Type:** {ctype}".format(ctype=definition.connector_type.value),
         "- **Status:** {status}".format(status=definition.status.value),
-        "- **Real:** {real}".format(
-            real="yes" if definition.status.value == "real" else "no"
-        ),
-        "- **Stub:** {stub}".format(
-            stub="yes" if definition.is_stub else "no"
-        ),
+        "- **Real:** {real}".format(real="yes" if definition.status.value == "real" else "no"),
+        "- **Stub:** {stub}".format(stub="yes" if definition.is_stub else "no"),
         "- **Description:** {desc}".format(desc=definition.description),
         "- **Capabilities:** {caps}".format(
-            caps=", ".join(c.value for c in definition.capabilities)
-            or "(none)"
+            caps=", ".join(c.value for c in definition.capabilities) or "(none)"
         ),
-        "- **Requires secrets:** {req}".format(
-            req="yes" if definition.requires_secrets else "no"
-        ),
-        "- **Supports dry-run:** {dr}".format(
-            dr="yes" if definition.supports_dry_run else "no"
-        ),
-        "- **Supports import:** {imp}".format(
-            imp="yes" if definition.supports_import else "no"
-        ),
+        "- **Requires secrets:** {req}".format(req="yes" if definition.requires_secrets else "no"),
+        "- **Supports dry-run:** {dr}".format(dr="yes" if definition.supports_dry_run else "no"),
+        "- **Supports import:** {imp}".format(imp="yes" if definition.supports_import else "no"),
         "",
     ]
     if definition.is_stub:

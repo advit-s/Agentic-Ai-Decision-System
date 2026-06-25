@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from .models import MetricPoint, MetricSummary, MetricType
-from .store import compute_metric_summary, list_metric_names, load_metric_points, save_metric_point
+from .store import compute_metric_summary, list_metric_names, save_metric_point
 
 
 class MetricsCollector:
@@ -15,7 +14,13 @@ class MetricsCollector:
     def __init__(self) -> None:
         self._points: list[MetricPoint] = []
 
-    def record(self, name: str, value: float, metric_type: MetricType, labels: Optional[dict[str, str]] = None) -> None:
+    def record(
+        self,
+        name: str,
+        value: float,
+        metric_type: MetricType,
+        labels: Optional[dict[str, str]] = None,
+    ) -> None:
         point = MetricPoint(name=name, value=value, metric_type=metric_type, labels=labels or {})
         self._points.append(point)
         save_metric_point(point)

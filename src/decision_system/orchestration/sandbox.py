@@ -77,9 +77,7 @@ def _check_forbidden(action: str) -> None:
     low = action.lower()
     for pattern in _FORBIDDEN_PATTERNS:
         if pattern in low:
-            raise ValueError(
-                f"Sandbox rejected action '{action}': forbidden pattern '{pattern}'"
-            )
+            raise ValueError(f"Sandbox rejected action '{action}': forbidden pattern '{pattern}'")
 
 
 def sandbox_execute(
@@ -113,11 +111,10 @@ def sandbox_execute(
 
     if action not in _ALLOWED_ACTIONS:
         raise ValueError(
-            f"Sandbox rejected unknown action '{action}'. "
-            f"Allowed: {sorted(_ALLOWED_ACTIONS)}"
+            f"Sandbox rejected unknown action '{action}'. Allowed: {sorted(_ALLOWED_ACTIONS)}"
         )
 
-    kind = _ALLOWED_ACTIONS[action]
+    _ALLOWED_ACTIONS[action]
 
     # We delegate to the appropriate function imported lazily to avoid
     # circular imports at module level.
@@ -144,7 +141,6 @@ def sandbox_execute(
     if action == "read_csv":
         # context must contain 'profile' and 'csv_root'
         from decision_system.data_catalog.loader import load_csv
-        from decision_system.data_catalog.models import DataProfileStore
 
         profile = context["profile"]
         csv_root = context.get("csv_root", "company_data")

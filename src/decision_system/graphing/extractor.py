@@ -10,9 +10,14 @@ import re
 from collections.abc import Iterable
 from hashlib import sha1
 
-from decision_system.graphing.models import Entity, EntityType, KnowledgeGraph, Relationship, RelationType
+from decision_system.graphing.models import (
+    Entity,
+    EntityType,
+    KnowledgeGraph,
+    Relationship,
+    RelationType,
+)
 from decision_system.models import EvidenceChunk
-
 
 _RELATION_PATTERNS: list[tuple[RelationType, re.Pattern[str]]] = [
     (
@@ -24,7 +29,10 @@ _RELATION_PATTERNS: list[tuple[RelationType, re.Pattern[str]]] = [
         re.compile(r"(?P<source>.+?)\s+(?:is\s+)?owned by\s+(?P<target>.+)", re.IGNORECASE),
     ),
     ("caused", re.compile(r"(?P<source>.+?)\s+caused\s+(?P<target>.+)", re.IGNORECASE)),
-    ("affects", re.compile(r"(?P<source>.+?)\s+affects\s+(?P<target>.+)", re.IGNORECASE)),
+    (
+        "affects",
+        re.compile(r"(?P<source>.+?)\s+affects\s+(?P<target>.+)", re.IGNORECASE),
+    ),
     ("blocks", re.compile(r"(?P<source>.+?)\s+blocks\s+(?P<target>.+)", re.IGNORECASE)),
     (
         "mitigates",
@@ -167,9 +175,7 @@ def _upsert_relationship(
 def _sentences(text: str) -> list[str]:
     normalized = re.sub(r"\s+", " ", text).strip()
     return [
-        sentence.strip()
-        for sentence in re.split(r"(?<=[.!?])\s+", normalized)
-        if sentence.strip()
+        sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", normalized) if sentence.strip()
     ]
 
 

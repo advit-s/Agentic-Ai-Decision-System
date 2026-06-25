@@ -1,11 +1,6 @@
-import json
 from uuid import uuid4
 
 import pytest
-from typer.testing import CliRunner
-
-from decision_system.cli import app as cli_app
-from decision_system.provider_eval.runner import DEFAULT_PROVIDER_EVAL_CASES
 
 
 @pytest.fixture()
@@ -26,10 +21,13 @@ def client(tmp_path, monkeypatch):
     monkeypatch.delenv("NVIDIA_NIM_MODEL", raising=False)
     monkeypatch.delenv("OLLAMA_MODEL", raising=False)
     from decision_system.api.app import set_scheduler_enabled
+
     set_scheduler_enabled(False)
-    from decision_system.api.app import app
-    from httpx import ASGITransport
     import httpx
+    from httpx import ASGITransport
+
+    from decision_system.api.app import app
+
     transport = ASGITransport(app=app)
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
 
@@ -44,6 +42,7 @@ class TestHealth:
         resp = await client.get("/health")
         v = resp.json()["version"]
         from decision_system import __version__
+
         assert v == __version__
 
 

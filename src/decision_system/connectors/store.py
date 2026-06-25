@@ -1,12 +1,13 @@
 """Connector job persistence under .decision_system/connectors/jobs/."""
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from decision_system._data_root import get_data_root
-from typing import Any
 
+from decision_system._data_root import get_data_root
 from decision_system.connectors.models import ConnectorImportJob
+
 
 def _default_jobs_dir() -> Path:
     return get_data_root() / "connectors" / "jobs"

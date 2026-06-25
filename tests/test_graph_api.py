@@ -4,9 +4,6 @@ All tests are offline using httpx.AsyncClient with ASGITransport.
 No external services.
 """
 
-import pytest
-
-
 TEST_WS = "test-graph-api-ws"
 
 
@@ -135,11 +132,7 @@ async def test_risk_extraction(async_client):
 async def test_empty_text_handling(async_client):
     resp = await async_client.post(
         f"/workspaces/{TEST_WS}/graph/extract",
-        json={
-            "texts": [
-                {"text": "", "evidence_id": "", "source_id": "", "chunk_id": ""}
-            ]
-        },
+        json={"texts": [{"text": "", "evidence_id": "", "source_id": "", "chunk_id": ""}]},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -175,7 +168,12 @@ async def test_list_graph_audit_events_after_extraction(async_client):
         f"/workspaces/{TEST_WS}/graph/extract",
         json={
             "texts": [
-                {"text": "Acme Corp revenue grew 15% to $50M in Q1 2024, but faces security risks.", "evidence_id": "ev1", "source_id": "src1", "chunk_id": "ch1"}
+                {
+                    "text": "Acme Corp revenue grew 15% to $50M in Q1 2024, but faces security risks.",
+                    "evidence_id": "ev1",
+                    "source_id": "src1",
+                    "chunk_id": "ch1",
+                }
             ]
         },
     )
@@ -254,7 +252,12 @@ async def test_list_extraction_runs_after_extraction(async_client):
         f"/workspaces/{ws}/graph/extract",
         json={
             "texts": [
-                {"text": "Test Corp faced a major data breach affecting 10K users.", "evidence_id": "ev1", "source_id": "src1", "chunk_id": "ch1"}
+                {
+                    "text": "Test Corp faced a major data breach affecting 10K users.",
+                    "evidence_id": "ev1",
+                    "source_id": "src1",
+                    "chunk_id": "ch1",
+                }
             ]
         },
     )
@@ -277,7 +280,12 @@ async def test_get_extraction_run_by_id(async_client):
         f"/workspaces/{ws}/graph/extract",
         json={
             "texts": [
-                {"text": "Widget Inc quarterly profit grew 10%.", "evidence_id": "ev1", "source_id": "src1", "chunk_id": "ch1"}
+                {
+                    "text": "Widget Inc quarterly profit grew 10%.",
+                    "evidence_id": "ev1",
+                    "source_id": "src1",
+                    "chunk_id": "ch1",
+                }
             ]
         },
     )
@@ -290,9 +298,7 @@ async def test_get_extraction_run_by_id(async_client):
     run_id = runs[0]["run_id"]
 
     # Get by ID
-    get_resp = await async_client.get(
-        f"/workspaces/{ws}/graph/extraction-runs/{run_id}"
-    )
+    get_resp = await async_client.get(f"/workspaces/{ws}/graph/extraction-runs/{run_id}")
     assert get_resp.status_code == 200
     run = get_resp.json()
     assert run["run_id"] == run_id
@@ -301,9 +307,7 @@ async def test_get_extraction_run_by_id(async_client):
 
 async def test_get_extraction_run_not_found(async_client):
     """Should return 404 for non-existent run."""
-    resp = await async_client.get(
-        "/workspaces/nonexistent/graph/extraction-runs/no-such-run"
-    )
+    resp = await async_client.get("/workspaces/nonexistent/graph/extraction-runs/no-such-run")
     assert resp.status_code == 404
 
 
@@ -314,7 +318,12 @@ async def test_latest_extraction_run(async_client):
         f"/workspaces/{ws}/graph/extract",
         json={
             "texts": [
-                {"text": "Latest Corp revenue increased.", "evidence_id": "ev1", "source_id": "src1", "chunk_id": "ch1"}
+                {
+                    "text": "Latest Corp revenue increased.",
+                    "evidence_id": "ev1",
+                    "source_id": "src1",
+                    "chunk_id": "ch1",
+                }
             ]
         },
     )
@@ -329,9 +338,7 @@ async def test_latest_extraction_run(async_client):
 
 async def test_latest_extraction_run_empty(async_client):
     """Latest extraction should return null for empty workspace."""
-    resp = await async_client.get(
-        "/workspaces/no_runs_ever/graph/latest-extraction"
-    )
+    resp = await async_client.get("/workspaces/no_runs_ever/graph/latest-extraction")
     assert resp.status_code == 200
     assert resp.json() is None
 
@@ -379,7 +386,12 @@ async def test_create_claim_from_risk(async_client):
         f"/workspaces/{ws}/graph/extract",
         json={
             "texts": [
-                {"text": "Security breach in database leaking personal data.", "evidence_id": "ev-sec", "source_id": "src-sec", "chunk_id": "ch-sec"}
+                {
+                    "text": "Security breach in database leaking personal data.",
+                    "evidence_id": "ev-sec",
+                    "source_id": "src-sec",
+                    "chunk_id": "ch-sec",
+                }
             ]
         },
     )
@@ -413,7 +425,12 @@ async def test_create_claim_from_metric(async_client):
         f"/workspaces/{ws}/graph/extract",
         json={
             "texts": [
-                {"text": "Revenue grew 15% to $50M in Q1.", "evidence_id": "ev-m1", "source_id": "src-m1", "chunk_id": "ch-m1"}
+                {
+                    "text": "Revenue grew 15% to $50M in Q1.",
+                    "evidence_id": "ev-m1",
+                    "source_id": "src-m1",
+                    "chunk_id": "ch-m1",
+                }
             ]
         },
     )

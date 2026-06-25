@@ -5,14 +5,13 @@ from __future__ import annotations
 import pytest
 
 from decision_system.providers import (
+    ChatMessage,
+    ChatRequest,
+    FakeProvider,
     ProviderConfig,
     ProviderCreateRequest,
-    FakeProvider,
-    FAKE_MODELS,
-    ChatRequest,
-    ChatMessage,
-    execute_with_timing,
     ProviderRuntime,
+    execute_with_timing,
 )
 
 
@@ -102,12 +101,15 @@ class TestExecuteWithTiming:
 class TestProviderRuntimeWithFake:
     def test_runtime_get_fake_provider(self):
         # Create a fake provider config and register it with runtime
-        import os, tempfile
+        import os
+        import tempfile
+
         tmp = tempfile.mkdtemp()
         old_data_dir = os.environ.get("DECISION_SYSTEM_DATA_DIR")
         os.environ["DECISION_SYSTEM_DATA_DIR"] = tmp
         try:
             from decision_system.providers.store import create_provider
+
             req = ProviderCreateRequest(name="Runtime Fake", provider_type="fake")
             config = create_provider(req)
             runtime = ProviderRuntime()
@@ -117,6 +119,7 @@ class TestProviderRuntimeWithFake:
             assert provider.health_check() is True
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
             if old_data_dir is not None:
                 os.environ["DECISION_SYSTEM_DATA_DIR"] = old_data_dir

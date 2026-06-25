@@ -7,31 +7,32 @@ provider to synthesize, and returns structured output with draft claims.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Any
 from uuid import uuid4
 
 from decision_system.providers import (
+    ChatMessage,
+    ChatRequest,
     ProviderConfig,
     ProviderRuntime,
-    ChatRequest,
-    ChatMessage,
-    ChatResponse,
 )
 from decision_system.security.audit import append_event
-from decision_system.synthesis.prompts import (
-    SynthesisMode,
-    get_template,
-    _format_evidence,
-)
 from decision_system.synthesis.parser import (
-    ParsedSynthesis,
     DraftClaim,
     parse_synthesis_output,
 )
-
+from decision_system.synthesis.prompts import (
+    SynthesisMode,
+    _format_evidence,
+    get_template,
+)
 
 SYNTHESIS_MODES: list[SynthesisMode] = [
-    "summary", "risks", "opportunities", "claims", "report_outline",
+    "summary",
+    "risks",
+    "opportunities",
+    "claims",
+    "report_outline",
 ]
 
 
@@ -114,15 +115,19 @@ def run_synthesis(
     elif provider_id:
         provider = runtime.get_provider(provider_id)
         if provider is None:
-                provider_warnings.append(f"Provider '{provider_id}' not found")
+            provider_warnings.append(f"Provider '{provider_id}' not found")
 
     if provider is None:
         try:
-            append_event("synthesis_created", f"Synthesis {synthesis_id} — no provider", metadata={
-                "synthesis_id": synthesis_id,
-                "workspace_id": workspace_id,
-                "mode": synthesis_mode,
-            })
+            append_event(
+                "synthesis_created",
+                f"Synthesis {synthesis_id} — no provider",
+                metadata={
+                    "synthesis_id": synthesis_id,
+                    "workspace_id": workspace_id,
+                    "mode": synthesis_mode,
+                },
+            )
         except Exception:
             pass
         # No provider available — return empty result with warning
@@ -159,27 +164,30 @@ def run_synthesis(
     )
 
     from decision_system.providers.runtime import execute_with_timing
+
     response = execute_with_timing(provider, request)
 
     # Parse output
     parsed = parse_synthesis_output(response.text)
 
     try:
-        append_event("synthesis_claims_created", f"Synthesis {synthesis_id} — {len(parsed.draft_claims)} claims", metadata={
-            "synthesis_id": synthesis_id,
-            "workspace_id": workspace_id,
-            "provider_id": provider.provider_id,
-            "draft_claim_count": len(parsed.draft_claims),
-            "mode": synthesis_mode,
-        })
+        append_event(
+            "synthesis_claims_created",
+            f"Synthesis {synthesis_id} — {len(parsed.draft_claims)} claims",
+            metadata={
+                "synthesis_id": synthesis_id,
+                "workspace_id": workspace_id,
+                "provider_id": provider.provider_id,
+                "draft_claim_count": len(parsed.draft_claims),
+                "mode": synthesis_mode,
+            },
+        )
     except Exception:
         pass
 
     # If mode was "claims" but parsing returned no claims, warn
     if synthesis_mode == "claims" and not parsed.draft_claims:
-        parsed.warnings.append(
-            "Provider did not return structured claims in 'claims' mode"
-        )
+        parsed.warnings.append("Provider did not return structured claims in 'claims' mode")
 
     return SynthesisResult(
         synthesis_id=synthesis_id,

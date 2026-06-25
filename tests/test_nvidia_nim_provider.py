@@ -160,17 +160,25 @@ def test_provider_passes_api_settings_to_openai(monkeypatch):
                     self.parent = parent
 
                 def create(self, **kwargs):
-                    return SimpleNamespace(choices=[
-                        SimpleNamespace(message=SimpleNamespace(content=json.dumps({
-                            "agent_name": "technical_analyst",
-                            "question": "Should we migrate billing?",
-                            "summary": "Use staged rollout.",
-                            "claims": [],
-                            "risks": [],
-                            "options": [],
-                            "cited_evidence_ids": [],
-                        })))
-                    ])
+                    return SimpleNamespace(
+                        choices=[
+                            SimpleNamespace(
+                                message=SimpleNamespace(
+                                    content=json.dumps(
+                                        {
+                                            "agent_name": "technical_analyst",
+                                            "question": "Should we migrate billing?",
+                                            "summary": "Use staged rollout.",
+                                            "claims": [],
+                                            "risks": [],
+                                            "options": [],
+                                            "cited_evidence_ids": [],
+                                        }
+                                    )
+                                )
+                            )
+                        ]
+                    )
 
     monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=CapturingOpenAI))
     settings = _settings()
@@ -200,17 +208,25 @@ def test_provider_uses_nvidia_nim_base_url_from_settings(monkeypatch):
                     self.parent = parent
 
                 def create(self, **kwargs):
-                    return SimpleNamespace(choices=[
-                        SimpleNamespace(message=SimpleNamespace(content=json.dumps({
-                            "agent_name": "technical_analyst",
-                            "question": "Should we migrate billing?",
-                            "summary": "Use staged rollout.",
-                            "claims": [],
-                            "risks": [],
-                            "options": [],
-                            "cited_evidence_ids": [],
-                        })))
-                    ])
+                    return SimpleNamespace(
+                        choices=[
+                            SimpleNamespace(
+                                message=SimpleNamespace(
+                                    content=json.dumps(
+                                        {
+                                            "agent_name": "technical_analyst",
+                                            "question": "Should we migrate billing?",
+                                            "summary": "Use staged rollout.",
+                                            "claims": [],
+                                            "risks": [],
+                                            "options": [],
+                                            "cited_evidence_ids": [],
+                                        }
+                                    )
+                                )
+                            )
+                        ]
+                    )
 
     monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=FakeOpenAI))
     settings = _settings()

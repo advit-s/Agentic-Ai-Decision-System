@@ -1,9 +1,9 @@
 import json
 
-from decision_system.models import EvidenceChunk
 from decision_system.graphing.extractor import extract_knowledge_graph
 from decision_system.graphing.models import Entity, Relationship
 from decision_system.graphing.store import load_knowledge_graph, save_knowledge_graph
+from decision_system.models import EvidenceChunk
 
 
 def _chunk(text: str, filename: str = "systems.md") -> EvidenceChunk:
@@ -101,10 +101,7 @@ def test_contradiction_relationship_from_marker():
         ]
     )
 
-    assert any(
-        relationship.relation_type == "contradicts"
-        for relationship in graph.relationships
-    )
+    assert any(relationship.relation_type == "contradicts" for relationship in graph.relationships)
     relationship = next(
         relationship
         for relationship in graph.relationships

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from decision_system._data_root import get_data_root
 
+from decision_system._data_root import get_data_root
 from decision_system.data_catalog.loader import LoadedDataset, load_csv
 from decision_system.data_catalog.models import (
     ALL_CATEGORIES,
@@ -14,8 +14,10 @@ from decision_system.data_catalog.models import (
 )
 from decision_system.data_catalog.profiler import profile_dataset
 
+
 def _default_store_dir() -> Path:
     return get_data_root()
+
 
 PROFILE_DIRNAME = "data_profiles"
 PROFILES_FILENAME = "profiles.json"

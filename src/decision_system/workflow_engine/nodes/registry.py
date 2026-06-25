@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from decision_system.workflow_engine.models import (
-    WorkflowNode, NodeTypeInfo,
+    NodeTypeInfo,
+    WorkflowNode,
 )
 
 
@@ -62,14 +63,16 @@ class NodeRegistry:
                 config_schema = {}
                 input_schema = {}
                 output_schema = {}
-            result.append(NodeTypeInfo(
-                type=node_type,
-                label=self._get_field_default(node_cls, "label") or node_type,
-                description=getattr(node_cls, "__doc__", "") or "",
-                config_schema=config_schema,
-                input_schema=input_schema,
-                output_schema=output_schema,
-            ))
+            result.append(
+                NodeTypeInfo(
+                    type=node_type,
+                    label=self._get_field_default(node_cls, "label") or node_type,
+                    description=getattr(node_cls, "__doc__", "") or "",
+                    config_schema=config_schema,
+                    input_schema=input_schema,
+                    output_schema=output_schema,
+                )
+            )
         return result
 
     def instantiate(self, node_type: str, **overrides: Any) -> WorkflowNode:

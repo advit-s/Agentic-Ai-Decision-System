@@ -33,9 +33,7 @@ class DecisionSession(BaseModel):
     session_id: str
     run_id: str
     question: str
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     status: Literal["pending", "running", "completed", "failed"] = "pending"
     context_summary: str = ""
     required_data_categories: list[str] = Field(default_factory=list)

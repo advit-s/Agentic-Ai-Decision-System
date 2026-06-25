@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-import pytest
-
 from decision_system.models import (
     Claim,
     ContradictionRecord,
     VerificationSummary,
-    ReportClaimEntry,
-    EvidenceTableEntry,
 )
 from decision_system.reports.trust_renderer import render_trust_report
 
@@ -36,9 +32,12 @@ class TestTrustReport:
         """Report shows supported claims."""
         claims = [
             Claim(
-                claim_id="c1", run_id="r1", source_agent="test",
+                claim_id="c1",
+                run_id="r1",
+                source_agent="test",
                 claim_text="Revenue grew by 20%.",
-                claim_type="metric", status="supported",
+                claim_type="metric",
+                status="supported",
                 confidence="high",
                 evidence_ids=["ev-1"],
                 evidence_snippets=["Revenue grew 20%"],
@@ -59,9 +58,12 @@ class TestTrustReport:
         """Report clearly shows contradicted claims."""
         claims = [
             Claim(
-                claim_id="c1", run_id="r1", source_agent="test",
+                claim_id="c1",
+                run_id="r1",
+                source_agent="test",
                 claim_text="Churn is 5%.",
-                claim_type="metric", status="contradicted",
+                claim_type="metric",
+                status="contradicted",
                 confidence="medium",
                 contradicting_evidence_ids=["ev-2"],
                 verification_notes="Evidence shows 12% churn.",
@@ -80,9 +82,12 @@ class TestTrustReport:
         """Report shows unsupported claims."""
         claims = [
             Claim(
-                claim_id="c1", run_id="r1", source_agent="test",
+                claim_id="c1",
+                run_id="r1",
+                source_agent="test",
                 claim_text="Market is growing.",
-                claim_type="assumption", status="unsupported",
+                claim_type="assumption",
+                status="unsupported",
             ),
         ]
         report = render_trust_report(
@@ -98,9 +103,12 @@ class TestTrustReport:
         """Report shows uncertain claims."""
         claims = [
             Claim(
-                claim_id="c1", run_id="r1", source_agent="test",
+                claim_id="c1",
+                run_id="r1",
+                source_agent="test",
                 claim_text="Maybe revenue is growing.",
-                claim_type="metric", status="uncertain",
+                claim_type="metric",
+                status="uncertain",
                 confidence="low",
             ),
         ]
@@ -116,9 +124,12 @@ class TestTrustReport:
         """Report shows claims needing review."""
         claims = [
             Claim(
-                claim_id="c1", run_id="r1", source_agent="test",
+                claim_id="c1",
+                run_id="r1",
+                source_agent="test",
                 claim_text="We should migrate immediately.",
-                claim_type="recommendation", status="needs_review",
+                claim_type="recommendation",
+                status="needs_review",
                 review_required=True,
                 verification_notes="No evidence found for high-risk recommendation.",
             ),
@@ -134,15 +145,31 @@ class TestTrustReport:
     def test_report_hides_nothing(self):
         """Report must not hide contradicted or unsupported claims."""
         claims = [
-            Claim(claim_id="s1", run_id="r1", source_agent="test",
-                  claim_text="Supported.", claim_type="assumption",
-                  status="supported", confidence="high"),
-            Claim(claim_id="u1", run_id="r1", source_agent="test",
-                  claim_text="Unsupported.", claim_type="assumption",
-                  status="unsupported"),
-            Claim(claim_id="c1", run_id="r1", source_agent="test",
-                  claim_text="Contradicted.", claim_type="metric",
-                  status="contradicted"),
+            Claim(
+                claim_id="s1",
+                run_id="r1",
+                source_agent="test",
+                claim_text="Supported.",
+                claim_type="assumption",
+                status="supported",
+                confidence="high",
+            ),
+            Claim(
+                claim_id="u1",
+                run_id="r1",
+                source_agent="test",
+                claim_text="Unsupported.",
+                claim_type="assumption",
+                status="unsupported",
+            ),
+            Claim(
+                claim_id="c1",
+                run_id="r1",
+                source_agent="test",
+                claim_text="Contradicted.",
+                claim_type="metric",
+                status="contradicted",
+            ),
         ]
         report = render_trust_report(
             question="Test?",
@@ -177,7 +204,6 @@ class TestTrustReport:
 
     def test_report_with_contradictions(self):
         """Report includes contradiction records."""
-        from datetime import datetime, timezone
         contradictions = [
             ContradictionRecord(
                 contradiction_id="ctr-1",
@@ -203,9 +229,13 @@ class TestTrustReport:
         """Report includes evidence table."""
         claims = [
             Claim(
-                claim_id="c1", run_id="r1", source_agent="test",
-                claim_text="Revenue grew.", claim_type="metric",
-                status="supported", confidence="medium",
+                claim_id="c1",
+                run_id="r1",
+                source_agent="test",
+                claim_text="Revenue grew.",
+                claim_type="metric",
+                status="supported",
+                confidence="medium",
                 evidence_ids=["ev-1"],
                 evidence_snippets=["Revenue grew 20%"],
             ),
@@ -221,9 +251,12 @@ class TestTrustReport:
         """Unsupported claims are NOT hidden in the report - they are clearly visible."""
         claims = [
             Claim(
-                claim_id="c1", run_id="r1", source_agent="test",
+                claim_id="c1",
+                run_id="r1",
+                source_agent="test",
                 claim_text="This claim has no evidence.",
-                claim_type="assumption", status="unsupported",
+                claim_type="assumption",
+                status="unsupported",
             ),
         ]
         report = render_trust_report(

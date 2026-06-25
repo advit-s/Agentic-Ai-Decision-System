@@ -2,11 +2,15 @@
 
 import pytest
 
-from decision_system.workflow_engine.nodes import create_default_registry
 from decision_system.workflow_engine.models import ExecutionContext
+from decision_system.workflow_engine.nodes import create_default_registry
 
 
-def _ctx(execution_id: str = "test-exec", workflow_id: str = "test-wf", workspace_id: str = "test-ws"):
+def _ctx(
+    execution_id: str = "test-exec",
+    workflow_id: str = "test-wf",
+    workspace_id: str = "test-ws",
+):
     return ExecutionContext(
         execution_id=execution_id,
         workflow_id=workflow_id,
@@ -56,11 +60,14 @@ async def test_evidence_node_keyword_fallback():
     )
     ctx = _ctx(workspace_id="ws-empty")
 
-    result = await node.execute({
-        "workspace_id": "ws-empty",
-        "query": "test query",
-        "limit": 5,
-    }, ctx)
+    result = await node.execute(
+        {
+            "workspace_id": "ws-empty",
+            "query": "test query",
+            "limit": 5,
+        },
+        ctx,
+    )
     assert "evidence_results" in result
     assert result["retrieval_mode"] in ("vector", "keyword", "none")
 

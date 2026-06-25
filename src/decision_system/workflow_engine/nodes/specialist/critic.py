@@ -10,9 +10,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from decision_system.workflow_engine.models import WorkflowNode, ExecutionContext
+from decision_system.workflow_engine.models import ExecutionContext, WorkflowNode
 from decision_system.workflow_engine.providers.client import LLMClient
-
 
 # ── Fallacy trigger phrases ───────────────────────────────────────────
 
@@ -43,6 +42,7 @@ _NEGATION_PAIRS: list[tuple[str, str]] = [
 
 # ── Deterministic rule checks ─────────────────────────────────────────
 
+
 def _normalize_claims_list(target_data: dict) -> list[dict[str, Any]]:
     """Normalize various input formats to a list of claim dicts."""
     if isinstance(target_data, list):
@@ -71,13 +71,15 @@ def _check_contradictions(claims: list[dict]) -> list[dict]:
             text_j = claims[j].get("statement", claims[j].get("text", "")).lower()
             for pos, neg in _NEGATION_PAIRS:
                 if pos in text_i and neg in text_j:
-                    issues.append({
-                        "type": "contradiction",
-                        "severity": "medium",
-                        "location": f"Claim {i + 1} vs Claim {j + 1}",
-                        "description": f"'{claims[i].get('statement', text_i)}' conflicts with '{claims[j].get('statement', text_j)}'",
-                        "suggestion": "Review both claims and reconcile the direction of change.",
-                    })
+                    issues.append(
+                        {
+                            "type": "contradiction",
+                            "severity": "medium",
+                            "location": f"Claim {i + 1} vs Claim {j + 1}",
+                            "description": f"'{claims[i].get('statement', text_i)}' conflicts with '{claims[j].get('statement', text_j)}'",
+                            "suggestion": "Review both claims and reconcile the direction of change.",
+                        }
+                    )
                     break
     return issues
 
@@ -88,13 +90,15 @@ def _check_unsupported(claims: list[dict]) -> list[dict]:
     for i, claim in enumerate(claims):
         evidence = claim.get("evidence") or claim.get("chunks") or claim.get("sources") or []
         if not evidence or all(not e for e in evidence if isinstance(e, str)):
-            issues.append({
-                "type": "unsupported",
-                "severity": "high",
-                "location": f"Claim {i + 1}",
-                "description": f"Claim '{claim.get('statement', claim.get('text', ''))[:80]}' has no supporting evidence.",
-                "suggestion": "Add evidence citations or mark as unsupported.",
-            })
+            issues.append(
+                {
+                    "type": "unsupported",
+                    "severity": "high",
+                    "location": f"Claim {i + 1}",
+                    "description": f"Claim '{claim.get('statement', claim.get('text', ''))[:80]}' has no supporting evidence.",
+                    "suggestion": "Add evidence citations or mark as unsupported.",
+                }
+            )
     return issues
 
 
@@ -104,13 +108,15 @@ def _check_fallacies(text: str) -> list[dict]:
     text_lower = text.lower()
     for phrase, fallacy_type in _FALLACY_PHRASES:
         if phrase in text_lower:
-            issues.append({
-                "type": "logical_fallacy",
-                "severity": "low",
-                "location": f"Text containing '{phrase}'",
-                "description": f"Potential '{fallacy_type}' fallacy detected via phrase '{phrase}'.",
-                "suggestion": "Replace with specific evidence or reasoning.",
-            })
+            issues.append(
+                {
+                    "type": "logical_fallacy",
+                    "severity": "low",
+                    "location": f"Text containing '{phrase}'",
+                    "description": f"Potential '{fallacy_type}' fallacy detected via phrase '{phrase}'.",
+                    "suggestion": "Replace with specific evidence or reasoning.",
+                }
+            )
     return issues
 
 
@@ -122,13 +128,15 @@ def _check_confidence(claims: list[dict]) -> list[dict]:
         if isinstance(confidence, (int, float)) and confidence > 0.8:
             evidence = claim.get("evidence") or claim.get("chunks") or claim.get("sources") or []
             if not evidence or len(evidence) < 2:
-                issues.append({
-                    "type": "misconfidence",
-                    "severity": "medium",
-                    "location": f"Claim {i + 1}",
-                    "description": f"Confidence {confidence:.1f} with {len(evidence)} evidence source(s).",
-                    "suggestion": "Reduce confidence or add supporting evidence.",
-                })
+                issues.append(
+                    {
+                        "type": "misconfidence",
+                        "severity": "medium",
+                        "location": f"Claim {i + 1}",
+                        "description": f"Confidence {confidence:.1f} with {len(evidence)} evidence source(s).",
+                        "suggestion": "Reduce confidence or add supporting evidence.",
+                    }
+                )
     return issues
 
 
@@ -182,11 +190,12 @@ class CriticNode(WorkflowNode):
     and confidence calibration. Uses LLM when available, deterministic
     rule-based checks as fake fallback.
     """
+
     type: str = "decision_system.critic"
     label: str = "Critic / Judge"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
-        target_type = inputs.get("target_type", "claims_list")
+        inputs.get("target_type", "claims_list")
         target_data = inputs.get("target_data", None)
         context = inputs.get("context", "")
 
@@ -197,15 +206,12 @@ class CriticNode(WorkflowNode):
             raw_findings = inputs.get("findings")
             if raw_findings and isinstance(raw_findings, list) and len(raw_findings) > 0:
                 target_data = {"findings": raw_findings}
-                target_type = "findings_list"
             # Check for Extracted Claims-style claims
             elif inputs.get("claims") and isinstance(inputs.get("claims"), list):
                 target_data = {"claims": inputs["claims"]}
-                target_type = "claims_list"
             # Check for report text
             elif inputs.get("report") or inputs.get("text"):
                 target_data = inputs.get("report") or inputs.get("text", "")
-                target_type = "report_text"
 
         if not target_data:
             return {
@@ -237,7 +243,11 @@ class CriticNode(WorkflowNode):
                 issues.extend(_check_confidence(claims))
 
             # Apply strictness filter
-            severity_map = {"lenient": ["high"], "balanced": ["medium", "high"], "strict": ["low", "medium", "high"]}
+            severity_map = {
+                "lenient": ["high"],
+                "balanced": ["medium", "high"],
+                "strict": ["low", "medium", "high"],
+            }
             allowed_severities = severity_map.get(strictness, ["medium", "high"])
             issues = [i for i in issues if i["severity"] in allowed_severities]
 
@@ -251,7 +261,9 @@ class CriticNode(WorkflowNode):
             if provider_cfg:
                 provider_config, _ = provider_cfg
                 try:
-                    llm_issues = await self._llm_review(claims, context, enabled_criteria, provider_config)
+                    llm_issues = await self._llm_review(
+                        claims, context, enabled_criteria, provider_config
+                    )
                     # Merge: use LLM issues when available, supplement with deterministic
                     if llm_issues:
                         issues = llm_issues
@@ -286,7 +298,9 @@ class CriticNode(WorkflowNode):
         if provider_cfg:
             provider_config, _ = provider_cfg
             try:
-                return await self._llm_review_report(target_data, context, enabled_criteria, provider_config)
+                return await self._llm_review_report(
+                    target_data, context, enabled_criteria, provider_config
+                )
             except Exception as exc:
                 fallback_reason = f"{type(exc).__name__}: {exc}"
                 # fall through to basic text-level check below
@@ -304,7 +318,11 @@ class CriticNode(WorkflowNode):
         }
 
     async def _llm_review(
-        self, claims: list[dict], context: str, enabled_criteria: list[str], provider_config: Any,
+        self,
+        claims: list[dict],
+        context: str,
+        enabled_criteria: list[str],
+        provider_config: Any,
     ) -> list[dict]:
         """Use LLM to review claims."""
         client = LLMClient(provider_config)
@@ -312,10 +330,16 @@ class CriticNode(WorkflowNode):
 
         response = await client.chat_completion(
             messages=[
-                {"role": "system", "content": _CRITIC_SYSTEM_PROMPT.format(
-                    enabled_criteria=", ".join(enabled_criteria),
-                )},
-                {"role": "user", "content": f"Review these claims:\n{claims_text}\n\nContext: {context}"},
+                {
+                    "role": "system",
+                    "content": _CRITIC_SYSTEM_PROMPT.format(
+                        enabled_criteria=", ".join(enabled_criteria),
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Review these claims:\n{claims_text}\n\nContext: {context}",
+                },
             ],
             model=provider_config.default_model,
             stream=False,
@@ -325,18 +349,30 @@ class CriticNode(WorkflowNode):
         return result.get("issues", [])
 
     async def _llm_review_report(
-        self, target_data: Any, context: str, enabled_criteria: list[str], provider_config: Any,
+        self,
+        target_data: Any,
+        context: str,
+        enabled_criteria: list[str],
+        provider_config: Any,
     ) -> dict:
         """Use LLM to review a report or free-text output."""
         client = LLMClient(provider_config)
-        text = json.dumps(target_data, indent=2) if isinstance(target_data, dict) else str(target_data)
+        text = (
+            json.dumps(target_data, indent=2) if isinstance(target_data, dict) else str(target_data)
+        )
 
         response = await client.chat_completion(
             messages=[
-                {"role": "system", "content": _CRITIC_SYSTEM_PROMPT.format(
-                    enabled_criteria=", ".join(enabled_criteria),
-                )},
-                {"role": "user", "content": f"Review this report/text:\n{text}\n\nContext: {context}"},
+                {
+                    "role": "system",
+                    "content": _CRITIC_SYSTEM_PROMPT.format(
+                        enabled_criteria=", ".join(enabled_criteria),
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Review this report/text:\n{text}\n\nContext: {context}",
+                },
             ],
             model=provider_config.default_model,
             stream=False,
@@ -346,7 +382,9 @@ class CriticNode(WorkflowNode):
         if "issues" not in result:
             result["issues"] = []
         if "passed" not in result:
-            result["passed"] = not any(i.get("severity") in ("medium", "high") for i in result["issues"])
+            result["passed"] = not any(
+                i.get("severity") in ("medium", "high") for i in result["issues"]
+            )
         if "confidence_adjustment" not in result:
             result["confidence_adjustment"] = -0.2 if result["issues"] else 0.0
         if "summary" not in result:
@@ -363,7 +401,12 @@ class CriticNode(WorkflowNode):
                     "type": "array",
                     "items": {
                         "type": "string",
-                        "enum": ["contradictions", "unsupported_claims", "logical_fallacies", "confidence_calibration"],
+                        "enum": [
+                            "contradictions",
+                            "unsupported_claims",
+                            "logical_fallacies",
+                            "confidence_calibration",
+                        ],
                     },
                     "default": ["contradictions", "unsupported_claims"],
                     "title": "Review Criteria",
@@ -377,7 +420,10 @@ class CriticNode(WorkflowNode):
                     "title": "Strictness",
                 },
                 "max_issues": {
-                    "type": "integer", "default": 20, "minimum": 1, "maximum": 100,
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
                     "title": "Max Issues",
                 },
             },
@@ -418,8 +464,19 @@ class CriticNode(WorkflowNode):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "type": {"type": "string", "enum": ["contradiction", "unsupported", "logical_fallacy", "misconfidence"]},
-                            "severity": {"type": "string", "enum": ["low", "medium", "high"]},
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "contradiction",
+                                    "unsupported",
+                                    "logical_fallacy",
+                                    "misconfidence",
+                                ],
+                            },
+                            "severity": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high"],
+                            },
                             "location": {"type": "string"},
                             "description": {"type": "string"},
                             "suggestion": {"type": "string"},

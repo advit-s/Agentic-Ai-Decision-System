@@ -3,19 +3,17 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
 from uuid import uuid4
-
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 
 class ErrorPolicy(str, Enum):
     """Error handling policy for node execution."""
+
     FAIL_WORKFLOW = "fail_workflow"
     FAIL_NODE = "fail_node"
     RETRY = "retry"
@@ -24,6 +22,7 @@ class ErrorPolicy(str, Enum):
 
 class Connection(BaseModel):
     """A directed edge between two nodes in a workflow DAG."""
+
     source_node: str
     source_output: str = "default"
     target_node: str
@@ -32,6 +31,7 @@ class Connection(BaseModel):
 
 class WorkflowVersion(BaseModel):
     """An immutable snapshot of a workflow definition at a point in time."""
+
     version_id: str
     workflow_id: str
     version_number: int
@@ -44,6 +44,7 @@ class WorkflowVersion(BaseModel):
 
 class NodeConfig(BaseModel):
     """Reference to a node instance within a workflow definition."""
+
     id: str
     type: str
     label: str = ""
@@ -56,6 +57,7 @@ class NodeConfig(BaseModel):
 
 class RetryConfig(BaseModel):
     """Retry configuration for node execution."""
+
     max_attempts: int = 3
     base_delay: float = 1.0
     max_delay: float = 60.0
@@ -65,6 +67,7 @@ class RetryConfig(BaseModel):
 
 class WorkflowDefinition(BaseModel):
     """A complete workflow definition — the DAG blueprint."""
+
     version: int = 1
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
@@ -79,8 +82,11 @@ class WorkflowDefinition(BaseModel):
 
 class NodeExecutionState(BaseModel):
     """Execution state for a single node."""
+
     node_id: str
-    status: Literal["pending", "running", "completed", "failed", "skipped", "awaiting_review"] = "pending"
+    status: Literal["pending", "running", "completed", "failed", "skipped", "awaiting_review"] = (
+        "pending"
+    )
     inputs: dict[str, Any] | None = None
     outputs: dict[str, Any] | None = None
     error: str | None = None
@@ -91,11 +97,20 @@ class NodeExecutionState(BaseModel):
 
 class ExecutionState(BaseModel):
     """Execution state for an entire workflow run."""
+
     execution_id: str
     workflow_id: str
     workflow_version_id: str | None = None
     workspace_id: str | None = None
-    status: Literal["pending", "running", "completed", "failed", "cancelled", "awaiting_review", "rejected"] = "pending"
+    status: Literal[
+        "pending",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "awaiting_review",
+        "rejected",
+    ] = "pending"
     node_states: dict[str, NodeExecutionState] = Field(default_factory=dict)
     started_at: datetime | None = None
     completed_at: datetime | None = None
@@ -118,6 +133,7 @@ class ExecutionState(BaseModel):
 
 class ExecutionContext(BaseModel):
     """Shared context passed to every node during execution."""
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     workflow_id: str
@@ -165,6 +181,7 @@ class ExecutionContext(BaseModel):
 
 class NodeTypeInfo(BaseModel):
     """Metadata about a registered node type."""
+
     type: str
     label: str
     description: str = ""
@@ -179,6 +196,7 @@ class WorkflowNode(ABC, BaseModel):
 
     Subclasses must implement execute() and the three schema classmethods.
     """
+
     id: str
     type: str
     label: str = ""

@@ -1,4 +1,5 @@
 """Tests for OCR parser integration (v1.25)."""
+
 from __future__ import annotations
 
 import os
@@ -35,7 +36,12 @@ class TestImageOcrParser:
 
     def test_ocr_image_parser_imports(self):
         """Verify the OCR parser module loads."""
-        from decision_system.data_sources.ocr_parser import ImageOcrParser, ScannedPdfParser, is_ocr_available
+        from decision_system.data_sources.ocr_parser import (
+            ImageOcrParser,
+            ScannedPdfParser,
+            is_ocr_available,
+        )
+
         assert ImageOcrParser is not None
         assert ScannedPdfParser is not None
         assert is_ocr_available() is True
@@ -60,7 +66,10 @@ class TestImageOcrParser:
 
     def test_ocr_parser_registered(self, tessdata):
         """Verify image parsers are registered in the parser registry."""
-        from decision_system.data_sources.parser import get_parser, get_supported_extensions
+        from decision_system.data_sources.parser import (
+            get_parser,
+            get_supported_extensions,
+        )
 
         exts = get_supported_extensions()
         assert ".png" in exts
@@ -82,7 +91,9 @@ class TestImageOcrParser:
             Path(img_path), ".png", "test-dispatch-001", "test-ws-001"
         )
         assert len(chunks) >= 1
-        assert any("INVOICE" in c.text for c in chunks) or any("INVOICE" in str(chunks[0].text) for c in chunks)
+        assert any("INVOICE" in c.text for c in chunks) or any(
+            "INVOICE" in str(chunks[0].text) for c in chunks
+        )
 
 
 class TestScannedPdfOcr:
@@ -101,8 +112,9 @@ class TestScannedPdfOcr:
 
         assert result is not None
         assert len(result.text) > 100, f"OCR extracted too little text: {len(result.text)} chars"
-        assert "AGREEMENT" in result.text or "SERVICE" in result.text, \
+        assert "AGREEMENT" in result.text or "SERVICE" in result.text, (
             f"OCR missing contract keywords, got: {result.text[:150]}"
+        )
         assert len(result.chunks) >= 1
         assert result.metadata.get("ocr") is True
 
@@ -126,7 +138,11 @@ class TestScannedPdfOcr:
         ocr_warnings = [w for w in warnings if "OCR" in w or "ocr" in w.lower()]
         # The fallback may add an OCR warning
         text_from_chunks = " ".join(c.text for c in chunks)
-        assert "AGREEMENT" in text_from_chunks or "SERVICE" in text_from_chunks or "DemoCorp" in text_from_chunks
+        assert (
+            "AGREEMENT" in text_from_chunks
+            or "SERVICE" in text_from_chunks
+            or "DemoCorp" in text_from_chunks
+        )
 
 
 class TestOcrFallbackBehavior:
@@ -140,9 +156,7 @@ class TestOcrFallbackBehavior:
         if not os.path.exists(md_path):
             pytest.skip("Sample markdown not found")
 
-        chunks, warnings = parse_document(
-            Path(md_path), ".md", "test-md-001", "test-ws-001"
-        )
+        chunks, warnings = parse_document(Path(md_path), ".md", "test-md-001", "test-ws-001")
         assert len(chunks) >= 1
         text = chunks[0].text
         assert "DemoCorp" in text or "revenue" in text.lower()
@@ -150,4 +164,5 @@ class TestOcrFallbackBehavior:
     def test_ocr_available_function(self, tessdata):
         """is_ocr_available should return True when tesserocr works."""
         from decision_system.data_sources.ocr_parser import is_ocr_available
+
         assert is_ocr_available() is True

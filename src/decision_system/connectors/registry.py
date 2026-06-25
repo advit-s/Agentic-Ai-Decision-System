@@ -120,21 +120,15 @@ _BUILTIN_CONNECTORS: list[ConnectorDefinition] = [
 class ConnectorRegistry:
     """In-memory registry of connector definitions."""
 
-    def __init__(
-        self, connectors: list[ConnectorDefinition] | None = None
-    ) -> None:
+    def __init__(self, connectors: list[ConnectorDefinition] | None = None) -> None:
         source = connectors if connectors is not None else _BUILTIN_CONNECTORS
-        self._connectors: dict[str, ConnectorDefinition] = {
-            c.connector_id: c for c in source
-        }
+        self._connectors: dict[str, ConnectorDefinition] = {c.connector_id: c for c in source}
 
     def list_connectors(self) -> list[ConnectorDefinition]:
         """Return all registered connector definitions."""
         return list(self._connectors.values())
 
-    def get_definition(
-        self, connector_id: str
-    ) -> ConnectorDefinition | None:
+    def get_definition(self, connector_id: str) -> ConnectorDefinition | None:
         """Return a connector definition by id, or None if unregistered."""
         return self._connectors.get(connector_id)
 
@@ -168,6 +162,7 @@ def get_connector_definition(
 def get_connector_with_schema(connector_id: str) -> dict | None:
     """Return a connector definition merged with its setup schema, or None."""
     from decision_system.connectors.setup_schemas import get_setup_schema
+
     definition = get_connector_definition(connector_id)
     if definition is None:
         return None
@@ -190,6 +185,7 @@ def list_connectors_with_schemas() -> list[dict]:
 def get_credential_status(connector_id: str) -> dict | None:
     """Return safe credential status for a connector, or None if unknown."""
     from decision_system.connectors.setup_schemas import get_setup_schema
+
     schema = get_setup_schema(connector_id)
     if schema is None:
         return None
@@ -202,18 +198,21 @@ def get_credential_status(connector_id: str) -> dict | None:
             "has_required": True,
         }
     import os
+
     all_present = True
     statuses = []
     for field in schema.credential_fields:
         env_name = field.env_var_hint
         token_present = bool(os.environ.get(env_name, ""))
-        statuses.append({
-            "field": field.key,
-            "label": field.label,
-            "env_var_name": env_name,
-            "token_present": token_present,
-            "required": field.required,
-        })
+        statuses.append(
+            {
+                "field": field.key,
+                "label": field.label,
+                "env_var_name": env_name,
+                "token_present": token_present,
+                "required": field.required,
+            }
+        )
         if field.required and not token_present:
             all_present = False
     return {
@@ -223,6 +222,7 @@ def get_credential_status(connector_id: str) -> dict | None:
         "fields": statuses,
         "missing_message": (
             "Set the required environment variable(s) to enable authenticated access."
-            if not all_present else ""
+            if not all_present
+            else ""
         ),
     }

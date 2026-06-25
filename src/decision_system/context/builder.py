@@ -6,15 +6,18 @@ from pathlib import Path
 from uuid import uuid4
 
 from decision_system.context.models import DecisionContext, InsightEvidence
-from decision_system.context.selector import select_relevant_ontology_concepts, select_relevant_insights
+from decision_system.context.selector import (
+    select_relevant_insights,
+    select_relevant_ontology_concepts,
+)
+from decision_system.graphing.models import KnowledgeGraph
+from decision_system.graphing.store import load_knowledge_graph
 from decision_system.insights.store import load_insights
 from decision_system.ontology.store import load_ontology
-from decision_system.orchestration.store import load_latest_session
+from decision_system.orchestration.models import ProblemAnalysis
 from decision_system.orchestration.planner import plan_data_tools_roles
 from decision_system.orchestration.problem_analyzer import analyze_problem
-from decision_system.orchestration.models import ProblemAnalysis
-from decision_system.graphing.store import load_knowledge_graph
-from decision_system.graphing.models import KnowledgeGraph
+from decision_system.orchestration.store import load_latest_session
 
 
 class DecisionContextBuilder:
@@ -75,17 +78,19 @@ class DecisionContextBuilder:
         # 8. Convert insights to InsightEvidence
         evidence_insights = []
         for insight in relevant_insights:
-            evidence_insights.append(InsightEvidence(
-                insight_id=insight.insight_id,
-                title=insight.title,
-                category=insight.category,
-                severity=insight.severity,
-                confidence=insight.confidence,
-                evidence_summary=insight.evidence_summary,
-                recommended_action=insight.recommended_action,
-                ontology_concepts=insight.ontology_concepts,
-                source_ids=insight.source_ids,
-            ))
+            evidence_insights.append(
+                InsightEvidence(
+                    insight_id=insight.insight_id,
+                    title=insight.title,
+                    category=insight.category,
+                    severity=insight.severity,
+                    confidence=insight.confidence,
+                    evidence_summary=insight.evidence_summary,
+                    recommended_action=insight.recommended_action,
+                    ontology_concepts=insight.ontology_concepts,
+                    source_ids=insight.source_ids,
+                )
+            )
 
         # 9. Extract graph signals (top relationships)
         graph_signals = self._extract_graph_signals(graph)
@@ -194,9 +199,11 @@ class DecisionContextBuilder:
 
         # Missing data signals (high severity missing data insights)
         for insight in insights:
-            if insight.category == "missing_data" and insight.severity in ("high", "critical"):
+            if insight.category == "missing_data" and insight.severity in (
+                "high",
+                "critical",
+            ):
                 items.append(f"Missing data: {insight.evidence_summary}")
-
 
         # Deduplicate
         seen = set()

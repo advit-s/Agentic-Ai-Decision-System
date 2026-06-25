@@ -12,7 +12,6 @@ from typing import Any
 
 from decision_system.models import Claim, VerificationResult
 
-
 # Methods
 DIRECT_EVIDENCE = "direct_evidence_reference"
 KEYWORD_SEARCH = "keyword_evidence_search"
@@ -23,8 +22,14 @@ MANUAL_REVIEW = "manual_review_required"
 
 # Contradiction markers in text
 CONTRADICTION_PATTERNS = [
-    re.compile(r"\b(?:but|however|on the other hand|contrary|despite|although)\b", re.IGNORECASE),
-    re.compile(r"\b(?:not\s+\w+\s+compliant|not\s+compliant|fails?\s+to\s+meet)\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:but|however|on the other hand|contrary|despite|although)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:not\s+\w+\s+compliant|not\s+compliant|fails?\s+to\s+meet)\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"\b(?:decreased|declined|dropped|fell|reduced)\b", re.IGNORECASE),
     re.compile(r"\bincreased\b.*\b(?:risk|concern|issue|problem)\b", re.IGNORECASE),
     re.compile(r"\bCONTRADICTS\b", re.IGNORECASE),
@@ -64,6 +69,7 @@ class ClaimVerifier:
     def _get_resolver(self):
         if self._resolver is None:
             from decision_system.evidence.resolver import EvidenceResolver
+
             self._resolver = EvidenceResolver()
         return self._resolver
 
@@ -90,7 +96,7 @@ class ClaimVerifier:
             VerificationResult with status, confidence, and reasoning.
         """
         eid = claim.claim_id
-        resolver = self._get_resolver()
+        self._get_resolver()
 
         # Collect evidence IDs to check
         evidence_ids = evidence_references or claim.evidence_ids or []
@@ -98,9 +104,7 @@ class ClaimVerifier:
 
         # Step 1: Try direct evidence references
         if evidence_ids:
-            result = self._check_direct_evidence(
-                eid, evidence_ids, workspace_id, claim
-            )
+            result = self._check_direct_evidence(eid, evidence_ids, workspace_id, claim)
             if result is not None:
                 return result
 
@@ -133,12 +137,10 @@ class ClaimVerifier:
     ) -> VerificationResult | None:
         """Check claims with explicit evidence references."""
         resolver = self._get_resolver()
-        resolved = resolver.resolve_many(
-            evidence_ids=evidence_ids, workspace_id=workspace_id
-        )
+        resolved = resolver.resolve_many(evidence_ids=evidence_ids, workspace_id=workspace_id)
 
         resolved_valid = [r for r in resolved if r.warning is None]
-        resolved_missing = [r for r in resolved if r.warning is not None]
+        [r for r in resolved if r.warning is not None]
 
         if not resolved_valid:
             return None  # Fall through to keyword search
@@ -165,7 +167,11 @@ class ClaimVerifier:
                 evidence_ids=supporting_ids,
                 source_ids=list(set(r.source_id for r in resolved_valid if r.source_id)),
                 chunk_ids=list(set(r.chunk_id for r in resolved_valid if r.chunk_id)),
-                evidence_snippets=[r.chunk_text for r in resolved_valid if r.chunk_text and r.evidence_id not in contradicting_ids],
+                evidence_snippets=[
+                    r.chunk_text
+                    for r in resolved_valid
+                    if r.chunk_text and r.evidence_id not in contradicting_ids
+                ],
                 contradicting_evidence_ids=contradicting_ids,
                 confidence="high",
                 verification_notes="Evidence contains statements that contradict this claim.",
@@ -295,11 +301,13 @@ class ClaimVerifier:
                 workspace_id=workspace_id,
             )
             for c in chunks:
-                results.append({
-                    "evidence_id": c.evidence_id,
-                    "text": c.text,
-                    "source_name": c.source_filename,
-                })
+                results.append(
+                    {
+                        "evidence_id": c.evidence_id,
+                        "text": c.text,
+                        "source_name": c.source_filename,
+                    }
+                )
         except Exception:
             pass
 
@@ -313,7 +321,13 @@ class ClaimVerifier:
                     workspace_id=workspace_id, query=query, limit=5
                 )
                 for r in kw_results:
-                    d = r if isinstance(r, dict) else r.model_dump(mode="json") if hasattr(r, "model_dump") else {}
+                    d = (
+                        r
+                        if isinstance(r, dict)
+                        else r.model_dump(mode="json")
+                        if hasattr(r, "model_dump")
+                        else {}
+                    )
                     results.append(d)
             except Exception:
                 pass
@@ -351,9 +365,7 @@ class ClaimVerifier:
 
         # Important term overlap (weighted)
         important_overlap = claim_important & evidence_words
-        important_ratio = (
-            len(important_overlap) / len(claim_important) if claim_important else 0.0
-        )
+        important_ratio = len(important_overlap) / len(claim_important) if claim_important else 0.0
 
         # Weighted score: basic overlap + weighted important term match
         score = (overlap_ratio * 0.4) + (important_ratio * 0.6)
@@ -390,9 +402,7 @@ class ClaimVerifier:
 
         return False
 
-    def _make_unsupported(
-        self, claim_id: str, claim: Claim, reason: str
-    ) -> VerificationResult:
+    def _make_unsupported(self, claim_id: str, claim: Claim, reason: str) -> VerificationResult:
         """Create an unsupported verification result."""
         # Check if this is high-risk
         needs_review = claim.claim_type in HIGH_RISK_TYPES

@@ -5,13 +5,14 @@ from __future__ import annotations
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from decision_system.api.app import set_scheduler_enabled, create_app
+from decision_system.api.app import set_scheduler_enabled
 
 
 @pytest.fixture
 async def client(tmp_path):
     """Create an async test client with isolated temp storage."""
     import os
+
     old_data_dir = os.environ.get("DECISION_SYSTEM_DATA_DIR")
     # Use isolated temp dir for durable storage
     os.environ["DECISION_SYSTEM_DATA_DIR"] = str(tmp_path)
@@ -19,9 +20,12 @@ async def client(tmp_path):
     try:
         # Clear any cached store instances by re-importing
         import importlib
+
         import decision_system.workflow_engine.api as wf_api
+
         importlib.reload(wf_api)
         from decision_system.api.app import create_app as fresh_create
+
         app = fresh_create()
         transport = ASGITransport(app=app)
         async with AsyncClient(
@@ -126,10 +130,13 @@ class TestWorkflowAPI:
         assert "executions" in data
 
     async def test_execution_history_after_execution(self, client):
-        wf_resp = await client.post("/workflows", json={
-            "name": "History Test",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        wf_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "History Test",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = wf_resp.json()["id"]
         await client.post(f"/workflows/{wf_id}/execute", json={"inputs": {}})
 
@@ -141,10 +148,13 @@ class TestWorkflowAPI:
         assert wf_id in wf_ids
 
     async def test_execution_history_filter_by_workflow(self, client):
-        wf_resp = await client.post("/workflows", json={
-            "name": "Filter Test WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        wf_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Filter Test WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = wf_resp.json()["id"]
         await client.post(f"/workflows/{wf_id}/execute", json={"inputs": {}})
 
@@ -156,10 +166,13 @@ class TestWorkflowAPI:
             assert e["workflow_id"] == wf_id
 
     async def test_delete_execution_history(self, client):
-        wf_resp = await client.post("/workflows", json={
-            "name": "Del History WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        wf_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Del History WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = wf_resp.json()["id"]
         exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={"inputs": {}})
         exec_id = exec_resp.json()["execution_id"]
@@ -176,10 +189,13 @@ class TestWorkflowAPI:
         assert resp.status_code == 404
 
     async def test_execution_detail(self, client):
-        wf_resp = await client.post("/workflows", json={
-            "name": "Detail Test WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        wf_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Detail Test WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = wf_resp.json()["id"]
         exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={"inputs": {}})
         exec_id = exec_resp.json()["execution_id"]
@@ -199,16 +215,21 @@ class TestWorkflowAPI:
         assert resp.status_code == 404
 
     async def test_execution_resume_placeholder(self, client):
-        wf_resp = await client.post("/workflows", json={
-            "name": "Resume Test WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        wf_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Resume Test WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = wf_resp.json()["id"]
         exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={"inputs": {}})
         exec_id = exec_resp.json()["execution_id"]
 
         resume_resp = await client.post(f"/executions/{exec_id}/resume", json={"action": "resume"})
-        assert resume_resp.status_code == 409, f"Expected 409 (not paused), got {resume_resp.status_code}"
+        assert resume_resp.status_code == 409, (
+            f"Expected 409 (not paused), got {resume_resp.status_code}"
+        )
 
     async def test_execution_resume_nonexistent(self, client):
         resume_resp = await client.post("/executions/nonexistent/resume", json={"action": "resume"})
@@ -217,10 +238,13 @@ class TestWorkflowAPI:
 
 class TestWorkflowVersioning:
     async def test_create_workflow_creates_version(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Version Test",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Version Test",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         assert resp.status_code == 200
         wf_id = resp.json()["id"]
 
@@ -231,19 +255,25 @@ class TestWorkflowVersioning:
         assert versions[0]["version_number"] == 1
 
     async def test_update_workflow_creates_new_version(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Update Version WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Update Version WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = resp.json()["id"]
 
-        await client.put(f"/workflows/{wf_id}", json={
-            "name": "Update Version WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.trigger_manual"},
-            ],
-        })
+        await client.put(
+            f"/workflows/{wf_id}",
+            json={
+                "name": "Update Version WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "n2", "type": "decision_system.trigger_manual"},
+                ],
+            },
+        )
 
         ver_resp = await client.get(f"/workflows/{wf_id}/versions")
         assert ver_resp.status_code == 200
@@ -255,10 +285,13 @@ class TestWorkflowVersioning:
         assert resp.status_code == 404
 
     async def test_get_version_by_id(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Get Version WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Get Version WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = resp.json()["id"]
 
         ver_resp = await client.get(f"/workflows/{wf_id}/versions")
@@ -269,10 +302,13 @@ class TestWorkflowVersioning:
         assert get_resp.json()["version_id"] == version_id
 
     async def test_get_version_by_number(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Get Version Num WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Get Version Num WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = resp.json()["id"]
 
         get_resp = await client.get(f"/workflows/{wf_id}/versions/1")
@@ -280,20 +316,26 @@ class TestWorkflowVersioning:
         assert get_resp.json()["version_number"] == 1
 
     async def test_get_nonexistent_version(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "No Version WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "No Version WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = resp.json()["id"]
 
         get_resp = await client.get(f"/workflows/{wf_id}/versions/999")
         assert get_resp.status_code == 404
 
     async def test_execution_linked_to_version(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Exec Version Link WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Exec Version Link WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = resp.json()["id"]
 
         exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={"inputs": {}})
@@ -303,10 +345,13 @@ class TestWorkflowVersioning:
         assert data["workflow_version_id"] is not None
 
     async def test_version_has_content_hash(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Hash Test WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Hash Test WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = resp.json()["id"]
 
         ver_resp = await client.get(f"/workflows/{wf_id}/versions")
@@ -317,16 +362,22 @@ class TestWorkflowVersioning:
 
 class TestScheduleAPI:
     async def _create_schedule(self, client, trigger_type="cron", trigger_config=None):
-        wf_resp = await client.post("/workflows", json={
-            "name": "Scheduled WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        wf_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Scheduled WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = wf_resp.json()["id"]
-        resp = await client.post("/schedules", json={
-            "workflow_id": wf_id,
-            "trigger_type": trigger_type,
-            "trigger_config": trigger_config or {},
-        })
+        resp = await client.post(
+            "/schedules",
+            json={
+                "workflow_id": wf_id,
+                "trigger_type": trigger_type,
+                "trigger_config": trigger_config or {},
+            },
+        )
         assert resp.status_code == 200
         return resp.json()["id"], wf_id
 
@@ -368,10 +419,13 @@ class TestScheduleAPI:
 
     async def test_update_schedule(self, client):
         sch_id, _ = await self._create_schedule(client)
-        resp = await client.put(f"/schedules/{sch_id}", json={
-            "enabled": False,
-            "trigger_config": {"expression": "0 12 * * *"},
-        })
+        resp = await client.put(
+            f"/schedules/{sch_id}",
+            json={
+                "enabled": False,
+                "trigger_config": {"expression": "0 12 * * *"},
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["enabled"] is False
@@ -402,35 +456,50 @@ class TestScheduleAPI:
         assert resp.status_code == 404
 
     async def test_create_schedule_bad_trigger_type(self, client):
-        wf_resp = await client.post("/workflows", json={
-            "name": "Bad Trigger WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        wf_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Bad Trigger WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = wf_resp.json()["id"]
-        resp = await client.post("/schedules", json={
-            "workflow_id": wf_id,
-            "trigger_type": "invalid_trigger",
-        })
+        resp = await client.post(
+            "/schedules",
+            json={
+                "workflow_id": wf_id,
+                "trigger_type": "invalid_trigger",
+            },
+        )
         assert resp.status_code == 400
 
     async def test_create_schedule_nonexistent_workflow(self, client):
-        resp = await client.post("/schedules", json={
-            "workflow_id": "nonexistent",
-            "trigger_type": "cron",
-        })
+        resp = await client.post(
+            "/schedules",
+            json={
+                "workflow_id": "nonexistent",
+                "trigger_type": "cron",
+            },
+        )
         assert resp.status_code == 404
 
     async def test_webhook_receiver_triggers_execution(self, client):
-        wf_resp = await client.post("/workflows", json={
-            "name": "Webhook WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_webhook"}],
-        })
+        wf_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Webhook WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_webhook"}],
+            },
+        )
         wf_id = wf_resp.json()["id"]
-        await client.post("/schedules", json={
-            "workflow_id": wf_id,
-            "trigger_type": "webhook",
-            "trigger_config": {"webhook_path": "my-webhook"},
-        })
+        await client.post(
+            "/schedules",
+            json={
+                "workflow_id": wf_id,
+                "trigger_type": "webhook",
+                "trigger_config": {"webhook_path": "my-webhook"},
+            },
+        )
         resp = await client.post("/webhook/my-webhook", json={"event": "push"})
         assert resp.status_code == 200
         data = resp.json()
@@ -445,10 +514,19 @@ class TestScheduleAPI:
 
 class TestAutoSchedule:
     async def test_create_workflow_auto_schedules_cron(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Auto Cron WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_cron", "config": {"expression": "0 9 * * 1"}}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Auto Cron WF",
+                "nodes": [
+                    {
+                        "id": "n1",
+                        "type": "decision_system.trigger_cron",
+                        "config": {"expression": "0 9 * * 1"},
+                    }
+                ],
+            },
+        )
         assert resp.status_code == 200
         wf_id = resp.json()["id"]
         sched_resp = await client.get(f"/schedules?workflow_id={wf_id}")
@@ -459,10 +537,19 @@ class TestAutoSchedule:
         assert data["schedules"][0]["trigger_config"]["expression"] == "0 9 * * 1"
 
     async def test_create_workflow_auto_schedules_webhook(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Auto Webhook WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_webhook", "config": {"webhook_path": "test-hook"}}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Auto Webhook WF",
+                "nodes": [
+                    {
+                        "id": "n1",
+                        "type": "decision_system.trigger_webhook",
+                        "config": {"webhook_path": "test-hook"},
+                    }
+                ],
+            },
+        )
         assert resp.status_code == 200
         wf_id = resp.json()["id"]
         sched_resp = await client.get(f"/schedules?workflow_id={wf_id}")
@@ -472,10 +559,19 @@ class TestAutoSchedule:
         assert data["schedules"][0]["trigger_type"] == "webhook"
 
     async def test_create_workflow_auto_schedules_file_watch(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Auto FileWatch WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_file_watch", "config": {"directory": "/tmp", "pattern": "*.csv"}}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Auto FileWatch WF",
+                "nodes": [
+                    {
+                        "id": "n1",
+                        "type": "decision_system.trigger_file_watch",
+                        "config": {"directory": "/tmp", "pattern": "*.csv"},
+                    }
+                ],
+            },
+        )
         assert resp.status_code == 200
         wf_id = resp.json()["id"]
         sched_resp = await client.get(f"/schedules?workflow_id={wf_id}")
@@ -485,10 +581,13 @@ class TestAutoSchedule:
         assert data["schedules"][0]["trigger_type"] == "file_watch"
 
     async def test_non_trigger_nodes_do_not_create_schedules(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "No Trigger WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "No Trigger WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         assert resp.status_code == 200
         wf_id = resp.json()["id"]
         sched_resp = await client.get(f"/schedules?workflow_id={wf_id}")
@@ -496,37 +595,59 @@ class TestAutoSchedule:
         assert len(sched_resp.json()["schedules"]) == 0
 
     async def test_update_workflow_creates_new_schedule(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Update Test WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Update Test WF",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+            },
+        )
         wf_id = resp.json()["id"]
-        resp = await client.put(f"/workflows/{wf_id}", json={
-            "name": "Update Test WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.trigger_cron", "config": {"expression": "*/5 * * * *"}},
-            ],
-            "connections": [],
-        })
+        resp = await client.put(
+            f"/workflows/{wf_id}",
+            json={
+                "name": "Update Test WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {
+                        "id": "n2",
+                        "type": "decision_system.trigger_cron",
+                        "config": {"expression": "*/5 * * * *"},
+                    },
+                ],
+                "connections": [],
+            },
+        )
         assert resp.status_code == 200
         sched_resp = await client.get(f"/schedules?workflow_id={wf_id}")
         assert sched_resp.status_code == 200
         assert len(sched_resp.json()["schedules"]) == 1
 
     async def test_update_workflow_removes_orphan_schedule(self, client):
-        resp = await client.post("/workflows", json={
-            "name": "Remove Trigger WF",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_cron", "config": {"expression": "0 9 * * 1"}}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Remove Trigger WF",
+                "nodes": [
+                    {
+                        "id": "n1",
+                        "type": "decision_system.trigger_cron",
+                        "config": {"expression": "0 9 * * 1"},
+                    }
+                ],
+            },
+        )
         wf_id = resp.json()["id"]
         sched_resp = await client.get(f"/schedules?workflow_id={wf_id}")
         assert len(sched_resp.json()["schedules"]) == 1
-        resp = await client.put(f"/workflows/{wf_id}", json={
-            "name": "Remove Trigger WF",
-            "nodes": [{"id": "n2", "type": "decision_system.trigger_manual"}],
-            "connections": [],
-        })
+        resp = await client.put(
+            f"/workflows/{wf_id}",
+            json={
+                "name": "Remove Trigger WF",
+                "nodes": [{"id": "n2", "type": "decision_system.trigger_manual"}],
+                "connections": [],
+            },
+        )
         assert resp.status_code == 200
         sched_resp = await client.get(f"/schedules?workflow_id={wf_id}")
         assert len(sched_resp.json()["schedules"]) == 0
@@ -543,17 +664,12 @@ class TestProviderAPI:
         """Clean up provider store before each test."""
         self._cleanup_providers()
 
-
-    def setup_method(self, method):
-        """Clean up provider store before each test."""
-        self._cleanup_providers()
-
-
     @classmethod
     def _seed_provider(cls, name="opencode"):
         """Seed a provider in the store. Uses DECISION_SYSTEM_DATA_DIR if set."""
-        from decision_system.providers.store import create_provider
         from decision_system.providers.models import ProviderCreateRequest
+        from decision_system.providers.store import create_provider
+
         try:
             req = ProviderCreateRequest(
                 name=name,
@@ -569,8 +685,9 @@ class TestProviderAPI:
     @classmethod
     def _cleanup_providers(cls):
         """Remove all provider files from the store dir."""
-        from pathlib import Path
         import os
+        from pathlib import Path
+
         base = Path(os.environ.get("DECISION_SYSTEM_DATA_DIR", ".decision_system"))
         store_dir = base / "providers"
         if store_dir.exists():
@@ -608,11 +725,16 @@ class TestProviderAPI:
     async def test_create_provider(self, client):
         """POST /providers creates a new provider (accepts api_base alias)."""
         name = "test-create-provider"
-        resp = await client.post("/providers", json={
-            "name": name, "api_base": "https://test.api/v1",
-            "api_key_env": "TEST_KEY", "default_model": "test-model",
-            "provider_type": "fake",
-        })
+        resp = await client.post(
+            "/providers",
+            json={
+                "name": name,
+                "api_base": "https://test.api/v1",
+                "api_key_env": "TEST_KEY",
+                "default_model": "test-model",
+                "provider_type": "fake",
+            },
+        )
         assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.text}"
         assert resp.json()["name"] == name
         assert name in await self._provider_names(client)
@@ -624,14 +746,24 @@ class TestProviderAPI:
     async def test_create_duplicate_provider(self, client):
         """POST /providers with duplicate name returns 409."""
         name = "test-dupe-provider"
-        await client.post("/providers", json={
-            "name": name, "api_base": "https://first.api/v1",
-            "default_model": "m1", "provider_type": "fake",
-        })
-        resp2 = await client.post("/providers", json={
-            "name": name, "api_base": "https://first.api/v1",
-            "default_model": "m1", "provider_type": "fake",
-        })
+        await client.post(
+            "/providers",
+            json={
+                "name": name,
+                "api_base": "https://first.api/v1",
+                "default_model": "m1",
+                "provider_type": "fake",
+            },
+        )
+        resp2 = await client.post(
+            "/providers",
+            json={
+                "name": name,
+                "api_base": "https://first.api/v1",
+                "default_model": "m1",
+                "provider_type": "fake",
+            },
+        )
         assert resp2.status_code == 409, f"Expected 409, got {resp2.status_code}: {resp2.text}"
         # Cleanup
         for p in await self._provider_ids(client):
@@ -640,10 +772,15 @@ class TestProviderAPI:
 
     async def test_create_provider_invalid_api_base(self, client):
         """POST /providers with invalid URL returns 422."""
-        resp = await client.post("/providers", json={
-            "name": "bad-provider", "api_base": "not-a-url",
-            "default_model": "m1", "provider_type": "fake",
-        })
+        resp = await client.post(
+            "/providers",
+            json={
+                "name": "bad-provider",
+                "api_base": "not-a-url",
+                "default_model": "m1",
+                "provider_type": "fake",
+            },
+        )
         # The new model validates base_url, but since api_base gets mapped to it
         # and "not-a-url" is still a string, the model accepts it
         # The validation in ProviderConfig (old store) is stricter
@@ -671,15 +808,21 @@ class TestProviderAPI:
         ids = await self._provider_ids(client)
         opencode_id = next((pid for pid in ids if "opencode" in pid), None)
         assert opencode_id is not None
-        resp = await client.put(f"/providers/{opencode_id}", json={
-            "default_model": "test-model-v2",
-        })
+        resp = await client.put(
+            f"/providers/{opencode_id}",
+            json={
+                "default_model": "test-model-v2",
+            },
+        )
         assert resp.status_code == 200
         assert resp.json()["default_model"] == "test-model-v2"
         # Restore
-        await client.put(f"/providers/{opencode_id}", json={
-            "default_model": "claude-sonnet-4-20250514",
-        })
+        await client.put(
+            f"/providers/{opencode_id}",
+            json={
+                "default_model": "claude-sonnet-4-20250514",
+            },
+        )
 
     async def test_update_nonexistent_provider(self, client):
         """PUT /providers/{id} with invalid ID returns 404."""
@@ -689,10 +832,15 @@ class TestProviderAPI:
     async def test_delete_provider(self, client):
         """DELETE /providers/{provider_id} deletes a provider."""
         name = "test-delete-provider"
-        await client.post("/providers", json={
-            "name": name, "api_base": "https://delete.me/v1",
-            "default_model": "m1", "provider_type": "fake",
-        })
+        await client.post(
+            "/providers",
+            json={
+                "name": name,
+                "api_base": "https://delete.me/v1",
+                "default_model": "m1",
+                "provider_type": "fake",
+            },
+        )
         # Find the provider_id
         ids = await self._provider_ids(client)
         target = next((pid for pid in ids if name in pid), None)
@@ -750,10 +898,15 @@ class TestProviderAPI:
         """POST /providers/system/default sets default provider (backward compat)."""
         self._seed_provider()
         name = "test-default-provider"
-        await client.post("/providers", json={
-            "name": name, "api_base": "https://test-default.api/v1",
-            "default_model": "m2", "provider_type": "fake",
-        })
+        await client.post(
+            "/providers",
+            json={
+                "name": name,
+                "api_base": "https://test-default.api/v1",
+                "default_model": "m2",
+                "provider_type": "fake",
+            },
+        )
         resp = await client.post("/providers/system/default", json={"name": name})
         assert resp.status_code == 200
         # Restore opencode as default
@@ -792,18 +945,21 @@ class TestReviewGatePauseResume:
 
     async def test_review_gate_pauses_execution(self, client):
         """Workflow with review gate pauses and shows awaiting_review status."""
-        resp = await client.post("/workflows", json={
-            "name": "Review Pause WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.review_gate"},
-                {"id": "n3", "type": "decision_system.input_text"},
-            ],
-            "connections": [
-                {"source_node": "n1", "target_node": "n2"},
-                {"source_node": "n2", "target_node": "n3"},
-            ],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Review Pause WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "n2", "type": "decision_system.review_gate"},
+                    {"id": "n3", "type": "decision_system.input_text"},
+                ],
+                "connections": [
+                    {"source_node": "n1", "target_node": "n2"},
+                    {"source_node": "n2", "target_node": "n3"},
+                ],
+            },
+        )
         assert resp.status_code == 200
         wf_id = resp.json()["id"]
 
@@ -829,18 +985,21 @@ class TestReviewGatePauseResume:
 
     async def test_downstream_node_does_not_run_before_approval(self, client):
         """Downstream nodes should not execute while awaiting review."""
-        resp = await client.post("/workflows", json={
-            "name": "Downstream Blocked WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.review_gate"},
-                {"id": "n3", "type": "decision_system.input_text"},
-            ],
-            "connections": [
-                {"source_node": "n1", "target_node": "n2"},
-                {"source_node": "n2", "target_node": "n3"},
-            ],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Downstream Blocked WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "n2", "type": "decision_system.review_gate"},
+                    {"id": "n3", "type": "decision_system.input_text"},
+                ],
+                "connections": [
+                    {"source_node": "n1", "target_node": "n2"},
+                    {"source_node": "n2", "target_node": "n3"},
+                ],
+            },
+        )
         wf_id = resp.json()["id"]
 
         exec_resp = await client.post(
@@ -858,14 +1017,17 @@ class TestReviewGatePauseResume:
 
     async def test_review_appears_in_reviews_list(self, client):
         """Review should appear in the /reviews endpoint."""
-        resp = await client.post("/workflows", json={
-            "name": "Review List WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.review_gate"},
-            ],
-            "connections": [{"source_node": "n1", "target_node": "n2"}],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Review List WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "n2", "type": "decision_system.review_gate"},
+                ],
+                "connections": [{"source_node": "n1", "target_node": "n2"}],
+            },
+        )
         wf_id = resp.json()["id"]
 
         exec_resp = await client.post(
@@ -884,18 +1046,21 @@ class TestReviewGatePauseResume:
 
     async def test_approval_resumes_workflow(self, client):
         """Approving a review should resume and complete the workflow."""
-        resp = await client.post("/workflows", json={
-            "name": "Approve Resume WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.review_gate"},
-                {"id": "n3", "type": "decision_system.input_text"},
-            ],
-            "connections": [
-                {"source_node": "n1", "target_node": "n2"},
-                {"source_node": "n2", "target_node": "n3"},
-            ],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Approve Resume WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "n2", "type": "decision_system.review_gate"},
+                    {"id": "n3", "type": "decision_system.input_text"},
+                ],
+                "connections": [
+                    {"source_node": "n1", "target_node": "n2"},
+                    {"source_node": "n2", "target_node": "n3"},
+                ],
+            },
+        )
         wf_id = resp.json()["id"]
 
         exec_resp = await client.post(
@@ -935,18 +1100,21 @@ class TestReviewGatePauseResume:
 
     async def test_rejection_prevents_downstream_execution(self, client):
         """Rejecting a review should end execution without running downstream."""
-        resp = await client.post("/workflows", json={
-            "name": "Reject Block WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.review_gate"},
-                {"id": "n3", "type": "decision_system.input_text"},
-            ],
-            "connections": [
-                {"source_node": "n1", "target_node": "n2"},
-                {"source_node": "n2", "target_node": "n3"},
-            ],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Reject Block WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "n2", "type": "decision_system.review_gate"},
+                    {"id": "n3", "type": "decision_system.input_text"},
+                ],
+                "connections": [
+                    {"source_node": "n1", "target_node": "n2"},
+                    {"source_node": "n2", "target_node": "n3"},
+                ],
+            },
+        )
         wf_id = resp.json()["id"]
 
         exec_resp = await client.post(
@@ -985,18 +1153,21 @@ class TestReviewGatePauseResume:
 
     async def test_changes_requested_does_not_continue(self, client):
         """Changes requested should keep execution waiting."""
-        resp = await client.post("/workflows", json={
-            "name": "Changes Requested WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.review_gate"},
-                {"id": "n3", "type": "decision_system.input_text"},
-            ],
-            "connections": [
-                {"source_node": "n1", "target_node": "n2"},
-                {"source_node": "n2", "target_node": "n3"},
-            ],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Changes Requested WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "n2", "type": "decision_system.review_gate"},
+                    {"id": "n3", "type": "decision_system.input_text"},
+                ],
+                "connections": [
+                    {"source_node": "n1", "target_node": "n2"},
+                    {"source_node": "n2", "target_node": "n3"},
+                ],
+            },
+        )
         wf_id = resp.json()["id"]
 
         exec_resp = await client.post(
@@ -1024,18 +1195,21 @@ class TestReviewGatePauseResume:
 
     async def test_execution_history_records_pause_resume(self, client):
         """Execution history should reflect pause and resume events."""
-        resp = await client.post("/workflows", json={
-            "name": "History Pause WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.review_gate"},
-                {"id": "n3", "type": "decision_system.input_text"},
-            ],
-            "connections": [
-                {"source_node": "n1", "target_node": "n2"},
-                {"source_node": "n2", "target_node": "n3"},
-            ],
-        })
+        resp = await client.post(
+            "/workflows",
+            json={
+                "name": "History Pause WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "n2", "type": "decision_system.review_gate"},
+                    {"id": "n3", "type": "decision_system.input_text"},
+                ],
+                "connections": [
+                    {"source_node": "n1", "target_node": "n2"},
+                    {"source_node": "n2", "target_node": "n3"},
+                ],
+            },
+        )
         wf_id = resp.json()["id"]
 
         exec_resp = await client.post(
@@ -1080,12 +1254,15 @@ class TestWorkspaceScoping:
         """Workspace-scoped workflow listing returns only matching workflows."""
         # Create workflows in different workspaces
         for ws in ["ws-a", "ws-b", "ws-a"]:
-            await client.post("/workflows", json={
-                "name": f"WF-{ws}",
-                "workspace_id": ws,
-                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-                "connections": [],
-            })
+            await client.post(
+                "/workflows",
+                json={
+                    "name": f"WF-{ws}",
+                    "workspace_id": ws,
+                    "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+                    "connections": [],
+                },
+            )
 
         # List workflows for workspace "ws-a"
         resp = await client.get("/workspaces/ws-a/workflows")
@@ -1104,12 +1281,15 @@ class TestWorkspaceScoping:
 
     async def test_workspace_id_propagates_to_execution(self, client):
         """Executing a workspace-owned workflow creates an execution with the same workspace_id."""
-        create_resp = await client.post("/workflows", json={
-            "name": "WS Exec Test",
-            "workspace_id": "ws-exec",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-            "connections": [],
-        })
+        create_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "WS Exec Test",
+                "workspace_id": "ws-exec",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+                "connections": [],
+            },
+        )
         wf_id = create_resp.json()["id"]
 
         exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={})
@@ -1123,12 +1303,15 @@ class TestWorkspaceScoping:
 
     async def test_workspace_filtered_executions(self, client):
         """Workspace-scoped execution listing returns only matching executions."""
-        create_resp = await client.post("/workflows", json={
-            "name": "WS Exec List",
-            "workspace_id": "ws-exec-list",
-            "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
-            "connections": [],
-        })
+        create_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "WS Exec List",
+                "workspace_id": "ws-exec-list",
+                "nodes": [{"id": "n1", "type": "decision_system.trigger_manual"}],
+                "connections": [],
+            },
+        )
         wf_id = create_resp.json()["id"]
 
         # Execute twice
@@ -1149,17 +1332,20 @@ class TestWorkspaceScoping:
 
     async def test_workspace_id_propagates_to_review(self, client):
         """Review gate creates a review with workspace_id."""
-        create_resp = await client.post("/workflows", json={
-            "name": "WS Review Test",
-            "workspace_id": "ws-review",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "n2", "type": "decision_system.review_gate"},
-            ],
-            "connections": [
-                {"source_node": "n1", "target_node": "n2"},
-            ],
-        })
+        create_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "WS Review Test",
+                "workspace_id": "ws-review",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "n2", "type": "decision_system.review_gate"},
+                ],
+                "connections": [
+                    {"source_node": "n1", "target_node": "n2"},
+                ],
+            },
+        )
         wf_id = create_resp.json()["id"]
 
         exec_resp = await client.post(
@@ -1188,27 +1374,36 @@ class TestClaimValidation:
 
     async def test_create_claim_empty_text_fails(self, client):
         """Creating a claim with empty text should return 422."""
-        resp = await client.post("/claims", json={
-            "claim_text": "",
-        })
+        resp = await client.post(
+            "/claims",
+            json={
+                "claim_text": "",
+            },
+        )
         assert resp.status_code == 422
 
     async def test_create_claim_invalid_type_fails(self, client):
         """Creating a claim with invalid claim_type should return 422."""
-        resp = await client.post("/claims", json={
-            "claim_text": "This is a test claim",
-            "claim_type": "invalid_type_xyz",
-        })
+        resp = await client.post(
+            "/claims",
+            json={
+                "claim_text": "This is a test claim",
+                "claim_type": "invalid_type_xyz",
+            },
+        )
         assert resp.status_code == 422
 
     async def test_create_claim_valid_succeeds(self, client):
         """Creating a claim with valid data should succeed."""
-        resp = await client.post("/claims", json={
-            "claim_text": "Revenue increased by 20% in Q2",
-            "claim_type": "technical",
-            "workspace_id": "ws-claims",
-            "source_agent": "test",
-        })
+        resp = await client.post(
+            "/claims",
+            json={
+                "claim_text": "Revenue increased by 20% in Q2",
+                "claim_type": "technical",
+                "workspace_id": "ws-claims",
+                "source_agent": "test",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["claim_text"] == "Revenue increased by 20% in Q2"
@@ -1217,18 +1412,21 @@ class TestClaimValidation:
 
     async def test_create_claim_with_all_fields(self, client):
         """Creating a claim with all optional fields should succeed."""
-        resp = await client.post("/claims", json={
-            "claim_text": "Security vulnerability detected",
-            "claim_type": "risk",
-            "source_agent": "scanner",
-            "workspace_id": "ws-1",
-            "execution_id": "exec-1",
-            "workflow_id": "wf-1",
-            "node_id": "node-1",
-            "confidence": "high",
-            "evidence_ids": ["ev-1", "ev-2"],
-            "metadata": {"source": "test"},
-        })
+        resp = await client.post(
+            "/claims",
+            json={
+                "claim_text": "Security vulnerability detected",
+                "claim_type": "risk",
+                "source_agent": "scanner",
+                "workspace_id": "ws-1",
+                "execution_id": "exec-1",
+                "workflow_id": "wf-1",
+                "node_id": "node-1",
+                "confidence": "high",
+                "evidence_ids": ["ev-1", "ev-2"],
+                "metadata": {"source": "test"},
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["claim_text"] == "Security vulnerability detected"
@@ -1253,12 +1451,15 @@ class TestWorkspaceOverview:
     async def test_workspace_overview_includes_claim_summary(self, client):
         """Workspace overview includes claim counts and evidence coverage."""
         # Create a claim in workspace "ws-overview"
-        await client.post("/claims", json={
-            "claim_text": "Test claim for overview",
-            "claim_type": "assumption",
-            "workspace_id": "ws-overview",
-            "source_agent": "test",
-        })
+        await client.post(
+            "/claims",
+            json={
+                "claim_text": "Test claim for overview",
+                "claim_type": "assumption",
+                "workspace_id": "ws-overview",
+                "source_agent": "test",
+            },
+        )
 
         resp = await client.get("/workspaces/ws-overview/overview")
         assert resp.status_code == 200
@@ -1277,13 +1478,16 @@ class TestEventTimeline:
 
     async def test_execution_detail_has_event_timeline(self, client):
         """Execution detail should include a non-empty event_timeline."""
-        create_resp = await client.post("/workflows", json={
-            "name": "Event Timeline WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-            ],
-            "connections": [],
-        })
+        create_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Event Timeline WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                ],
+                "connections": [],
+            },
+        )
         wf_id = create_resp.json()["id"]
 
         exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={})
@@ -1300,13 +1504,16 @@ class TestEventTimeline:
 
     async def test_event_timeline_persists_across_reload(self, client):
         """Event timeline should survive API store reload (file-backed)."""
-        create_resp = await client.post("/workflows", json={
-            "name": "Timeline Persist WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-            ],
-            "connections": [],
-        })
+        create_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Timeline Persist WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                ],
+                "connections": [],
+            },
+        )
         wf_id = create_resp.json()["id"]
 
         exec_resp = await client.post(f"/workflows/{wf_id}/execute", json={})
@@ -1327,20 +1534,23 @@ class TestMultipleReviewGates:
         The second gate receives 'data' from the first gate's outputs,
         so it should also pause rather than auto-approving.
         """
-        create_resp = await client.post("/workflows", json={
-            "name": "Two Gate WF",
-            "nodes": [
-                {"id": "n1", "type": "decision_system.trigger_manual"},
-                {"id": "gate1", "type": "decision_system.review_gate"},
-                {"id": "gate2", "type": "decision_system.review_gate"},
-                {"id": "end", "type": "decision_system.trigger_manual"},
-            ],
-            "connections": [
-                {"source_node": "n1", "target_node": "gate1"},
-                {"source_node": "gate1", "target_node": "gate2"},
-                {"source_node": "gate2", "target_node": "end"},
-            ],
-        })
+        create_resp = await client.post(
+            "/workflows",
+            json={
+                "name": "Two Gate WF",
+                "nodes": [
+                    {"id": "n1", "type": "decision_system.trigger_manual"},
+                    {"id": "gate1", "type": "decision_system.review_gate"},
+                    {"id": "gate2", "type": "decision_system.review_gate"},
+                    {"id": "end", "type": "decision_system.trigger_manual"},
+                ],
+                "connections": [
+                    {"source_node": "n1", "target_node": "gate1"},
+                    {"source_node": "gate1", "target_node": "gate2"},
+                    {"source_node": "gate2", "target_node": "end"},
+                ],
+            },
+        )
         wf_id = create_resp.json()["id"]
 
         # Execute — should pause at gate1
@@ -1373,8 +1583,9 @@ class TestMultipleReviewGates:
         # Verify execution is paused at gate2
         state_resp = await client.get(f"/executions/{exec_id}")
         assert state_resp.status_code == 200
-        assert state_resp.json()["status"] == "awaiting_review", \
+        assert state_resp.json()["status"] == "awaiting_review", (
             f"Expected awaiting_review after gate2, got {state_resp.json()['status']}"
+        )
 
         detail_resp2 = await client.get(f"/executions/{exec_id}/detail")
         review_id_2 = detail_resp2.json()["review_id"]
@@ -1397,6 +1608,7 @@ class TestMultipleReviewGates:
 
         state_resp3 = await client.get(f"/executions/{exec_id}")
         assert state_resp3.status_code == 200
-        assert state_resp3.json()["status"] == "completed", \
+        assert state_resp3.json()["status"] == "completed", (
             f"Expected completed after both gates, got {state_resp3.json()['status']}"
+        )
         assert state_resp3.json().get("completed_at") is not None

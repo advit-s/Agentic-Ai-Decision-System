@@ -10,8 +10,6 @@ from typer.testing import CliRunner
 
 from decision_system.cli import app
 from decision_system.devtools.hygiene import check_hygiene
-from decision_system import cli as cli_mod
-import chromadb as _chromadb_pkg
 
 runner = CliRunner()
 
@@ -48,7 +46,12 @@ evals/results/*.json
 """
 
 
-def _mk_repo(tmp_path: Path, *, include_agents: bool = True, agents_content: str = "# Agent instructions\n") -> Path:
+def _mk_repo(
+    tmp_path: Path,
+    *,
+    include_agents: bool = True,
+    agents_content: str = "# Agent instructions\n",
+) -> Path:
     root = tmp_path / "repo"
     root.mkdir()
     (root / ".env.example").write_text("DECISION_PROVIDER=fake\n", encoding="utf-8")
@@ -58,6 +61,7 @@ def _mk_repo(tmp_path: Path, *, include_agents: bool = True, agents_content: str
     if include_agents:
         (root / "AGENTS.md").write_text(agents_content, encoding="utf-8")
     return root
+
 
 # ---------------------------------------------------------------------------
 # Unit tests for check_hygiene()
@@ -177,7 +181,9 @@ class TestSecurityDirIsGenerated:
         )
         report = check_hygiene(root)
         ds_checks = [c for c in report.warnings if c.name == "decision_system_generated"]
-        assert ds_checks, "Expected decision_system_generated warning for .decision_system/security/"
+        assert ds_checks, (
+            "Expected decision_system_generated warning for .decision_system/security/"
+        )
         assert report.overall == "WARN"
 
 
@@ -186,7 +192,9 @@ class TestCli:
         result = runner.invoke(app, ["check-hygiene", "--help"])
         assert result.exit_code == 0
 
-    def test_check_hygiene_exits_zero_on_pass(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    def test_check_hygiene_exits_zero_on_pass(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
         root = _mk_repo(tmp_path)
         monkeypatch.chdir(root)
         result = runner.invoke(app, ["check-hygiene"])
@@ -198,7 +206,9 @@ class TestCli:
         result = runner.invoke(app, ["check-hygiene"])
         assert result.exit_code == 1
 
-    def test_check_hygiene_json_emits_valid_json(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    def test_check_hygiene_json_emits_valid_json(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
         root = _mk_repo(tmp_path)
         monkeypatch.chdir(root)
         result = runner.invoke(app, ["check-hygiene", "--json"])
@@ -211,7 +221,9 @@ class TestCli:
         assert "failed" in payload
         assert isinstance(payload["passed"], list)
 
-    def test_check_hygiene_json_includes_failures(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    def test_check_hygiene_json_includes_failures(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
         root = _mk_repo(tmp_path, include_agents=False)
         monkeypatch.chdir(root)
         result = runner.invoke(app, ["check-hygiene", "--json"])
@@ -221,6 +233,7 @@ class TestCli:
         assert len(payload["failed"]) >= 1
         assert any(f["name"] == "agents_md" for f in payload["failed"])
 
+
 # v0.9.2: clean_generated helper tests
 class TestCleanGenerated:
     def test_dry_run_reports_would_remove(self, tmp_path):
@@ -229,6 +242,7 @@ class TestCleanGenerated:
         (target / "dummy.json").write_text("{}", encoding="utf-8")
 
         from decision_system.devtools.clean_generated import clean_generated
+
         result = clean_generated(tmp_path)
         assert (target / "dummy.json").exists()  # nothing removed
         assert any("WOULD REMOVE" in item for item in result.removed) or len(result.removed) >= 1
@@ -239,6 +253,7 @@ class TestCleanGenerated:
         (target / "dummy.json").write_text("{}", encoding="utf-8")
 
         from decision_system.devtools.clean_generated import clean_generated
+
         result = clean_generated(tmp_path, force=True)
         assert not target.exists()
         assert any(".decision_system" in item for item in result.removed)
@@ -253,6 +268,7 @@ class TestCleanGenerated:
         artifact.write_text("{}", encoding="utf-8")
 
         from decision_system.devtools.clean_generated import clean_generated
+
         # Run dry-run so we can observe skipped entries; force would rmtree
         # the parent and would unrecoverably remove the protected file too.
         result = clean_generated(tmp_path, force=False)
@@ -269,6 +285,6 @@ class TestCleanGenerated:
 class TestCliImportCost:
     def test_importing_cli_does_not_initialize_chroma_client(self, tmp_path):
         from decision_system import cli
-        import chromadb
+
         # Module-level import should not start a client connection.
         assert getattr(cli, "chromadb", None) is not None or True

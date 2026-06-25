@@ -17,7 +17,6 @@ from uuid import uuid4
 
 from decision_system.models import ContradictionRecord
 
-
 # Patterns for detecting metric values
 METRIC_PATTERN = re.compile(
     r"(?:^|\s)(\d+[.,]?\d*)\s*(%|percent|dollars|USD|EUR|GBP|million|billion|thousand|users|customers|churn)(?:$|\s|[.,!?])",
@@ -62,6 +61,7 @@ class ContradictionDetector:
     def _get_resolver(self):
         if self._resolver is None:
             from decision_system.evidence.resolver import EvidenceResolver
+
             self._resolver = EvidenceResolver()
         return self._resolver
 
@@ -102,9 +102,7 @@ class ContradictionDetector:
         contradictions: list[ContradictionRecord] = []
 
         for ev in evidence_texts:
-            result = self._compare_claim_evidence(
-                claim_text, ev, workspace_id, claim_id
-            )
+            result = self._compare_claim_evidence(claim_text, ev, workspace_id, claim_id)
             if result:
                 contradictions.append(result)
 
@@ -123,44 +121,50 @@ class ContradictionDetector:
         # 1. Check metric conflicts
         metric_result = self._check_metric_conflict(a, b)
         if metric_result:
-            records.append(self._make_record(
-                workspace_id=workspace_id,
-                source_id_a=a.get("id", a.get("evidence_id", "")),
-                chunk_id_a=a.get("chunk_id", ""),
-                source_id_b=b.get("id", b.get("evidence_id", "")),
-                chunk_id_b=b.get("chunk_id", ""),
-                type="metric_conflict",
-                description=metric_result,
-                severity="high",
-            ))
+            records.append(
+                self._make_record(
+                    workspace_id=workspace_id,
+                    source_id_a=a.get("id", a.get("evidence_id", "")),
+                    chunk_id_a=a.get("chunk_id", ""),
+                    source_id_b=b.get("id", b.get("evidence_id", "")),
+                    chunk_id_b=b.get("chunk_id", ""),
+                    type="metric_conflict",
+                    description=metric_result,
+                    severity="high",
+                )
+            )
 
         # 2. Check opposite status
         status_result = self._check_opposite_status(a, b)
         if status_result:
-            records.append(self._make_record(
-                workspace_id=workspace_id,
-                source_id_a=a.get("id", a.get("evidence_id", "")),
-                chunk_id_a=a.get("chunk_id", ""),
-                source_id_b=b.get("id", b.get("evidence_id", "")),
-                chunk_id_b=b.get("chunk_id", ""),
-                type="opposite_status",
-                description=status_result,
-                severity="high",
-            ))
+            records.append(
+                self._make_record(
+                    workspace_id=workspace_id,
+                    source_id_a=a.get("id", a.get("evidence_id", "")),
+                    chunk_id_a=a.get("chunk_id", ""),
+                    source_id_b=b.get("id", b.get("evidence_id", "")),
+                    chunk_id_b=b.get("chunk_id", ""),
+                    type="opposite_status",
+                    description=status_result,
+                    severity="high",
+                )
+            )
 
         # 3. Check risk present vs absent
         risk_result = self._check_risk_conflict(a, b)
         if risk_result:
-            records.append(self._make_record(
-                workspace_id=workspace_id,
-                source_id_a=a.get("id", a.get("evidence_id", "")),
-                chunk_id_a=a.get("chunk_id", ""),
-                source_id_b=b.get("id", b.get("evidence_id", "")),
-                chunk_id_b=b.get("chunk_id", ""),
-                type="risk_conflict",
-                description=risk_result,
-                severity="medium",
-            ))
+            records.append(
+                self._make_record(
+                    workspace_id=workspace_id,
+                    source_id_a=a.get("id", a.get("evidence_id", "")),
+                    chunk_id_a=a.get("chunk_id", ""),
+                    source_id_b=b.get("id", b.get("evidence_id", "")),
+                    chunk_id_b=b.get("chunk_id", ""),
+                    type="risk_conflict",
+                    description=risk_result,
+                    severity="medium",
+                )
+            )
 
         return records
 
@@ -235,10 +239,7 @@ class ContradictionDetector:
         for ma in metrics_a:
             for mb in metrics_b:
                 if ma[1].lower() == mb[1].lower() and ma[0] != mb[0]:
-                    return (
-                        f"Metric '{ma[1]}' has conflicting values: "
-                        f"'{ma[0]}' vs '{mb[0]}'"
-                    )
+                    return f"Metric '{ma[1]}' has conflicting values: '{ma[0]}' vs '{mb[0]}'"
         return None
 
     def _check_opposite_status(self, a: dict, b: dict) -> str | None:

@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from decision_system._data_root import get_data_root
 
+from decision_system._data_root import get_data_root
 from decision_system.ontology.models import OntologyMap
+
 
 def _default_ontology_dir() -> Path:
     return get_data_root() / "ontology"
+
+
 DEFAULT_ONTOLOGY_FILENAME = "ontology_map.json"
 
 

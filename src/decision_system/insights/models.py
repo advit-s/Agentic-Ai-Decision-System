@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -51,10 +50,17 @@ class Insight(BaseModel):
     severity: InsightSeverity = "medium"
     confidence: ConfidenceLevel = "medium"
     source_type: str = Field(default="unknown", description='"profile", "csv", "graph", or "mixed"')
-    source_ids: list[str] = Field(default_factory=list, description="Dataset or evidence IDs backing this insight")
+    source_ids: list[str] = Field(
+        default_factory=list, description="Dataset or evidence IDs backing this insight"
+    )
     evidence_summary: str = Field(default="", description="Human-readable summary of the evidence")
-    recommended_action: str = Field(default="", description="Suggested follow-up for the stakeholder")
-    ontology_concepts: list[str] = Field(default_factory=list, description="Ontology concept IDs relevant to this insight")
+    recommended_action: str = Field(
+        default="", description="Suggested follow-up for the stakeholder"
+    )
+    ontology_concepts: list[str] = Field(
+        default_factory=list,
+        description="Ontology concept IDs relevant to this insight",
+    )
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 

@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from pathlib import Path
 
 import pytest
 
+from decision_system.storage.export_import import (
+    WorkspaceExporter,
+    WorkspaceImporter,
+)
+from decision_system.storage.inspector import WorkspaceInspector
 from decision_system.storage.migrations import run_migrations
 from decision_system.storage.models import ArtifactType, StoredArtifact, Workspace
 from decision_system.storage.repositories import (
@@ -15,15 +19,7 @@ from decision_system.storage.repositories import (
     SettingsRepository,
     WorkspaceRepository,
 )
-from decision_system.storage.inspector import WorkspaceInspector
 from decision_system.storage.sqlite_store import DatabaseConnection, create_tables
-from decision_system.storage.export_import import (
-    WorkspaceExporter,
-    WorkspaceImporter,
-    get_default_db_path,
-    init_workspace_dir,
-)
-
 
 # ------------------------------------------------------------------
 # Fixtures
@@ -65,9 +61,7 @@ class TestMigrations:
         assert db_file.exists()
         run_migrations(conn.connect())
         # Verify all three tables exist
-        cur = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-        )
+        cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         tables = {r["name"] for r in cur.fetchall()}
         assert "artifacts" in tables
         assert "settings" in tables
@@ -109,9 +103,7 @@ class TestMigrations:
         conn.connect()
         # create_tables delegates to run_migrations
         create_tables(conn.connect())
-        cur = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        )
+        cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = {r["name"] for r in cur.fetchall()}
         assert "artifacts" in tables
         conn.close()
@@ -125,9 +117,7 @@ class TestMigrations:
 class TestWorkspaceRepository:
     def test_create_and_retrieve(self, repos):
         ws_repo, _, _, conn = repos
-        ws = Workspace(
-            workspace_id="ws-1", name="demo", description="Demo workspace"
-        )
+        ws = Workspace(workspace_id="ws-1", name="demo", description="Demo workspace")
         ws_repo.create(ws)
         fetched = ws_repo.get_by_id("ws-1")
         assert fetched is not None
@@ -463,9 +453,7 @@ class TestExportImport:
             ],
         }
         export_file = tmp_path / "import.json"
-        export_file.write_text(
-            json.dumps(export_data, indent=2) + "\n", encoding="utf-8"
-        )
+        export_file.write_text(json.dumps(export_data, indent=2) + "\n", encoding="utf-8")
         importer = WorkspaceImporter(conn)
         bundle = importer.import_workspace(str(export_file))
         assert bundle.workspace.name == "ImportTest"
@@ -486,7 +474,11 @@ class TestExportImport:
         run_migrations(conn.connect())
         ws_repo = WorkspaceRepository(conn)
         ws_repo.create(Workspace(workspace_id="existing", name="ExistingWS"))
-        export_data = {"version": "1.0", "workspace": {"workspace_id": "whatever", "name": "ExistingWS"}, "artifacts": []}
+        export_data = {
+            "version": "1.0",
+            "workspace": {"workspace_id": "whatever", "name": "ExistingWS"},
+            "artifacts": [],
+        }
         export_file = tmp_path / "dup.json"
         export_file.write_text(json.dumps(export_data), encoding="utf-8")
         importer = WorkspaceImporter(conn)
@@ -501,7 +493,11 @@ class TestExportImport:
         run_migrations(conn.connect())
         ws_repo = WorkspaceRepository(conn)
         ws_repo.create(Workspace(workspace_id="old", name="OverwriteMe"))
-        export_data = {"version": "1.0", "workspace": {"workspace_id": "new", "name": "OverwriteMe"}, "artifacts": []}
+        export_data = {
+            "version": "1.0",
+            "workspace": {"workspace_id": "new", "name": "OverwriteMe"},
+            "artifacts": [],
+        }
         export_file = tmp_path / "force.json"
         export_file.write_text(json.dumps(export_data), encoding="utf-8")
         importer = WorkspaceImporter(conn)

@@ -399,11 +399,7 @@ def analyze_problem(question: str) -> ProblemAnalysis:
         notes_parts.append(f"Relevant data categories: {cats}.")
     missing = config.get("missing_capabilities", [])
     if missing:
-        notes_parts.append(
-            "Missing capabilities: "
-            + ", ".join(missing)
-            + "."
-        )
+        notes_parts.append("Missing capabilities: " + ", ".join(missing) + ".")
     else:
         notes_parts.append("No missing capabilities identified.")
 

@@ -5,11 +5,11 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 
 from fastapi import APIRouter
 
 from decision_system import __version__
+from decision_system._data_root import get_data_root
 from decision_system.config import load_settings
 
 router = APIRouter(tags=["dashboard"])
@@ -45,11 +45,14 @@ def get_dashboard() -> dict:
     graph_path = base / "graph" / "knowledge_graph.json"
     graph_data = _read_json(graph_path)
     graph_entities = len(graph_data.get("entities", [])) if isinstance(graph_data, dict) else 0
-    graph_relationships = len(graph_data.get("relationships", [])) if isinstance(graph_data, dict) else 0
+    graph_relationships = (
+        len(graph_data.get("relationships", [])) if isinstance(graph_data, dict) else 0
+    )
 
     # Connector count from the built-in registry.
     try:
         from decision_system.connectors.registry import list_connectors
+
         connector_count = len(list_connectors())
     except Exception:
         connector_count = 0
@@ -64,9 +67,7 @@ def get_dashboard() -> dict:
 
     # War-room run count.
     war_room_dir = base / "war_room" / "runs"
-    war_room_runs = (
-        len(list(war_room_dir.glob("*.json"))) if war_room_dir.exists() else 0
-    )
+    war_room_runs = len(list(war_room_dir.glob("*.json"))) if war_room_dir.exists() else 0
 
     quick_links = [
         {"label": "Index Documents", "icon": "document", "section": "data"},
@@ -110,11 +111,12 @@ def get_dashboard() -> dict:
 
     try:
         from decision_system.data_sources.store import DataSourceStore
+
         ds_store = DataSourceStore()
-        from decision_system.config import load_settings
-        from decision_system.storage.sqlite_store import DatabaseConnection
-        from decision_system.storage.repositories import WorkspaceRepository
         from decision_system.storage.migrations import run_migrations
+        from decision_system.storage.repositories import WorkspaceRepository
+        from decision_system.storage.sqlite_store import DatabaseConnection
+
         settings = load_settings()
         db = DatabaseConnection(settings.workspace_db_path)
         db.connect()

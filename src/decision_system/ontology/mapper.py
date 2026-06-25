@@ -7,14 +7,10 @@ simple exact/synonym lookups.
 
 from __future__ import annotations
 
-from collections import defaultdict
-
-from decision_system.data_catalog.models import DatasetProfile, DataCategory
 from decision_system.ontology.models import (
     ColumnMapping,
     OntologyConcept,
     OntologyMap,
-    ConceptType,
 )
 
 # ---------------------------------------------------------------------------
@@ -428,7 +424,11 @@ for col_name, concept_id in COLUMN_RULES:
 
 _CATEGORY_HINTS: dict[str, dict[str, str]] = {
     "financial": {"profit_margin": "profit_margin"},
-    "marketing": {"revenue": "revenue", "spend": "marketing_spend", "channel": "marketing_channel"},
+    "marketing": {
+        "revenue": "revenue",
+        "spend": "marketing_spend",
+        "channel": "marketing_channel",
+    },
     "competitors": {"price": "competitor_price", "review": "review_score"},
     "operations": {"delay": "operational_delay"},
     "analytics": {"bounce": "bounce_rate", "conversion": "conversion_rate"},

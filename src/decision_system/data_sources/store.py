@@ -16,9 +16,9 @@ from typing import Any
 from uuid import uuid4
 
 from decision_system.data_sources.models import (
+    DatasetProfile,
     DataSource,
     DataSourceChunk,
-    DatasetProfile,
     EvidenceSearchResult,
 )
 
@@ -62,7 +62,6 @@ def sanitize_filename(filename: str) -> str:
 
     Strips directory components and returns only the safe basename.
     """
-    import os
     # Remove any path components (path traversal protection)
     safe = os.path.basename(filename)
     # Strip null bytes and control characters
@@ -82,8 +81,11 @@ class DataSourceStore:
     """
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        import os
-        self._base = Path(base_dir if base_dir is not None else os.environ.get("DECISION_SYSTEM_DATA_DIR", ".decision_system"))
+        self._base = Path(
+            base_dir
+            if base_dir is not None
+            else os.environ.get("DECISION_SYSTEM_DATA_DIR", ".decision_system")
+        )
         self._sources_dir = self._base / "data_sources"
         _ensure_dir(self._sources_dir)
 
@@ -238,15 +240,10 @@ class DataSourceStore:
     def save_chunks(self, chunks: list[DataSourceChunk]) -> None:
         """Save parsed chunks for a data source."""
         for chunk in chunks:
-            path = (
-                self._chunks_dir(chunk.workspace_id, chunk.source_id)
-                / f"{chunk.chunk_id}.json"
-            )
+            path = self._chunks_dir(chunk.workspace_id, chunk.source_id) / f"{chunk.chunk_id}.json"
             _write_json(path, chunk.model_dump(mode="json"))
 
-    def load_chunks(
-        self, workspace_id: str, source_id: str
-    ) -> list[DataSourceChunk]:
+    def load_chunks(self, workspace_id: str, source_id: str) -> list[DataSourceChunk]:
         """Load all chunks for a data source."""
         chunks: list[DataSourceChunk] = []
         chunks_dir = self._base / "chunks" / workspace_id / source_id
@@ -277,7 +274,7 @@ class DataSourceStore:
         query_terms = query_lower.split()
         results: list[EvidenceSearchResult] = []
         source_ids_set = set(source_ids) if source_ids else None
-        file_types_set = set(file_types) if file_types else None
+        set(file_types) if file_types else None
 
         # Walk all workspace chunk dirs
         chunks_base = self._base / "chunks" / workspace_id
@@ -307,8 +304,11 @@ class DataSourceStore:
                 if score > 0:
                     # Look up the data source to get original filename
                     source_record = self.load(workspace_id, src_id)
-                    source_name = (source_record.original_filename if source_record and source_record.original_filename
-                                   else data.get("metadata", {}).get("source_name", src_id))
+                    source_name = (
+                        source_record.original_filename
+                        if source_record and source_record.original_filename
+                        else data.get("metadata", {}).get("source_name", src_id)
+                    )
                     results.append(
                         EvidenceSearchResult(
                             evidence_id=f"kw-{src_id}-{data.get('chunk_id', '')}",
@@ -367,9 +367,7 @@ class DataSourceStore:
         path = index_dir / f"{source_id}.json"
         _write_json(path, metadata)
 
-    def get_index_metadata(
-        self, workspace_id: str, source_id: str
-    ) -> dict[str, Any] | None:
+    def get_index_metadata(self, workspace_id: str, source_id: str) -> dict[str, Any] | None:
         """Get indexing metadata for a data source."""
         path = self._base / "index" / workspace_id / f"{source_id}.json"
         return _read_json(path)

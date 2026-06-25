@@ -9,16 +9,17 @@ LLMClient for AI-powered analysis, claim extraction, and report writing.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from decision_system.workflow_engine.models import (
-    WorkflowNode, ExecutionContext,
+    ExecutionContext,
+    WorkflowNode,
 )
 from decision_system.workflow_engine.providers.client import LLMClient
 
 
 class RetrieveNode(WorkflowNode):
     """Retrieves evidence chunks from the local Chroma vector store."""
+
     type: str = "decision_system.retrieve"
     label: str = "Retrieve Evidence"
 
@@ -43,12 +44,14 @@ class RetrieveNode(WorkflowNode):
             )
             chunks = []
             for chunk in results:
-                chunks.append({
-                    "evidence_id": chunk.evidence_id,
-                    "source": chunk.source,
-                    "text": chunk.text,
-                    "score": chunk.score,
-                })
+                chunks.append(
+                    {
+                        "evidence_id": chunk.evidence_id,
+                        "source": chunk.source,
+                        "text": chunk.text,
+                        "score": chunk.score,
+                    }
+                )
             return {"chunks": chunks, "count": len(chunks)}
         except Exception as exc:
             return {"chunks": [], "count": 0, "error": str(exc)}
@@ -60,7 +63,8 @@ class RetrieveNode(WorkflowNode):
             "properties": {
                 "top_k": {"type": "integer", "default": 5, "title": "Top K"},
                 "collection": {
-                    "type": "string", "default": "decision_docs",
+                    "type": "string",
+                    "default": "decision_docs",
                     "title": "Collection Name",
                 },
             },
@@ -89,6 +93,7 @@ class RetrieveNode(WorkflowNode):
 
 class TechAnalystNode(WorkflowNode):
     """Runs technical analysis on retrieved evidence."""
+
     type: str = "decision_system.technical_analyst"
     label: str = "Technical Analyst"
 
@@ -107,13 +112,19 @@ class TechAnalystNode(WorkflowNode):
             client = LLMClient(cfg)
             result = await client.chat_completion(
                 messages=[
-                    {"role": "system", "content": (
-                        "You are a senior technical analyst examining company data. "
-                        "Analyze the provided documents and identify technical patterns, "
-                        "architecture issues, and implementation concerns. "
-                        "Return your analysis as structured JSON with 'findings' array."
-                    )},
-                    {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a senior technical analyst examining company data. "
+                            "Analyze the provided documents and identify technical patterns, "
+                            "architecture issues, and implementation concerns. "
+                            "Return your analysis as structured JSON with 'findings' array."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Question: {question}\n\nContext:\n{context}",
+                    },
                 ],
                 model=model,
                 stream=False,
@@ -127,9 +138,16 @@ class TechAnalystNode(WorkflowNode):
         question = inputs.get("question") or ""
         chunks = inputs.get("chunks") or []
         evidence = [
-            EvidenceChunk(**c) if isinstance(c, dict) and "text" in c
-            else EvidenceChunk(text=str(c), evidence_id="", document_id="",
-                               source_path="", source_filename="", chunk_id="")
+            EvidenceChunk(**c)
+            if isinstance(c, dict) and "text" in c
+            else EvidenceChunk(
+                text=str(c),
+                evidence_id="",
+                document_id="",
+                source_path="",
+                source_filename="",
+                chunk_id="",
+            )
             for c in chunks
         ]
 
@@ -145,7 +163,8 @@ class TechAnalystNode(WorkflowNode):
             "type": "object",
             "properties": {
                 "provider": {
-                    "type": "string", "default": "fake",
+                    "type": "string",
+                    "default": "fake",
                     "enum": ["fake", "nvidia_nim", "ollama"],
                 },
             },
@@ -174,6 +193,7 @@ class TechAnalystNode(WorkflowNode):
 
 class RiskAnalystNode(WorkflowNode):
     """Runs risk analysis on retrieved evidence."""
+
     type: str = "decision_system.risk_analyst"
     label: str = "Risk Analyst"
 
@@ -192,13 +212,19 @@ class RiskAnalystNode(WorkflowNode):
             client = LLMClient(cfg)
             result = await client.chat_completion(
                 messages=[
-                    {"role": "system", "content": (
-                        "You are a risk analyst evaluating business risks. "
-                        "Analyze the provided context and identify potential risks, "
-                        "their severity, and mitigations. "
-                        "Return your analysis as structured JSON with 'risks' array."
-                    )},
-                    {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a risk analyst evaluating business risks. "
+                            "Analyze the provided context and identify potential risks, "
+                            "their severity, and mitigations. "
+                            "Return your analysis as structured JSON with 'risks' array."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Question: {question}\n\nContext:\n{context}",
+                    },
                 ],
                 model=model,
                 stream=False,
@@ -212,13 +238,22 @@ class RiskAnalystNode(WorkflowNode):
         question = inputs.get("question") or ""
         chunks = inputs.get("chunks") or []
         evidence = [
-            EvidenceChunk(**c) if isinstance(c, dict) and "text" in c
-            else EvidenceChunk(text=str(c), evidence_id="", document_id="",
-                               source_path="", source_filename="", chunk_id="")
+            EvidenceChunk(**c)
+            if isinstance(c, dict) and "text" in c
+            else EvidenceChunk(
+                text=str(c),
+                evidence_id="",
+                document_id="",
+                source_path="",
+                source_filename="",
+                chunk_id="",
+            )
             for c in chunks
         ]
 
-        memo = run_risk_analysis(question=question, evidence=evidence, technical_memo=None, provider=None)
+        memo = run_risk_analysis(
+            question=question, evidence=evidence, technical_memo=None, provider=None
+        )
         return {
             "memo": memo.model_dump() if hasattr(memo, "model_dump") else memo,
             "analysis": str(memo),
@@ -230,7 +265,8 @@ class RiskAnalystNode(WorkflowNode):
             "type": "object",
             "properties": {
                 "provider": {
-                    "type": "string", "default": "fake",
+                    "type": "string",
+                    "default": "fake",
                     "enum": ["fake", "nvidia_nim", "ollama"],
                 },
             },
@@ -259,6 +295,7 @@ class RiskAnalystNode(WorkflowNode):
 
 class ExtractClaimsNode(WorkflowNode):
     """Extracts claims from analyst memos into the claim ledger."""
+
     type: str = "decision_system.extract_claims"
     label: str = "Extract Claims"
 
@@ -270,16 +307,21 @@ class ExtractClaimsNode(WorkflowNode):
         )
         if provider_cfg is not None:
             cfg, model = provider_cfg
-            memo_text = str(inputs.get("memo", inputs.get("technical_memo", inputs.get("risk_memo", ""))))
+            memo_text = str(
+                inputs.get("memo", inputs.get("technical_memo", inputs.get("risk_memo", "")))
+            )
 
             client = LLMClient(cfg)
             result = await client.chat_completion(
                 messages=[
-                    {"role": "system", "content": (
-                        "Extract factual claims from the following text. "
-                        "Each claim must be a single, verifiable statement. "
-                        "Return the claims as a JSON array of strings."
-                    )},
+                    {
+                        "role": "system",
+                        "content": (
+                            "Extract factual claims from the following text. "
+                            "Each claim must be a single, verifiable statement. "
+                            "Return the claims as a JSON array of strings."
+                        ),
+                    },
                     {"role": "user", "content": memo_text},
                 ],
                 model=model,
@@ -294,8 +336,9 @@ class ExtractClaimsNode(WorkflowNode):
             return {"claims": [result], "count": 1}
 
         # Fallback to rule-based claim extraction
-        from decision_system.models import Claim
         from uuid import uuid4
+
+        from decision_system.models import Claim
 
         tech_memo = inputs.get("technical_memo") or inputs.get("memo", {})
         risk_memo = inputs.get("risk_memo") or inputs.get("memo", {})
@@ -312,13 +355,15 @@ class ExtractClaimsNode(WorkflowNode):
                         for item in items:
                             text = item.get("title", "") if isinstance(item, dict) else str(item)
                             if text:
-                                claims.append(Claim(
-                                    claim_id=str(uuid4()),
-                                    run_id="",
-                                    source_agent=agent_name,
-                                    claim_text=text,
-                                    claim_type=claim_type,
-                                ))
+                                claims.append(
+                                    Claim(
+                                        claim_id=str(uuid4()),
+                                        run_id="",
+                                        source_agent=agent_name,
+                                        claim_text=text,
+                                        claim_type=claim_type,
+                                    )
+                                )
         return {
             "claims": [c.model_dump() if hasattr(c, "model_dump") else c for c in claims],
             "count": len(claims),
@@ -352,6 +397,7 @@ class ExtractClaimsNode(WorkflowNode):
 
 class VerifyClaimsNode(WorkflowNode):
     """Verifies extracted claims against retrieved evidence."""
+
     type: str = "decision_system.verify_claims"
     label: str = "Verify Claims"
 
@@ -365,19 +411,27 @@ class VerifyClaimsNode(WorkflowNode):
             cfg, model = provider_cfg
             claims = inputs.get("claims") or []
             chunks = inputs.get("chunks") or []
-            claims_text = json.dumps([c if isinstance(c, dict) else {"text": str(c)} for c in claims])
+            claims_text = json.dumps(
+                [c if isinstance(c, dict) else {"text": str(c)} for c in claims]
+            )
             evidence_text = "\n".join(c.get("text", "") for c in chunks if isinstance(c, dict))
 
             client = LLMClient(cfg)
             result = await client.chat_completion(
                 messages=[
-                    {"role": "system", "content": (
-                        "Given these claims and the supporting evidence, verify each claim. "
-                        "Classify each as: supported, unsupported, or contradicted. "
-                        "Return the result as a JSON array of objects with "
-                        "'claim', 'status', and 'evidence' fields."
-                    )},
-                    {"role": "user", "content": f"Claims:\n{claims_text}\n\nEvidence:\n{evidence_text}"},
+                    {
+                        "role": "system",
+                        "content": (
+                            "Given these claims and the supporting evidence, verify each claim. "
+                            "Classify each as: supported, unsupported, or contradicted. "
+                            "Return the result as a JSON array of objects with "
+                            "'claim', 'status', and 'evidence' fields."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Claims:\n{claims_text}\n\nEvidence:\n{evidence_text}",
+                    },
                 ],
                 model=model,
                 stream=False,
@@ -397,14 +451,28 @@ class VerifyClaimsNode(WorkflowNode):
         claims = inputs.get("claims") or []
         chunks = inputs.get("chunks") or []
         raw_claims = [
-            Claim(**c) if isinstance(c, dict) and "claim_text" in c
-            else Claim(claim_id="", run_id="", source_agent="", claim_text=str(c), claim_type="technical")
+            Claim(**c)
+            if isinstance(c, dict) and "claim_text" in c
+            else Claim(
+                claim_id="",
+                run_id="",
+                source_agent="",
+                claim_text=str(c),
+                claim_type="technical",
+            )
             for c in claims
         ]
         evidence = [
-            EvidenceChunk(**c) if isinstance(c, dict) and "text" in c
-            else EvidenceChunk(text=str(c), evidence_id="", document_id="",
-                               source_path="", source_filename="", chunk_id="")
+            EvidenceChunk(**c)
+            if isinstance(c, dict) and "text" in c
+            else EvidenceChunk(
+                text=str(c),
+                evidence_id="",
+                document_id="",
+                source_path="",
+                source_filename="",
+                chunk_id="",
+            )
             for c in chunks
         ]
 
@@ -443,6 +511,7 @@ class VerifyClaimsNode(WorkflowNode):
 
 class WriteReportNode(WorkflowNode):
     """Writes a decision report from verified claims."""
+
     type: str = "decision_system.write_report"
     label: str = "Write Report"
 
@@ -461,13 +530,19 @@ class WriteReportNode(WorkflowNode):
             client = LLMClient(cfg)
             result = await client.chat_completion(
                 messages=[
-                    {"role": "system", "content": (
-                        "Write a structured decision report based on the following "
-                        "verified claims, findings, and analysis. Include an executive "
-                        "summary, key findings, and recommendations. "
-                        "Use Markdown formatting."
-                    )},
-                    {"role": "user", "content": f"Question: {question}\n\nClaims:\n{claims_text}"},
+                    {
+                        "role": "system",
+                        "content": (
+                            "Write a structured decision report based on the following "
+                            "verified claims, findings, and analysis. Include an executive "
+                            "summary, key findings, and recommendations. "
+                            "Use Markdown formatting."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Question: {question}\n\nClaims:\n{claims_text}",
+                    },
                 ],
                 model=model,
                 stream=False,
@@ -479,15 +554,23 @@ class WriteReportNode(WorkflowNode):
             }
 
         # Fallback to rule-based report renderer
-        from decision_system.reports.renderer import render_decision_report
-        from decision_system.models import Claim
         from uuid import uuid4
+
+        from decision_system.models import Claim
+        from decision_system.reports.renderer import render_decision_report
 
         question = inputs.get("question") or ""
         claims = inputs.get("verified_claims") or inputs.get("claims") or []
         raw_claims = [
-            Claim(**c) if isinstance(c, dict) and "claim_text" in c
-            else Claim(claim_id=str(uuid4()), run_id="", source_agent="", claim_text=str(c), claim_type="technical")
+            Claim(**c)
+            if isinstance(c, dict) and "claim_text" in c
+            else Claim(
+                claim_id=str(uuid4()),
+                run_id="",
+                source_agent="",
+                claim_text=str(c),
+                claim_type="technical",
+            )
             for c in claims
         ]
 
@@ -510,7 +593,8 @@ class WriteReportNode(WorkflowNode):
             "type": "object",
             "properties": {
                 "format": {
-                    "type": "string", "default": "markdown",
+                    "type": "string",
+                    "default": "markdown",
                     "enum": ["markdown", "json"],
                 },
             },

@@ -10,7 +10,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from decision_system.orchestration.models import (
-    DecisionType,
     ProblemAnalysis,
 )
 
@@ -33,9 +32,7 @@ def _artifact_paths_for_categories(categories: list[str]) -> list[str]:
     return paths
 
 
-def _default_context_summary(
-    analysis: ProblemAnalysis, artifact_paths: list[str]
-) -> str:
+def _default_context_summary(analysis: ProblemAnalysis, artifact_paths: list[str]) -> str:
     parts = [
         f"Question: '{analysis.question}'",
         f"Decision type: {analysis.decision_type}",
@@ -62,10 +59,7 @@ def plan_data_tools_roles(
     artifact_paths = _artifact_paths_for_categories(analysis.required_data_categories)
     existing = " ".join(analysis.analysis_notes.split()).strip()
 
-    extra_notes = (
-        f"Artifact paths: {'; '.join(artifact_paths)}. "
-        f"Base data root: {base_data_root}."
-    )
+    extra_notes = f"Artifact paths: {'; '.join(artifact_paths)}. Base data root: {base_data_root}."
 
     # Merge notes without duplication
     if existing:

@@ -7,9 +7,11 @@ import shutil
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 # Disable scheduler before importing app
 from decision_system.api.app import set_scheduler_enabled
+
 set_scheduler_enabled(False)
 
 from decision_system.api.app import create_app
@@ -36,11 +38,14 @@ class TestProviderAPI:
         assert data["providers"] == []
 
     def test_create_provider(self, client):
-        response = client.post("/providers", json={
-            "name": "Local Ollama",
-            "provider_type": "ollama",
-            "base_url": "http://localhost:11434",
-        })
+        response = client.post(
+            "/providers",
+            json={
+                "name": "Local Ollama",
+                "provider_type": "ollama",
+                "base_url": "http://localhost:11434",
+            },
+        )
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == "Local Ollama"
@@ -49,10 +54,13 @@ class TestProviderAPI:
         assert "provider_id" in data
 
     def test_create_and_get(self, client):
-        create_resp = client.post("/providers", json={
-            "name": "Fake Provider",
-            "provider_type": "fake",
-        })
+        create_resp = client.post(
+            "/providers",
+            json={
+                "name": "Fake Provider",
+                "provider_type": "fake",
+            },
+        )
         assert create_resp.status_code == 201
         provider_id = create_resp.json()["provider_id"]
 
@@ -65,23 +73,32 @@ class TestProviderAPI:
         assert response.status_code == 404
 
     def test_update_provider(self, client):
-        create_resp = client.post("/providers", json={
-            "name": "Test Provider",
-            "provider_type": "fake",
-        })
+        create_resp = client.post(
+            "/providers",
+            json={
+                "name": "Test Provider",
+                "provider_type": "fake",
+            },
+        )
         provider_id = create_resp.json()["provider_id"]
 
-        update_resp = client.put(f"/providers/{provider_id}", json={
-            "default_model": "gpt-4",
-        })
+        update_resp = client.put(
+            f"/providers/{provider_id}",
+            json={
+                "default_model": "gpt-4",
+            },
+        )
         assert update_resp.status_code == 200
         assert update_resp.json()["default_model"] == "gpt-4"
 
     def test_delete_provider(self, client):
-        create_resp = client.post("/providers", json={
-            "name": "Delete Me",
-            "provider_type": "fake",
-        })
+        create_resp = client.post(
+            "/providers",
+            json={
+                "name": "Delete Me",
+                "provider_type": "fake",
+            },
+        )
         provider_id = create_resp.json()["provider_id"]
 
         delete_resp = client.delete(f"/providers/{provider_id}")
@@ -104,10 +121,13 @@ class TestProviderAPI:
         assert data["total"] == 2
 
     def test_status_fake(self, client):
-        create_resp = client.post("/providers", json={
-            "name": "Fake",
-            "provider_type": "fake",
-        })
+        create_resp = client.post(
+            "/providers",
+            json={
+                "name": "Fake",
+                "provider_type": "fake",
+            },
+        )
         provider_id = create_resp.json()["provider_id"]
 
         response = client.get(f"/providers/{provider_id}/status")
@@ -115,11 +135,14 @@ class TestProviderAPI:
         assert response.json()["status"] in ("configured", "healthy")
 
     def test_status_missing_api_key(self, client):
-        create_resp = client.post("/providers", json={
-            "name": "OpenAI",
-            "provider_type": "openai",
-            "api_key_env": "MISSING_KEY_XYZ",
-        })
+        create_resp = client.post(
+            "/providers",
+            json={
+                "name": "OpenAI",
+                "provider_type": "openai",
+                "api_key_env": "MISSING_KEY_XYZ",
+            },
+        )
         provider_id = create_resp.json()["provider_id"]
 
         response = client.get(f"/providers/{provider_id}/status")
@@ -127,10 +150,13 @@ class TestProviderAPI:
         assert response.json()["status"] == "missing_config"
 
     def test_test_fake_provider(self, client):
-        create_resp = client.post("/providers", json={
-            "name": "Fake Test",
-            "provider_type": "fake",
-        })
+        create_resp = client.post(
+            "/providers",
+            json={
+                "name": "Fake Test",
+                "provider_type": "fake",
+            },
+        )
         provider_id = create_resp.json()["provider_id"]
 
         response = client.post(f"/providers/{provider_id}/test")
@@ -142,10 +168,13 @@ class TestProviderAPI:
         assert response.status_code == 404
 
     def test_models_endpoint(self, client):
-        create_resp = client.post("/providers", json={
-            "name": "Fake Models",
-            "provider_type": "fake",
-        })
+        create_resp = client.post(
+            "/providers",
+            json={
+                "name": "Fake Models",
+                "provider_type": "fake",
+            },
+        )
         provider_id = create_resp.json()["provider_id"]
 
         response = client.get(f"/providers/{provider_id}/models")

@@ -7,9 +7,10 @@ No network access required.
 from __future__ import annotations
 
 from decision_system.providers.runtime import (
-    BaseProvider, ChatRequest, ChatResponse,
+    BaseProvider,
+    ChatRequest,
+    ChatResponse,
 )
-
 
 FAKE_MODELS = ["fake-model-1", "fake-model-2"]
 FAKE_DEFAULT_MODEL = "fake-model-1"
@@ -30,26 +31,26 @@ FAKE_RESPONSES: dict[str, str] = {
         "**Confidence:** Medium — evidence quality is moderate."
     ),
     "claims": (
-        '[\n'
-        '  {\n'
+        "[\n"
+        "  {\n"
         '    "claim_text": "Billing migration requires rollback planning",\n'
         '    "claim_type": "risk",\n'
         '    "confidence": 0.85,\n'
         '    "evidence_ids": ["ev-1"]\n'
-        '  },\n'
-        '  {\n'
+        "  },\n"
+        "  {\n"
         '    "claim_text": "LegacyAuth is owned by the Platform Team",\n'
         '    "claim_type": "fact",\n'
         '    "confidence": 0.95,\n'
         '    "evidence_ids": ["ev-2"]\n'
-        '  },\n'
-        '  {\n'
+        "  },\n"
+        "  {\n"
         '    "claim_text": "Revenue growth is projected at 15% for next quarter",\n'
         '    "claim_type": "forecast",\n'
         '    "confidence": 0.60,\n'
         '    "evidence_ids": ["ev-3"]\n'
-        '  }\n'
-        ']'
+        "  }\n"
+        "]"
     ),
 }
 

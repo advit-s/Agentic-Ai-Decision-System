@@ -44,8 +44,6 @@ def is_ocr_available() -> bool:
     if not _HAS_TESSEROCR:
         return False
     try:
-        import tesserocr
-
         # Try to find tessdata
         tessdata = os.environ.get("TESSDATA_PREFIX") or os.environ.get("TESSDATA")
         if not tessdata:
@@ -64,6 +62,7 @@ def is_ocr_available() -> bool:
             return False
         # Quick validation
         import tesserocr as tr
+
         api = tr.PyTessBaseAPI()
         api.End()
         return True
@@ -199,6 +198,7 @@ class ImageOcrParser(BaseParser):
 # Scanned PDF parser (falls back to OCR when pypdf yields no text)
 # ---------------------------------------------------------------------------
 
+
 class ScannedPdfParser(BaseParser):
     """Parse scanned/image PDFs by rendering pages and running OCR.
 
@@ -222,8 +222,7 @@ class ScannedPdfParser(BaseParser):
                 source_id=source_id,
                 workspace_id=workspace_id,
                 warnings=[
-                    "Scanned PDF OCR requires tesserocr. Install with: "
-                    "pip install tesserocr"
+                    "Scanned PDF OCR requires tesserocr. Install with: pip install tesserocr"
                 ],
                 parser_name=self.name,
             )
@@ -231,10 +230,7 @@ class ScannedPdfParser(BaseParser):
             return ParseResult(
                 source_id=source_id,
                 workspace_id=workspace_id,
-                warnings=[
-                    "Scanned PDF OCR requires PyMuPDF. Install with: "
-                    "pip install PyMuPDF"
-                ],
+                warnings=["Scanned PDF OCR requires PyMuPDF. Install with: pip install PyMuPDF"],
                 parser_name=self.name,
             )
 
@@ -315,11 +311,13 @@ class ScannedPdfParser(BaseParser):
                 warnings.append(f"Page {page_num + 1} OCR produced no text")
                 continue
 
-            pages_parsed.append({
-                "page_number": page_num + 1,
-                "text": page_text,
-                "char_count": len(page_text),
-            })
+            pages_parsed.append(
+                {
+                    "page_number": page_num + 1,
+                    "text": page_text,
+                    "char_count": len(page_text),
+                }
+            )
             full_text_parts.append(page_text)
             chunks = self.chunk(
                 page_text,

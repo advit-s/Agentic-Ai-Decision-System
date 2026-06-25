@@ -45,7 +45,8 @@ def _record_metric(name: str, value: float, metric_type: str = "counter", **labe
 def graph_extraction_started(workspace_id: str, **extra: str) -> None:
     """Emit graph_extraction_started event."""
     _record_metric(
-        "graph_extraction_started", 1.0,
+        "graph_extraction_started",
+        1.0,
         event_type="graph_extraction_started",
         workspace_id=workspace_id,
         **extra,
@@ -63,14 +64,16 @@ def graph_extraction_completed(
 ) -> None:
     """Emit graph_extraction_completed event with metrics."""
     _record_metric(
-        "graph_extraction_completed", 1.0,
+        "graph_extraction_completed",
+        1.0,
         event_type="graph_extraction_completed",
         workspace_id=workspace_id,
         **extra,
     )
     # Performance metric
     _record_metric(
-        "graph_extraction_duration_ms", duration_ms,
+        "graph_extraction_duration_ms",
+        duration_ms,
         metric_type="timer",
         workspace_id=workspace_id,
     )
@@ -88,14 +91,16 @@ def graph_extraction_completed(
 def graph_extraction_failed(workspace_id: str, error: str, **extra: str) -> None:
     """Emit graph_extraction_failed event."""
     _record_metric(
-        "graph_extraction_failed", 1.0,
+        "graph_extraction_failed",
+        1.0,
         event_type="graph_extraction_failed",
         workspace_id=workspace_id,
         error=error[:80] if error else "unknown",
         **extra,
     )
     _record_metric(
-        "graph_extraction_failure_count", 1.0,
+        "graph_extraction_failure_count",
+        1.0,
         metric_type="counter",
         workspace_id=workspace_id,
     )
@@ -104,7 +109,8 @@ def graph_extraction_failed(workspace_id: str, error: str, **extra: str) -> None
 def risk_extraction_completed(workspace_id: str, risks_count: int = 0, **extra: str) -> None:
     """Emit risk_extraction_completed event."""
     _record_metric(
-        "risk_extraction_completed", 1.0,
+        "risk_extraction_completed",
+        1.0,
         event_type="risk_extraction_completed",
         workspace_id=workspace_id,
         **extra,
@@ -116,7 +122,8 @@ def risk_extraction_completed(workspace_id: str, risks_count: int = 0, **extra: 
 def metric_extraction_completed(workspace_id: str, metrics_count: int = 0, **extra: str) -> None:
     """Emit metric_extraction_completed event."""
     _record_metric(
-        "metric_extraction_completed", 1.0,
+        "metric_extraction_completed",
+        1.0,
         event_type="metric_extraction_completed",
         workspace_id=workspace_id,
         **extra,
@@ -133,7 +140,8 @@ def graph_fact_created(
 ) -> None:
     """Emit graph_fact_created event for a single graph fact."""
     _record_metric(
-        "graph_fact_created", 1.0,
+        "graph_fact_created",
+        1.0,
         event_type="graph_fact_created",
         workspace_id=workspace_id,
         fact_type=fact_type,

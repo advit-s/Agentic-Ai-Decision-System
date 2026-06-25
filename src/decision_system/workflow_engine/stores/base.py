@@ -5,7 +5,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from decision_system.workflow_engine.models import (
-    WorkflowDefinition, ExecutionState,
+    ExecutionState,
+    WorkflowDefinition,
 )
 
 
@@ -36,7 +37,6 @@ class ExecutionStore(ABC):
 
     @abstractmethod
     def list(self, workflow_id: str | None = None) -> list[ExecutionState]: ...
-
 
     @abstractmethod
     def delete(self, execution_id: str) -> None: ...

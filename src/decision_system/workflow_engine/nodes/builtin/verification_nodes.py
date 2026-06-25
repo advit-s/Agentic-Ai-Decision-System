@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from decision_system.verification.service import VerificationService
 from decision_system.workflow_engine.models import (
-    WorkflowNode,
     ExecutionContext,
+    WorkflowNode,
 )
 
 
@@ -54,8 +54,26 @@ class ClaimVerifierNode(WorkflowNode):
                 result = service.verify_claim_by_id(cid, workspace_id=workspace_id)
                 if result:
                     verification, quality = result
-                    results.append({
-                        "claim_id": cid,
+                    results.append(
+                        {
+                            "claim_id": cid,
+                            "status": verification.status,
+                            "confidence": verification.confidence,
+                            "verification_notes": verification.verification_notes,
+                            "verification_method": verification.verification_method,
+                            "evidence_quality": quality.quality_label,
+                            "evidence_ids": verification.evidence_ids,
+                            "evidence_snippets": verification.evidence_snippets,
+                            "contradicting_evidence_ids": verification.contradicting_evidence_ids,
+                        }
+                    )
+        elif execution_id:
+            # Verify all claims for an execution
+            pairs = service.verify_execution_claims(execution_id, workspace_id=workspace_id)
+            for verification, quality in pairs:
+                results.append(
+                    {
+                        "claim_id": verification.claim_id,
                         "status": verification.status,
                         "confidence": verification.confidence,
                         "verification_notes": verification.verification_notes,
@@ -64,37 +82,25 @@ class ClaimVerifierNode(WorkflowNode):
                         "evidence_ids": verification.evidence_ids,
                         "evidence_snippets": verification.evidence_snippets,
                         "contradicting_evidence_ids": verification.contradicting_evidence_ids,
-                    })
-        elif execution_id:
-            # Verify all claims for an execution
-            pairs = service.verify_execution_claims(execution_id, workspace_id=workspace_id)
-            for verification, quality in pairs:
-                results.append({
-                    "claim_id": verification.claim_id,
-                    "status": verification.status,
-                    "confidence": verification.confidence,
-                    "verification_notes": verification.verification_notes,
-                    "verification_method": verification.verification_method,
-                    "evidence_quality": quality.quality_label,
-                    "evidence_ids": verification.evidence_ids,
-                    "evidence_snippets": verification.evidence_snippets,
-                    "contradicting_evidence_ids": verification.contradicting_evidence_ids,
-                })
+                    }
+                )
         else:
             # Verify all workspace claims
             pairs = service.verify_workspace_claims(workspace_id)
             for verification, quality in pairs:
-                results.append({
-                    "claim_id": verification.claim_id,
-                    "status": verification.status,
-                    "confidence": verification.confidence,
-                    "verification_notes": verification.verification_notes,
-                    "verification_method": verification.verification_method,
-                    "evidence_quality": quality.quality_label,
-                    "evidence_ids": verification.evidence_ids,
-                    "evidence_snippets": verification.evidence_snippets,
-                    "contradicting_evidence_ids": verification.contradicting_evidence_ids,
-                })
+                results.append(
+                    {
+                        "claim_id": verification.claim_id,
+                        "status": verification.status,
+                        "confidence": verification.confidence,
+                        "verification_notes": verification.verification_notes,
+                        "verification_method": verification.verification_method,
+                        "evidence_quality": quality.quality_label,
+                        "evidence_ids": verification.evidence_ids,
+                        "evidence_snippets": verification.evidence_snippets,
+                        "contradicting_evidence_ids": verification.contradicting_evidence_ids,
+                    }
+                )
 
         summary = service.get_verification_summary(
             workspace_id=workspace_id, execution_id=execution_id
@@ -103,6 +109,7 @@ class ClaimVerifierNode(WorkflowNode):
         # Emit audit event
         try:
             from decision_system.workflow_engine.engine.events import EventBus
+
             bus = EventBus()
             bus.emit(
                 event_type="claim_verified",
@@ -197,6 +204,7 @@ class ContradictionScanNode(WorkflowNode):
         # Emit audit event
         try:
             from decision_system.workflow_engine.engine.events import EventBus
+
             bus = EventBus()
             bus.emit(
                 event_type="contradiction_scan_run",

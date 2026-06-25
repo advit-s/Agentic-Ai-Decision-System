@@ -4,41 +4,29 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
-from decision_system.data_catalog.models import (
-    ColumnProfile,
-    DataProfileStore,
-    DataCategory,
-    DatasetProfile,
-)
 from decision_system.graphing.models import (
-    Entity,
-    EntityType,
     KnowledgeGraph,
-    Relationship,
-    RelationType,
 )
 from decision_system.insights.models import (
     Insight,
-    InsightSeverity,
     InsightStore,
 )
 from decision_system.ontology.models import (
-    ColumnMapping,
-    OntologyConcept,
     OntologyMap,
 )
+from decision_system.orchestration.dispatcher import build_dispatch_plan
+from decision_system.orchestration.inspector import (
+    inspect_dispatch_plan,
+    inspect_problem_analysis,
+    render_dispatch_plan,
+    render_problem_analysis,
+)
+from decision_system.orchestration.judge import build_judge_summary
 from decision_system.orchestration.models import (
-    DecisionSession,
-    DecisionType,
     DispatchPlan,
-    JudgeSummary,
     ProblemAnalysis,
     StorageTier,
 )
-from decision_system.orchestration.dispatcher import build_dispatch_plan
-from decision_system.orchestration.judge import build_judge_summary
 from decision_system.orchestration.planner import plan_data_tools_roles
 from decision_system.orchestration.problem_analyzer import analyze_problem
 from decision_system.orchestration.sandbox import validate_action
@@ -47,19 +35,11 @@ from decision_system.orchestration.session import (
     load_latest_run,
 )
 from decision_system.orchestration.store import (
-    save_decision_session,
-    load_decision_session,
-    load_latest_session,
     list_runs,
+    load_decision_session,
+    save_decision_session,
 )
 from decision_system.orchestration.workflow import run_orchestration
-from decision_system.orchestration.inspector import (
-    inspect_problem_analysis,
-    inspect_dispatch_plan,
-    render_problem_analysis,
-    render_dispatch_plan,
-)
-
 
 # ============================================================================
 # StorageTier tests
@@ -247,9 +227,7 @@ class TestDispatcher:
         assert order.index("map-ontology") < order.index("detect-patterns")
 
     def test_skipped_tools_populated(self):
-        analysis = ProblemAnalysis(
-            question="test", decision_type="general"
-        )
+        analysis = ProblemAnalysis(question="test", decision_type="general")
         plan = build_dispatch_plan(analysis)
         assert len(plan.skipped_tools) > 0
 
@@ -288,12 +266,13 @@ class TestSandbox:
     def test_read_profiles_no_session(self, tmp_path: Path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         from decision_system.orchestration.sandbox import sandbox_execute
+
         result = sandbox_execute("read_profiles", {})
         assert result.profiles == []
 
     def test_read_graph_no_session(self):
-        from decision_system.graphing.models import KnowledgeGraph
         from decision_system.orchestration.sandbox import sandbox_execute
+
         result = sandbox_execute("read_graph", {})
         assert isinstance(result, KnowledgeGraph)
 
@@ -316,7 +295,6 @@ class TestSandbox:
 
 
 class TestSession:
-
     def test_create_session(self):
         session = create_session("Where are we losing money?")
         assert session.run_id
@@ -345,7 +323,6 @@ class TestSession:
 
 
 class TestStore:
-
     def test_list_runs_empty(self, tmp_path: Path):
         runs = list_runs(runs_dir=tmp_path)
         assert runs == []
@@ -364,10 +341,11 @@ class TestStore:
 
 
 class TestJudge:
-
     def test_moderate_confidence_with_insights(self):
         insight = _make_insight(
-            "low_margin", "Low margin", severity="medium",
+            "low_margin",
+            "Low margin",
+            severity="medium",
             recommended_action="Review margin drivers immediately.",
         )
         store = InsightStore(insights=[insight])
@@ -450,8 +428,16 @@ class TestInspector:
     def test_render_dispatch_plan(self):
         output = render_dispatch_plan(
             {
-                "execution_order": ["init-data-catalog", "profile-data", "detect-patterns"],
-                "selected_tools": ["init-data-catalog", "profile-data", "detect-patterns"],
+                "execution_order": [
+                    "init-data-catalog",
+                    "profile-data",
+                    "detect-patterns",
+                ],
+                "selected_tools": [
+                    "init-data-catalog",
+                    "profile-data",
+                    "detect-patterns",
+                ],
                 "skipped_tools": ["extract-graph"],
                 "selected_roles": ["risk analyst"],
                 "selected_artifacts": [".decision_system/data_profiles/profiles.json"],
@@ -468,7 +454,6 @@ class TestInspector:
 
 
 class TestWorkflow:
-
     def test_run_orchestration_no_data(self, monkeypatch, tmp_path: Path):
         monkeypatch.chdir(tmp_path)
         result = run_orchestration("Where are we losing money?", save=True)
@@ -552,4 +537,11 @@ def _make_catalog_and_profile(tmp_path: Path) -> None:
     with csv_path.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["month", "revenue", "expenses", "profit_margin"])
         w.writeheader()
-        w.writerow({"month": "2025-01", "revenue": "12000", "expenses": "11850", "profit_margin": "0.01"})
+        w.writerow(
+            {
+                "month": "2025-01",
+                "revenue": "12000",
+                "expenses": "11850",
+                "profit_margin": "0.01",
+            }
+        )

@@ -74,8 +74,6 @@ class DatasetProfile(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-
-
 class ParseResult(BaseModel):
     """Result from a document parser."""
 
@@ -98,6 +96,8 @@ class ParsedBlock(BaseModel):
     text: str = ""
     index: int = 0
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class EvidenceSearchResult(BaseModel):
     """A single evidence search result item."""
 

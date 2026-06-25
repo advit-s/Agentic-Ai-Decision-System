@@ -1,26 +1,25 @@
 """Workspace management endpoints for the local API."""
+
 from __future__ import annotations
 
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
+from decision_system._data_root import get_data_root
+from decision_system.api.models import ApiError, ErrorResponse, to_jsonable
+from decision_system.config import load_settings
 from decision_system.identity.models import LocalUser, Permission
 from decision_system.identity.permissions import (
     require_permission,
-    require_workspace_permission,
 )
-from decision_system.api.models import ApiError, ErrorResponse, to_jsonable
-from decision_system.config import load_settings
 from decision_system.storage.export_import import (
-    WorkspaceExporter,
     init_workspace_dir,
 )
+from decision_system.storage.migrations import run_migrations
 from decision_system.storage.models import (
-    ArtifactType,
     Workspace,
 )
 from decision_system.storage.repositories import (
@@ -28,7 +27,6 @@ from decision_system.storage.repositories import (
     WorkspaceRepository,
 )
 from decision_system.storage.sqlite_store import DatabaseConnection
-from decision_system.storage.migrations import run_migrations
 
 router = APIRouter(tags=["workspaces"])
 
@@ -58,7 +56,9 @@ def _connect() -> DatabaseConnection:
 
 
 @router.get("/workspaces/status")
-def workspace_status(user: LocalUser = Depends(require_permission(Permission.WORKSPACE_READ))) -> dict[str, Any]:
+def workspace_status(
+    user: LocalUser = Depends(require_permission(Permission.WORKSPACE_READ)),
+) -> dict[str, Any]:
     """Return the active workspace summary and artifact counts."""
     db = _connect()
     try:
@@ -77,6 +77,7 @@ def workspace_status(user: LocalUser = Depends(require_permission(Permission.WOR
         # Gather data source and evidence stats
         try:
             from decision_system.data_sources.store import DataSourceStore
+
             ds_store = DataSourceStore()
             data_sources = ds_store.list_by_workspace(ws.workspace_id)
             ds_count = len(data_sources)
@@ -100,8 +101,10 @@ def workspace_status(user: LocalUser = Depends(require_permission(Permission.WOR
 
         # Claim stats
         try:
-            from pathlib import Path
-            from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
+            from decision_system.workflow_engine.stores.claim_store import (
+                JSONClaimStore,
+            )
+
             claim_store = JSONClaimStore(get_data_root())
             claim_summary = claim_store.summary(workspace_id=ws.workspace_id)
         except Exception:
@@ -135,7 +138,10 @@ def workspace_status(user: LocalUser = Depends(require_permission(Permission.WOR
 
 
 @router.post("/workspaces")
-def create_workspace(req: CreateWorkspaceRequest, user: LocalUser = Depends(require_permission(Permission.WORKSPACE_MANAGE))) -> dict[str, Any]:
+def create_workspace(
+    req: CreateWorkspaceRequest,
+    user: LocalUser = Depends(require_permission(Permission.WORKSPACE_MANAGE)),
+) -> dict[str, Any]:
     """Create (or accept existing) workspace. Optionally activate."""
     db = _connect()
     try:
@@ -149,12 +155,7 @@ def create_workspace(req: CreateWorkspaceRequest, user: LocalUser = Depends(requ
                 "status": "exists",
                 "workspace": to_jsonable(existing),
             }
-        workspace_id = (
-            req.name.strip()
-            .lower()
-            .replace(" ", "-")
-            .replace("_", "-")
-        )
+        workspace_id = req.name.strip().lower().replace(" ", "-").replace("_", "-")
         ws = Workspace(
             workspace_id=workspace_id,
             name=req.name.strip(),
@@ -174,7 +175,9 @@ def create_workspace(req: CreateWorkspaceRequest, user: LocalUser = Depends(requ
 
 
 @router.get("/workspaces")
-def list_workspaces(user: LocalUser = Depends(require_permission(Permission.WORKSPACE_READ))) -> dict[str, Any]:
+def list_workspaces(
+    user: LocalUser = Depends(require_permission(Permission.WORKSPACE_READ)),
+) -> dict[str, Any]:
     """List all known workspaces."""
     db = _connect()
     try:
@@ -192,7 +195,10 @@ def list_workspaces(user: LocalUser = Depends(require_permission(Permission.WORK
 
 
 @router.post("/workspaces/{name}/activate")
-def activate_workspace(name: str, user: LocalUser = Depends(require_permission(Permission.WORKSPACE_MANAGE))) -> dict[str, Any]:
+def activate_workspace(
+    name: str,
+    user: LocalUser = Depends(require_permission(Permission.WORKSPACE_MANAGE)),
+) -> dict[str, Any]:
     """Set the named workspace as active. Deactivates others."""
     db = _connect()
     try:
@@ -200,6 +206,7 @@ def activate_workspace(name: str, user: LocalUser = Depends(require_permission(P
         ws = ws_repo.get_by_name(name)
         if ws is None:
             from fastapi.responses import JSONResponse
+
             error = ApiError(
                 code="workspace_not_found",
                 message=f"Workspace '{name}' not found.",

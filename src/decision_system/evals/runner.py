@@ -7,12 +7,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from decision_system.evals.models import EvalCase, EvalMetrics, EvalResult, EvalSuiteResult
+from decision_system.evals.models import (
+    EvalCase,
+    EvalMetrics,
+    EvalResult,
+    EvalSuiteResult,
+)
 from decision_system.graph.workflow import build_workflow
 from decision_system.rag.chunker import chunk_documents
 from decision_system.rag.loader import load_documents
 from decision_system.rag.vector_store import index_chunks
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CASES_DIR = PROJECT_ROOT / "evals" / "cases"

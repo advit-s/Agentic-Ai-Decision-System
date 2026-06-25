@@ -38,34 +38,223 @@ DEFAULT_CONFIDENCE = "medium"
 DEFAULT_EXTRACTION_METHOD = "deterministic"
 
 # Stopwords that should not be treated as entity names
-STOPWORDS = frozenset({
-    "the", "a", "an", "this", "that", "these", "those", "it", "its", "they",
-    "them", "their", "we", "our", "you", "your", "he", "she", "his", "her",
-    "and", "or", "but", "if", "because", "as", "until", "while", "of", "at",
-    "by", "for", "with", "about", "against", "between", "into", "through",
-    "during", "before", "after", "above", "below", "to", "from", "up", "down",
-    "in", "out", "on", "off", "over", "under", "again", "further", "then",
-    "once", "here", "there", "when", "where", "why", "how", "all", "each",
-    "every", "both", "few", "more", "most", "other", "some", "such", "no",
-    "nor", "not", "only", "own", "same", "so", "than", "too", "very",
-    "just", "also", "has", "had", "have", "been", "being", "do", "does",
-    "did", "doing", "would", "could", "should", "may", "might", "shall",
-    "will", "can", "need", "dare", "must", "is", "am", "are", "was", "were",
-    "be", "get", "got", "getting", "go", "goes", "went", "gone", "going",
-    "make", "makes", "made", "making", "take", "takes", "took", "taken",
-    "taking", "know", "knows", "knew", "known", "see", "sees", "saw", "seen",
-    "thing", "things", "something", "nothing", "anything", "everything",
-    "one", "two", "three", "first", "second", "third", "last", "next",
-    "previous", "current", "new", "old", "top", "bottom", "high", "low",
-    "big", "small", "large", "long", "short", "full", "empty", "good",
-    "bad", "better", "best", "worst", "worse", "right", "wrong", "true",
-    "false", "real", "actual", "possible", "whole", "certain", "various",
-    "different", "important", "significant", "major", "minor", "key",
-    "main", "primary", "secondary", "additional", "single", "multiple",
-    "simple", "complex", "open", "closed", "public", "private", "direct",
-    "indirect", "total", "partial", "annual", "monthly", "weekly", "daily",
-    "quarterly", "current", "previous", "upcoming", "recent", "latest",
-})
+STOPWORDS = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "this",
+        "that",
+        "these",
+        "those",
+        "it",
+        "its",
+        "they",
+        "them",
+        "their",
+        "we",
+        "our",
+        "you",
+        "your",
+        "he",
+        "she",
+        "his",
+        "her",
+        "and",
+        "or",
+        "but",
+        "if",
+        "because",
+        "as",
+        "until",
+        "while",
+        "of",
+        "at",
+        "by",
+        "for",
+        "with",
+        "about",
+        "against",
+        "between",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "to",
+        "from",
+        "up",
+        "down",
+        "in",
+        "out",
+        "on",
+        "off",
+        "over",
+        "under",
+        "again",
+        "further",
+        "then",
+        "once",
+        "here",
+        "there",
+        "when",
+        "where",
+        "why",
+        "how",
+        "all",
+        "each",
+        "every",
+        "both",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "no",
+        "nor",
+        "not",
+        "only",
+        "own",
+        "same",
+        "so",
+        "than",
+        "too",
+        "very",
+        "just",
+        "also",
+        "has",
+        "had",
+        "have",
+        "been",
+        "being",
+        "do",
+        "does",
+        "did",
+        "doing",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "shall",
+        "will",
+        "can",
+        "need",
+        "dare",
+        "must",
+        "is",
+        "am",
+        "are",
+        "was",
+        "were",
+        "be",
+        "get",
+        "got",
+        "getting",
+        "go",
+        "goes",
+        "went",
+        "gone",
+        "going",
+        "make",
+        "makes",
+        "made",
+        "making",
+        "take",
+        "takes",
+        "took",
+        "taken",
+        "taking",
+        "know",
+        "knows",
+        "knew",
+        "known",
+        "see",
+        "sees",
+        "saw",
+        "seen",
+        "thing",
+        "things",
+        "something",
+        "nothing",
+        "anything",
+        "everything",
+        "one",
+        "two",
+        "three",
+        "first",
+        "second",
+        "third",
+        "last",
+        "next",
+        "previous",
+        "current",
+        "new",
+        "old",
+        "top",
+        "bottom",
+        "high",
+        "low",
+        "big",
+        "small",
+        "large",
+        "long",
+        "short",
+        "full",
+        "empty",
+        "good",
+        "bad",
+        "better",
+        "best",
+        "worst",
+        "worse",
+        "right",
+        "wrong",
+        "true",
+        "false",
+        "real",
+        "actual",
+        "possible",
+        "whole",
+        "certain",
+        "various",
+        "different",
+        "important",
+        "significant",
+        "major",
+        "minor",
+        "key",
+        "main",
+        "primary",
+        "secondary",
+        "additional",
+        "single",
+        "multiple",
+        "simple",
+        "complex",
+        "open",
+        "closed",
+        "public",
+        "private",
+        "direct",
+        "indirect",
+        "total",
+        "partial",
+        "annual",
+        "monthly",
+        "weekly",
+        "daily",
+        "quarterly",
+        "current",
+        "previous",
+        "upcoming",
+        "recent",
+        "latest",
+    }
+)
 
 # ---------------------------------------------------------------------------
 # Regex patterns
@@ -103,62 +292,183 @@ DOMAIN_PATTERN = re.compile(
 # Risk phrases
 RISK_PATTERNS: list[tuple[str, str, str]] = [
     # (category, severity, phrase_pattern)
-    ("security", "high", r"(?:security|cyber|data)\s*(?:breach|incident|attack|vulnerability|leak|exploit)"),
+    (
+        "security",
+        "high",
+        r"(?:security|cyber|data)\s*(?:breach|incident|attack|vulnerability|leak|exploit)",
+    ),
     ("security", "high", r"(?:unauthorized|malicious|ransomware|phishing)"),
-    ("compliance", "high", r"(?:regulatory|compliance|gdpr|hipaa|sox|pci)\s*(?:risk|violation|non-?compliance|audit)"),
-    ("financial", "high", r"(?:revenue\s+loss|profit\s+(?:decline|drop)|liquidity|cash\s+(?:flow|crunch))"),
-    ("financial", "medium", r"(?:cost\s+overrun|budget\s+(?:overage|shortfall)|margin\s+(?:erosion|decline))"),
-    ("vendor", "high", r"(?:vendor\s+(?:risk|lock-?in|failure|bankruptcy|concentration))"),
+    (
+        "compliance",
+        "high",
+        r"(?:regulatory|compliance|gdpr|hipaa|sox|pci)\s*(?:risk|violation|non-?compliance|audit)",
+    ),
+    (
+        "financial",
+        "high",
+        r"(?:revenue\s+loss|profit\s+(?:decline|drop)|liquidity|cash\s+(?:flow|crunch))",
+    ),
+    (
+        "financial",
+        "medium",
+        r"(?:cost\s+overrun|budget\s+(?:overage|shortfall)|margin\s+(?:erosion|decline))",
+    ),
+    (
+        "vendor",
+        "high",
+        r"(?:vendor\s+(?:risk|lock-?in|failure|bankruptcy|concentration))",
+    ),
     ("vendor", "medium", r"(?:supply\s+chain\s+(?:disruption|risk|delay|bottleneck))"),
-    ("operational", "high", r"(?:service\s+outage|downtime|system\s+failure|disaster\s+recovery)"),
+    (
+        "operational",
+        "high",
+        r"(?:service\s+outage|downtime|system\s+failure|disaster\s+recovery)",
+    ),
     ("operational", "medium", r"(?:bottleneck|delay|backlog|attrition|turnover)"),
-    ("technical", "medium", r"(?:technical\s+debt|legacy\s+system|migration\s+risk|integration\s+challenge)"),
-    ("technical", "high", r"(?:single\s+point\s+of\s+failure|no\s+(?:fallback|redundancy|backup))"),
-    ("strategic", "medium", r"(?:market\s+(?:decline|saturation|risk)|competitive\s+(?:threat|pressure|risk))"),
+    (
+        "technical",
+        "medium",
+        r"(?:technical\s+debt|legacy\s+system|migration\s+risk|integration\s+challenge)",
+    ),
+    (
+        "technical",
+        "high",
+        r"(?:single\s+point\s+of\s+failure|no\s+(?:fallback|redundancy|backup))",
+    ),
+    (
+        "strategic",
+        "medium",
+        r"(?:market\s+(?:decline|saturation|risk)|competitive\s+(?:threat|pressure|risk))",
+    ),
 ]
 
 # Metric keywords
 METRIC_KEYWORDS = [
-    "revenue", "cost", "profit", "margin", "expense", "budget",
-    "customer", "user", "employee", "vendor", "partner",
-    "count", "rate", "percentage", "ratio", "average",
-    "growth", "decline", "increase", "decrease", "change",
-    "revenue_run_rate", "arr", "mrr", "churn", "ltv", "cac",
-    "nps", "csat", "sla", "kpi", "roi", "roas",
+    "revenue",
+    "cost",
+    "profit",
+    "margin",
+    "expense",
+    "budget",
+    "customer",
+    "user",
+    "employee",
+    "vendor",
+    "partner",
+    "count",
+    "rate",
+    "percentage",
+    "ratio",
+    "average",
+    "growth",
+    "decline",
+    "increase",
+    "decrease",
+    "change",
+    "revenue_run_rate",
+    "arr",
+    "mrr",
+    "churn",
+    "ltv",
+    "cac",
+    "nps",
+    "csat",
+    "sla",
+    "kpi",
+    "roi",
+    "roas",
 ]
 
 # Company name suffixes
 COMPANY_SUFFIXES = [
-    "corp", "corporation", "inc", "incorporated", "ltd", "limited",
-    "llc", "lp", "gmbh", "ag", "sa", "pty", "plc", "co",
+    "corp",
+    "corporation",
+    "inc",
+    "incorporated",
+    "ltd",
+    "limited",
+    "llc",
+    "lp",
+    "gmbh",
+    "ag",
+    "sa",
+    "pty",
+    "plc",
+    "co",
 ]
 
 # Industry/company keywords
 COMPANY_KEYWORDS = [
-    "technologies", "solutions", "systems", "software", "services",
-    "group", "ventures", "partners", "holdings", "enterprises",
-    "global", "digital", "analytics", "ai", "cloud", "data",
+    "technologies",
+    "solutions",
+    "systems",
+    "software",
+    "services",
+    "group",
+    "ventures",
+    "partners",
+    "holdings",
+    "enterprises",
+    "global",
+    "digital",
+    "analytics",
+    "ai",
+    "cloud",
+    "data",
 ]
 
 # Entity type inference
 ENTITY_TYPE_HINTS: list[tuple[re.Pattern, NodeType]] = [
-    (re.compile(r"\b(?:team|group|department|division|squad)\b", re.IGNORECASE), "team"),
+    (
+        re.compile(r"\b(?:team|group|department|division|squad)\b", re.IGNORECASE),
+        "team",
+    ),
     (re.compile(r"\b(?:vendor|supplier|provider|partner)\b", re.IGNORECASE), "vendor"),
     (re.compile(r"\b(?:customer|client|buyer)\b", re.IGNORECASE), "customer"),
     (re.compile(r"\b(?:product|platform|solution)\b", re.IGNORECASE), "product"),
-    (re.compile(r"\b(?:system|service|api|tool|app|application)\b", re.IGNORECASE), "system"),
-    (re.compile(r"\b(?:ceo|cto|cfo|director|manager|lead|engineer)\b", re.IGNORECASE), "person"),
+    (
+        re.compile(r"\b(?:system|service|api|tool|app|application)\b", re.IGNORECASE),
+        "system",
+    ),
+    (
+        re.compile(r"\b(?:ceo|cto|cfo|director|manager|lead|engineer)\b", re.IGNORECASE),
+        "person",
+    ),
 ]
 
 # Relationship patterns
 RELATION_PATTERNS: list[tuple[EdgeType, re.Pattern]] = [
-    ("depends_on", re.compile(r"(?P<source>.+?)\s+depends on\s+(?P<target>.+)", re.IGNORECASE)),
-    ("owns", re.compile(r"(?P<source>.+?)\s+(?:is\s+)?owned by\s+(?P<target>.+)", re.IGNORECASE)),
-    ("supplies", re.compile(r"(?P<source>.+?)\s+(?:supplies?|provides?|offers?)\s+(?P<target>.+)", re.IGNORECASE)),
-    ("affects", re.compile(r"(?P<source>.+?)\s+affects?\s+(?P<target>.+)", re.IGNORECASE)),
+    (
+        "depends_on",
+        re.compile(r"(?P<source>.+?)\s+depends on\s+(?P<target>.+)", re.IGNORECASE),
+    ),
+    (
+        "owns",
+        re.compile(r"(?P<source>.+?)\s+(?:is\s+)?owned by\s+(?P<target>.+)", re.IGNORECASE),
+    ),
+    (
+        "supplies",
+        re.compile(
+            r"(?P<source>.+?)\s+(?:supplies?|provides?|offers?)\s+(?P<target>.+)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "affects",
+        re.compile(r"(?P<source>.+?)\s+affects?\s+(?P<target>.+)", re.IGNORECASE),
+    ),
     ("contradicts", re.compile(r"CONTRADICTS:\s*(?P<target>[^.!?\n]+)", re.IGNORECASE)),
-    ("related_to", re.compile(r"(?P<source>.+?)\s+(?:(?:is|are)\s+)?related to\s+(?P<target>.+)", re.IGNORECASE)),
-    ("mentions", re.compile(r"(?P<source>.+?)\s+references?\s+(?P<target>.+)", re.IGNORECASE)),
+    (
+        "related_to",
+        re.compile(
+            r"(?P<source>.+?)\s+(?:(?:is|are)\s+)?related to\s+(?P<target>.+)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "mentions",
+        re.compile(r"(?P<source>.+?)\s+references?\s+(?P<target>.+)", re.IGNORECASE),
+    ),
 ]
 
 
@@ -272,7 +582,9 @@ def _upsert_node(
     now = datetime.now(timezone.utc)
 
     if existing:
-        existing.evidence_ids = _with_unique(existing.evidence_ids, source_info.get("evidence_ids", []))
+        existing.evidence_ids = _with_unique(
+            existing.evidence_ids, source_info.get("evidence_ids", [])
+        )
         existing.source_ids = _with_unique(existing.source_ids, source_info.get("source_ids", []))
         existing.chunk_ids = _with_unique(existing.chunk_ids, source_info.get("chunk_ids", []))
         existing.updated_at = now
@@ -325,11 +637,7 @@ def _clean_phrase(text: str) -> str:
 
 def _sentences(text: str) -> list[str]:
     normalized = re.sub(r"\s+", " ", text).strip()
-    return [
-        s.strip()
-        for s in re.split(r"(?<=[.!?])\s+", normalized)
-        if s.strip()
-    ]
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+", normalized) if s.strip()]
 
 
 # ---------------------------------------------------------------------------
@@ -339,14 +647,18 @@ def _sentences(text: str) -> list[str]:
 
 def _extract_companies(text: str, result: ExtractionResult, source_info: dict[str, Any]) -> None:
     """Extract company names using suffix/keyword patterns."""
-    suffix_pattern = r"\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)\s+(" + "|".join(COMPANY_SUFFIXES) + r")\.?"
+    suffix_pattern = (
+        r"\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)\s+(" + "|".join(COMPANY_SUFFIXES) + r")\.?"
+    )
     for match in re.finditer(suffix_pattern, text, re.IGNORECASE):
         name = _clean_phrase(match.group(0).rstrip("."))
         if len(name) > 2:
             _upsert_node(result, name, "company", source_info)
 
     # Capitalized multi-word phrases followed by company keywords
-    keyword_pattern = r"\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*(?:\s+(" + "|".join(COMPANY_KEYWORDS) + r")))\.?"
+    keyword_pattern = (
+        r"\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*(?:\s+(" + "|".join(COMPANY_KEYWORDS) + r")))\.?"
+    )
     for match in re.finditer(keyword_pattern, text, re.IGNORECASE):
         name = _clean_phrase(match.group(0).rstrip("."))
         if len(name) > 3:
@@ -379,7 +691,9 @@ def _extract_products(text: str, result: ExtractionResult, source_info: dict[str
                 _upsert_node(result, name, "product", source_info)
 
 
-def _extract_named_entities(text: str, result: ExtractionResult, source_info: dict[str, Any]) -> None:
+def _extract_named_entities(
+    text: str, result: ExtractionResult, source_info: dict[str, Any]
+) -> None:
     """Extract general named entities (capitalized phrases) and infer types."""
     # Look for capitalized multi-word phrases that might be entities
     for sentence in _sentences(text):
@@ -493,7 +807,9 @@ def _extract_dates(text: str, result: ExtractionResult, source_info: dict[str, A
 # ---------------------------------------------------------------------------
 
 
-def _extract_emails_and_domains(text: str, result: ExtractionResult, source_info: dict[str, Any]) -> None:
+def _extract_emails_and_domains(
+    text: str, result: ExtractionResult, source_info: dict[str, Any]
+) -> None:
     """Extract email addresses and domain names as entities."""
     for match in EMAIL_PATTERN.finditer(text):
         email = match.group(0).strip()
@@ -627,11 +943,15 @@ def _infer_unit(value: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _extract_relationships(text: str, result: ExtractionResult, source_info: dict[str, Any]) -> None:
+def _extract_relationships(
+    text: str, result: ExtractionResult, source_info: dict[str, Any]
+) -> None:
     """Extract relationships between known entities."""
     for sentence in _sentences(text):
         # Check for contradiction marker first
-        contradiction_match = re.search(r"CONTRADICTS:\s*(?P<target>[^.!?\n]+)", sentence, re.IGNORECASE)
+        contradiction_match = re.search(
+            r"CONTRADICTS:\s*(?P<target>[^.!?\n]+)", sentence, re.IGNORECASE
+        )
         if contradiction_match:
             target = _clean_phrase(contradiction_match.group("target"))
             _add_relationship(result, "Contradiction marker", target, "contradicts", source_info)
@@ -667,7 +987,9 @@ def _add_relationship(
     now = datetime.now(timezone.utc)
 
     if existing:
-        existing.evidence_ids = _with_unique(existing.evidence_ids, source_info.get("evidence_ids", []))
+        existing.evidence_ids = _with_unique(
+            existing.evidence_ids, source_info.get("evidence_ids", [])
+        )
         existing.source_ids = _with_unique(existing.source_ids, source_info.get("source_ids", []))
         existing.chunk_ids = _with_unique(existing.chunk_ids, source_info.get("chunk_ids", []))
         existing.updated_at = now

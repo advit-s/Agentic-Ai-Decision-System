@@ -10,7 +10,6 @@ This is a deterministic offline check — no network calls, no LLM.
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -57,15 +56,35 @@ class DemoDataValidationResult:
 # Patterns that indicate real secrets (never expected in demo data)
 _SECRET_PATTERNS: list[tuple[str, str, str]] = [
     # API keys / tokens
-    ("api_key", r"(?i)(sk-[A-Za-z0-9]{20,}|nvapi-[A-Za-z0-9\-_]{20,})", "API key pattern detected"),
+    (
+        "api_key",
+        r"(?i)(sk-[A-Za-z0-9]{20,}|nvapi-[A-Za-z0-9\-_]{20,})",
+        "API key pattern detected",
+    ),
     # AWS keys
-    ("aws_key", r"(?i)(AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA)[0-9A-Z]{16}", "AWS access key pattern detected"),
+    (
+        "aws_key",
+        r"(?i)(AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA)[0-9A-Z]{16}",
+        "AWS access key pattern detected",
+    ),
     # Private keys (inline)
-    ("private_key", r"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----", "Private key block detected"),
+    (
+        "private_key",
+        r"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----",
+        "Private key block detected",
+    ),
     # Real-looking email addresses with suspicious domains
-    ("suspicious_email", r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", "Email address found (check it's a demo email)"),
+    (
+        "suspicious_email",
+        r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}",
+        "Email address found (check it's a demo email)",
+    ),
     # Connection strings containing passwords
-    ("conn_string", r"(?i)(password|pwd|secret)\s*[:=]\s*\S{8,}", "Hardcoded credential-like value"),
+    (
+        "conn_string",
+        r"(?i)(password|pwd|secret)\s*[:=]\s*\S{8,}",
+        "Hardcoded credential-like value",
+    ),
     # Very large files (>100KB in demo data)
     ("large_file", r"N/A", "File is unusually large for demo data"),
 ]

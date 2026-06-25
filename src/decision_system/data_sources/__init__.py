@@ -1,22 +1,21 @@
 """Local data source management — upload, parse, index, profile, search."""
 
 from decision_system.data_sources.models import (
+    DatasetProfile,
     DataSource,
     DataSourceChunk,
     DataSourceStatus,
-    DatasetProfile,
-    EvidenceSearchResult,
     EvidenceSearchResponse,
-    ParseResult,
+    EvidenceSearchResult,
     ParsedBlock,
+    ParseResult,
 )
-
 from decision_system.data_sources.parser import (
     BaseParser,
-    TextParser,
+    DocxParser,
     JsonParser,
     PdfParser,
-    DocxParser,
+    TextParser,
     XlsxParser,
     get_parser,
     get_supported_extensions,

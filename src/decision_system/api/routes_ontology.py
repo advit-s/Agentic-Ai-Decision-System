@@ -11,7 +11,6 @@ from decision_system.data_catalog.store import load_profiles
 from decision_system.ontology.mapper import map_profiles_to_ontology
 from decision_system.ontology.store import load_ontology, save_ontology
 
-
 router = APIRouter(tags=["ontology"])
 
 

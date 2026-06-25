@@ -8,19 +8,22 @@ from pathlib import Path
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from decision_system.api.app import set_scheduler_enabled, create_app
+from decision_system.api.app import create_app, set_scheduler_enabled
 
 
 @pytest.fixture
 async def client(tmp_path):
     """Create an async test client with isolated temp storage."""
     import os
+
     old_data_dir = os.environ.get("DECISION_SYSTEM_DATA_DIR")
     os.environ["DECISION_SYSTEM_DATA_DIR"] = str(tmp_path)
     set_scheduler_enabled(False)
     try:
         import importlib
+
         import decision_system.workflow_engine.api as wf_api
+
         importlib.reload(wf_api)
         app = create_app()
         transport = ASGITransport(app=app)
@@ -359,8 +362,10 @@ async def test_parsed_with_warnings_can_index(client: AsyncClient):
     assert resp.status_code == 200
 
     # Manually set status to parsed_with_warnings
-    from decision_system.data_sources.store import DataSourceStore
     import os
+
+    from decision_system.data_sources.store import DataSourceStore
+
     data_dir = os.environ.get("DECISION_SYSTEM_DATA_DIR")
     store = DataSourceStore(data_dir)
     store.update_status("ws-warn-idx", source_id, "parsed_with_warnings")

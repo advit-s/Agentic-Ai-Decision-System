@@ -104,11 +104,13 @@ def _extract_insights(export: dict[str, Any]) -> list[dict[str, Any]]:
             content = art.get("content", {}) or {}
             raw_insights = content.get("insights", [])
             for ins in raw_insights:
-                insights.append({
-                    "title": ins.get("title", ""),
-                    "severity": ins.get("severity", "unknown"),
-                    "category": ins.get("category", "unknown"),
-                })
+                insights.append(
+                    {
+                        "title": ins.get("title", ""),
+                        "severity": ins.get("severity", "unknown"),
+                        "category": ins.get("category", "unknown"),
+                    }
+                )
     return insights
 
 
@@ -172,15 +174,18 @@ def diff_workspaces(old_path: str | Path, new_path: str | Path) -> DiffResult:
     result.added_insights = [i for i in new_ins if i["title"] not in old_ins_set]
     result.removed_insights = [i for i in old_ins if i["title"] not in new_ins_set]
     result.changed_insights = [
-        {"title": t, "reason": "severity or category changed"}
-        for t in (old_ins_set & new_ins_set)
+        {"title": t, "reason": "severity or category changed"} for t in (old_ins_set & new_ins_set)
     ]
 
     # Metrics
     old_metrics = _extract_metrics(old)
     new_metrics = _extract_metrics(new)
-    result.added_metrics = new_metrics[len(old_metrics):] if len(new_metrics) > len(old_metrics) else []
-    result.removed_metrics = old_metrics[len(new_metrics):] if len(old_metrics) > len(new_metrics) else []
+    result.added_metrics = (
+        new_metrics[len(old_metrics) :] if len(new_metrics) > len(old_metrics) else []
+    )
+    result.removed_metrics = (
+        old_metrics[len(new_metrics) :] if len(old_metrics) > len(new_metrics) else []
+    )
     if old_metrics and new_metrics and old_metrics != new_metrics:
         result.changed_metrics = [m for m in new_metrics if m not in old_metrics]
 
@@ -232,21 +237,45 @@ def diff_to_text(result: DiffResult) -> str:
     if result.added_documents:
         lines.extend(["## Added Documents", ""] + [f"- {d}" for d in result.added_documents] + [""])
     if result.removed_documents:
-        lines.extend(["## Removed Documents", ""] + [f"- {d}" for d in result.removed_documents] + [""])
+        lines.extend(
+            ["## Removed Documents", ""] + [f"- {d}" for d in result.removed_documents] + [""]
+        )
     if result.changed_documents:
-        lines.extend(["## Changed Documents", ""] + [f"- {d}" for d in result.changed_documents] + [""])
+        lines.extend(
+            ["## Changed Documents", ""] + [f"- {d}" for d in result.changed_documents] + [""]
+        )
     if result.added_ontology_items:
-        lines.extend(["## Added Ontology Items", ""] + [f"- {o}" for o in result.added_ontology_items] + [""])
+        lines.extend(
+            ["## Added Ontology Items", ""] + [f"- {o}" for o in result.added_ontology_items] + [""]
+        )
     if result.removed_ontology_items:
-        lines.extend(["## Removed Ontology Items", ""] + [f"- {o}" for o in result.removed_ontology_items] + [""])
+        lines.extend(
+            ["## Removed Ontology Items", ""]
+            + [f"- {o}" for o in result.removed_ontology_items]
+            + [""]
+        )
     if result.changed_ontology_items:
-        lines.extend(["## Changed Ontology Items", ""] + [f"- {o}" for o in result.changed_ontology_items] + [""])
+        lines.extend(
+            ["## Changed Ontology Items", ""]
+            + [f"- {o}" for o in result.changed_ontology_items]
+            + [""]
+        )
     if result.added_insights:
-        lines.extend(["## Added Insights", ""] + [f"- {i['title']} ({i['severity']})" for i in result.added_insights] + [""])
+        lines.extend(
+            ["## Added Insights", ""]
+            + [f"- {i['title']} ({i['severity']})" for i in result.added_insights]
+            + [""]
+        )
     if result.removed_insights:
-        lines.extend(["## Removed Insights", ""] + [f"- {i['title']} ({i['severity']})" for i in result.removed_insights] + [""])
+        lines.extend(
+            ["## Removed Insights", ""]
+            + [f"- {i['title']} ({i['severity']})" for i in result.removed_insights]
+            + [""]
+        )
     if result.security_changes:
-        lines.extend(["## Security Posture Changes", ""] + [f"- {s}" for s in result.security_changes] + [""])
+        lines.extend(
+            ["## Security Posture Changes", ""] + [f"- {s}" for s in result.security_changes] + [""]
+        )
 
     if not result.has_changes:
         lines.append("No changes detected between the two snapshots.")

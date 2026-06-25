@@ -8,8 +8,13 @@ from uuid import uuid4
 
 from fastapi import APIRouter
 
-from decision_system.api.models import ApiReportResponse, AskRequest, api_error, to_jsonable
 from decision_system._data_root import get_data_root
+from decision_system.api.models import (
+    ApiReportResponse,
+    AskRequest,
+    api_error,
+    to_jsonable,
+)
 from decision_system.config import load_settings
 from decision_system.context.builder import DecisionContextBuilder
 from decision_system.context.models import DecisionContext
@@ -41,11 +46,7 @@ def _report_context(
 ) -> DecisionContext:
     human_review_items = list(context.human_review_items)
     if not include_orchestration:
-        human_review_items = [
-            item
-            for item in human_review_items
-            if not item.startswith("Judge ")
-        ]
+        human_review_items = [item for item in human_review_items if not item.startswith("Judge ")]
 
     return DecisionContext(
         run_id=context.run_id,
@@ -208,6 +209,8 @@ def post_report_export(body: ReportExportRequest) -> dict:
     """Export the latest report in the requested format."""
     from decision_system.reports.exporter import (
         export_report as _export_report,
+    )
+    from decision_system.reports.exporter import (
         load_latest_report_payload,
     )
 
@@ -252,6 +255,7 @@ def get_report_coverage(run_id: str | None = None) -> dict:
                 verification_results = data.get("verification_results", [])
 
     from decision_system.models import Claim, VerificationResult
+
     parsed_claims = []
     for c in claims:
         try:

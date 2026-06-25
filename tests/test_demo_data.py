@@ -88,7 +88,6 @@ def test_seed_force_overwrites_existing_demo_files(tmp_path):
 def test_generated_csvs_pass_profiler(tmp_path):
     """Every generated demo CSV is valid and can be profiled."""
     from decision_system.data_catalog.loader import load_csv
-    from decision_system.data_catalog.models import ALL_CATEGORIES
     from decision_system.data_catalog.profiler import profile_dataset
 
     data_root = tmp_path / "company_data"

@@ -23,6 +23,7 @@ ConceptType = Literal["entity", "metric", "signal", "relationship", "risk", "pro
 # OntologyConcept
 # ---------------------------------------------------------------------------
 
+
 class OntologyConcept(BaseModel):
     """A business concept in the ontology.
 
@@ -41,9 +42,11 @@ class OntologyConcept(BaseModel):
         description="Detectors that this concept is relevant to",
     )
 
+
 # ---------------------------------------------------------------------------
 # ColumnMapping
 # ---------------------------------------------------------------------------
+
 
 class ColumnMapping(BaseModel):
     """Maps a single dataset column to an ontology concept."""
@@ -57,18 +60,18 @@ class ColumnMapping(BaseModel):
     confidence: str = Field(default="high", description="high | medium | low")
     reason: str = Field(default="", description="Why this mapping was chosen")
 
+
 # ---------------------------------------------------------------------------
 # OntologyMap
 # ---------------------------------------------------------------------------
+
 
 class OntologyMap(BaseModel):
     """Container for the full ontology: concepts + column mappings."""
 
     concepts: list[OntologyConcept] = Field(default_factory=list)
     column_mappings: list[ColumnMapping] = Field(default_factory=list)
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     # -- convenience helpers --------------------------------------------------
 

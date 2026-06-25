@@ -69,8 +69,11 @@ def get_provider_safety_status() -> ProviderSafetyStatus:
             message=(
                 "Ollama is configured as a local provider. "
                 "Data stays on your machine but uses a local LLM. "
-                + ("Ollama model is configured and ready." if ollama_configured
-                   else "Ollama model is NOT configured (missing OLLAMA_MODEL).")
+                + (
+                    "Ollama model is configured and ready."
+                    if ollama_configured
+                    else "Ollama model is NOT configured (missing OLLAMA_MODEL)."
+                )
             ),
             details={
                 "base_url": settings.ollama_base_url,
@@ -89,8 +92,8 @@ def get_provider_safety_status() -> ProviderSafetyStatus:
             message=(
                 "NVIDIA NIM is configured as an external provider. "
                 "Data may be sent to NVIDIA's hosted API."
-                if nim_configured else
-                "NVIDIA NIM is selected but NOT fully configured (missing API key or model). "
+                if nim_configured
+                else "NVIDIA NIM is selected but NOT fully configured (missing API key or model). "
                 "The fake provider will be used as fallback."
             ),
             details={
@@ -120,7 +123,7 @@ def safety_to_text(status: ProviderSafetyStatus) -> str:
     }.get(status.safety_level, "?")
 
     lines = [
-        f"# Provider Safety Status",
+        "# Provider Safety Status",
         "",
         f"{level_icon} Provider: {status.configured_provider}",
         f"  Safety level: {status.safety_level}",

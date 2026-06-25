@@ -7,12 +7,16 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
 
-from decision_system.api.models import ApiRunResponse, ApiStatusResponse, IndexRequest, to_jsonable
+from decision_system.api.models import (
+    ApiRunResponse,
+    ApiStatusResponse,
+    IndexRequest,
+    to_jsonable,
+)
 from decision_system.config import load_settings
 from decision_system.rag.chunker import chunk_documents
 from decision_system.rag.loader import load_documents
 from decision_system.rag.vector_store import index_chunks, inspect_collection
-
 
 router = APIRouter(tags=["documents"])
 

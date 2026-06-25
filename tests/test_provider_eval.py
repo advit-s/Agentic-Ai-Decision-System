@@ -25,8 +25,6 @@ from decision_system.provider_eval.store import (
     load_provider_eval_results,
     save_provider_eval_results,
 )
-from decision_system._data_root import get_data_root
-
 
 runner = CliRunner()
 
@@ -112,9 +110,7 @@ def test_mocked_ollama_and_nim_do_not_require_configuration(monkeypatch):
 
 def test_malformed_json_case_is_recorded_as_safe_expected_failure():
     case = next(
-        case
-        for case in DEFAULT_PROVIDER_EVAL_CASES
-        if case.case_id == "malformed_json_failure"
+        case for case in DEFAULT_PROVIDER_EVAL_CASES if case.case_id == "malformed_json_failure"
     )
 
     result = run_provider_eval_case(case, provider_name="ollama")
@@ -127,11 +123,7 @@ def test_malformed_json_case_is_recorded_as_safe_expected_failure():
 
 
 def test_citation_case_scores_grounded_citations():
-    case = next(
-        case
-        for case in DEFAULT_PROVIDER_EVAL_CASES
-        if case.case_id == "citation_use"
-    )
+    case = next(case for case in DEFAULT_PROVIDER_EVAL_CASES if case.case_id == "citation_use")
 
     result = run_provider_eval_case(case, provider_name="nvidia_nim")
 
@@ -142,14 +134,10 @@ def test_citation_case_scores_grounded_citations():
 
 def test_contradiction_and_unsupported_cases_score_specific_handling():
     contradiction = next(
-        case
-        for case in DEFAULT_PROVIDER_EVAL_CASES
-        if case.case_id == "contradiction_handling"
+        case for case in DEFAULT_PROVIDER_EVAL_CASES if case.case_id == "contradiction_handling"
     )
     unsupported = next(
-        case
-        for case in DEFAULT_PROVIDER_EVAL_CASES
-        if case.case_id == "unsupported_claim_handling"
+        case for case in DEFAULT_PROVIDER_EVAL_CASES if case.case_id == "unsupported_claim_handling"
     )
 
     contradiction_result = run_provider_eval_case(contradiction, provider_name="fake")

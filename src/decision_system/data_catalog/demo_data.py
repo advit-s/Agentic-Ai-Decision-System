@@ -84,10 +84,22 @@ def _demo_financials() -> tuple[list[str], list[dict[str, Any]]]:
             )
     # Add a couple of tight-margin observations
     rows.append(
-        {"month": "2025-01", "product": "Vertex", "revenue": 12000, "expenses": 11850, "profit_margin": 0.0125}
+        {
+            "month": "2025-01",
+            "product": "Vertex",
+            "revenue": 12000,
+            "expenses": 11850,
+            "profit_margin": 0.0125,
+        }
     )
     rows.append(
-        {"month": "2025-06", "product": "Orion", "revenue": 15000, "expenses": 14100, "profit_margin": 0.06}
+        {
+            "month": "2025-06",
+            "product": "Orion",
+            "revenue": 15000,
+            "expenses": 14100,
+            "profit_margin": 0.06,
+        }
     )
     return headers, rows
 
@@ -95,8 +107,28 @@ def _demo_financials() -> tuple[list[str], list[dict[str, Any]]]:
 def _demo_customers() -> tuple[list[str], list[dict[str, Any]]]:
     headers = ["customer_id", "city", "segment", "signup_month", "lifetime_value"]
     rows: list[dict[str, Any]] = []
-    cities = ["New York", "Chicago", "Austin", "Denver", "Seattle", "Miami", "Boston", "Portland"]
-    segments = ["enterprise", "smb", "smb", "startup", "enterprise", "enterprise", "smb", "startup", "enterprise", "smb"]
+    cities = [
+        "New York",
+        "Chicago",
+        "Austin",
+        "Denver",
+        "Seattle",
+        "Miami",
+        "Boston",
+        "Portland",
+    ]
+    segments = [
+        "enterprise",
+        "smb",
+        "smb",
+        "startup",
+        "enterprise",
+        "enterprise",
+        "smb",
+        "startup",
+        "enterprise",
+        "smb",
+    ]
     for idx in range(24):
         city = cities[idx % len(cities)]
         segment = segments[idx % len(segments)]
@@ -118,7 +150,16 @@ def _demo_customers() -> tuple[list[str], list[dict[str, Any]]]:
 def _demo_sales() -> tuple[list[str], list[dict[str, Any]]]:
     headers = ["month", "product", "region", "sales_amount", "lead_source"]
     rows: list[dict[str, Any]] = []
-    sources = ["Organic", "Paid", "Referral", "Social", "Email", "Organic", "Organic", "Paid"]
+    sources = [
+        "Organic",
+        "Paid",
+        "Referral",
+        "Social",
+        "Email",
+        "Organic",
+        "Organic",
+        "Paid",
+    ]
     products = ["Nimbus", "Orion", "Titan", "Vertex"]
     regions = ["North", "South", "East", "West", "Midwest"]
     for idx in range(24):
@@ -169,7 +210,13 @@ def _demo_marketing() -> tuple[list[str], list[dict[str, Any]]]:
 
 
 def _demo_feedback() -> tuple[list[str], list[dict[str, Any]]]:
-    headers = ["ticket_id", "customer_segment", "issue_type", "sentiment", "refund_requested"]
+    headers = [
+        "ticket_id",
+        "customer_segment",
+        "issue_type",
+        "sentiment",
+        "refund_requested",
+    ]
     rows: list[dict[str, Any]] = []
     issue_types = [
         "Login failure",
@@ -185,9 +232,31 @@ def _demo_feedback() -> tuple[list[str], list[dict[str, Any]]]:
         "Login failure",
         "Slow performance",
     ]
-    sentiments = ["negative", "neutral", "negative", "positive", "negative", "negative", "negative", "negative"]
+    sentiments = [
+        "negative",
+        "neutral",
+        "negative",
+        "positive",
+        "negative",
+        "negative",
+        "negative",
+        "negative",
+    ]
     segments = ["enterprise", "smb", "startup", "smb", "enterprise"]
-    refund = ["true", "false", "true", "false", "false", "true", "false", "false", "true", "false", "true", "false"]
+    refund = [
+        "true",
+        "false",
+        "true",
+        "false",
+        "false",
+        "true",
+        "false",
+        "false",
+        "true",
+        "false",
+        "true",
+        "false",
+    ]
     for idx, issue in enumerate(issue_types):
         rows.append(
             {
@@ -204,9 +273,27 @@ def _demo_feedback() -> tuple[list[str], list[dict[str, Any]]]:
 def _demo_products() -> tuple[list[str], list[dict[str, Any]]]:
     headers = ["product", "category", "units_sold", "gross_margin", "return_rate"]
     rows: list[dict[str, Any]] = [
-        {"product": "Nimbus Pro", "category": "SaaS", "units_sold": 3420, "gross_margin": 0.72, "return_rate": 0.02},
-        {"product": "Orion Basic", "category": "SaaS", "units_sold": 1890, "gross_margin": 0.68, "return_rate": 0.04},
-        {"product": "Titan Enterprise", "category": "SaaS", "units_sold": 920, "gross_margin": 0.81, "return_rate": 0.01},
+        {
+            "product": "Nimbus Pro",
+            "category": "SaaS",
+            "units_sold": 3420,
+            "gross_margin": 0.72,
+            "return_rate": 0.02,
+        },
+        {
+            "product": "Orion Basic",
+            "category": "SaaS",
+            "units_sold": 1890,
+            "gross_margin": 0.68,
+            "return_rate": 0.04,
+        },
+        {
+            "product": "Titan Enterprise",
+            "category": "SaaS",
+            "units_sold": 920,
+            "gross_margin": 0.81,
+            "return_rate": 0.01,
+        },
         {
             "product": "Vertex Lite",
             "category": "SaaS",
@@ -226,9 +313,21 @@ def _demo_products() -> tuple[list[str], list[dict[str, Any]]]:
 
 
 def _demo_competitors() -> tuple[list[str], list[dict[str, Any]]]:
-    headers = ["competitor", "product_category", "competitor_price", "our_price", "review_score"]
+    headers = [
+        "competitor",
+        "product_category",
+        "competitor_price",
+        "our_price",
+        "review_score",
+    ]
     rows: list[dict[str, Any]] = [
-        {"competitor": "Acme Corp", "product_category": "SaaS", "competitor_price": 899, "our_price": 799, "review_score": 3.4},
+        {
+            "competitor": "Acme Corp",
+            "product_category": "SaaS",
+            "competitor_price": 899,
+            "our_price": 799,
+            "review_score": 3.4,
+        },
         {
             "competitor": "BetaSoft",
             "product_category": "SaaS",
@@ -236,8 +335,20 @@ def _demo_competitors() -> tuple[list[str], list[dict[str, Any]]]:
             "our_price": 799,
             "review_score": 4.6,  # better reviews
         },
-        {"competitor": "GammaCloud", "product_category": "SaaS", "competitor_price": 1299, "our_price": 999, "review_score": 3.9},
-        {"competitor": "DeltaWorks", "product_category": "Add-on", "competitor_price": 199, "our_price": 149, "review_score": 3.1},
+        {
+            "competitor": "GammaCloud",
+            "product_category": "SaaS",
+            "competitor_price": 1299,
+            "our_price": 999,
+            "review_score": 3.9,
+        },
+        {
+            "competitor": "DeltaWorks",
+            "product_category": "Add-on",
+            "competitor_price": 199,
+            "our_price": 149,
+            "review_score": 3.1,
+        },
     ]
     return headers, rows
 
@@ -245,11 +356,36 @@ def _demo_competitors() -> tuple[list[str], list[dict[str, Any]]]:
 def _demo_operations() -> tuple[list[str], list[dict[str, Any]]]:
     headers = ["process", "average_delay_days", "cost", "bottleneck"]
     rows: list[dict[str, Any]] = [
-        {"process": "Invoice processing", "average_delay_days": 2, "cost": 1500, "bottleneck": "false"},
-        {"process": "Payment reconciliation", "average_delay_days": 8, "cost": 4200, "bottleneck": "true"},
-        {"process": "Vendor onboarding", "average_delay_days": 3, "cost": 2100, "bottleneck": "false"},
-        {"process": "Expense approval", "average_delay_days": 5, "cost": 1800, "bottleneck": "false"},
-        {"process": "Report generation", "average_delay_days": 1, "cost": 800, "bottleneck": "false"},
+        {
+            "process": "Invoice processing",
+            "average_delay_days": 2,
+            "cost": 1500,
+            "bottleneck": "false",
+        },
+        {
+            "process": "Payment reconciliation",
+            "average_delay_days": 8,
+            "cost": 4200,
+            "bottleneck": "true",
+        },
+        {
+            "process": "Vendor onboarding",
+            "average_delay_days": 3,
+            "cost": 2100,
+            "bottleneck": "false",
+        },
+        {
+            "process": "Expense approval",
+            "average_delay_days": 5,
+            "cost": 1800,
+            "bottleneck": "false",
+        },
+        {
+            "process": "Report generation",
+            "average_delay_days": 1,
+            "cost": 800,
+            "bottleneck": "false",
+        },
     ]
     return headers, rows
 
@@ -257,11 +393,41 @@ def _demo_operations() -> tuple[list[str], list[dict[str, Any]]]:
 def _demo_analytics() -> tuple[list[str], list[dict[str, Any]]]:
     headers = ["page", "traffic_source", "sessions", "bounce_rate", "conversion_rate"]
     rows: list[dict[str, Any]] = [
-        {"page": "/pricing", "traffic_source": "Organic", "sessions": 8500, "bounce_rate": 0.45, "conversion_rate": 0.09},
-        {"page": "/blog", "traffic_source": "Organic", "sessions": 22000, "bounce_rate": 0.78, "conversion_rate": 0.01},
-        {"page": "/features", "traffic_source": "Paid", "sessions": 4100, "bounce_rate": 0.38, "conversion_rate": 0.12},
-        {"page": "/docs", "traffic_source": "Direct", "sessions": 3200, "bounce_rate": 0.33, "conversion_rate": 0.06},
-        {"page": "/support", "traffic_source": "Email", "sessions": 1800, "bounce_rate": 0.55, "conversion_rate": 0.03},
+        {
+            "page": "/pricing",
+            "traffic_source": "Organic",
+            "sessions": 8500,
+            "bounce_rate": 0.45,
+            "conversion_rate": 0.09,
+        },
+        {
+            "page": "/blog",
+            "traffic_source": "Organic",
+            "sessions": 22000,
+            "bounce_rate": 0.78,
+            "conversion_rate": 0.01,
+        },
+        {
+            "page": "/features",
+            "traffic_source": "Paid",
+            "sessions": 4100,
+            "bounce_rate": 0.38,
+            "conversion_rate": 0.12,
+        },
+        {
+            "page": "/docs",
+            "traffic_source": "Direct",
+            "sessions": 3200,
+            "bounce_rate": 0.33,
+            "conversion_rate": 0.06,
+        },
+        {
+            "page": "/support",
+            "traffic_source": "Email",
+            "sessions": 1800,
+            "bounce_rate": 0.55,
+            "conversion_rate": 0.03,
+        },
     ]
     return headers, rows
 

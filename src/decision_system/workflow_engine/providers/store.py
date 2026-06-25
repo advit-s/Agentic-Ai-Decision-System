@@ -171,12 +171,14 @@ class ProviderStore:
             key_set = False
             if p.api_key_env:
                 key_set = os.environ.get(p.api_key_env) is not None
-            result.append({
-                "name": p.name,
-                "api_base": p.api_base,
-                "api_key_configured": key_set,
-                "default_model": p.default_model,
-            })
+            result.append(
+                {
+                    "name": p.name,
+                    "api_base": p.api_base,
+                    "api_key_configured": key_set,
+                    "default_model": p.default_model,
+                }
+            )
         return result
 
     # ── Internal Helpers ──────────────────────────────────────────────

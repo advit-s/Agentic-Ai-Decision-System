@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from collections import Counter
-
-from decision_system.ontology.models import ConceptType, OntologyMap
+from decision_system.ontology.models import OntologyMap
 
 
 def inspect_ontology(omap: OntologyMap) -> dict[str, object]:

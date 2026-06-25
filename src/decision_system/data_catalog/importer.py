@@ -8,23 +8,23 @@ It does not import SQL Server backups, call connectors, or use a database.
 from __future__ import annotations
 
 import csv
-import json
 import re
 import zipfile
 from datetime import datetime, timezone
 from html import unescape
 from importlib import import_module
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 from xml.etree import ElementTree
 
 from pydantic import BaseModel, Field
 
+from decision_system._data_root import get_data_root
 from decision_system.data_catalog.models import DataCategory
 
-
 DEFAULT_IMPORT_SOURCE_DIR = Path("datasets")
+
+
 def _default_import_manifest_path() -> Path:
     return get_data_root() / "imports" / "import_manifest.json"
 
@@ -100,11 +100,17 @@ def import_datasets(
         category = classify_dataset(path.name)
         if ext == ".bak":
             manifest.records.append(
-                _skipped(path, category, "SQL Server .bak files are not imported; export tables to CSV first")
+                _skipped(
+                    path,
+                    category,
+                    "SQL Server .bak files are not imported; export tables to CSV first",
+                )
             )
             continue
         if ext not in {".csv", ".xlsx", ".xls"}:
-            manifest.records.append(_skipped(path, category, f"Unsupported file type: {ext or '(none)'}"))
+            manifest.records.append(
+                _skipped(path, category, f"Unsupported file type: {ext or '(none)'}")
+            )
             continue
 
         output_filename = f"imported_{_slug(path.stem)}.csv"
@@ -232,7 +238,9 @@ def _read_xlsx(path: Path, *, max_rows: int) -> tuple[list[str], list[dict[str, 
     with zipfile.ZipFile(path) as archive:
         shared_strings = _xlsx_shared_strings(archive)
         sheet_names = sorted(
-            name for name in archive.namelist() if name.startswith("xl/worksheets/sheet") and name.endswith(".xml")
+            name
+            for name in archive.namelist()
+            if name.startswith("xl/worksheets/sheet") and name.endswith(".xml")
         )
         if not sheet_names:
             raise ValueError("Workbook has no worksheet XML")
@@ -250,7 +258,12 @@ def _read_xls(path: Path, *, max_rows: int) -> tuple[list[str], list[dict[str, s
     sheet = workbook.sheet_by_index(0)
     raw_rows: list[list[str]] = []
     for row_index in range(min(sheet.nrows, max_rows + 1)):
-        raw_rows.append([str(sheet.cell_value(row_index, col_index)).strip() for col_index in range(sheet.ncols)])
+        raw_rows.append(
+            [
+                str(sheet.cell_value(row_index, col_index)).strip()
+                for col_index in range(sheet.ncols)
+            ]
+        )
     return _table_from_rows(raw_rows, max_rows=max_rows)
 
 
@@ -285,7 +298,9 @@ def _xlsx_sheet_rows(payload: bytes, shared_strings: list[str]) -> list[list[str
                     raw_value = node.text or ""
                     break
                 if node.tag.endswith("}is"):
-                    raw_value = "".join(text.text or "" for text in node.iter() if text.tag.endswith("}t"))
+                    raw_value = "".join(
+                        text.text or "" for text in node.iter() if text.tag.endswith("}t")
+                    )
                     break
             if cell_type == "s" and raw_value:
                 raw_value = shared_strings[int(raw_value)]
@@ -294,12 +309,17 @@ def _xlsx_sheet_rows(payload: bytes, shared_strings: list[str]) -> list[list[str
     return rows
 
 
-def _table_from_rows(raw_rows: list[list[str]], *, max_rows: int) -> tuple[list[str], list[dict[str, str]]]:
+def _table_from_rows(
+    raw_rows: list[list[str]], *, max_rows: int
+) -> tuple[list[str], list[dict[str, str]]]:
     if not raw_rows:
         return [], []
     headers = [_header(value, index) for index, value in enumerate(raw_rows[0])]
     rows = [
-        {headers[index]: row[index].strip() if index < len(row) else "" for index in range(len(headers))}
+        {
+            headers[index]: row[index].strip() if index < len(row) else ""
+            for index in range(len(headers))
+        }
         for row in raw_rows[1 : max_rows + 1]
     ]
     return headers, rows

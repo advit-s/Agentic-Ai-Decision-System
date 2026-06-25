@@ -118,9 +118,7 @@ def check_personal_contexts_reference_higher(
     if not hc_run_id:
         return False, "Higher context run_id is missing."
     mismatches = [
-        pc.agent_id
-        for pc in spec.personal_contexts
-        if pc.higher_context_ref != hc_run_id
+        pc.agent_id for pc in spec.personal_contexts if pc.higher_context_ref != hc_run_id
     ]
     if mismatches:
         return False, f"Personal contexts missing higher_context_ref: {mismatches}"
@@ -181,8 +179,7 @@ def check_human_review_for_contradictions(
     offenders = [
         intervention.intervention_id
         for intervention in run.judge_interventions
-        if intervention.severity in ("high", "critical")
-        and not intervention.requires_human_review
+        if intervention.severity in ("high", "critical") and not intervention.requires_human_review
     ]
     if offenders:
         return False, f"High/critical interventions lack human review: {offenders}"
@@ -195,8 +192,7 @@ def check_no_external_apis(run: WarRoomRun | None) -> tuple[bool, str]:
     if run is None:
         return True, "No run; trivially passes."
     artifact_text = " ".join(
-        artifact.content
-        for artifact in (run.workspace.artifacts if run.workspace else ())
+        artifact.content for artifact in (run.workspace.artifacts if run.workspace else ())
     ).lower()
     blocked = {"api.openai.com", "api.anthropic.com", "http://", "https://"}
     hits = [pattern for pattern in blocked if pattern in artifact_text]
@@ -231,9 +227,7 @@ def check_no_unbounded_chat(run: WarRoomRun | None) -> tuple[bool, str]:
         lowered = f"\n{artifact.content}".lower()
         hits = [marker.strip() for marker in chat_markers if marker in lowered]
         if hits:
-            return False, (
-                f"Artifact '{artifact.title}' contains chat transcript markers: {hits}"
-            )
+            return False, (f"Artifact '{artifact.title}' contains chat transcript markers: {hits}")
     return True, "All artifacts are bounded and non-transcript shaped."
 
 
@@ -348,32 +342,22 @@ def run_war_room_eval_case(case: WarRoomEvalCase) -> WarRoomEvalResult:
         tool_match = expected_tools.issubset(actual_tools) if expected_tools else True
 
         expected_categories = set(case.expected_data_categories)
-        actual_categories = set(
-            higher_context.required_data_categories if higher_context else []
-        )
+        actual_categories = set(higher_context.required_data_categories if higher_context else [])
         data_category_match = (
-            expected_categories.issubset(actual_categories)
-            if expected_categories
-            else True
+            expected_categories.issubset(actual_categories) if expected_categories else True
         )
 
         artifact_count_passed = gate_results.get("artifact_count", False)
         judge_summary_present = (
-            gate_results.get("judge_summary", False)
-            if case.requires_judge_summary
-            else True
+            gate_results.get("judge_summary", False) if case.requires_judge_summary else True
         )
         no_crash = True
 
         notes: list[str] = []
         if not role_match:
-            notes.append(
-                f"Expected roles {sorted(expected_roles)}, got {sorted(actual_roles)}."
-            )
+            notes.append(f"Expected roles {sorted(expected_roles)}, got {sorted(actual_roles)}.")
         if not tool_match:
-            notes.append(
-                f"Expected tools {sorted(expected_tools)}, got {sorted(actual_tools)}."
-            )
+            notes.append(f"Expected tools {sorted(expected_tools)}, got {sorted(actual_tools)}.")
         if not data_category_match:
             notes.append(
                 "Expected data categories "
@@ -465,10 +449,7 @@ def render_war_room_eval_report(suite: WarRoomEvalSuiteResult) -> str:
         for note in result.notes:
             lines.append(f"  - {note}")
     lines.append("")
-    lines.append(
-        f"Passed: {suite.passed_cases}/{suite.total_cases}"
-        f" | Failed: {suite.failed_cases}"
-    )
+    lines.append(f"Passed: {suite.passed_cases}/{suite.total_cases} | Failed: {suite.failed_cases}")
     if suite.saved_path:
         lines.append(f"Saved results: {suite.saved_path}")
     return "\n".join(lines)
@@ -483,9 +464,7 @@ def save_war_room_eval_results(
     output_dir = Path(results_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "war_room_results.json"
-    saved_suite = suite.model_copy(
-        update={"saved_path": str(output_path.resolve())}
-    )
+    saved_suite = suite.model_copy(update={"saved_path": str(output_path.resolve())})
     output_path.write_text(
         saved_suite.model_dump_json(indent=2) + "\n",
         encoding="utf-8",

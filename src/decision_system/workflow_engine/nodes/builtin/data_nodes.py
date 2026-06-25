@@ -8,12 +8,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from decision_system.workflow_engine.models import (
-    WorkflowNode, ExecutionContext,
+    ExecutionContext,
+    WorkflowNode,
 )
 
 
 class ExtractGraphNode(WorkflowNode):
     """Extracts entities and relationships from documents into a knowledge graph."""
+
     type: str = "decision_system.extract_graph"
     label: str = "Extract Graph"
 
@@ -55,13 +57,14 @@ class ExtractGraphNode(WorkflowNode):
 
 class ProfileDataNode(WorkflowNode):
     """Profiles local CSV data files."""
+
     type: str = "decision_system.profile_data"
     label: str = "Profile Data"
 
     async def execute(self, inputs: dict, ctx: ExecutionContext) -> dict:
-        from decision_system.data_catalog.profiler import profile_dataset
         from decision_system.data_catalog.loader import load_csv
         from decision_system.data_catalog.models import DataCategory
+        from decision_system.data_catalog.profiler import profile_dataset
 
         catalog_path_str = self.config.get("catalog_path", "company_data")
         catalog_path = Path(catalog_path_str)
@@ -94,7 +97,8 @@ class ProfileDataNode(WorkflowNode):
             "type": "object",
             "properties": {
                 "catalog_path": {
-                    "type": "string", "default": "company_data",
+                    "type": "string",
+                    "default": "company_data",
                     "title": "Catalog Path",
                 },
             },
@@ -117,6 +121,7 @@ class ProfileDataNode(WorkflowNode):
 
 class MapOntologyNode(WorkflowNode):
     """Maps data profiles to ontology concepts."""
+
     type: str = "decision_system.map_ontology"
     label: str = "Map Ontology"
 
@@ -155,6 +160,7 @@ class MapOntologyNode(WorkflowNode):
 
 class DetectPatternsNode(WorkflowNode):
     """Runs deterministic pattern and vulnerability detection."""
+
     type: str = "decision_system.detect_patterns"
     label: str = "Detect Patterns"
 
@@ -164,7 +170,7 @@ class DetectPatternsNode(WorkflowNode):
 
         store = InsightStore()
         profiles = inputs.get("profiles") or []
-        graph_data = inputs.get("graph")
+        inputs.get("graph")
 
         csv_root = Path(self.config.get("catalog_path", "company_data"))
         run_detectors(store, profiles, csv_root)
@@ -181,11 +187,13 @@ class DetectPatternsNode(WorkflowNode):
             "type": "object",
             "properties": {
                 "severity_threshold": {
-                    "type": "string", "default": "low",
+                    "type": "string",
+                    "default": "low",
                     "enum": ["low", "medium", "high", "critical"],
                 },
                 "catalog_path": {
-                    "type": "string", "default": "company_data",
+                    "type": "string",
+                    "default": "company_data",
                 },
             },
         }
@@ -213,6 +221,7 @@ class DetectPatternsNode(WorkflowNode):
 
 class WarRoomNode(WorkflowNode):
     """Runs the war-cabinet multi-role analysis protocol."""
+
     type: str = "decision_system.war_room"
     label: str = "Run War Room"
 

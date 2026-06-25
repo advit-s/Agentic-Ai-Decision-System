@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from decision_system.providers import ProviderConfig, ChatRequest, ChatMessage
+from decision_system.providers import ChatMessage, ChatRequest, ProviderConfig
 from decision_system.providers.ollama import OllamaProvider
 
 

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from decision_system.workflow_engine.models import (
-    WorkflowNode, ExecutionContext,
+    ExecutionContext,
+    WorkflowNode,
 )
 
 
@@ -11,6 +12,7 @@ class ManualTriggerNode(WorkflowNode):
     """Manual trigger — starts a workflow with provided inputs.
     This is the default trigger for on-demand workflow execution.
     """
+
     type: str = "decision_system.trigger_manual"
     label: str = "Manual Trigger"
 
@@ -39,6 +41,7 @@ class InputTextNode(WorkflowNode):
     """Provides a text input to the workflow.
     Useful for injecting question text, prompts, or configuration.
     """
+
     type: str = "decision_system.input_text"
     label: str = "Input Text"
 
@@ -83,6 +86,7 @@ class CronTriggerNode(WorkflowNode):
     During manual execution this node simply passes through the
     configured schedule info.
     """
+
     type: str = "decision_system.trigger_cron"
     label: str = "Cron Trigger"
 
@@ -103,15 +107,14 @@ class CronTriggerNode(WorkflowNode):
                     "type": "string",
                     "title": "Cron Expression",
                     "description": (
-                        "Schedule in cron format: "
-                        "minute hour day-of-month month day-of-week"
+                        "Schedule in cron format: minute hour day-of-month month day-of-week"
                     ),
                     "default": "0 9 * * *",
                     "examples": [
-                        "0 9 * * 1-5",    # Weekdays at 9am
-                        "*/30 * * * *",   # Every 30 minutes
-                        "0 0 * * *",      # Daily at midnight
-                        "0 8 * * 1",      # Mondays at 8am
+                        "0 9 * * 1-5",  # Weekdays at 9am
+                        "*/30 * * * *",  # Every 30 minutes
+                        "0 0 * * *",  # Daily at midnight
+                        "0 8 * * 1",  # Mondays at 8am
                     ],
                 },
             },
@@ -140,6 +143,7 @@ class WebhookTriggerNode(WorkflowNode):
     POSTing to the webhook URL triggers the workflow with the
     POST body passed as workflow inputs.
     """
+
     type: str = "decision_system.trigger_webhook"
     label: str = "Webhook Trigger"
 
@@ -197,6 +201,7 @@ class FileWatchTriggerNode(WorkflowNode):
     The scheduler monitors the configured directory for new or modified
     files matching the pattern. When detected, it fires the workflow.
     """
+
     type: str = "decision_system.trigger_file_watch"
     label: str = "File Watch Trigger"
 

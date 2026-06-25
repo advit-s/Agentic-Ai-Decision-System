@@ -1,9 +1,9 @@
 """JSON file-backed claim store.
 
- Provides durable local storage for claims, linked to workspace, execution,
- and workflow IDs. Claims persist across restarts under the configured
- data directory.
- """
+Provides durable local storage for claims, linked to workspace, execution,
+and workflow IDs. Claims persist across restarts under the configured
+data directory.
+"""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from decision_system.models import Claim, ClaimStatus
+from decision_system.models import Claim
 
 
 def _ensure_dir(path: Path) -> None:
@@ -139,7 +139,9 @@ class JSONClaimStore:
             "claims_with_evidence": claims_with_evidence,
             "claims_without_evidence": total - claims_with_evidence,
             "evidence_coverage_score": round(supported / total, 2) if total > 0 else 0.0,
-            "evidence_coverage_score_v2": round(claims_with_evidence / total, 2) if total > 0 else 0.0,
+            "evidence_coverage_score_v2": round(claims_with_evidence / total, 2)
+            if total > 0
+            else 0.0,
         }
 
     def add_claim(

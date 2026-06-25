@@ -8,7 +8,6 @@ later evidence citations.
 from hashlib import sha1
 from pathlib import Path
 
-
 SUPPORTED_EXTENSIONS = {".md", ".txt"}
 
 

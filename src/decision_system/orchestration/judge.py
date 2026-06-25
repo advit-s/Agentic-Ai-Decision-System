@@ -6,17 +6,14 @@ human-review items, and assigns a conservative confidence level.
 
 from __future__ import annotations
 
-from typing import Any
-
 from decision_system.insights.models import (
     Insight,
-    InsightStore,
     InsightSeverity,
+    InsightStore,
 )
 from decision_system.orchestration.models import (
     JudgeSummary,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -80,25 +77,18 @@ def build_judge_summary(
         for ins in by_sev[sev]:
             key_findings.append(f"[{sev.upper()}] {ins.title}: {ins.description}")
 
-    risks: list[str] = [
-        ins.recommended_action for ins in insight_list if ins.recommended_action
-    ]
+    risks: list[str] = [ins.recommended_action for ins in insight_list if ins.recommended_action]
 
     human_review: list[str] = []
 
     # Require human review for high/critical insights
     for ins in by_sev["critical"] + by_sev["high"]:
-        human_review.append(
-            f"{ins.insight_id} ({ins.category}, {ins.severity}): "
-            f"{ins.title}"
-        )
+        human_review.append(f"{ins.insight_id} ({ins.category}, {ins.severity}): {ins.title}")
 
     # Require human review for contradictions
     for ins in insight_list:
         if ins.category == "contradiction":
-            human_review.append(
-                f"{ins.insight_id} (contradiction): {ins.title}"
-            )
+            human_review.append(f"{ins.insight_id} (contradiction): {ins.title}")
 
     # Confidence: start medium, downgrade for missing data
     confidence: str = "medium"

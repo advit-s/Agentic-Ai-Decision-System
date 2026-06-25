@@ -11,14 +11,14 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
 
-from decision_system.security.models import ApprovalRequest, ApprovalStatus
 from decision_system._data_root import get_data_root
+from decision_system.security.models import ApprovalRequest, ApprovalStatus
 
 # ---------------------------------------------------------------------------
 # Path helpers
 # ---------------------------------------------------------------------------
+
 
 def _get_security_dir() -> Path:
     """Return the security data directory (lazy)."""
@@ -155,9 +155,7 @@ def render_approvals(requests: list[ApprovalRequest]) -> str:
         lines.append(f"- {tag} **{req.approval_id}** — {req.reason}")
         lines.append(f"  Requested by: *{req.requested_by}* | {req.created_at}")
         if req.metadata:
-            meta_str = ", ".join(
-                f"{k}={v}" for k, v in sorted(req.metadata.items()) if v
-            )
+            meta_str = ", ".join(f"{k}={v}" for k, v in sorted(req.metadata.items()) if v)
             if meta_str:
                 lines.append(f"  Metadata: {meta_str}")
     lines.append("")

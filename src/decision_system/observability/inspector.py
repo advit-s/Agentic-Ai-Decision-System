@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from .models import EvalStatus, MetricSummary
 from .store import (
@@ -67,7 +67,9 @@ def print_observability_summary(as_json: bool = False) -> dict[str, Any]:
                     "max": m.max,
                 }
                 for m in metrics
-            ] if metrics else [],
+            ]
+            if metrics
+            else [],
             "eval_runs": [
                 {
                     "run_id": r.run_id,
@@ -78,7 +80,9 @@ def print_observability_summary(as_json: bool = False) -> dict[str, Any]:
                     "failed_cases": r.failed_cases,
                 }
                 for r in runs[:10]
-            ] if runs else [],
+            ]
+            if runs
+            else [],
             "traces": [
                 {
                     "trace_id": t.trace_id,
@@ -88,7 +92,9 @@ def print_observability_summary(as_json: bool = False) -> dict[str, Any]:
                     "node_count": t.node_count,
                 }
                 for t in traces[:10]
-            ] if traces else [],
+            ]
+            if traces
+            else [],
             "quality_reports": [
                 {
                     "report_id": r.report_id,
@@ -97,7 +103,9 @@ def print_observability_summary(as_json: bool = False) -> dict[str, Any]:
                     "overall_status": r.overall_status,
                 }
                 for r in reports[:10]
-            ] if reports else [],
+            ]
+            if reports
+            else [],
         }
 
     print("# Observability Summary\n")

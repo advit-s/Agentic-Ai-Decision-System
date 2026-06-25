@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DIR = ROOT / "web"
 MOCK_DIR = WEB_DIR / "mock-data"
@@ -168,8 +167,9 @@ async def test_fastapi_ui_route_returns_page_if_api_module_exists():
     if app is None:
         pytest.skip("decision_system.api exists but exposes no app/create_app.")
 
-    from httpx import ASGITransport
     import httpx
+    from httpx import ASGITransport
+
     transport = ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.get("/")
@@ -192,8 +192,9 @@ async def test_new_api_endpoints_exist():
     if app is None:
         pytest.skip("decision_system.api exists but exposes no app/create_app.")
 
-    from httpx import ASGITransport
     import httpx
+    from httpx import ASGITransport
+
     transport = ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         # Test enterprise-readiness endpoint

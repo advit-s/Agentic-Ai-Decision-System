@@ -3,28 +3,23 @@
 from __future__ import annotations
 
 from pathlib import Path
-from decision_system._data_root import get_data_root
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from decision_system._data_root import get_data_root
 from decision_system.identity.models import LocalUser, Permission
 from decision_system.identity.permissions import (
     require_permission,
     require_workspace_permission,
 )
-from decision_system.api.models import ApiError, ErrorResponse
 from decision_system.models import (
-    Claim,
-    ContradictionRecord,
-    EvidenceQuality,
-    VerificationResult,
     VerificationSummary,
 )
-from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
-from decision_system.verification.service import VerificationService
-from decision_system.security.audit import append_event
 from decision_system.observability.metrics import MetricsCollector, MetricType
+from decision_system.security.audit import append_event
+from decision_system.verification.service import VerificationService
+from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
 
 router = APIRouter(tags=["verification"])
 
@@ -33,6 +28,7 @@ def _get_claim_store() -> JSONClaimStore | None:
     """Get the default claim store from config."""
     try:
         from decision_system.config import load_settings
+
         settings = load_settings()
         store_dir = Path(settings.store_dir) if settings.store_dir else get_data_root()
         return JSONClaimStore(store_dir=store_dir)
@@ -78,6 +74,8 @@ def _record_verification_metrics(metrics_collector, claim_results, duration_ms=0
 
 
 _metrics_collector = None
+
+
 def _get_metrics_collector():
     global _metrics_collector
     if _metrics_collector is None:
@@ -123,23 +121,29 @@ class VerificationSummaryResponse(BaseModel):
 
 
 @router.post("/claims/{claim_id}/verify")
-async def verify_claim(claim_id: str, req: VerifyClaimRequest, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))) -> dict:
+async def verify_claim(
+    claim_id: str,
+    req: VerifyClaimRequest,
+    user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY)),
+) -> dict:
     """Verify a single claim and update its status."""
     service = _get_verification_service()
-    result = service.verify_claim_by_id(
-        claim_id, workspace_id=req.workspace_id
-    )
+    result = service.verify_claim_by_id(claim_id, workspace_id=req.workspace_id)
     if result is None:
         raise HTTPException(status_code=404, detail=f"Claim '{claim_id}' not found")
 
     verification, quality = result
     try:
-        append_event("claim_verified", f"Claim {claim_id} verified as {verification.status}", metadata={
-            "claim_id": claim_id,
-            "status": verification.status,
-            "confidence": verification.confidence,
-            "workspace_id": req.workspace_id or "",
-        })
+        append_event(
+            "claim_verified",
+            f"Claim {claim_id} verified as {verification.status}",
+            metadata={
+                "claim_id": claim_id,
+                "status": verification.status,
+                "confidence": verification.confidence,
+                "workspace_id": req.workspace_id or "",
+            },
+        )
     except Exception:
         pass
     try:
@@ -163,33 +167,39 @@ async def verify_claim(claim_id: str, req: VerifyClaimRequest, user: LocalUser =
 
 @router.post("/executions/{execution_id}/claims/verify")
 async def verify_execution_claims(
-    execution_id: str, req: VerifyClaimRequest, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))
+    execution_id: str,
+    req: VerifyClaimRequest,
+    user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY)),
 ) -> dict:
     """Verify all claims for an execution."""
     service = _get_verification_service()
-    results = service.verify_execution_claims(
-        execution_id, workspace_id=req.workspace_id
-    )
+    results = service.verify_execution_claims(execution_id, workspace_id=req.workspace_id)
     claim_results = []
     for verification, quality in results:
-        claim_results.append({
-            "claim_id": verification.claim_id,
-            "status": verification.status,
-            "confidence": verification.confidence,
-            "verification_notes": verification.verification_notes,
-            "verification_method": verification.verification_method,
-            "evidence_ids": verification.evidence_ids,
-            "evidence_snippets": verification.evidence_snippets,
-            "contradicting_evidence_ids": verification.contradicting_evidence_ids,
-        "evidence_quality": quality.quality_label,
-        })
+        claim_results.append(
+            {
+                "claim_id": verification.claim_id,
+                "status": verification.status,
+                "confidence": verification.confidence,
+                "verification_notes": verification.verification_notes,
+                "verification_method": verification.verification_method,
+                "evidence_ids": verification.evidence_ids,
+                "evidence_snippets": verification.evidence_snippets,
+                "contradicting_evidence_ids": verification.contradicting_evidence_ids,
+                "evidence_quality": quality.quality_label,
+            }
+        )
 
     try:
-        append_event("execution_claims_verified", f"Verified {len(claim_results)} claims for execution {execution_id}", metadata={
-            "execution_id": execution_id,
-            "total": len(claim_results),
-            "workspace_id": req.workspace_id or "",
-        })
+        append_event(
+            "execution_claims_verified",
+            f"Verified {len(claim_results)} claims for execution {execution_id}",
+            metadata={
+                "execution_id": execution_id,
+                "total": len(claim_results),
+                "workspace_id": req.workspace_id or "",
+            },
+        )
     except Exception:
         pass
 
@@ -206,29 +216,38 @@ async def verify_execution_claims(
 
 
 @router.post("/workspaces/{workspace_id}/claims/verify")
-async def verify_workspace_claims(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.CLAIM_VERIFY))) -> dict:
+async def verify_workspace_claims(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.CLAIM_VERIFY)),
+) -> dict:
     """Verify all claims in a workspace."""
     service = _get_verification_service()
     results = service.verify_workspace_claims(workspace_id)
     claim_results = []
     for verification, quality in results:
-        claim_results.append({
-            "claim_id": verification.claim_id,
-            "status": verification.status,
-            "confidence": verification.confidence,
-            "verification_notes": verification.verification_notes,
-            "verification_method": verification.verification_method,
-            "evidence_ids": verification.evidence_ids,
-            "evidence_snippets": verification.evidence_snippets,
-            "contradicting_evidence_ids": verification.contradicting_evidence_ids,
-        "evidence_quality": quality.quality_label,
-        })
+        claim_results.append(
+            {
+                "claim_id": verification.claim_id,
+                "status": verification.status,
+                "confidence": verification.confidence,
+                "verification_notes": verification.verification_notes,
+                "verification_method": verification.verification_method,
+                "evidence_ids": verification.evidence_ids,
+                "evidence_snippets": verification.evidence_snippets,
+                "contradicting_evidence_ids": verification.contradicting_evidence_ids,
+                "evidence_quality": quality.quality_label,
+            }
+        )
 
     try:
-        append_event("workspace_claims_verified", f"Verified {len(claim_results)} claims for workspace {workspace_id}", metadata={
-            "workspace_id": workspace_id,
-            "total": len(claim_results),
-        })
+        append_event(
+            "workspace_claims_verified",
+            f"Verified {len(claim_results)} claims for workspace {workspace_id}",
+            metadata={
+                "workspace_id": workspace_id,
+                "total": len(claim_results),
+            },
+        )
     except Exception:
         pass
 
@@ -245,7 +264,10 @@ async def verify_workspace_claims(workspace_id: str, user: LocalUser = Depends(r
 
 
 @router.get("/claims/{claim_id}/verification")
-async def get_claim_verification(claim_id: str, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))) -> dict:
+async def get_claim_verification(
+    claim_id: str,
+    user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY)),
+) -> dict:
     """Get existing verification for a claim."""
     store = _get_claim_store()
     if store is None:
@@ -268,7 +290,10 @@ async def get_claim_verification(claim_id: str, user: LocalUser = Depends(requir
 
 
 @router.get("/executions/{execution_id}/verification-summary")
-async def get_execution_verification_summary(execution_id: str, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))) -> dict:
+async def get_execution_verification_summary(
+    execution_id: str,
+    user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY)),
+) -> dict:
     """Get verification summary for an execution."""
     service = _get_verification_service()
     summary = service.get_verification_summary(execution_id=execution_id)
@@ -279,7 +304,10 @@ async def get_execution_verification_summary(execution_id: str, user: LocalUser 
 
 
 @router.get("/workspaces/{workspace_id}/verification-summary")
-async def get_workspace_verification_summary(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.CLAIM_VERIFY))) -> dict:
+async def get_workspace_verification_summary(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.CLAIM_VERIFY)),
+) -> dict:
     """Get verification summary for a workspace."""
     service = _get_verification_service()
     summary = service.get_verification_summary(workspace_id=workspace_id)
@@ -290,19 +318,31 @@ async def get_workspace_verification_summary(workspace_id: str, user: LocalUser 
 
 
 @router.post("/workspaces/{workspace_id}/contradictions/scan")
-async def scan_workspace_contradictions(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.CLAIM_VERIFY))) -> ContradictionScanResponse:
+async def scan_workspace_contradictions(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.CLAIM_VERIFY)),
+) -> ContradictionScanResponse:
     """Scan workspace evidence for contradictions."""
     service = _get_verification_service()
     contradictions = service.scan_workspace_contradictions(workspace_id)
     try:
-        append_event("contradiction_scan_run", f"Scanned contradictions for workspace {workspace_id}: found {len(contradictions)}", metadata={
-            "workspace_id": workspace_id,
-            "count": len(contradictions),
-        })
+        append_event(
+            "contradiction_scan_run",
+            f"Scanned contradictions for workspace {workspace_id}: found {len(contradictions)}",
+            metadata={
+                "workspace_id": workspace_id,
+                "count": len(contradictions),
+            },
+        )
     except Exception:
         pass
     try:
-        _get_metrics_collector().record("contradictions_found_count", len(contradictions), MetricType.COUNTER, {"workspace_id": workspace_id})
+        _get_metrics_collector().record(
+            "contradictions_found_count",
+            len(contradictions),
+            MetricType.COUNTER,
+            {"workspace_id": workspace_id},
+        )
     except Exception:
         pass
     return ContradictionScanResponse(

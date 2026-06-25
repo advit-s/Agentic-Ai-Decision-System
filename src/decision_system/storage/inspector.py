@@ -1,9 +1,10 @@
 """Workspace inspection helpers for the ``inspect-workspace`` command."""
+
 from __future__ import annotations
-from datetime import datetime
+
 from typing import Any
 
-from decision_system.storage.models import StoredArtifact, WorkspaceStatus
+from decision_system.storage.models import WorkspaceStatus
 from decision_system.storage.repositories import (
     ArtifactRepository,
     WorkspaceRepository,

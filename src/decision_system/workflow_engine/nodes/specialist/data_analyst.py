@@ -9,9 +9,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from decision_system.workflow_engine.models import WorkflowNode, ExecutionContext
+from decision_system.workflow_engine.models import ExecutionContext, WorkflowNode
 from decision_system.workflow_engine.providers.client import LLMClient
-
 
 # ── Fake fallback generators ─────────────────────────────────────────
 
@@ -19,8 +18,20 @@ _MOCK_PROFILE = {
     "row_count": 150,
     "column_count": 8,
     "numeric_columns": {
-        "revenue": {"min": 10000, "max": 500000, "mean": 185000, "median": 150000, "std": 45000},
-        "cost": {"min": 5000, "max": 300000, "mean": 95000, "median": 80000, "std": 28000},
+        "revenue": {
+            "min": 10000,
+            "max": 500000,
+            "mean": 185000,
+            "median": 150000,
+            "std": 45000,
+        },
+        "cost": {
+            "min": 5000,
+            "max": 300000,
+            "mean": 95000,
+            "median": 80000,
+            "std": 28000,
+        },
         "count": {"min": 1, "max": 500, "mean": 45, "median": 30, "std": 22},
     },
     "categorical_columns": {
@@ -31,16 +42,37 @@ _MOCK_PROFILE = {
         "revenue": {"count": 2, "pct": 1.3},
         "region": {"count": 5, "pct": 3.3},
     },
-    "data_quality_notes": ["2 missing revenue values (1.3%)", "5 missing region values (3.3%)"],
+    "data_quality_notes": [
+        "2 missing revenue values (1.3%)",
+        "5 missing region values (3.3%)",
+    ],
 }
 
 _MOCK_TREND = {
     "overall_direction": "upward",
     "confidence": 0.72,
     "trends": [
-        {"column": "revenue", "direction": "up", "magnitude": "strong", "period": "monthly", "pct_change": 15.2},
-        {"column": "cost", "direction": "up", "magnitude": "moderate", "period": "monthly", "pct_change": 8.1},
-        {"column": "count", "direction": "down", "magnitude": "weak", "period": "monthly", "pct_change": -2.3},
+        {
+            "column": "revenue",
+            "direction": "up",
+            "magnitude": "strong",
+            "period": "monthly",
+            "pct_change": 15.2,
+        },
+        {
+            "column": "cost",
+            "direction": "up",
+            "magnitude": "moderate",
+            "period": "monthly",
+            "pct_change": 8.1,
+        },
+        {
+            "column": "count",
+            "direction": "down",
+            "magnitude": "weak",
+            "period": "monthly",
+            "pct_change": -2.3,
+        },
     ],
     "seasonal_patterns": ["Revenue shows Q4 spikes consistent with holiday seasonality"],
 }
@@ -48,18 +80,54 @@ _MOCK_TREND = {
 _MOCK_ANOMALY = {
     "total_outliers": 3,
     "outliers": [
-        {"column": "revenue", "row": 42, "value": 520000, "expected_range": "10000-350000", "severity": "high", "description": "Revenue spike 48% above normal range"},
-        {"column": "cost", "row": 88, "value": 4500, "expected_range": "5000-200000", "severity": "medium", "description": "Cost drop below minimum threshold"},
-        {"column": "count", "row": 15, "value": 520, "expected_range": "1-400", "severity": "low", "description": "Count exceeds typical maximum"},
+        {
+            "column": "revenue",
+            "row": 42,
+            "value": 520000,
+            "expected_range": "10000-350000",
+            "severity": "high",
+            "description": "Revenue spike 48% above normal range",
+        },
+        {
+            "column": "cost",
+            "row": 88,
+            "value": 4500,
+            "expected_range": "5000-200000",
+            "severity": "medium",
+            "description": "Cost drop below minimum threshold",
+        },
+        {
+            "column": "count",
+            "row": 15,
+            "value": 520,
+            "expected_range": "1-400",
+            "severity": "low",
+            "description": "Count exceeds typical maximum",
+        },
     ],
     "anomaly_score": 0.08,
 }
 
 _MOCK_CORRELATION = {
     "pairs": [
-        {"columns": ["revenue", "cost"], "coefficient": 0.82, "strength": "strong", "relationship": "positive — higher revenue correlates with higher costs"},
-        {"columns": ["revenue", "count"], "coefficient": 0.45, "strength": "moderate", "relationship": "positive — more transactions increase revenue"},
-        {"columns": ["cost", "count"], "coefficient": 0.31, "strength": "weak", "relationship": "weak positive correlation"},
+        {
+            "columns": ["revenue", "cost"],
+            "coefficient": 0.82,
+            "strength": "strong",
+            "relationship": "positive — higher revenue correlates with higher costs",
+        },
+        {
+            "columns": ["revenue", "count"],
+            "coefficient": 0.45,
+            "strength": "moderate",
+            "relationship": "positive — more transactions increase revenue",
+        },
+        {
+            "columns": ["cost", "count"],
+            "coefficient": 0.31,
+            "strength": "weak",
+            "relationship": "weak positive correlation",
+        },
     ],
     "notable_insights": ["revenue vs cost (0.82) — strongest correlation in dataset"],
 }
@@ -167,6 +235,7 @@ class DataAnalystNode(WorkflowNode):
     Accepts array-of-objects data and produces structured analysis
     using LLM when available or deterministic rules as fake fallback.
     """
+
     type: str = "decision_system.data_analyst"
     label: str = "Data Analyst"
 
@@ -187,7 +256,11 @@ class DataAnalystNode(WorkflowNode):
         if isinstance(data, dict):
             data = [data]
 
-        column_focus = f"Focus on columns: {', '.join(columns)}" if columns else "Analyze all available columns."
+        column_focus = (
+            f"Focus on columns: {', '.join(columns)}"
+            if columns
+            else "Analyze all available columns."
+        )
 
         # Try real provider first
         provider_cfg = ctx.resolve_provider(
@@ -216,7 +289,11 @@ class DataAnalystNode(WorkflowNode):
         }
 
     async def _llm_analyze(
-        self, data: list, analysis_type: str, column_focus: str, provider_config: Any,
+        self,
+        data: list,
+        analysis_type: str,
+        column_focus: str,
+        provider_config: Any,
     ) -> dict:
         """Use LLM to analyze structured data."""
         client = LLMClient(provider_config)
@@ -230,12 +307,18 @@ class DataAnalystNode(WorkflowNode):
 
         response = await client.chat_completion(
             messages=[
-                {"role": "system", "content": _DATA_ANALYST_SYSTEM_PROMPT.format(
-                    data_json=data_json,
-                    analysis_type=analysis_type,
-                    column_focus=column_focus,
-                )},
-                {"role": "user", "content": f"Analyze this data ({len(sample)} rows) with type: {analysis_type}."},
+                {
+                    "role": "system",
+                    "content": _DATA_ANALYST_SYSTEM_PROMPT.format(
+                        data_json=data_json,
+                        analysis_type=analysis_type,
+                        column_focus=column_focus,
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Analyze this data ({len(sample)} rows) with type: {analysis_type}.",
+                },
             ],
             model=provider_config.default_model,
             stream=False,
@@ -268,12 +351,16 @@ class DataAnalystNode(WorkflowNode):
                     "description": "Type of data analysis to perform",
                 },
                 "max_rows": {
-                    "type": "integer", "default": 1000, "minimum": 1, "maximum": 100000,
+                    "type": "integer",
+                    "default": 1000,
+                    "minimum": 1,
+                    "maximum": 100000,
                     "title": "Max Rows",
                     "description": "Maximum rows to analyze",
                 },
                 "include_charts": {
-                    "type": "boolean", "default": False,
+                    "type": "boolean",
+                    "default": False,
                     "title": "Include Chart Data",
                 },
             },
@@ -309,9 +396,18 @@ class DataAnalystNode(WorkflowNode):
         return {
             "type": "object",
             "properties": {
-                "analysis": {"type": "object", "description": "Structured analysis results"},
-                "summary": {"type": "string", "description": "Human-readable analysis summary"},
-                "charts": {"type": "object", "description": "Chart-friendly data (optional)"},
+                "analysis": {
+                    "type": "object",
+                    "description": "Structured analysis results",
+                },
+                "summary": {
+                    "type": "string",
+                    "description": "Human-readable analysis summary",
+                },
+                "charts": {
+                    "type": "object",
+                    "description": "Chart-friendly data (optional)",
+                },
                 "fallback_reason": {"type": "string"},
             },
         }

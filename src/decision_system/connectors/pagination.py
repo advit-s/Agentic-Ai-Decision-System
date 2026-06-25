@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 from typing import Any, Generic, TypeVar
+
 from pydantic import BaseModel, Field
 
 from decision_system.connectors.models import ConnectorRuntimeItem
@@ -17,6 +18,7 @@ T = TypeVar("T")
 
 class PaginatedResult(BaseModel, Generic[T]):
     """Generic paginated result wrapper."""
+
     items: list[T] = Field(default_factory=list)
     total_count: int = 0
     page: int = 1
@@ -45,7 +47,7 @@ def paginate_items(
     page = max(1, page)
     page_size = max(1, min(page_size, max_page_size))
     total = len(items)
-    total_pages = max(1, math.ceil(total / page_size))
+    max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
     end = start + page_size
     sliced = items[start:end]

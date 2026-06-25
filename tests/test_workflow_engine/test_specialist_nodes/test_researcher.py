@@ -12,7 +12,10 @@ from pytest_httpx import HTTPXMock
 
 from decision_system.workflow_engine.models import ExecutionContext
 from decision_system.workflow_engine.nodes.specialist.researcher import ResearcherNode
-from decision_system.workflow_engine.providers.store import ProviderConfig, ProviderStore
+from decision_system.workflow_engine.providers.store import (
+    ProviderConfig,
+    ProviderStore,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -22,14 +25,16 @@ SYS_PROMPT_RESEARCHER = "You are a Research Analyst"
 def _store_with_provider() -> ProviderStore:
     tmp = Path(tempfile.mkdtemp())
     store = ProviderStore(tmp / "providers.json")
-    store.save([
-        ProviderConfig(
-            name="test-provider",
-            api_base="https://test.api/v1",
-            api_key_env="TEST_AI_KEY",
-            default_model="test-model",
-        ),
-    ])
+    store.save(
+        [
+            ProviderConfig(
+                name="test-provider",
+                api_base="https://test.api/v1",
+                api_key_env="TEST_AI_KEY",
+                default_model="test-model",
+            ),
+        ]
+    )
     return store
 
 
@@ -55,18 +60,20 @@ FINDINGS_RESPONSE = {
             "index": 0,
             "message": {
                 "role": "assistant",
-                "content": json.dumps({
-                    "findings": [
-                        {
-                            "statement": "Revenue grew 15% YoY",
-                            "citation": "DOC-001",
-                            "confidence": 0.8,
-                            "source_type": "document",
-                        },
-                    ],
-                    "summary": "Growth is solid but needs verification",
-                    "gaps": ["No data on margins"],
-                }),
+                "content": json.dumps(
+                    {
+                        "findings": [
+                            {
+                                "statement": "Revenue grew 15% YoY",
+                                "citation": "DOC-001",
+                                "confidence": 0.8,
+                                "source_type": "document",
+                            },
+                        ],
+                        "summary": "Growth is solid but needs verification",
+                        "gaps": ["No data on margins"],
+                    }
+                ),
             },
             "finish_reason": "stop",
         }
@@ -107,7 +114,9 @@ class TestResearcherNode:
         # Default findings should NOT contain revenue, risk, or growth keywords
         for f in default_result["findings"]:
             stmt = f["statement"].lower()
-            assert not any(kw in stmt for kw in ["revenue", "risk", "growth"]), f"Default finding matched keyword: {stmt}"
+            assert not any(kw in stmt for kw in ["revenue", "risk", "growth"]), (
+                f"Default finding matched keyword: {stmt}"
+            )
 
     async def test_empty_query(self):
         """Empty query → returns error-shaped output."""
@@ -128,7 +137,9 @@ class TestResearcherNode:
             )
             node = ResearcherNode(id="r4", config={"provider": "test-provider"})
             ctx = _ctx(_store_with_provider())
-            result = await node.execute({"query": "Revenue analysis", "context": "Annual report data"}, ctx)
+            result = await node.execute(
+                {"query": "Revenue analysis", "context": "Annual report data"}, ctx
+            )
             assert "findings" in result
             assert len(result["findings"]) > 0
             assert result["findings"][0]["statement"] == "Revenue grew 15% YoY"

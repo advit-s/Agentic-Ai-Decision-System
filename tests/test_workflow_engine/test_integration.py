@@ -2,17 +2,20 @@
 
 import tempfile
 from pathlib import Path
-from typer.testing import CliRunner
 
 import pytest
+from typer.testing import CliRunner
 
-from decision_system.workflow_engine.models import (
-    WorkflowDefinition, NodeConfig, Connection,
-)
 from decision_system.workflow_engine.engine.executor import DAGEngine
+from decision_system.workflow_engine.models import (
+    Connection,
+    NodeConfig,
+    WorkflowDefinition,
+)
 from decision_system.workflow_engine.nodes import create_default_registry
 from decision_system.workflow_engine.stores.json_store import (
-    JSONWorkflowStore, JSONExecutionStore,
+    JSONExecutionStore,
+    JSONWorkflowStore,
 )
 
 
@@ -87,7 +90,9 @@ class TestEndToEnd:
                 NodeConfig(
                     id="code1",
                     type="decision_system.code",
-                    config={"source": "output = {'doubled': inputs['value'] * 2, 'original': inputs['value']}"},
+                    config={
+                        "source": "output = {'doubled': inputs['value'] * 2, 'original': inputs['value']}"
+                    },
                 ),
             ],
             connections=[],

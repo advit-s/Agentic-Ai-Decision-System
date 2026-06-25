@@ -6,7 +6,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from .models import (
     EvalRunRecord,
@@ -38,7 +38,13 @@ def get_paths(root: Optional[str] = None) -> ObservabilityStorePaths:
 
 def init_store(root: Optional[str] = None) -> ObservabilityStorePaths:
     paths = get_paths(root)
-    for d in [paths.root, paths.metrics, paths.eval_history, paths.quality_reports, paths.traces]:
+    for d in [
+        paths.root,
+        paths.metrics,
+        paths.eval_history,
+        paths.quality_reports,
+        paths.traces,
+    ]:
         Path(d).mkdir(parents=True, exist_ok=True)
     return paths
 

@@ -1,22 +1,23 @@
 """JSON export and import for workspace bundles."""
-from __future__ import annotations
-import json
-import os
-from pathlib import Path
-from decision_system._data_root import get_data_root
-from typing import Any
 
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from decision_system._data_root import get_data_root
 from decision_system.path_util import ensure_safe_generated_write_path
 from decision_system.storage.models import (
     StoredArtifact,
     Workspace,
     WorkspaceExport,
 )
-from decision_system.storage.sqlite_store import DatabaseConnection
 from decision_system.storage.repositories import (
     ArtifactRepository,
     WorkspaceRepository,
 )
+from decision_system.storage.sqlite_store import DatabaseConnection
+
 
 def _get_workspace_dir() -> Path:
     """Return the workspace directory (lazy)."""
@@ -31,6 +32,7 @@ def _get_export_dir() -> Path:
 def _get_default_db_path() -> Path:
     """Return the default database path (lazy)."""
     return _get_workspace_dir() / "workspaces.sqlite"
+
 
 # Artifact types that are safe to include in exports.
 # Raw datasets are stored as metadata references, not file blobs.
@@ -77,20 +79,13 @@ class WorkspaceExporter:
         artifacts = self._art_repo.get_by_workspace(workspace_id)
 
         # Only export safe artifact types; skip raw datasets
-        filtered = [
-            a
-            for a in artifacts
-            if a.artifact_type.value in _EXPORTABLE_TYPES
-        ]
+        filtered = [a for a in artifacts if a.artifact_type.value in _EXPORTABLE_TYPES]
 
         bundle = WorkspaceExport(workspace=ws, artifacts=filtered)
 
         if output_path is None:
             _get_export_dir().mkdir(parents=True, exist_ok=True)
-            safe_name = "".join(
-                c if c.isalnum() or c in ("-", "_") else "_"
-                for c in ws.name
-            )
+            safe_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in ws.name)
             output_path = _get_export_dir() / f"{safe_name}.json"
 
         output_path = Path(output_path)
@@ -134,9 +129,7 @@ class WorkspaceImporter:
 
         # Basic schema validation
         if "workspace" not in payload:
-            raise ValueError(
-                "Invalid workspace export: missing 'workspace' key."
-            )
+            raise ValueError("Invalid workspace export: missing 'workspace' key.")
         if "version" not in payload:
             raise ValueError("Invalid workspace export: missing 'version' key.")
 
@@ -145,8 +138,7 @@ class WorkspaceImporter:
         existing = self._ws_repo.get_by_name(bundle.workspace.name)
         if existing is not None and not force:
             raise ValueError(
-                f"Workspace '{bundle.workspace.name}' already exists. "
-                "Use --force to overwrite."
+                f"Workspace '{bundle.workspace.name}' already exists. Use --force to overwrite."
             )
 
         if existing is not None and force:

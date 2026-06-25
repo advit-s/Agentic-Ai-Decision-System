@@ -8,9 +8,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from decision_system.api.models import ApiRunResponse, api_error, to_jsonable
-from decision_system.config import load_settings
 from decision_system.provider_eval.runner import (
-    DEFAULT_PROVIDER_EVAL_CASES,
     run_provider_eval_suite,
 )
 from decision_system.provider_eval.store import save_provider_eval_results

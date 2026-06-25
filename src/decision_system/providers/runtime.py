@@ -14,7 +14,6 @@ from typing import Any, Literal
 
 from decision_system.providers.models import ProviderConfig, ProviderType
 
-
 # ── Data types ────────────────────────────────────────────────────────
 
 
@@ -93,13 +92,15 @@ class BaseProvider(ABC):
         response_format: dict[str, Any] | None = None,
     ) -> ChatResponse:
         """Convenience method for single-prompt generation."""
-        return self.chat(ChatRequest(
-            model=model,
-            messages=[ChatMessage(role="user", content=prompt)],
-            temperature=temperature,
-            max_tokens=max_tokens,
-            response_format=response_format,
-        ))
+        return self.chat(
+            ChatRequest(
+                model=model,
+                messages=[ChatMessage(role="user", content=prompt)],
+                temperature=temperature,
+                max_tokens=max_tokens,
+                response_format=response_format,
+            )
+        )
 
 
 # ── Provider runtime ──────────────────────────────────────────────────
@@ -127,6 +128,7 @@ class ProviderRuntime:
             return self._instances[provider_id]
 
         from decision_system.providers.store import get_provider as get_config
+
         config = get_config(provider_id)
         if config is None:
             return None
@@ -148,18 +150,23 @@ class ProviderRuntime:
         """Factory method to create the right provider implementation."""
         if config.provider_type == "fake":
             from decision_system.providers.fake import FakeProvider
+
             return FakeProvider(config)
         elif config.provider_type == "ollama":
             from decision_system.providers.ollama import OllamaProvider
+
             return OllamaProvider(config)
         elif config.provider_type == "openai_compatible":
             from decision_system.providers.openai_compat import OpenAICompatibleProvider
+
             return OpenAICompatibleProvider(config)
         elif config.provider_type == "openai":
             from decision_system.providers.openai_compat import OpenAICompatibleProvider
+
             return OpenAICompatibleProvider(config)
         elif config.provider_type == "anthropic":
             from decision_system.providers.anthropic_provider import AnthropicProvider
+
             return AnthropicProvider(config)
         else:
             raise ValueError(f"Unknown provider type: {config.provider_type}")
@@ -171,15 +178,19 @@ class ProviderRuntime:
 
 def execute_with_timing(provider: BaseProvider, request: ChatRequest) -> ChatResponse:
     """Execute a chat request with timing and basic error handling."""
-    from decision_system.security.audit import append_event
     from decision_system.observability.metrics import MetricsCollector, MetricType
+    from decision_system.security.audit import append_event
 
     try:
-        append_event("provider_call_started", f"Provider call to {provider.provider_id}", metadata={
-            "provider_id": provider.provider_id,
-            "provider_type": provider.provider_type,
-            "model": request.model,
-        })
+        append_event(
+            "provider_call_started",
+            f"Provider call to {provider.provider_id}",
+            metadata={
+                "provider_id": provider.provider_id,
+                "provider_type": provider.provider_type,
+                "model": request.model,
+            },
+        )
     except Exception:
         pass
 
@@ -190,23 +201,37 @@ def execute_with_timing(provider: BaseProvider, request: ChatRequest) -> ChatRes
 
         try:
             collector = MetricsCollector()
-            collector.record("provider_latency_ms", response.latency_ms, MetricType.TIMER, {
-                "provider_id": provider.provider_id,
-                "provider_type": provider.provider_type,
-                "model": request.model,
-            })
-            collector.record("provider_calls_count", 1, MetricType.COUNTER, {
-                "provider_id": provider.provider_id,
-            })
+            collector.record(
+                "provider_latency_ms",
+                response.latency_ms,
+                MetricType.TIMER,
+                {
+                    "provider_id": provider.provider_id,
+                    "provider_type": provider.provider_type,
+                    "model": request.model,
+                },
+            )
+            collector.record(
+                "provider_calls_count",
+                1,
+                MetricType.COUNTER,
+                {
+                    "provider_id": provider.provider_id,
+                },
+            )
         except Exception:
             pass
 
         try:
-            append_event("provider_call_completed", f"Provider call to {provider.provider_id} completed", metadata={
-                "provider_id": provider.provider_id,
-                "latency_ms": response.latency_ms,
-                "model": request.model,
-            })
+            append_event(
+                "provider_call_completed",
+                f"Provider call to {provider.provider_id} completed",
+                metadata={
+                    "provider_id": provider.provider_id,
+                    "latency_ms": response.latency_ms,
+                    "model": request.model,
+                },
+            )
         except Exception:
             pass
 
@@ -216,19 +241,28 @@ def execute_with_timing(provider: BaseProvider, request: ChatRequest) -> ChatRes
 
         try:
             collector = MetricsCollector()
-            collector.record("provider_error_count", 1, MetricType.COUNTER, {
-                "provider_id": provider.provider_id,
-                "error_type": type(e).__name__,
-            })
+            collector.record(
+                "provider_error_count",
+                1,
+                MetricType.COUNTER,
+                {
+                    "provider_id": provider.provider_id,
+                    "error_type": type(e).__name__,
+                },
+            )
         except Exception:
             pass
 
         try:
-            append_event("provider_call_failed", f"Provider call to {provider.provider_id} failed", metadata={
-                "provider_id": provider.provider_id,
-                "error": type(e).__name__,
-                "latency_ms": elapsed,
-            })
+            append_event(
+                "provider_call_failed",
+                f"Provider call to {provider.provider_id} failed",
+                metadata={
+                    "provider_id": provider.provider_id,
+                    "error": type(e).__name__,
+                    "latency_ms": elapsed,
+                },
+            )
         except Exception:
             pass
 

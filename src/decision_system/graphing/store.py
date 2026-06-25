@@ -9,9 +9,9 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 
+from decision_system._data_root import get_data_root
 from decision_system.graphing.models import (
     NodeType,
     WorkspaceEdge,
@@ -25,10 +25,10 @@ from decision_system.graphing.models import (
 # Default data root
 # ---------------------------------------------------------------------------
 
+
 def get_default_data_root() -> Path:
     """Return the default data root for graph storage (lazy)."""
     return get_data_root() / "graph"
-
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +188,8 @@ def delete_node(
     edges_path = _edges_path(data_root, workspace_id)
     edges = _read_json(edges_path)
     edges = [
-        e for e in edges
+        e
+        for e in edges
         if e.get("source_node_id") != node_id and e.get("target_node_id") != node_id
     ]
     _write_json(edges_path, edges)
@@ -453,6 +454,7 @@ def delete_workspace(
     if data_root is None:
         data_root = get_data_root() / "graph"
     import shutil
+
     ws_dir = _workspace_dir(data_root, workspace_id)
     if ws_dir.exists():
         if data_root is None:
@@ -475,7 +477,6 @@ def get_default_graph_path() -> Path:
     return get_data_root() / "graph" / "knowledge_graph.json"
 
 
-
 def save_knowledge_graph(
     graph: "KnowledgeGraph",
     path: Path | str | None = None,
@@ -484,6 +485,7 @@ def save_knowledge_graph(
     if path is None:
         path = get_data_root() / "graph" / "knowledge_graph.json"
     from decision_system.graphing.models import KnowledgeGraph
+
     if not isinstance(graph, KnowledgeGraph):
         graph = KnowledgeGraph.model_validate(graph)
     graph_path = Path(path)
@@ -497,6 +499,7 @@ def load_knowledge_graph(path: Path | str | None = None) -> "KnowledgeGraph":
     if path is None:
         path = get_data_root() / "graph" / "knowledge_graph.json"
     from decision_system.graphing.models import KnowledgeGraph
+
     graph_path = Path(path)
     if not graph_path.exists():
         return KnowledgeGraph()
@@ -517,12 +520,13 @@ def _workspace_runs_path(workspace_id: str, data_root: Path | None = None) -> Pa
     return _workspace_dir(root, workspace_id) / "runs.jsonl"
 
 
-def save_extraction_run(run: "ExtractionRunRecord", data_root: Path | None = None) -> "ExtractionRunRecord":
+def save_extraction_run(
+    run: "ExtractionRunRecord", data_root: Path | None = None
+) -> "ExtractionRunRecord":
     """Append an extraction run record to the workspace runs file."""
 
     if data_root is None:
         data_root = get_data_root() / "graph"
-    from decision_system.graphing.models import ExtractionRunRecord
     path = _workspace_runs_path(run.workspace_id, data_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as f:
@@ -530,12 +534,15 @@ def save_extraction_run(run: "ExtractionRunRecord", data_root: Path | None = Non
     return run
 
 
-def list_extraction_runs(workspace_id: str, data_root: Path | None = None) -> list["ExtractionRunRecord"]:
+def list_extraction_runs(
+    workspace_id: str, data_root: Path | None = None
+) -> list["ExtractionRunRecord"]:
     """List all extraction run records for a workspace, newest first."""
 
     if data_root is None:
         data_root = get_data_root() / "graph"
     from decision_system.graphing.models import ExtractionRunRecord
+
     path = _workspace_runs_path(workspace_id, data_root)
     if not path.exists():
         return []
@@ -554,7 +561,9 @@ def list_extraction_runs(workspace_id: str, data_root: Path | None = None) -> li
     return runs
 
 
-def get_extraction_run(workspace_id: str, run_id: str, data_root: Path | None = None) -> "ExtractionRunRecord | None":
+def get_extraction_run(
+    workspace_id: str, run_id: str, data_root: Path | None = None
+) -> "ExtractionRunRecord | None":
     """Get a specific extraction run by ID."""
 
     if data_root is None:
@@ -566,7 +575,9 @@ def get_extraction_run(workspace_id: str, run_id: str, data_root: Path | None = 
     return None
 
 
-def get_latest_extraction_run(workspace_id: str, data_root: Path | None = None) -> "ExtractionRunRecord | None":
+def get_latest_extraction_run(
+    workspace_id: str, data_root: Path | None = None
+) -> "ExtractionRunRecord | None":
     """Get the most recent extraction run for a workspace."""
 
     if data_root is None:
@@ -600,6 +611,7 @@ def record_extraction_run(
     if data_root is None:
         data_root = get_data_root() / "graph"
     from datetime import datetime, timezone
+
     from decision_system.graphing.models import ExtractionRunRecord
 
     now = datetime.now(timezone.utc).isoformat()
@@ -639,7 +651,6 @@ def _workspace_claims_path(workspace_id: str, data_root: Path | None = None) -> 
 
 def save_workspace_claim(claim: dict) -> dict:
     """Append a claim record to the workspace claims file and return it."""
-    from decision_system.graphing.models import ExtractionRunRecord
     ws_id = claim.get("workspace_id", claim.get("workspaceId", "default"))
     path = _workspace_claims_path(ws_id)
     path.parent.mkdir(parents=True, exist_ok=True)

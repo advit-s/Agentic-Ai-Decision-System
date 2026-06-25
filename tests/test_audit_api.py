@@ -3,9 +3,8 @@
 All tests are offline using httpx.AsyncClient with ASGITransport.
 No external services.
 """
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 
 class TestAuditEventsAPI:
@@ -43,9 +42,7 @@ class TestAuditEventsAPI:
 
     async def test_audit_events_filter_by_type(self, async_client):
         """Audit events can be filtered by event_type."""
-        resp = await async_client.get(
-            "/workspaces/ws-1/audit/events?event_type=workflow_executed"
-        )
+        resp = await async_client.get("/workspaces/ws-1/audit/events?event_type=workflow_executed")
         assert resp.status_code == 200
         data = resp.json()
         for ev in data["events"]:
@@ -53,9 +50,7 @@ class TestAuditEventsAPI:
 
     async def test_audit_events_filter_by_actor(self, async_client):
         """Audit events can be filtered by actor."""
-        resp = await async_client.get(
-            "/workspaces/ws-1/audit/events?actor=local/system"
-        )
+        resp = await async_client.get("/workspaces/ws-1/audit/events?actor=local/system")
         assert resp.status_code == 200
         data = resp.json()
         for ev in data["events"]:

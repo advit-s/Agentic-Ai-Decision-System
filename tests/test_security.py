@@ -2,6 +2,7 @@
 
 All secrets in tests are synthetic. No external services or API keys required.
 """
+
 from __future__ import annotations
 
 import textwrap
@@ -9,16 +10,11 @@ from pathlib import Path
 
 import pytest
 
-from decision_system.security.models import (
-    ApprovalRequest,
-    ApprovalStatus,
-    AuditEvent,
-    PolicyCheck,
-    PolicyCheckResult,
-    RedactionFinding,
-    RedactionPreviewResult,
-    SecretFinding,
-    SecretScanResult,
+from decision_system.security import policy as _policy_mod
+from decision_system.security.approvals import (
+    create_approval,
+    list_approvals,
+    update_approval_status,
 )
 from decision_system.security.audit import (
     append_event,
@@ -26,22 +22,20 @@ from decision_system.security.audit import (
     load_events,
     render_audit_log,
 )
-from decision_system.security.redaction import redact
-from decision_system.security.secret_scan import (
-    DEFAULT_SCAN_DIRS,
-    DEFAULT_SCAN_ROOT,
-    _mask_text,
-)
-from decision_system.security.approvals import (
-    create_approval,
-    inspect_approval,
-    list_approvals,
-    update_approval_status,
+from decision_system.security.models import (
+    ApprovalRequest,
+    AuditEvent,
+    PolicyCheck,
+    RedactionFinding,
+    RedactionPreviewResult,
+    SecretFinding,
+    SecretScanResult,
 )
 from decision_system.security.policy import run_policy_checks
-from decision_system.security import approvals as _approval_mod
-from decision_system.security import policy as _policy_mod
-
+from decision_system.security.redaction import redact
+from decision_system.security.secret_scan import (
+    _mask_text,
+)
 
 # ================================================================
 # Models
@@ -51,31 +45,45 @@ from decision_system.security import policy as _policy_mod
 class TestModels:
     def test_secret_finding(self) -> None:
         f = SecretFinding(
-            finding_id="f1", source_path="a.py", line_number=1,
-            secret_type="api_key", severity="high",
-            matched_preview="sk-******test", recommendation="rotate it",
+            finding_id="f1",
+            source_path="a.py",
+            line_number=1,
+            secret_type="api_key",
+            severity="high",
+            matched_preview="sk-******test",
+            recommendation="rotate it",
         )
         assert f.created_at
         assert f.severity == "high"
 
     def test_secret_scan_result(self) -> None:
         r = SecretScanResult(
-            scan_id="s1", scanned_path=".", files_scanned=0,
-            files_skipped=0, findings=[], overall_status="ok",
+            scan_id="s1",
+            scanned_path=".",
+            files_scanned=0,
+            files_skipped=0,
+            findings=[],
+            overall_status="ok",
         )
         assert r.findings == []
 
     def test_redaction_finding(self) -> None:
         f = RedactionFinding(
-            text_type="email", start=0, end=10,
-            matched_preview="a@b.com", replacement="[EMAIL]", confidence="high",
+            text_type="email",
+            start=0,
+            end=10,
+            matched_preview="a@b.com",
+            replacement="[EMAIL]",
+            confidence="high",
         )
         assert f.text_type == "email"
 
     def test_redaction_preview_result(self) -> None:
         r = RedactionPreviewResult(
-            original_text="a@b.com", redacted_text="[EMAIL]",
-            findings=[], finding_count=1,
+            original_text="a@b.com",
+            redacted_text="[EMAIL]",
+            findings=[],
+            finding_count=1,
         )
         assert r.original_text == "a@b.com"
 
@@ -85,8 +93,14 @@ class TestModels:
         assert ev.metadata == {}
 
     def test_policy_check(self) -> None:
-        c = PolicyCheck(check_id="c1", name="t", passed=True,
-                        severity="critical", message="ok", recommendation="")
+        c = PolicyCheck(
+            check_id="c1",
+            name="t",
+            passed=True,
+            severity="critical",
+            message="ok",
+            recommendation="",
+        )
         assert c.passed is True
 
     def test_approval_request_defaults(self) -> None:
@@ -130,9 +144,7 @@ class TestMaskText:
 
 
 class TestSecretScanning:
-    def _patch_scan(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> object:
+    def _patch_scan(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> object:
         """Patch _IGNORE_DIRS so the scanner checks the tmp dir without skipping:
         Binary files / files matching __pycache__/ etc. are intentionally skipped
         because they have non-text extensions."""
@@ -156,6 +168,7 @@ class TestSecretScanning:
             "OPENAI_API_KEY=sk-1234567890abcdef012345\n", encoding="utf-8"
         )
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         assert len(result.findings) >= 1
         env_findings = [f for f in result.findings if f.secret_type == "env_file"]
@@ -167,10 +180,9 @@ class TestSecretScanning:
 
     def test_detects_generic_secret(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         self._patch_scan(tmp_path, monkeypatch)
-        (tmp_path / "config.py").write_text(
-            'PASSWORD = "hunter2"\n', encoding="utf-8"
-        )
+        (tmp_path / "config.py").write_text('PASSWORD = "hunter2"\n', encoding="utf-8")
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         assert len(result.findings) >= 1
         f = result.findings[0]
@@ -182,6 +194,7 @@ class TestSecretScanning:
             'api_key = "sk-mySecretKey1234567890abcdef"\n', encoding="utf-8"
         )
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         assert len(result.findings) >= 1
         f = result.findings[0]
@@ -190,10 +203,9 @@ class TestSecretScanning:
 
     def test_detects_aws_key(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         self._patch_scan(tmp_path, monkeypatch)
-        (tmp_path / "aws.py").write_text(
-            'key = "AKIAIOSFODNN7EXAMPLE"\n', encoding="utf-8"
-        )
+        (tmp_path / "aws.py").write_text('key = "AKIAIOSFODNN7EXAMPLE"\n', encoding="utf-8")
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         assert len(result.findings) >= 1
         f = result.findings[0]
@@ -205,6 +217,7 @@ class TestSecretScanning:
             'token = "abcdefghijklmnopqrstuvwxyz"\n', encoding="utf-8"
         )
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         assert len(result.findings) >= 1
         f = result.findings[0]
@@ -216,6 +229,7 @@ class TestSecretScanning:
             'key = "nvapi-myVeryLongSecretKey1234567890abc"\n', encoding="utf-8"
         )
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         assert len(result.findings) >= 1
         f = result.findings[0]
@@ -226,10 +240,9 @@ class TestSecretScanning:
     ) -> None:
         self._patch_scan(tmp_path, monkeypatch)
         real_key = "sk-1234567890abcdef01234567"
-        (tmp_path / "leaky.py").write_text(
-            f'key = "{real_key}"\n', encoding="utf-8"
-        )
+        (tmp_path / "leaky.py").write_text(f'key = "{real_key}"\n', encoding="utf-8")
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         assert len(result.findings) >= 1
         assert real_key not in result.findings[0].matched_preview
@@ -242,6 +255,7 @@ class TestSecretScanning:
             'token = "abcdefghijklmnopqrstuvwxyz"\n', encoding="utf-8"
         )
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         assert result.overall_status == "warn"
 
@@ -254,17 +268,17 @@ class TestSecretScanning:
             encoding="utf-8",
         )
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         f = result.findings[0]
         assert "leak.py" in f.source_path
         assert f.line_number == 2
 
-    def test_skips_binary_files(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_skips_binary_files(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         self._patch_scan(tmp_path, monkeypatch)
         (tmp_path / "image.png").write_bytes(b"PK\x00\x01\x02")
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         assert result.findings == []
 
@@ -277,6 +291,7 @@ class TestSecretScanning:
             encoding="utf-8",
         )
         import decision_system.security.secret_scan as _scan_mod
+
         result = _scan_mod.scan_repo(str(tmp_path))
         env_findings = [f for f in result.findings if f.secret_type == "env_file"]
         assert len(env_findings) == 0
@@ -359,7 +374,7 @@ class TestRedaction:
         result = redact(text)
         emails = [f for f in result.findings if f.text_type == "email"]
         assert len(emails) == 1
-        assert text[emails[0].start:emails[0].end] == "hello@example.com"
+        assert text[emails[0].start : emails[0].end] == "hello@example.com"
 
 
 # ================================================================
@@ -422,8 +437,9 @@ class TestAudit:
         assert "secret_scan_run" in rendered
 
     def test_render_audit_log_with_limit(self) -> None:
-        events = [AuditEvent(event_id=f"e{i}", event_type="x", actor="u", message="")
-                  for i in range(20)]
+        events = [
+            AuditEvent(event_id=f"e{i}", event_type="x", actor="u", message="") for i in range(20)
+        ]
         rendered = render_audit_log(events, limit=5)
         assert "Total events: 20" in rendered
 
@@ -442,16 +458,19 @@ class TestPolicy:
 
     def _write_gitignore(self, tmp_path: Path) -> None:
         (tmp_path / ".gitignore").write_text(
-            "\n".join([
-                ".decision_system/",
-                ".decision_system/workspaces/",
-                ".decision_system/connectors/",
-                ".decision_system/security/",
-                "datasets/",
-                "__pycache__/",
-                ".pytest_cache/",
-                "evals/results/*.json",
-            ]) + "\n",
+            "\n".join(
+                [
+                    ".decision_system/",
+                    ".decision_system/workspaces/",
+                    ".decision_system/connectors/",
+                    ".decision_system/security/",
+                    "datasets/",
+                    "__pycache__/",
+                    ".pytest_cache/",
+                    "evals/results/*.json",
+                ]
+            )
+            + "\n",
             encoding="utf-8",
         )
 
@@ -539,7 +558,9 @@ class TestPolicy:
         self._write_gitignore(tmp_path)
         (tmp_path / ".env.example").write_text("DECISION_PROVIDER=fake\n", encoding="utf-8")
         result = run_policy_checks()
-        assert result.passed_count + result.failed_count + result.warning_count == len(result.checks)
+        assert result.passed_count + result.failed_count + result.warning_count == len(
+            result.checks
+        )
 
     def test_secrets_in_source_no_false_positive(self, tmp_path: Path) -> None:
         self._write_gitignore(tmp_path)
@@ -548,12 +569,12 @@ class TestPolicy:
         sec_dir.mkdir(parents=True)
         (sec_dir / "secret_scan.py").write_text(
             textwrap.dedent(
-                r'''
+                r"""
                 _PATTERNS = [
                     (r"(?i)\bsk-[A-Za-z0-9]{20,}\b", "sk_prefix"),
                     (r"(?i)\bnvapi-[A-Za-z0-9\-_]{20,}\b", "nvapi_prefix"),
                 ]
-                '''
+                """
             ),
             encoding="utf-8",
         )
@@ -592,8 +613,7 @@ class TestApprovals:
         assert req.reason == "integration-test"
 
     def test_create_with_metadata(self) -> None:
-        req = create_approval(reason="test", requested_by="u",
-                               metadata={"source": "suite"})
+        req = create_approval(reason="test", requested_by="u", metadata={"source": "suite"})
         assert req.metadata == {"source": "suite"}
 
     def test_list_empty(self) -> None:

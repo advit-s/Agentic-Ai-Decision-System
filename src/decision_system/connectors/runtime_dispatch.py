@@ -7,9 +7,11 @@ implementation for backward compatibility.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
-from datetime import datetime, timezone
+from decision_system.connectors.github_connector import get_github_connector
+from decision_system.connectors.local_files import LocalFolderConnectorRuntime
 from decision_system.connectors.models import (
     ConnectorConfig,
     ConnectorFetchedContent,
@@ -21,10 +23,7 @@ from decision_system.connectors.runtime import (
     ConnectorRuntime,
     FakeConnectorRuntime,
 )
-from decision_system.connectors.github_connector import get_github_connector
 from decision_system.connectors.url_connector import get_url_connector
-from decision_system.connectors.local_files import LocalFolderConnectorRuntime
-
 
 # Runtime cache
 _runtimes: dict[str, ConnectorRuntime] = {}
@@ -100,17 +99,13 @@ def test_connection(config: ConnectorConfig) -> dict[str, Any]:
     return diag_dict
 
 
-def list_items(
-    config: ConnectorConfig, path: str = ""
-) -> list[ConnectorRuntimeItem]:
+def list_items(config: ConnectorConfig, path: str = "") -> list[ConnectorRuntimeItem]:
     """List items from a connector config."""
     runtime = _get_runtime(config.connector_type)
     return runtime.list_items(config, path)
 
 
-def fetch_item(
-    config: ConnectorConfig, item: ConnectorRuntimeItem
-) -> ConnectorFetchedContent:
+def fetch_item(config: ConnectorConfig, item: ConnectorRuntimeItem) -> ConnectorFetchedContent:
     """Fetch a single item from a connector config."""
     runtime = _get_runtime(config.connector_type)
     return runtime.fetch_item(config, item)

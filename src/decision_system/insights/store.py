@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from decision_system._data_root import get_data_root
 
+from decision_system._data_root import get_data_root
 from decision_system.insights.models import InsightStore
+
 
 def _default_insights_dir() -> Path:
     return get_data_root() / "insights"
+
+
 DEFAULT_INSIGHTS_FILENAME = "insights.json"
 
 

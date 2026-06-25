@@ -150,6 +150,8 @@ def record_github_issue_imported(
         workspace_id=workspace_id,
         **extra,
     )
+
+
 def _emit(event_type: str, message: str, **metadata: Any) -> None:
     """Emit a connector audit event."""
     try:
@@ -313,6 +315,7 @@ def record_item_imported(
         workspace_id=workspace_id,
         **extra,
     )
+
 
 # ---------------------------------------------------------------------------
 # Sync audit events (v1.29)
@@ -514,7 +517,9 @@ def record_schedule_toggled(
         workspace_id=workspace_id,
         **extra,
     )
- # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
 # Reliability audit events (v1.31)
 # ---------------------------------------------------------------------------
 

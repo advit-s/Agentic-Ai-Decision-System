@@ -8,8 +8,13 @@ about limitations.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
 
+from decision_system.graphing.models import (
+    WorkspaceEdge,
+    WorkspaceMetric,
+    WorkspaceNode,
+    WorkspaceRisk,
+)
 from decision_system.models import (
     Claim,
     ContradictionRecord,
@@ -18,12 +23,6 @@ from decision_system.models import (
     ReportClaimEntry,
     VerificationResult,
     VerificationSummary,
-)
-from decision_system.graphing.models import (
-    WorkspaceEdge,
-    WorkspaceMetric,
-    WorkspaceNode,
-    WorkspaceRisk,
 )
 
 
@@ -70,7 +69,11 @@ def render_trust_report(
         uncertain = sum(1 for c in claims if c.status == "uncertain")
         needs_review = sum(1 for c in claims if c.status == "needs_review")
         confidences = {"high": 1.0, "medium": 0.5, "low": 0.0}
-        avg_conf = sum(confidences.get(c.confidence, 0.0) for c in claims) / max(total, 1) if total > 0 else 0
+        avg_conf = (
+            sum(confidences.get(c.confidence, 0.0) for c in claims) / max(total, 1)
+            if total > 0
+            else 0
+        )
         with_evidence = sum(1 for c in claims if c.evidence_ids or c.evidence_snippets)
         coverage = round(with_evidence / max(total, 1), 2) if total > 0 else 0
 
@@ -115,17 +118,21 @@ def render_trust_report(
         # Derive from claims with contradicting evidence
         for c in claims:
             if c.contradicting_evidence_ids:
-                contradiction_records.append(ContradictionRecord(
-                    contradiction_id=f"derived-{c.claim_id}",
-                    claim_id=c.claim_id,
-                    source_id_a=c.evidence_ids[0] if c.evidence_ids else "",
-                    chunk_id_a="",
-                    source_id_b=c.contradicting_evidence_ids[0] if c.contradicting_evidence_ids else "",
-                    chunk_id_b="",
-                    type="claim_contradicted",
-                    description=f"Claim '{c.claim_text[:80]}' has contradicting evidence.",
-                    severity="high",
-                ))
+                contradiction_records.append(
+                    ContradictionRecord(
+                        contradiction_id=f"derived-{c.claim_id}",
+                        claim_id=c.claim_id,
+                        source_id_a=c.evidence_ids[0] if c.evidence_ids else "",
+                        chunk_id_a="",
+                        source_id_b=c.contradicting_evidence_ids[0]
+                        if c.contradicting_evidence_ids
+                        else "",
+                        chunk_id_b="",
+                        type="claim_contradicted",
+                        description=f"Claim '{c.claim_text[:80]}' has contradicting evidence.",
+                        severity="high",
+                    )
+                )
 
     markdown = _render_trust_markdown(
         question=question,
@@ -157,9 +164,7 @@ def render_trust_report(
             "Delay the decision until contradicted or unsupported claims are reviewed.",
             "Request additional evidence from a human owner.",
         ],
-        evidence_citations=sorted({
-            eid for c in claims for eid in c.evidence_ids
-        }),
+        evidence_citations=sorted({eid for c in claims for eid in c.evidence_ids}),
         risks=risks,
         contradictions=[c for c in claims if c.status == "contradicted"],
         unsupported_assumptions=[c for c in claims if c.status == "unsupported"],
@@ -177,9 +182,7 @@ def render_trust_report(
     )
 
 
-def _classify_claims(
-    claims: list[Claim], statuses: list[str]
-) -> list[Claim]:
+def _classify_claims(claims: list[Claim], statuses: list[str]) -> list[Claim]:
     """Filter claims by status."""
     return [c for c in claims if c.status in statuses]
 
@@ -211,11 +214,7 @@ def _build_evidence_table(claims: list[Claim]) -> list[EvidenceTableEntry]:
     for claim in claims:
         for i, eid in enumerate(claim.evidence_ids):
             if eid not in evidence_map:
-                snippet = (
-                    claim.evidence_snippets[i]
-                    if i < len(claim.evidence_snippets)
-                    else ""
-                )
+                snippet = claim.evidence_snippets[i] if i < len(claim.evidence_snippets) else ""
                 evidence_map[eid] = EvidenceTableEntry(
                     evidence_id=eid,
                     source_name="",
@@ -258,9 +257,7 @@ def _build_recommendation(summary: VerificationSummary) -> str:
             "claim(s) should be reviewed."
         )
     if summary.supported_claims > 0:
-        return (
-            "Proceed using the verified evidence, with normal human oversight."
-        )
+        return "Proceed using the verified evidence, with normal human oversight."
     return "Insufficient evidence to make a recommendation."
 
 
@@ -268,7 +265,10 @@ def _build_confidence_level(summary: VerificationSummary) -> str:
     """Determine report confidence level."""
     if summary.contradicted_claims > 0 and summary.supported_claims == 0:
         return "low"
-    if summary.supported_claims > summary.unsupported_claims + summary.uncertain_claims + summary.contradicted_claims:
+    if (
+        summary.supported_claims
+        > summary.unsupported_claims + summary.uncertain_claims + summary.contradicted_claims
+    ):
         return "high"
     if summary.supported_claims > 0:
         return "medium"
@@ -283,9 +283,7 @@ def _build_human_review_items(
     """Build human review items list."""
     items: list[str] = []
     if summary.contradicted_claims > 0:
-        items.append(
-            f"Resolve {summary.contradicted_claims} contradicted claim(s) before acting."
-        )
+        items.append(f"Resolve {summary.contradicted_claims} contradicted claim(s) before acting.")
     if summary.needs_review_claims > 0:
         items.append(
             f"Review {summary.needs_review_claims} claim(s) flagged as needing human review."
@@ -376,7 +374,9 @@ def _render_trust_markdown(
             if entry.verification_reason:
                 sections.append(f"  - Reason: {entry.verification_reason}")
             if entry.contradicting_evidence_ids:
-                sections.append(f"  - Contradicting Evidence: {', '.join(entry.contradicting_evidence_ids[:3])}")
+                sections.append(
+                    f"  - Contradicting Evidence: {', '.join(entry.contradicting_evidence_ids[:3])}"
+                )
             sections.append("")
     else:
         sections.append("- No contradicted claims found.")
@@ -400,7 +400,9 @@ def _render_trust_markdown(
     if uncertain:
         for entry in uncertain:
             sections.append(f"- ⁉️ **{entry.claim_text}**")
-            sections.append(f"  - Reason: {entry.verification_reason or 'Weak or unclear evidence.'}")
+            sections.append(
+                f"  - Reason: {entry.verification_reason or 'Weak or unclear evidence.'}"
+            )
             sections.append("")
     else:
         sections.append("- No uncertain claims.")
@@ -428,9 +430,14 @@ def _render_trust_markdown(
             snippet = entry.snippet[:80].replace("|", "\\|") if entry.snippet else "*empty*"
             supports = ", ".join(entry.supports_claim_ids[:2]) or "-"
             contradicts = ", ".join(entry.contradicts_claim_ids[:2]) or "-"
-            sections.append(f"| {entry.evidence_id[:24]} | {snippet} | {supports} | {contradicts} |")
+            sections.append(
+                f"| {entry.evidence_id[:24]} | {snippet} | {supports} | {contradicts} |"
+            )
         sections.append("")
-        if any(len(e.supports_claim_ids) > 2 or len(e.contradicts_claim_ids) > 2 for e in evidence_table):
+        if any(
+            len(e.supports_claim_ids) > 2 or len(e.contradicts_claim_ids) > 2
+            for e in evidence_table
+        ):
             sections.append("*Only first 2 claim IDs shown per cell.*")
             sections.append("")
     else:
@@ -476,13 +483,23 @@ def _render_trust_markdown(
     # Warnings and Limitations
     sections.append("## Warnings and Limitations")
     sections.append("")
-    sections.append("- This report is generated by a deterministic local verifier, not a perfect truth engine.")
-    sections.append("- Claim verification checks whether local workspace evidence appears to support, contradict, or fail to support claims.")
-    sections.append("- Evidence quality labels are based on reference count and source diversity, not semantic accuracy.")
-    sections.append("- Contradiction detection uses pattern matching and may miss nuanced contradictions.")
+    sections.append(
+        "- This report is generated by a deterministic local verifier, not a perfect truth engine."
+    )
+    sections.append(
+        "- Claim verification checks whether local workspace evidence appears to support, contradict, or fail to support claims."
+    )
+    sections.append(
+        "- Evidence quality labels are based on reference count and source diversity, not semantic accuracy."
+    )
+    sections.append(
+        "- Contradiction detection uses pattern matching and may miss nuanced contradictions."
+    )
     sections.append("- The verifier does not claim to prove or disprove factual truth.")
     if verification_summary.contradicted_claims > 0 or verification_summary.unsupported_claims > 0:
-        sections.append("- **Do not base decisions solely on this report without human review of contradictory or missing evidence.**")
+        sections.append(
+            "- **Do not base decisions solely on this report without human review of contradictory or missing evidence.**"
+        )
     sections.append("")
 
     # ------------------------------------------------------------------
@@ -500,12 +517,13 @@ def _render_trust_markdown(
         sections.append("---")
         sections.append("")
 
-
     # Recommended Next Actions
     sections.append("## Recommended Next Actions")
     sections.append("")
     if verification_summary.contradicted_claims > 0:
-        sections.append("1. Resolve contradicted claims by reviewing the original evidence sources.")
+        sections.append(
+            "1. Resolve contradicted claims by reviewing the original evidence sources."
+        )
         sections.append("2. Gather additional evidence to clarify uncertainties.")
         sections.append("3. Escalate contradicted findings to a human decision-maker.")
     elif verification_summary.unsupported_claims > 0:
@@ -520,12 +538,14 @@ def _render_trust_markdown(
     sections.append("")
     sections.append("---")
     sections.append("")
-    sections.append(f"## Decision Question")
-    sections.append(f"")
+    sections.append("## Decision Question")
+    sections.append("")
     sections.append(question)
     sections.append("")
 
     return "\n".join(sections)
+
+
 # ---------------------------------------------------------------------------
 # Graph section renderers
 # ---------------------------------------------------------------------------
@@ -568,7 +588,9 @@ def _render_entity_summary_section(nodes):
             lines.append(f"*{len(nodes) - 15} more entities not shown.*")
             lines.append("")
 
-    lines.append("*Entities are extracted by deterministic pattern matching and may contain errors.*")
+    lines.append(
+        "*Entities are extracted by deterministic pattern matching and may contain errors.*"
+    )
     lines.append("")
     return lines
 
@@ -611,7 +633,9 @@ def _render_relationship_section(edges, nodes):
             lines.append(f"*{len(edges) - 20} more relationships not shown.*")
             lines.append("")
 
-    lines.append("*Relationships are extracted by deterministic pattern matching and may contain errors.*")
+    lines.append(
+        "*Relationships are extracted by deterministic pattern matching and may contain errors.*"
+    )
     lines.append("")
     return lines
 
@@ -659,7 +683,9 @@ def _render_risk_section(risks):
             markers = {"critical": "🔴", "high": "⚠️", "medium": "⚡", "low": "ℹ️"}
             marker = markers.get(r.severity, "ℹ️")
             desc = f" — {r.description[:100]}" if r.description else ""
-            lines.append(f"- {marker} **{r.title}** [{r.severity}/{r.category}] ({r.confidence}){desc}")
+            lines.append(
+                f"- {marker} **{r.title}** [{r.severity}/{r.category}] ({r.confidence}){desc}"
+            )
             if r.recommended_actions:
                 for action in r.recommended_actions[:2]:
                     lines.append(f"  - *Recommended:* {action}")
@@ -684,8 +710,8 @@ def _render_metric_section(metrics):
         lines.append("| Name | Value | Unit | Period | Entity | Confidence |")
         lines.append("|------|-------|------|--------|--------|------------|")
         for m in metrics[:20]:
-            name = (m.name[:40] if m.name else "*unnamed*")
-            value = (m.value[:20] if m.value else "-")
+            name = m.name[:40] if m.name else "*unnamed*"
+            value = m.value[:20] if m.value else "-"
             unit = m.unit or "-"
             period = m.period or "-"
             entity = ", ".join(m.entity_refs[:2]) if m.entity_refs else "-"

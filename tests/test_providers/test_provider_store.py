@@ -9,17 +9,16 @@ from pathlib import Path
 import pytest
 
 from decision_system.providers import (
-    ProviderConfig,
     ProviderCreateRequest,
     ProviderUpdateRequest,
     create_provider,
-    get_provider,
-    list_providers,
-    update_provider,
     delete_provider,
-    provider_exists,
+    get_provider,
     get_provider_by_name,
     get_providers_by_type,
+    list_providers,
+    provider_exists,
+    update_provider,
 )
 
 
@@ -116,6 +115,7 @@ class TestProviderStore:
 
         # Read raw JSON to confirm no API key value is stored
         import json
+
         store_dir = tmp_store / "providers"
         json_file = store_dir / f"{config.provider_id}.json"
         raw = json.loads(json_file.read_text(encoding="utf-8"))

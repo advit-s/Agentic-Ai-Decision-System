@@ -5,11 +5,6 @@ All tests are offline and require no external services or API keys.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
-import pytest
-
 from decision_system.identity.models import (
     ALL_PERMISSIONS,
     ROLE_PERMISSIONS,
@@ -20,10 +15,8 @@ from decision_system.identity.models import (
     get_default_local_user,
 )
 from decision_system.identity.settings import (
-    SecuritySettings,
     is_demo_mode,
     load_settings,
-    save_settings,
     update_settings,
 )
 from decision_system.identity.store import (
@@ -37,9 +30,7 @@ from decision_system.identity.store import (
     list_memberships,
     list_users,
     save_membership,
-    save_user,
 )
-
 
 # ================================================================
 # Identity models
@@ -95,7 +86,9 @@ class TestWorkspaceMembership:
 
     def test_membership_serialization(self) -> None:
         m = WorkspaceMembership(
-            workspace_id="ws-1", user_id="local/u1", role=UserRole.REVIEWER,
+            workspace_id="ws-1",
+            user_id="local/u1",
+            role=UserRole.REVIEWER,
         )
         data = m.model_dump(mode="json")
         assert data["role"] == "reviewer"
@@ -221,25 +214,32 @@ class TestMembershipStore:
 class TestPermissionCheck:
     def test_user_has_permission(self) -> None:
         from decision_system.identity.permissions import user_has_permission
+
         owner = get_default_local_user()
         assert user_has_permission(owner, Permission.PROVIDER_MANAGE) is True
         assert user_has_permission(owner, Permission.WORKSPACE_MANAGE) is True
 
     def test_user_lacks_permission(self) -> None:
         from decision_system.identity.permissions import user_has_permission
+
         viewer = LocalUser(user_id="local/v", display_name="Viewer", role=UserRole.VIEWER)
         assert user_has_permission(viewer, Permission.PROVIDER_MANAGE) is False
         assert user_has_permission(viewer, Permission.WORKSPACE_MANAGE) is False
 
     def test_workspace_role_overrides_global(self) -> None:
         from decision_system.identity.permissions import user_has_permission
+
         viewer = LocalUser(user_id="local/v", display_name="Viewer", role=UserRole.VIEWER)
-        save_membership(WorkspaceMembership(
-            workspace_id="ws-admin",
-            user_id="local/v",
-            role=UserRole.ADMIN,
-        ))
-        assert user_has_permission(viewer, Permission.PROVIDER_MANAGE, workspace_id="ws-admin") is True
+        save_membership(
+            WorkspaceMembership(
+                workspace_id="ws-admin",
+                user_id="local/v",
+                role=UserRole.ADMIN,
+            )
+        )
+        assert (
+            user_has_permission(viewer, Permission.PROVIDER_MANAGE, workspace_id="ws-admin") is True
+        )
         assert user_has_permission(viewer, Permission.PROVIDER_MANAGE) is False
 
 
@@ -286,6 +286,7 @@ class TestSecuritySettings:
 class TestRoleHierarchy:
     def test_role_is_at_least(self) -> None:
         from decision_system.identity.permissions import role_is_at_least
+
         assert role_is_at_least(UserRole.OWNER, UserRole.VIEWER) is True
         assert role_is_at_least(UserRole.ADMIN, UserRole.VIEWER) is True
         assert role_is_at_least(UserRole.ANALYST, UserRole.VIEWER) is True
@@ -295,6 +296,7 @@ class TestRoleHierarchy:
 
     def test_get_user_role(self) -> None:
         from decision_system.identity.permissions import get_user_role
+
         owner = get_default_local_user()
         assert get_user_role(owner) == UserRole.OWNER
         assert get_user_role(owner, workspace_id="nonexistent") == UserRole.OWNER

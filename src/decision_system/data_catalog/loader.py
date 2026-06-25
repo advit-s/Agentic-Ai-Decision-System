@@ -41,6 +41,7 @@ class LoadedDataset:
 # CSV loader
 # -------------------------------------------------------------------
 
+
 def load_csv(path: Path, category: DataCategory) -> LoadedDataset:
     """Read a CSV file and return a :class:`LoadedDataset`."""
 

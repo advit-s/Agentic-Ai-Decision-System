@@ -10,25 +10,22 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from decision_system.identity.models import LocalUser, Permission
-from decision_system.identity.permissions import (
-    require_permission,
-    require_workspace_permission,
-)
 from decision_system.graphing.audit import (
     graph_extraction_completed,
     graph_extraction_failed,
     graph_extraction_started,
-    risk_extraction_completed as audit_risk_extraction_completed,
+)
+from decision_system.graphing.audit import (
     metric_extraction_completed as audit_metric_extraction_completed,
+)
+from decision_system.graphing.audit import (
+    risk_extraction_completed as audit_risk_extraction_completed,
 )
 from decision_system.graphing.extractor_v2 import extract_intelligence
 from decision_system.graphing.models import NodeType
 from decision_system.graphing.store import (
     get_default_data_root,
     get_edge,
-    get_extraction_run,
-    get_latest_extraction_run,
     get_node,
     get_workspace_meta,
     list_edges,
@@ -42,16 +39,21 @@ from decision_system.graphing.store import (
     upsert_node,
     upsert_risk,
 )
+from decision_system.identity.models import LocalUser, Permission
+from decision_system.identity.permissions import (
+    require_workspace_permission,
+)
+
 router = APIRouter(prefix="/workspaces/{workspace_id}/graph", tags=["graph"])
 
 # ---------------------------------------------------------------------------
 # Request/Response models
 # ---------------------------------------------------------------------------
 
-from pydantic import BaseModel, Field
 from datetime import datetime
 
-from decision_system.graphing.models import ExtractionRunRecord
+from pydantic import BaseModel, Field
+
 from decision_system.observability.store import list_metric_names, load_metric_points
 
 
@@ -194,7 +196,10 @@ def extract_graph(
 
 
 @router.get("", response_model=dict)
-def get_graph(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict[str, Any]:
+def get_graph(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> dict[str, Any]:
     """Get the full graph for a workspace."""
     graph = list_graph_for_workspace(workspace_id, data_root=get_default_data_root())
     return {
@@ -237,19 +242,30 @@ def list_graph_risks(
     category: str | None = None,
 ) -> list[dict]:
     """List risks for a workspace, optionally filtered."""
-    risks = list_risks(workspace_id, severity=severity, category=category, data_root=get_default_data_root())
+    risks = list_risks(
+        workspace_id,
+        severity=severity,
+        category=category,
+        data_root=get_default_data_root(),
+    )
     return [r.model_dump(mode="json") for r in risks]
 
 
 @router.get("/metrics", response_model=list[dict])
-def list_graph_metrics(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> list[dict]:
+def list_graph_metrics(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> list[dict]:
     """List metrics for a workspace."""
     metrics = list_metrics(workspace_id, data_root=get_default_data_root())
     return [m.model_dump(mode="json") for m in metrics]
 
 
 @router.get("/summary", response_model=GraphSummary)
-def graph_summary(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> GraphSummary:
+def graph_summary(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> GraphSummary:
     """Get summary statistics for a workspace graph."""
     meta = get_workspace_meta(workspace_id, data_root=get_default_data_root())
     return GraphSummary(
@@ -262,7 +278,11 @@ def graph_summary(workspace_id: str, user: LocalUser = Depends(require_workspace
 
 
 @router.get("/nodes/{node_id}", response_model=dict | None)
-def get_graph_node(workspace_id: str, node_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict | None:
+def get_graph_node(
+    workspace_id: str,
+    node_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> dict | None:
     """Get a single graph node by ID."""
     node = get_node(node_id, workspace_id, data_root=get_default_data_root())
     if node is None:
@@ -271,7 +291,11 @@ def get_graph_node(workspace_id: str, node_id: str, user: LocalUser = Depends(re
 
 
 @router.get("/edges/{edge_id}", response_model=dict | None)
-def get_graph_edge(workspace_id: str, edge_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict | None:
+def get_graph_edge(
+    workspace_id: str,
+    edge_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> dict | None:
     """Get a single graph edge by ID."""
     edge = get_edge(edge_id, workspace_id, data_root=get_default_data_root())
     if edge is None:
@@ -283,23 +307,27 @@ def get_graph_edge(workspace_id: str, edge_id: str, user: LocalUser = Depends(re
 # Audit / Metrics / Extraction Run response models
 # ---------------------------------------------------------------------------
 
-_GRAPH_EVENT_NAMES = frozenset({
-    "graph_extraction_started",
-    "graph_extraction_completed",
-    "graph_extraction_failed",
-    "risk_extraction_completed",
-    "metric_extraction_completed",
-    "graph_fact_created",
-})
+_GRAPH_EVENT_NAMES = frozenset(
+    {
+        "graph_extraction_started",
+        "graph_extraction_completed",
+        "graph_extraction_failed",
+        "risk_extraction_completed",
+        "metric_extraction_completed",
+        "graph_fact_created",
+    }
+)
 
-_GRAPH_METRIC_NAMES = frozenset({
-    "graph_extraction_duration_ms",
-    "entities_extracted_count",
-    "edges_extracted_count",
-    "risks_extracted_count",
-    "metrics_extracted_count",
-    "graph_extraction_failure_count",
-})
+_GRAPH_METRIC_NAMES = frozenset(
+    {
+        "graph_extraction_duration_ms",
+        "entities_extracted_count",
+        "edges_extracted_count",
+        "risks_extracted_count",
+        "metrics_extracted_count",
+        "graph_extraction_failure_count",
+    }
+)
 
 
 @router.get("/audit-events")
@@ -322,12 +350,14 @@ def list_graph_audit_events(
             labels = p.labels or {}
             if labels.get("workspace_id") != workspace_id:
                 continue
-            all_events.append({
-                "event_type": name,
-                "timestamp": p.timestamp.isoformat(),
-                "value": p.value,
-                "labels": labels,
-            })
+            all_events.append(
+                {
+                    "event_type": name,
+                    "timestamp": p.timestamp.isoformat(),
+                    "value": p.value,
+                    "labels": labels,
+                }
+            )
     all_events.sort(key=lambda e: e["timestamp"], reverse=True)
     return {
         "workspace_id": workspace_id,
@@ -337,7 +367,10 @@ def list_graph_audit_events(
 
 
 @router.get("/metrics/aggregates")
-def list_graph_metrics_aggregated(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict:
+def list_graph_metrics_aggregated(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> dict:
     """List aggregated graph observability metrics for a workspace."""
     result: dict = {
         "workspace_id": workspace_id,
@@ -376,6 +409,7 @@ def list_graph_extraction_runs(
 ) -> dict:
     """List extraction run records for a workspace."""
     from decision_system.graphing.store import list_extraction_runs as _list_runs
+
     runs = _list_runs(workspace_id)
     run_dicts = [r.model_dump(mode="json") for r in runs[:limit]]
     return {
@@ -386,9 +420,14 @@ def list_graph_extraction_runs(
 
 
 @router.get("/extraction-runs/{run_id}")
-def get_graph_extraction_run(workspace_id: str, run_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict:
+def get_graph_extraction_run(
+    workspace_id: str,
+    run_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> dict:
     """Get a single extraction run by ID."""
     from decision_system.graphing.store import get_extraction_run as _get_run
+
     run = _get_run(workspace_id, run_id)
     if run is None:
         raise HTTPException(status_code=404, detail=f"Extraction run not found: {run_id}")
@@ -396,9 +435,13 @@ def get_graph_extraction_run(workspace_id: str, run_id: str, user: LocalUser = D
 
 
 @router.get("/latest-extraction")
-def get_latest_extraction(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict | None:
+def get_latest_extraction(
+    workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ)),
+) -> dict | None:
     """Get the most recent extraction run for a workspace."""
     from decision_system.graphing.store import get_latest_extraction_run as _get_latest
+
     run = _get_latest(workspace_id)
     if run is None:
         return None
@@ -436,7 +479,7 @@ def create_claim_from_graph_fact(
     if not fact_type or not fact_id:
         raise HTTPException(status_code=400, detail="fact_type and fact_id are required")
 
-    from datetime import datetime, timezone
+    from datetime import timezone
     from uuid import uuid4
 
     # Build graph refs based on fact_type
@@ -449,6 +492,7 @@ def create_claim_from_graph_fact(
         risk_refs = [fact_id]
         # Also look up the risk to build claim text
         from decision_system.graphing.store import list_risks
+
         risks = list_risks(workspace_id)
         for r in risks:
             if r.risk_id == fact_id:
@@ -460,6 +504,7 @@ def create_claim_from_graph_fact(
     elif fact_type == "metric":
         metric_refs = [fact_id]
         from decision_system.graphing.store import list_metrics
+
         metrics = list_metrics(workspace_id)
         for m in metrics:
             if m.metric_id == fact_id:
@@ -471,17 +516,21 @@ def create_claim_from_graph_fact(
     elif fact_type == "relationship":
         edge_refs = [fact_id]
         from decision_system.graphing.store import list_edges
+
         edges = list_edges(workspace_id)
         for e in edges:
             if e.edge_id == fact_id:
                 if not claim_text:
-                    claim_text = f"Relationship: {e.source_node_id} {e.edge_type} {e.target_node_id}"
+                    claim_text = (
+                        f"Relationship: {e.source_node_id} {e.edge_type} {e.target_node_id}"
+                    )
                 source_ids = source_ids or e.source_ids
                 evidence_ids = evidence_ids or e.evidence_ids
                 break
     elif fact_type == "entity":
         node_refs = [fact_id]
         from decision_system.graphing.store import list_nodes
+
         nodes = list_nodes(workspace_id)
         for n in nodes:
             if n.node_id == fact_id:
@@ -514,10 +563,12 @@ def create_claim_from_graph_fact(
     }
 
     from decision_system.graphing.store import save_workspace_claim
+
     save_workspace_claim(claim)
 
     # Also emit audit event
     from decision_system.graphing.audit import graph_fact_created
+
     graph_fact_created(workspace_id, fact_type=fact_type, fact_id=fact_id)
 
     return claim
@@ -531,6 +582,7 @@ def list_workspace_claims(
 ) -> dict:
     """List claims created from graph facts for a workspace."""
     from decision_system.graphing.store import list_workspace_claims as _list_claims
+
     claims = _list_claims(workspace_id)
 
     if status:

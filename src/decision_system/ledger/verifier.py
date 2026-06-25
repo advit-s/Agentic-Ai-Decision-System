@@ -7,7 +7,6 @@ checking yet.
 
 from decision_system.models import Claim, EvidenceChunk, VerificationResult
 
-
 # v0.1 uses an explicit marker so contradiction behavior is deterministic in
 # tests and smoke runs before a semantic verifier exists.
 CONTRADICTION_MARKER = "CONTRADICTS:"
@@ -60,9 +59,7 @@ def verify_claims(
             )
         else:
             contradicting_ids = [
-                chunk.evidence_id
-                for chunk in cited_evidence
-                if CONTRADICTION_MARKER in chunk.text
+                chunk.evidence_id for chunk in cited_evidence if CONTRADICTION_MARKER in chunk.text
             ]
             if contradicting_ids:
                 updated = claim.model_copy(

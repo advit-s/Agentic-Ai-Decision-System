@@ -6,15 +6,16 @@ new, unchanged, changed, deleted_remote, failed, skipped.
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 from datetime import datetime, timezone
 from pathlib import Path
-from decision_system._data_root import get_data_root
 from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
+
+from decision_system._data_root import get_data_root
 
 
 class SyncStateItem(BaseModel):
@@ -41,7 +42,9 @@ class SyncStateStore:
     """
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        self._base_dir = Path(base_dir) if base_dir else get_data_root() / "connectors" / "sync_state"
+        self._base_dir = (
+            Path(base_dir) if base_dir else get_data_root() / "connectors" / "sync_state"
+        )
         self._base_dir.mkdir(parents=True, exist_ok=True)
 
     def _store_path(self, workspace_id: str | None, connector_id: str) -> Path:
@@ -60,14 +63,14 @@ class SyncStateStore:
         except Exception:
             return []
 
-    def _save_all(self, workspace_id: str | None, connector_id: str, items: list[SyncStateItem]) -> None:
+    def _save_all(
+        self, workspace_id: str | None, connector_id: str, items: list[SyncStateItem]
+    ) -> None:
         path = self._store_path(workspace_id, connector_id)
         data = [item.model_dump(mode="json") for item in items]
         path.write_text(json.dumps(data, indent=2, default=str) + "\n", encoding="utf-8")
 
-    def get_sync_state(
-        self, workspace_id: str | None, connector_id: str
-    ) -> list[SyncStateItem]:
+    def get_sync_state(self, workspace_id: str | None, connector_id: str) -> list[SyncStateItem]:
         """Load all sync state items for a connector."""
         return self._load_all(workspace_id, connector_id)
 
@@ -154,9 +157,7 @@ class SyncStateStore:
         self.upsert_item(workspace_id, item)
         return item
 
-    def delete_connector_state(
-        self, workspace_id: str | None, connector_id: str
-    ) -> None:
+    def delete_connector_state(self, workspace_id: str | None, connector_id: str) -> None:
         """Delete all sync state for a connector (e.g. when connector is removed)."""
         path = self._store_path(workspace_id, connector_id)
         if path.exists():

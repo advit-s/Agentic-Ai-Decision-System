@@ -6,10 +6,9 @@ records rate-limit state, and provides Retry-After support.
 
 from __future__ import annotations
 
-import time
 import logging
+import time
 from dataclasses import dataclass, field
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RateLimitState:
     """Current rate-limit state for a connector."""
+
     is_limited: bool = False
     retry_after_seconds: float = 0.0
     rate_limit_remaining: int | None = None
@@ -28,6 +28,7 @@ class RateLimitState:
 @dataclass
 class RateLimitRecord:
     """A historical record of a rate-limit event."""
+
     connector_id: str
     retry_after_seconds: float
     rate_limit_remaining: int | None
@@ -98,11 +99,13 @@ class RateLimiter:
         )
         self._history.append(record)
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
         logger.warning(
             "Rate-limited on %s: retry-after=%.1fs, remaining=%s",
-            connector_id, state.retry_after_seconds, state.rate_limit_remaining,
+            connector_id,
+            state.retry_after_seconds,
+            state.rate_limit_remaining,
         )
 
         return state

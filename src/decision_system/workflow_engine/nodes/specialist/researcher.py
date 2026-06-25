@@ -9,28 +9,67 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from decision_system.workflow_engine.models import WorkflowNode, ExecutionContext
+from decision_system.workflow_engine.models import ExecutionContext, WorkflowNode
 from decision_system.workflow_engine.providers.client import LLMClient
-
 
 # ── Fake fallback data ─────────────────────────────────────────────────
 
 _MOCK_FINDINGS: dict[str, list[dict[str, Any]]] = {
     "revenue": [
-        {"statement": "Revenue has grown 15% year-over-year based on available financial data.", "citation": "MOCK-FIN-001", "confidence": 0.7, "source_type": "document"},
-        {"statement": "Operating margins improved by 3 percentage points in the last quarter.", "citation": "MOCK-FIN-002", "confidence": 0.6, "source_type": "document"},
+        {
+            "statement": "Revenue has grown 15% year-over-year based on available financial data.",
+            "citation": "MOCK-FIN-001",
+            "confidence": 0.7,
+            "source_type": "document",
+        },
+        {
+            "statement": "Operating margins improved by 3 percentage points in the last quarter.",
+            "citation": "MOCK-FIN-002",
+            "confidence": 0.6,
+            "source_type": "document",
+        },
     ],
     "risk": [
-        {"statement": "Risk exposure from market volatility remains elevated, impacting investment returns.", "citation": "MOCK-RSK-001", "confidence": 0.65, "source_type": "document"},
-        {"statement": "Regulatory changes may affect compliance costs in the next fiscal year.", "citation": "MOCK-RSK-002", "confidence": 0.55, "source_type": "data_profile"},
+        {
+            "statement": "Risk exposure from market volatility remains elevated, impacting investment returns.",
+            "citation": "MOCK-RSK-001",
+            "confidence": 0.65,
+            "source_type": "document",
+        },
+        {
+            "statement": "Regulatory changes may affect compliance costs in the next fiscal year.",
+            "citation": "MOCK-RSK-002",
+            "confidence": 0.55,
+            "source_type": "data_profile",
+        },
     ],
     "growth": [
-        {"statement": "Customer acquisition costs have decreased 20% due to improved targeting.", "citation": "MOCK-GRW-001", "confidence": 0.75, "source_type": "document"},
-        {"statement": "New market expansion contributed 8% to total revenue growth.", "citation": "MOCK-GRW-002", "confidence": 0.6, "source_type": "graph"},
+        {
+            "statement": "Customer acquisition costs have decreased 20% due to improved targeting.",
+            "citation": "MOCK-GRW-001",
+            "confidence": 0.75,
+            "source_type": "document",
+        },
+        {
+            "statement": "New market expansion contributed 8% to total revenue growth.",
+            "citation": "MOCK-GRW-002",
+            "confidence": 0.6,
+            "source_type": "graph",
+        },
     ],
     "default": [
-        {"statement": "Sample finding based on available data sources.", "citation": "MOCK-DEF-001", "confidence": 0.5, "source_type": "document"},
-        {"statement": "Additional context found in related documents.", "citation": "MOCK-DEF-002", "confidence": 0.4, "source_type": "document"},
+        {
+            "statement": "Sample finding based on available data sources.",
+            "citation": "MOCK-DEF-001",
+            "confidence": 0.5,
+            "source_type": "document",
+        },
+        {
+            "statement": "Additional context found in related documents.",
+            "citation": "MOCK-DEF-002",
+            "confidence": 0.4,
+            "source_type": "document",
+        },
     ],
 }
 
@@ -71,12 +110,14 @@ Assign confidence scores based on evidence quality. Return ONLY valid JSON."""
 
 # ── Researcher Node ───────────────────────────────────────────────────
 
+
 class ResearcherNode(WorkflowNode):
     """Retrieves and synthesizes information from connected data sources.
 
     Produces structured findings with citations and confidence scores.
     Falls back to deterministic mock data when no LLM provider is configured.
     """
+
     type: str = "decision_system.researcher"
     label: str = "Researcher"
 
@@ -114,7 +155,10 @@ class ResearcherNode(WorkflowNode):
         }
 
     async def _llm_execute(
-        self, query: str, context: str, provider_cfg: Any,
+        self,
+        query: str,
+        context: str,
+        provider_cfg: Any,
     ) -> dict:
         """Execute with real LLM provider."""
         # resolve_provider returns (ProviderConfig, model_name) tuple
@@ -126,10 +170,13 @@ class ResearcherNode(WorkflowNode):
         try:
             response = await client.chat_completion(
                 messages=[
-                    {"role": "system", "content": _RESEARCHER_SYSTEM_PROMPT.format(
-                        query=query,
-                        evidence_snippets=evidence_snippets,
-                    )},
+                    {
+                        "role": "system",
+                        "content": _RESEARCHER_SYSTEM_PROMPT.format(
+                            query=query,
+                            evidence_snippets=evidence_snippets,
+                        ),
+                    },
                     {"role": "user", "content": f"Research the following: {query}"},
                 ],
                 model=resolved_model,
@@ -160,20 +207,26 @@ class ResearcherNode(WorkflowNode):
             "type": "object",
             "properties": {
                 "max_sources": {
-                    "type": "integer", "default": 5, "minimum": 1, "maximum": 50,
+                    "type": "integer",
+                    "default": 5,
+                    "minimum": 1,
+                    "maximum": 50,
                     "title": "Max Sources",
                 },
                 "depth": {
-                    "type": "string", "default": "balanced",
+                    "type": "string",
+                    "default": "balanced",
                     "enum": ["quick", "balanced", "deep"],
                     "title": "Research Depth",
                 },
                 "include_graph": {
-                    "type": "boolean", "default": False,
+                    "type": "boolean",
+                    "default": False,
                     "title": "Include Knowledge Graph",
                 },
                 "source_filter": {
-                    "type": "string", "default": "all",
+                    "type": "string",
+                    "default": "all",
                     "enum": ["all", "documents", "graph", "data_profiles"],
                     "title": "Source Filter",
                 },
@@ -216,7 +269,11 @@ class ResearcherNode(WorkflowNode):
                         "properties": {
                             "statement": {"type": "string"},
                             "citation": {"type": "string"},
-                            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                            "confidence": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                            },
                             "source_type": {
                                 "type": "string",
                                 "enum": ["document", "graph", "data_profile", "web"],

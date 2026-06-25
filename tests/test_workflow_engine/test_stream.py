@@ -8,10 +8,10 @@ import pytest
 
 from decision_system.workflow_engine.engine.events import ExecutionEvent
 from decision_system.workflow_engine.stream import (
-    get_execution_queue,
-    emit_event,
     ExecutionEventStream,
     cleanup_queue,
+    emit_event,
+    get_execution_queue,
 )
 
 

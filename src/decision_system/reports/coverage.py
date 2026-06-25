@@ -6,7 +6,7 @@ All values are computed from structured data — no LLM calls, no guesses.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from decision_system.models import Claim, VerificationResult
 

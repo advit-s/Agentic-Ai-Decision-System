@@ -45,14 +45,16 @@ def _store_with_provider() -> ProviderStore:
     """Provider store with one real provider."""
     tmp = Path(tempfile.mkdtemp())
     store = ProviderStore(tmp / "providers.json")
-    store.save([
-        ProviderConfig(
-            name="test-provider",
-            api_base="https://test.api/v1",
-            api_key_env="TEST_AI_KEY",
-            default_model="test-model",
-        ),
-    ])
+    store.save(
+        [
+            ProviderConfig(
+                name="test-provider",
+                api_base="https://test.api/v1",
+                api_key_env="TEST_AI_KEY",
+                default_model="test-model",
+            ),
+        ]
+    )
     return store
 
 
@@ -79,7 +81,9 @@ SIMPLE_JSON_RESPONSE = {
             "index": 0,
             "message": {
                 "role": "assistant",
-                "content": json.dumps({"findings": [{"title": "Test finding", "severity": "high"}]}),
+                "content": json.dumps(
+                    {"findings": [{"title": "Test finding", "severity": "high"}]}
+                ),
             },
             "finish_reason": "stop",
         }
@@ -92,7 +96,10 @@ MARKDOWN_RESPONSE = {
     "choices": [
         {
             "index": 0,
-            "message": {"role": "assistant", "content": "# Test Report\n\nThis is a report."},
+            "message": {
+                "role": "assistant",
+                "content": "# Test Report\n\nThis is a report.",
+            },
             "finish_reason": "stop",
         }
     ],
@@ -121,10 +128,12 @@ VERIFY_RESPONSE = {
             "index": 0,
             "message": {
                 "role": "assistant",
-                "content": json.dumps([
-                    {"claim": "Claim 1", "status": "supported"},
-                    {"claim": "Claim 2", "status": "unsupported"},
-                ]),
+                "content": json.dumps(
+                    [
+                        {"claim": "Claim 1", "status": "supported"},
+                        {"claim": "Claim 2", "status": "unsupported"},
+                    ]
+                ),
             },
             "finish_reason": "stop",
         }
@@ -133,6 +142,7 @@ VERIFY_RESPONSE = {
 
 
 # ── TechAnalystNode ──────────────────────────────────────────────────
+
 
 class TestTechAnalystNode:
     """TechAnalystNode — LLM-powered technical analysis."""
@@ -156,7 +166,9 @@ class TestTechAnalystNode:
             )
             node = TechAnalystNode(id="t1", config={"provider": "test-provider"})
             ctx = _ctx(_store_with_provider())
-            result = await node.execute({"question": "Analyze this", "chunks": [{"text": "data"}]}, ctx)
+            result = await node.execute(
+                {"question": "Analyze this", "chunks": [{"text": "data"}]}, ctx
+            )
             assert "analysis" in result
             assert "Test finding" in result["analysis"]
 
@@ -170,6 +182,7 @@ class TestTechAnalystNode:
 
 
 # ── RiskAnalystNode ─────────────────────────────────────────────────
+
 
 class TestRiskAnalystNode:
     """RiskAnalystNode — LLM-powered risk analysis."""
@@ -200,6 +213,7 @@ class TestRiskAnalystNode:
 
 # ── ExtractClaimsNode ───────────────────────────────────────────────
 
+
 class TestExtractClaimsNode:
     """ExtractClaimsNode — LLM-powered claim extraction."""
 
@@ -229,6 +243,7 @@ class TestExtractClaimsNode:
 
 # ── VerifyClaimsNode ────────────────────────────────────────────────
 
+
 class TestVerifyClaimsNode:
     """VerifyClaimsNode — LLM-powered claim verification."""
 
@@ -250,13 +265,16 @@ class TestVerifyClaimsNode:
             )
             node = VerifyClaimsNode(id="vc1", config={"provider": "test-provider"})
             ctx = _ctx(_store_with_provider())
-            result = await node.execute({"claims": [{"text": "Claim 1"}], "chunks": [{"text": "Evidence"}]}, ctx)
+            result = await node.execute(
+                {"claims": [{"text": "Claim 1"}], "chunks": [{"text": "Evidence"}]}, ctx
+            )
             assert "verified_claims" in result
         finally:
             os.environ.pop("TEST_AI_KEY", None)
 
 
 # ── WriteReportNode ─────────────────────────────────────────────────
+
 
 class TestWriteReportNode:
     """WriteReportNode — LLM-powered report writing."""
