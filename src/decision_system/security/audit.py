@@ -13,6 +13,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from decision_system._data_root import get_data_root
 
 from decision_system.security.models import AuditEvent
 
@@ -29,9 +30,19 @@ except (ImportError, Exception):
 # Path helpers
 # ---------------------------------------------------------------------------
 
-DEFAULT_SECURITY_DIR = Path(".decision_system") / "security"
-DEFAULT_AUDIT_DIR = DEFAULT_SECURITY_DIR / "audit"
-DEFAULT_AUDIT_LOG = DEFAULT_AUDIT_DIR / "audit_log.jsonl"
+def _get_security_dir() -> Path:
+    """Return the security data directory (lazy)."""
+    return get_data_root() / "security"
+
+
+def _get_audit_dir() -> Path:
+    """Return the audit directory (lazy)."""
+    return _get_security_dir() / "audit"
+
+
+def _get_audit_log() -> Path:
+    """Return the audit log file path (lazy)."""
+    return _get_audit_dir() / "audit_log.jsonl"
 
 
 # ---------------------------------------------------------------------------
@@ -41,7 +52,7 @@ DEFAULT_AUDIT_LOG = DEFAULT_AUDIT_DIR / "audit_log.jsonl"
 
 def _ensure_dirs() -> None:
     """Create the security output directory tree if it does not already exist."""
-    DEFAULT_AUDIT_DIR.mkdir(parents=True, exist_ok=True)
+    _get_audit_dir().mkdir(parents=True, exist_ok=True)
 
 
 def _resolve_actor(actor: str | None = None) -> str:
@@ -69,7 +80,7 @@ def append_event(
     *,
     actor: str | None = None,
     metadata: dict[str, Any] | None = None,
-    audit_path: str | Path = DEFAULT_AUDIT_LOG,
+    audit_path: str | Path = _get_audit_log(),
 ) -> AuditEvent:
     """Append a single audit event to the JSONL log file.
 
@@ -95,7 +106,7 @@ def append_event(
 
 
 def load_events(
-    audit_path: str | Path = DEFAULT_AUDIT_LOG,
+    audit_path: str | Path = _get_audit_log(),
     *,
     limit: int | None = None,
 ) -> list[AuditEvent]:

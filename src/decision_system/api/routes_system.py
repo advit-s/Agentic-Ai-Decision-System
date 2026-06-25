@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
 from fastapi import APIRouter
 
@@ -28,7 +29,8 @@ def _import_available(module_name: str) -> bool:
 def _count_workspaces(settings) -> int:
     """Count workspace directories in the data dir."""
     from pathlib import Path
-    data_dir = Path(settings.workspace_db_path).parent if hasattr(settings, 'workspace_db_path') else Path(".decision_system")
+    from decision_system._data_root import get_data_root
+    data_dir = Path(settings.workspace_db_path).parent if hasattr(settings, 'workspace_db_path') else get_data_root()
     ws_dir = data_dir / "workspaces"
     if ws_dir.is_dir():
         count = sum(1 for p in ws_dir.iterdir() if p.is_dir() and not p.name.startswith("."))

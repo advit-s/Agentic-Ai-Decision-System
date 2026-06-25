@@ -16,6 +16,7 @@ from decision_system.workflow_engine.nodes.builtin import (
     ContradictionScanNode,
     VerificationSummaryNode,
     EvidenceSynthesisNode,
+    GraphExtractionNodeV2, RiskExtractionNode, MetricExtractionNode, GraphSummaryNode,
 )
 from decision_system.workflow_engine.nodes.specialist import (
     ResearcherNode, CriticNode, SynthesizerNode, DataAnalystNode,
@@ -43,6 +44,7 @@ _ALL_BUILTIN_NODES = [
     EvidenceSearchNode,
     ClaimVerifierNode, ContradictionScanNode, VerificationSummaryNode,
     EvidenceSynthesisNode,
+    GraphExtractionNodeV2, RiskExtractionNode, MetricExtractionNode, GraphSummaryNode,
     ResearcherNode, CriticNode, SynthesizerNode, DataAnalystNode,
     ReviewGateNode,
     PlannerNode, AuditorNode, ComplianceCheckerNode, CodeRunnerNode,

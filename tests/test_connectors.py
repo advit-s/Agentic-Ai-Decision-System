@@ -502,7 +502,7 @@ class TestStore:
 
     def test_module_level_functions(self, tmp_path, monkeypatch):
         import decision_system.connectors.store as store_mod
-        monkeypatch.setattr(store_mod, "DEFAULT_JOBS_DIR", tmp_path)
+        monkeypatch.setenv("DECISION_SYSTEM_DATA_DIR", str(tmp_path))
 
         job = ConnectorImportJob(
             job_id="mod-001",

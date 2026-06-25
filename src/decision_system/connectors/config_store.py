@@ -10,6 +10,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 from uuid import uuid4
 
@@ -43,14 +44,15 @@ def _write_json(path: Path, data: Any) -> None:
     )
 
 
-DEFAULT_CONFIGS_DIR = Path(".decision_system") / "connectors" / "configs"
+def _default_configs_dir() -> Path:
+    return get_data_root() / "connectors" / "configs"
 
 
 class ConnectorConfigStore:
     """Persistent JSON-backed store for connector configurations."""
 
     def __init__(self, configs_dir: str | Path | None = None) -> None:
-        self._configs_dir = Path(configs_dir) if configs_dir else DEFAULT_CONFIGS_DIR
+        self._configs_dir = Path(configs_dir) if configs_dir else _default_configs_dir()
         _ensure_dir(self._configs_dir)
 
     def _workspace_dir(self, workspace_id: str | None) -> Path:

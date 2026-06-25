@@ -35,6 +35,7 @@ from rich.console import Console
 # Lightweight imports: config, hygiene, hygiene HTML renderer, data catalog
 # store/inspector, and the three symbols tests monkeypatch by dotted path.
 # ---------------------------------------------------------------------------
+from decision_system._data_root import get_data_root
 from decision_system.config import load_settings  # noqa: E402
 from decision_system.devtools.hygiene import (  # noqa: E402
     HygieneReport,
@@ -214,7 +215,7 @@ def _render_evidence_section(evidence_items: list[Any]) -> str:
 
 def _save_run(result: dict[str, Any]) -> Path:
     """Persist the full workflow result under ``.decision_system/runs/``."""
-    runs_dir = Path(".decision_system") / "runs"
+    runs_dir = get_data_root() / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
     run_path = runs_dir / f"{result['run_id']}.json"
     run_path.write_text(
@@ -513,7 +514,6 @@ def map_ontology() -> None:
         map_profiles_to_ontology,
     )
     from decision_system.ontology.store import (  # noqa: PLC0415
-        DEFAULT_ONTOLOGY_DIR,
         save_ontology,
     )
 
@@ -932,7 +932,7 @@ def ask(
         run_war_room as _run_war_room_fn,
     )
     from decision_system.war_room.store import (  # noqa: PLC0415
-        DEFAULT_RUNS_DIR,
+        get_default_runs_dir,
         load_latest_run,
     )
 
@@ -1079,7 +1079,7 @@ def run_war_room(
         run_war_room as _run_war_room_fn,
     )
     from decision_system.war_room.store import (  # noqa: PLC0415
-        DEFAULT_RUNS_DIR,
+        get_default_runs_dir,
     )
 
     run = _run_war_room_fn(question)
@@ -1114,7 +1114,7 @@ def run_war_room(
             f" [{tag} {intervention.severity.upper()}] "
             f"{intervention.reason}"
         )
-    saved = DEFAULT_RUNS_DIR / f"{run.run_id}.json"
+    saved = get_default_runs_dir() / f"{run.run_id}.json"
     if saved.exists():
         console.print(f"Saved war-room run: {saved}")
 
@@ -1614,7 +1614,7 @@ def coverage(
     verification_results: list[Any] = []
 
     if run_id:
-        run_path = Path(".decision_system") / "runs" / f"{run_id}.json"
+        run_path = get_data_root() / "runs" / f"{run_id}.json"
         if run_path.exists():
             import json as _json
             data = _json.loads(run_path.read_text(encoding="utf-8"))
@@ -1622,7 +1622,7 @@ def coverage(
             verification_results = data.get("verification_results", [])
     else:
         # Try latest run
-        runs_dir = Path(".decision_system") / "runs"
+        runs_dir = get_data_root() / "runs"
         if runs_dir.exists():
             run_files = sorted(runs_dir.iterdir(), reverse=True)
             if run_files:

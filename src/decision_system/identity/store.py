@@ -11,6 +11,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 
 from decision_system.identity.models import (
@@ -24,9 +25,14 @@ from decision_system.identity.models import (
 # Default paths
 # ---------------------------------------------------------------------------
 
-DEFAULT_IDENTITY_DIR = Path(".decision_system") / "identity"
-DEFAULT_USERS_FILE = DEFAULT_IDENTITY_DIR / "users.json"
-DEFAULT_MEMBERSHIPS_FILE = DEFAULT_IDENTITY_DIR / "memberships.json"
+def _default_identity_dir() -> Path:
+    return get_data_root() / "identity"
+
+def _default_users_file() -> Path:
+    return _default_identity_dir() / "users.json"
+
+def _default_memberships_file() -> Path:
+    return _default_identity_dir() / "memberships.json"
 
 
 # ---------------------------------------------------------------------------
@@ -35,10 +41,12 @@ DEFAULT_MEMBERSHIPS_FILE = DEFAULT_IDENTITY_DIR / "memberships.json"
 
 
 def _ensure_dirs() -> None:
-    DEFAULT_IDENTITY_DIR.mkdir(parents=True, exist_ok=True)
+    _default_identity_dir().mkdir(parents=True, exist_ok=True)
 
 
-def _load_users(path: Path = DEFAULT_USERS_FILE) -> dict[str, dict[str, Any]]:
+def _load_users(path: Path | None = None) -> dict[str, dict[str, Any]]:
+    if path is None:
+        path = _default_users_file()
     if not path.exists():
         return {}
     try:
@@ -50,9 +58,11 @@ def _load_users(path: Path = DEFAULT_USERS_FILE) -> dict[str, dict[str, Any]]:
 
 def _save_users(
     users: dict[str, dict[str, Any]],
-    path: Path = DEFAULT_USERS_FILE,
+    path: Path | None = None,
 ) -> None:
     _ensure_dirs()
+    if path is None:
+        path = _default_users_file()
     with path.open("w") as f:
         json.dump(users, f, indent=2, default=str)
 
@@ -122,7 +132,9 @@ def create_user(
 # ---------------------------------------------------------------------------
 
 
-def _load_memberships(path: Path = DEFAULT_MEMBERSHIPS_FILE) -> list[dict[str, Any]]:
+def _load_memberships(path: Path | None = None) -> list[dict[str, Any]]:
+    if path is None:
+        path = _default_memberships_file()
     if not path.exists():
         return []
     try:
@@ -134,9 +146,11 @@ def _load_memberships(path: Path = DEFAULT_MEMBERSHIPS_FILE) -> list[dict[str, A
 
 def _save_memberships(
     memberships: list[dict[str, Any]],
-    path: Path = DEFAULT_MEMBERSHIPS_FILE,
+    path: Path | None = None,
 ) -> None:
     _ensure_dirs()
+    if path is None:
+        path = _default_memberships_file()
     with path.open("w") as f:
         json.dump(memberships, f, indent=2, default=str)
 

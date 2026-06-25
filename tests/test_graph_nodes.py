@@ -19,7 +19,7 @@ from decision_system.workflow_engine.nodes.builtin.graph_nodes import (
     RiskExtractionNode,
 )
 from decision_system.graphing.store import (
-    DEFAULT_DATA_ROOT,
+    get_default_data_root,
     delete_workspace,
     list_edges,
     list_metrics,
@@ -55,7 +55,7 @@ def _text_input(text: str, evidence_id: str = "ev-1", source_id: str = "src-1", 
 def _cleanup(workspace_id: str = TEST_WS) -> None:
     """Remove test workspace data."""
     try:
-        delete_workspace(workspace_id, data_root=DEFAULT_DATA_ROOT)
+        delete_workspace(workspace_id, data_root=get_default_data_root())
     except Exception:
         pass
 
@@ -120,7 +120,7 @@ class TestGraphExtractionNodeV2:
         assert result["metrics_extracted"] >= 2  # $5M, 120
 
         # Verify persistence
-        nodes = list_nodes(TEST_WS, data_root=DEFAULT_DATA_ROOT)
+        nodes = list_nodes(TEST_WS, data_root=get_default_data_root())
         assert len(nodes) >= 2
         names = [n.name for n in nodes]
         assert "Acme Corporation" in names or "Acme" in names
@@ -161,8 +161,8 @@ class TestGraphExtractionNodeV2:
         await node1.execute({"texts": text1}, _ctx(TEST_WS))
         await node2.execute({"texts": text2}, _ctx(TEST_WS2))
 
-        nodes1 = list_nodes(TEST_WS, data_root=DEFAULT_DATA_ROOT)
-        nodes2 = list_nodes(TEST_WS2, data_root=DEFAULT_DATA_ROOT)
+        nodes1 = list_nodes(TEST_WS, data_root=get_default_data_root())
+        nodes2 = list_nodes(TEST_WS2, data_root=get_default_data_root())
 
         assert len(nodes1) > 0
         assert len(nodes2) > 0
@@ -243,7 +243,7 @@ class TestRiskExtractionNode:
             _text_input("Security vulnerability in system.", evidence_id="ev-1"),
         ]
         await node.execute({"texts": texts}, _ctx())
-        risks = list_risks(TEST_WS, data_root=DEFAULT_DATA_ROOT)
+        risks = list_risks(TEST_WS, data_root=get_default_data_root())
         assert len(risks) >= 1
 
     @pytest.mark.asyncio
@@ -320,7 +320,7 @@ class TestMetricExtractionNode:
             _text_input("Revenue: $5M. Profit: $1M.", evidence_id="ev-1"),
         ]
         await node.execute({"texts": texts}, _ctx())
-        metrics = list_metrics(TEST_WS, data_root=DEFAULT_DATA_ROOT)
+        metrics = list_metrics(TEST_WS, data_root=get_default_data_root())
         assert len(metrics) >= 2
 
     @pytest.mark.asyncio

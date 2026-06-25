@@ -290,3 +290,42 @@ def get_provider_by_name_route(name: str) -> dict[str, Any]:
     if config is None:
         raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
     return config.model_dump(mode="json")
+
+
+@router.post("/by-name/{name}/test")
+def test_provider_by_name(name: str) -> dict[str, Any]:
+    """Test a provider connection by its human-readable name."""
+    from decision_system.providers import get_provider_by_name as _get_by_name
+    config = _get_by_name(name)
+    if config is None:
+        raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
+    # Test via the provider store
+    from decision_system.providers.store import test_provider as _test_provider
+    result = _test_provider(config.provider_id)
+    return {"status": "ok", "provider": config.name, "model": result.get("model", ""), "response": "ok"}
+
+
+@router.delete("/by-name/{name}", status_code=204)
+def delete_provider_by_name(name: str) -> None:
+    """Delete a provider by its human-readable name."""
+    from decision_system.providers import get_provider_by_name as _get_by_name
+    config = _get_by_name(name)
+    if config is None:
+        raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
+    from decision_system.providers.store import delete_provider as _delete_provider
+    _delete_provider(config.provider_id)
+    return None
+
+
+@router.put("/by-name/{name}")
+def update_provider_by_name(name: str, body: dict[str, Any]) -> dict[str, Any]:
+    """Update a provider by its human-readable name."""
+    from decision_system.providers import get_provider_by_name as _get_by_name
+    config = _get_by_name(name)
+    if config is None:
+        raise api_error(404, "provider_not_found", f"Provider '{name}' not found")
+    from decision_system.providers.store import update_provider as _update_provider
+    _update_provider(config.provider_id, body)
+    from decision_system.providers.store import get_provider
+    updated = get_provider(config.provider_id)
+    return updated.model_dump(mode="json") if updated else {"status": "updated", "provider_id": config.provider_id}

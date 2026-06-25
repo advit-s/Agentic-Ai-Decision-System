@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 
 import typer
@@ -357,7 +358,7 @@ def _run_import_artifacts(
         _fail("No active workspace. Run 'decision-system init-workspace <name>' first.")
         return  # _fail raises; guard for type checker
 
-    base = Path(".decision_system")
+    base = get_data_root()
     discoverable = _collect_importable_artifacts(base)
     if not discoverable:
         console.print("No existing artifacts found under .decision_system/.")
@@ -422,7 +423,7 @@ def _run_import_artifacts(
 
 def _print_generated_summary() -> None:
     """Lightweight summary of generated local JSON files (not stored in the DB)."""
-    base = Path(".decision_system")
+    base = get_data_root()
     entries: list[str] = []
     potential = [
         base / "graph" / "knowledge_graph.json",
@@ -473,38 +474,40 @@ def _inspect_json(status, recent) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 # Mapping of source file paths to ArtifactType and title
-_IMPORT_RULES: list[tuple[Path, ArtifactType, str]] = [
-    (
-        Path(".decision_system") / "data_profiles" / "profiles.json",
-        ArtifactType.DATA_PROFILE,
-        "Data Profiles",
-    ),
-    (
-        Path(".decision_system") / "ontology" / "ontology_map.json",
-        ArtifactType.ONTOLOGY_MAP,
-        "Ontology Map",
-    ),
-    (
-        Path(".decision_system") / "insights" / "insights.json",
-        ArtifactType.INSIGHT_STORE,
-        "Insights",
-    ),
-    (
-        Path(".decision_system") / "graph" / "knowledge_graph.json",
-        ArtifactType.GRAPH,
-        "Knowledge Graph",
-    ),
-    (
-        Path(".decision_system") / "imports" / "import_manifest.json",
-        ArtifactType.IMPORT_MANIFEST,
-        "Import Manifest",
-    ),
-    (
-        Path(".decision_system") / "provider_evals" / "provider_eval_results.json",
-        ArtifactType.PROVIDER_EVAL_RUN,
-        "Provider Eval Results",
-    ),
-]
+def _get_import_rules() -> list[tuple[Path, ArtifactType, str]]:
+    """Return import rules with lazily-resolved data root paths."""
+    return [
+        (
+            get_data_root() / "data_profiles" / "profiles.json",
+            ArtifactType.DATA_PROFILE,
+            "Data Profiles",
+        ),
+        (
+            get_data_root() / "ontology" / "ontology_map.json",
+            ArtifactType.ONTOLOGY_MAP,
+            "Ontology Map",
+        ),
+        (
+            get_data_root() / "insights" / "insights.json",
+            ArtifactType.INSIGHT_STORE,
+            "Insights",
+        ),
+        (
+            get_data_root() / "graph" / "knowledge_graph.json",
+            ArtifactType.GRAPH,
+            "Knowledge Graph",
+        ),
+        (
+            get_data_root() / "imports" / "import_manifest.json",
+            ArtifactType.IMPORT_MANIFEST,
+            "Import Manifest",
+        ),
+        (
+            get_data_root() / "provider_evals" / "provider_eval_results.json",
+            ArtifactType.PROVIDER_EVAL_RUN,
+            "Provider Eval Results",
+        ),
+    ]
 
 
 def _collect_importable_artifacts(
@@ -512,7 +515,7 @@ def _collect_importable_artifacts(
 ) -> list[tuple[Path, ArtifactType, str]]:
     """Return ``(filepath, artifact_type, title)`` for discoverable JSON artifacts."""
     results: list[tuple[Path, ArtifactType, str]] = []
-    for filepath, atype, title in _IMPORT_RULES:
+    for filepath, atype, title in _get_import_rules():
         if filepath.exists() and filepath.is_file():
             results.append((filepath, atype, title))
     # Glob for orchestration runs

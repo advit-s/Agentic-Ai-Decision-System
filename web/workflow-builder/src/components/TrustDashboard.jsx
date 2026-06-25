@@ -100,8 +100,10 @@ export default function TrustDashboard({ workspaceId, onClose }) {
   const handleVerify = async () => {
     setVerifying(true);
     try {
-      const result = await verifyWorkspaceClaims(workspaceId);
-      if (result && result.summary) setSummary(result.summary);
+      await verifyWorkspaceClaims(workspaceId);
+      // Reload summary from the dedicated summary endpoint
+      const s = await getWorkspaceVerificationSummary(workspaceId);
+      if (s) setSummary(s);
     } catch (err) {
       console.error("Workspace verification failed", err);
     }
@@ -117,6 +119,28 @@ export default function TrustDashboard({ workspaceId, onClose }) {
       console.error("Contradiction scan failed", err);
     }
     setScanning(false);
+  };
+
+  const handleGenerateReport = async () => {
+    try {
+      // Try listing executions to find the latest one
+      const base = typeof window !== "undefined" && localStorage.getItem("wfBuilderApiBaseUrl");
+      if (base) {
+        const execResp = await fetch(base + "/workspaces/" + workspaceId + "/executions");
+        if (execResp.ok) {
+          const execData = await execResp.json();
+          const execs = Array.isArray(execData) ? execData : (execData.executions || execData.items || []);
+          if (execs.length > 0) {
+            const latestExecId = execs[0].execution_id || execs[0].id;
+            await fetch(base + "/executions/" + latestExecId + "/report?mode=deterministic", { method: "POST" });
+          }
+        }
+      }
+      // Reload data to pick up new report
+      await loadData();
+    } catch (err) {
+      console.error("Report generation failed", err);
+    }
   };
 
   const metrics = [
@@ -155,6 +179,14 @@ export default function TrustDashboard({ workspaceId, onClose }) {
             disabled={verifying}
           >
             {verifying ? "Verifying..." : "✓ Verify All Claims"}
+          </button>
+          <button
+            className="execution-replay-btn"
+            style={{ background: "#2563eb", color: "#fff", borderColor: "#2563eb" }}
+            onClick={handleGenerateReport}
+            disabled={loading || !summary}
+          >
+            {"📄 Generate Report"}
           </button>
           <button
             className="execution-replay-btn"

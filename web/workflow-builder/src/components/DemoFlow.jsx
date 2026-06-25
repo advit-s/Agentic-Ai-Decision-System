@@ -9,6 +9,7 @@ import {
   createProvider,
   setDefaultProvider,
   executeWorkflow,
+  verifyWorkspaceClaims,
   extractGraph,
   getGraph,
 } from "../api";
@@ -33,6 +34,7 @@ function DemoFlow({ workspaceId, workspaceName, onWorkspaceChange, onNavigate, o
   const [completed, setCompleted] = useState(new Set());
   const [demoWsId, setDemoWsId] = useState(null);
   const { showToast } = useToast();
+  const [executionId, setExecutionId] = useState(null);
 
   const handleCreateWorkspace = async () => {
     setRunning(true);
@@ -93,7 +95,7 @@ Recommendations:
 
   const handleExtractGraph = async () => {
     if (!workspaceId) {
-      addToast("Create workspace first", "warning");
+      showToast("Create workspace first", "warning");
       return;
     }
     setRunning(true);
@@ -109,10 +111,10 @@ Recommendations:
         },
       ];
       const result = await extractGraph(workspaceId, sampleTexts);
-      addToast(`Graph extracted: ${result.nodes_extracted} entities, ${result.risks_extracted} risks, ${result.metrics_extracted} metrics`, "success");
-      advanceStep();
+      showToast(`Graph extracted: ${result.nodes_extracted} entities, ${result.risks_extracted} risks, ${result.metrics_extracted} metrics`, "success");
+      setCurrentStep(4);
     } catch (err) {
-      addToast("Extraction failed: " + err.message, "error");
+      showToast("Extraction failed: " + err.message, "error");
     } finally {
       setRunning(false);
     }
@@ -192,8 +194,11 @@ Recommendations:
         const wfs = await wfResp.json();
         const wfList = Array.isArray(wfs) ? wfs : (wfs.workflows || wfs.items || []);
         const demoWf = wfList.find(w => (w.name || "").toLowerCase().includes("demo") || (w.name || "").toLowerCase().includes("trust"));
-        if (demoWf) {
-          await fetch("/api/workspaces/" + ws + "/workflows/" + (demoWf.id || demoWf.workflow_id) + "/execute", { method: "POST" });
+       if (demoWf) {
+          const execResp = await fetch("/api/workspaces/" + ws + "/workflows/" + (demoWf.id || demoWf.workflow_id) + "/execute", { method: "POST" });
+          const execData = await execResp.json();
+          const exId = execData.execution_id || execData.id;
+          if (exId) setExecutionId(exId);
           showToast("Workflow execution started", "success");
         } else {
           showToast("Navigate to Workflow Builder and click Execute", "info");
@@ -215,8 +220,8 @@ Recommendations:
     try {
       const ws = demoWsId || workspaceId || "demo-workspace";
       try {
-        await fetch("/api/workspaces/" + ws + "/claims/verify-all", { method: "POST" });
-        await fetch("/api/workspaces/" + ws + "/claims/scan-contradictions", { method: "POST" });
+        await fetch("/api/workspaces/" + ws + "/claims/verify", { method: "POST" });
+        await fetch("/api/workspaces/" + ws + "/contradictions/scan", { method: "POST" });
       } catch (e) { /* ignore */ }
       setCompleted(new Set([...completed, "verify"]));
       showToast("Claims verified and contradictions scanned", "success");
@@ -232,8 +237,14 @@ Recommendations:
     setRunning(true);
     try {
       const ws = demoWsId || workspaceId || "demo-workspace";
-      try {
-        await fetch("/api/workspaces/" + ws + "/reports/generate", { method: "POST" });
+     try {
+        const exId = executionId;
+        if (exId) {
+          await fetch("/api/executions/" + exId + "/report", { method: "POST" });
+        } else {
+          showToast("Run the workflow first to generate a report", "warning");
+          return;
+        }
       } catch (e) { /* ignore */ }
       setCompleted(new Set([...completed, "report"]));
       showToast("Trust report generated", "success");

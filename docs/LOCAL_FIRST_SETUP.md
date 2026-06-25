@@ -1,6 +1,6 @@
 # Local-First Setup — Provider Runtime & AI-Assisted Evidence Synthesis
 
-> **Version:** 1.33.0-dev
+> **Version:** 1.35.0-dev
 > **Last updated:** 2026-06-24
 
 ## Overview
@@ -95,7 +95,7 @@ decision-system serve-api --host 0.0.0.0 --port 8000
 ```bash
 # After starting the backend:
 curl http://localhost:8000/health
-# → {"status":"ok","version":"1.33.0-dev","provider":"fake"}
+# → {"status":"ok","version":"1.35.0-dev","provider":"fake"}
 
 # Check system status:
 curl http://localhost:8000/system/status

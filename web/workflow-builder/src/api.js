@@ -299,14 +299,14 @@ function deleteProvider(name) {
     _mockProviders = _mockProviders.filter((p) => p.name !== name);
     return Promise.resolve({ status: "deleted", name });
   }
-  return apiFetch(`/providers/${name}`, { method: "DELETE" });
+  return apiFetch(`/providers/by-name/${name}`, { method: "DELETE" });
 }
 
 function checkProvider(name) {
   if (isMockMode()) {
     return Promise.resolve({ status: "ok", provider: name, model: "mock-model", response: "ok" });
   }
-  return apiFetch(`/providers/${name}/check`, { method: "POST" });
+  return apiFetch(`/providers/by-name/${name}/test`, { method: "POST" });
 }
 
 function setDefaultProvider(name) {
@@ -327,7 +327,7 @@ function updateProvider(name, updates) {
     _mockProviders[idx] = { ..._mockProviders[idx], ...updates };
     return Promise.resolve({ ..._mockProviders[idx] });
   }
-  return apiFetch(`/providers/${name}`, { method: "PUT", body: JSON.stringify(updates) });
+  return apiFetch(`/providers/by-name/${name}`, { method: "PUT", body: JSON.stringify(updates) });
 }
 
 // --- Reviews ---
@@ -485,7 +485,8 @@ function getWorkspaceVerificationSummary(workspaceId) {
   if (isMockMode()) {
     return Promise.resolve({ ...MOCK_VERIFICATION_SUMMARY });
   }
-  return apiFetch(`/workspaces/${workspaceId}/verification-summary`);
+  // Live backend wraps summary in {workspace_id, summary: {...}} - unwrap for consistency
+  return apiFetch(`/workspaces/${workspaceId}/verification-summary`).then(r => r.summary || r);
 }
 
 function scanWorkspaceContradictions(workspaceId) {

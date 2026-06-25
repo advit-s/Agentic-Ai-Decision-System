@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from decision_system.identity.models import LocalUser, Permission
+from decision_system.identity.permissions import (
+    require_permission,
+    require_workspace_permission,
+)
 from decision_system.api.models import ApiError, ErrorResponse
 from decision_system.models import (
     Claim,
@@ -28,7 +34,7 @@ def _get_claim_store() -> JSONClaimStore | None:
     try:
         from decision_system.config import load_settings
         settings = load_settings()
-        store_dir = Path(settings.store_dir) if settings.store_dir else Path(".decision_system")
+        store_dir = Path(settings.store_dir) if settings.store_dir else get_data_root()
         return JSONClaimStore(store_dir=store_dir)
     except Exception:
         return None
@@ -117,7 +123,7 @@ class VerificationSummaryResponse(BaseModel):
 
 
 @router.post("/claims/{claim_id}/verify")
-async def verify_claim(claim_id: str, req: VerifyClaimRequest) -> dict:
+async def verify_claim(claim_id: str, req: VerifyClaimRequest, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))) -> dict:
     """Verify a single claim and update its status."""
     service = _get_verification_service()
     result = service.verify_claim_by_id(
@@ -157,7 +163,7 @@ async def verify_claim(claim_id: str, req: VerifyClaimRequest) -> dict:
 
 @router.post("/executions/{execution_id}/claims/verify")
 async def verify_execution_claims(
-    execution_id: str, req: VerifyClaimRequest
+    execution_id: str, req: VerifyClaimRequest, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))
 ) -> dict:
     """Verify all claims for an execution."""
     service = _get_verification_service()
@@ -200,7 +206,7 @@ async def verify_execution_claims(
 
 
 @router.post("/workspaces/{workspace_id}/claims/verify")
-async def verify_workspace_claims(workspace_id: str) -> dict:
+async def verify_workspace_claims(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.CLAIM_VERIFY))) -> dict:
     """Verify all claims in a workspace."""
     service = _get_verification_service()
     results = service.verify_workspace_claims(workspace_id)
@@ -239,7 +245,7 @@ async def verify_workspace_claims(workspace_id: str) -> dict:
 
 
 @router.get("/claims/{claim_id}/verification")
-async def get_claim_verification(claim_id: str) -> dict:
+async def get_claim_verification(claim_id: str, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))) -> dict:
     """Get existing verification for a claim."""
     store = _get_claim_store()
     if store is None:
@@ -262,7 +268,7 @@ async def get_claim_verification(claim_id: str) -> dict:
 
 
 @router.get("/executions/{execution_id}/verification-summary")
-async def get_execution_verification_summary(execution_id: str) -> dict:
+async def get_execution_verification_summary(execution_id: str, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))) -> dict:
     """Get verification summary for an execution."""
     service = _get_verification_service()
     summary = service.get_verification_summary(execution_id=execution_id)
@@ -273,7 +279,7 @@ async def get_execution_verification_summary(execution_id: str) -> dict:
 
 
 @router.get("/workspaces/{workspace_id}/verification-summary")
-async def get_workspace_verification_summary(workspace_id: str) -> dict:
+async def get_workspace_verification_summary(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.CLAIM_VERIFY))) -> dict:
     """Get verification summary for a workspace."""
     service = _get_verification_service()
     summary = service.get_verification_summary(workspace_id=workspace_id)
@@ -284,7 +290,7 @@ async def get_workspace_verification_summary(workspace_id: str) -> dict:
 
 
 @router.post("/workspaces/{workspace_id}/contradictions/scan")
-async def scan_workspace_contradictions(workspace_id: str) -> ContradictionScanResponse:
+async def scan_workspace_contradictions(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.CLAIM_VERIFY))) -> ContradictionScanResponse:
     """Scan workspace evidence for contradictions."""
     service = _get_verification_service()
     contradictions = service.scan_workspace_contradictions(workspace_id)

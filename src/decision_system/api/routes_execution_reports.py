@@ -16,9 +16,11 @@ from decision_system.security.audit import append_event
 from decision_system.identity.models import LocalUser, Permission
 from decision_system.identity.permissions import (
     get_current_user,
+    require_workspace_permission,
     require_permission,
     user_has_permission,
 )
+from decision_system._data_root import get_data_root
 from decision_system.identity.settings import load_settings
 from decision_system.observability.metrics import MetricsCollector, MetricType
 
@@ -31,7 +33,7 @@ class ReportExportRequest(BaseModel):
 
 def _get_execution_store_path() -> Path:
     """Get the execution store path."""
-    return Path(".decision_system") / "workflow_engine"
+    return get_data_root() / "workflow_engine"
 
 
 def _find_execution(execution_id: str) -> dict[str, Any] | None:
@@ -50,7 +52,7 @@ def _load_claims_for_execution(execution_id: str) -> list[dict[str, Any]]:
     """Load claims linked to an execution."""
     try:
         from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
-        store = JSONClaimStore(Path(".decision_system"))
+        store = JSONClaimStore(get_data_root())
         claims = store.list(execution_id=execution_id)
         return [c.model_dump(mode="json") for c in claims]
     except Exception:
@@ -128,7 +130,7 @@ def _generate_report_data(
 
 def _save_report(workspace_id: str, report_data: dict[str, Any]) -> Path:
     """Save report locally under .decision_system/reports/{workspace_id}/."""
-    reports_dir = Path(".decision_system") / "reports" / workspace_id
+    reports_dir = get_data_root() / "reports" / workspace_id
     reports_dir.mkdir(parents=True, exist_ok=True)
     report_path = reports_dir / f"{report_data['report_id']}.json"
     report_path.write_text(
@@ -218,7 +220,7 @@ def _export_markdown(report_data: dict[str, Any]) -> str:
 
 
 @router.post("/executions/{execution_id}/report")
-def generate_execution_report(execution_id: str, mode: str = "deterministic") -> dict[str, Any]:
+def generate_execution_report(execution_id: str, user: LocalUser = Depends(require_permission(Permission.REPORT_GENERATE)), mode: str = "deterministic") -> dict[str, Any]:
     """Generate a report from a workflow execution with evidence references.
 
     The ``mode`` parameter controls report generation:
@@ -323,9 +325,9 @@ def generate_execution_report(execution_id: str, mode: str = "deterministic") ->
 
 
 @router.get("/workspaces/{workspace_id}/reports")
-def list_workspace_reports(workspace_id: str) -> dict[str, Any]:
+def list_workspace_reports(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.REPORT_EXPORT))) -> dict[str, Any]:
     """List all reports in a workspace."""
-    reports_dir = Path(".decision_system") / "reports" / workspace_id
+    reports_dir = get_data_root() / "reports" / workspace_id
     if not reports_dir.exists():
         return {"workspace_id": workspace_id, "reports": [], "count": 0}
 
@@ -354,9 +356,9 @@ def list_workspace_reports(workspace_id: str) -> dict[str, Any]:
 def get_report(report_id: str, workspace_id: str | None = Query(None)) -> dict[str, Any]:
     """Get a report by ID, optionally scoped to a workspace."""
     if workspace_id:
-        search_dirs = [Path(".decision_system") / "reports" / workspace_id]
+        search_dirs = [get_data_root() / "reports" / workspace_id]
     else:
-        search_dirs = list(Path(".decision_system").glob("reports/*/"))
+        search_dirs = list(get_data_root().glob("reports/*/"))
 
     for reports_dir in search_dirs:
         if not reports_dir.exists():

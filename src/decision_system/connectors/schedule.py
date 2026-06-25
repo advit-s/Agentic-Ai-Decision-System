@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 from uuid import uuid4
 
@@ -67,7 +68,7 @@ class ScheduleStore:
     """Persistent JSON-backed store for connector schedules."""
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        self._base_dir = Path(base_dir) if base_dir else Path(".decision_system") / "connectors" / "schedules"
+        self._base_dir = Path(base_dir) if base_dir else get_data_root() / "connectors" / "schedules"
         self._base_dir.mkdir(parents=True, exist_ok=True)
 
     def _store_path(self, workspace_id: str | None, connector_id: str) -> Path:

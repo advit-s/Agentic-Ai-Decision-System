@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
 from decision_system.data_catalog.loader import LoadedDataset, load_csv
 from decision_system.data_catalog.models import (
@@ -13,18 +14,22 @@ from decision_system.data_catalog.models import (
 )
 from decision_system.data_catalog.profiler import profile_dataset
 
-DEFAULT_STORE_DIR = Path(".decision_system")
+def _default_store_dir() -> Path:
+    return get_data_root()
+
 PROFILE_DIRNAME = "data_profiles"
 PROFILES_FILENAME = "profiles.json"
 
 
-def _profiles_path(store_dir: Path | str = DEFAULT_STORE_DIR) -> Path:
+def _profiles_path(store_dir: Path | str | None = None) -> Path:
     """Return the on-disk path for the profiles JSON file."""
 
+    if store_dir is None:
+        store_dir = _default_store_dir()
     return Path(store_dir) / PROFILE_DIRNAME / PROFILES_FILENAME
 
 
-def save_profiles(store: DataProfileStore, store_dir: Path | str = DEFAULT_STORE_DIR) -> Path:
+def save_profiles(store: DataProfileStore, store_dir: Path | str | None = None) -> Path:
     """Write the profile store to `.decision_system/data_profiles/profiles.json`."""
 
     path = _profiles_path(store_dir)
@@ -36,9 +41,11 @@ def save_profiles(store: DataProfileStore, store_dir: Path | str = DEFAULT_STORE
     return path.resolve()
 
 
-def load_profiles(store_dir: Path | str = DEFAULT_STORE_DIR) -> DataProfileStore:
+def load_profiles(store_dir: Path | str | None = None) -> DataProfileStore:
     """Load profiles from disk, returning an empty store if the file does not exist."""
 
+    if store_dir is None:
+        store_dir = _default_store_dir()
     path = _profiles_path(store_dir)
     if not path.exists():
         return DataProfileStore()
@@ -48,7 +55,7 @@ def load_profiles(store_dir: Path | str = DEFAULT_STORE_DIR) -> DataProfileStore
 
 def profile_and_save(
     data_root: Path | str,
-    store_dir: Path | str = DEFAULT_STORE_DIR,
+    store_dir: Path | str | None = None,
     extensions: tuple[str, ...] = (".csv",),
 ) -> DataProfileStore:
     """Scan *data_root* for structured data files, profile them, and persist.

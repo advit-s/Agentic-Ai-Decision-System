@@ -20,6 +20,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+import hashlib
+
+
+def _make_chunk_id(source_id: str, chunk_index: int, text: str) -> str:
+    """Generate a deterministic chunk ID from source_id, index, and text content.
+
+    Re-parsing the same content produces the same ID, keeping evidence
+    references stable across parse/index operations.
+    """
+    raw = f"{source_id}:{chunk_index}:{text.strip()[:200]}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 from decision_system.data_sources.models import (
     DataSourceChunk,
@@ -87,7 +98,7 @@ class BaseParser(ABC):
                 if current_text:
                     chunks.append(
                         DataSourceChunk(
-                            chunk_id=str(uuid4()),
+                            chunk_id=_make_chunk_id(source_id, chunk_index, current_text),
                             source_id=source_id,
                             workspace_id=workspace_id,
                             chunk_index=chunk_index,
@@ -102,7 +113,7 @@ class BaseParser(ABC):
         if current_text:
             chunks.append(
                 DataSourceChunk(
-                    chunk_id=str(uuid4()),
+                    chunk_id=_make_chunk_id(source_id, chunk_index, current_text),
                     source_id=source_id,
                     workspace_id=workspace_id,
                     chunk_index=chunk_index,

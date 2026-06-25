@@ -12,7 +12,7 @@ from decision_system.graphing.models import (
     EdgeType,
 )
 from decision_system.graphing.store import (
-    DEFAULT_DATA_ROOT,
+    get_default_data_root,
     delete_edge,
     delete_node,
     delete_workspace,

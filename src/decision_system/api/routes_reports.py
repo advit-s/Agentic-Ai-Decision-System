@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter
 
 from decision_system.api.models import ApiReportResponse, AskRequest, api_error, to_jsonable
+from decision_system._data_root import get_data_root
 from decision_system.config import load_settings
 from decision_system.context.builder import DecisionContextBuilder
 from decision_system.context.models import DecisionContext
@@ -22,7 +23,7 @@ router = APIRouter(tags=["reports"])
 
 
 def _save_run(result: dict) -> Path:
-    runs_dir = Path(".decision_system") / "runs"
+    runs_dir = get_data_root() / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
     run_path = runs_dir / f"{result['run_id']}.json"
     run_path.write_text(
@@ -157,7 +158,7 @@ def ask(request: AskRequest) -> ApiReportResponse:
 @router.get("/reports/latest")
 def get_latest_report() -> dict:
     """Return the most recently saved run payload, or an empty placeholder."""
-    runs_dir = Path(".decision_system") / "runs"
+    runs_dir = get_data_root() / "runs"
     if runs_dir.exists():
         run_files = sorted(runs_dir.glob("*.json"), reverse=True)
         if run_files:
@@ -236,13 +237,13 @@ def get_report_coverage(run_id: str | None = None) -> dict:
     verification_results: list = []
 
     if run_id:
-        run_path = Path(".decision_system") / "runs" / f"{run_id}.json"
+        run_path = get_data_root() / "runs" / f"{run_id}.json"
         if run_path.exists():
             data = json.loads(run_path.read_text(encoding="utf-8"))
             claims = data.get("claims", [])
             verification_results = data.get("verification_results", [])
     else:
-        runs_dir = Path(".decision_system") / "runs"
+        runs_dir = get_data_root() / "runs"
         if runs_dir.exists():
             run_files = sorted(runs_dir.iterdir(), reverse=True)
             if run_files:

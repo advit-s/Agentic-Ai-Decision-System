@@ -14,14 +14,25 @@ from pathlib import Path
 from typing import Literal
 
 from decision_system.security.models import ApprovalRequest, ApprovalStatus
+from decision_system._data_root import get_data_root
 
 # ---------------------------------------------------------------------------
 # Path helpers
 # ---------------------------------------------------------------------------
 
-DEFAULT_SECURITY_DIR = Path(".decision_system") / "security"
-DEFAULT_APPROVALS_DIR = DEFAULT_SECURITY_DIR / "approvals"
-DEFAULT_APPROVALS_INDEX = DEFAULT_APPROVALS_DIR / "index.json"
+def _get_security_dir() -> Path:
+    """Return the security data directory (lazy)."""
+    return get_data_root() / "security"
+
+
+def _get_approvals_dir() -> Path:
+    """Return the approvals directory (lazy)."""
+    return _get_security_dir() / "approvals"
+
+
+def _get_approvals_index() -> Path:
+    """Return the approvals index path (lazy)."""
+    return _get_approvals_dir() / "index.json"
 
 
 # ---------------------------------------------------------------------------
@@ -30,14 +41,14 @@ DEFAULT_APPROVALS_INDEX = DEFAULT_APPROVALS_DIR / "index.json"
 
 
 def _ensure_dirs() -> None:
-    DEFAULT_APPROVALS_DIR.mkdir(parents=True, exist_ok=True)
+    _get_approvals_dir().mkdir(parents=True, exist_ok=True)
 
 
 def _load_index() -> dict[str, dict]:
-    if not DEFAULT_APPROVALS_INDEX.exists():
+    if not _get_approvals_index().exists():
         return {}
     try:
-        raw = json.loads(DEFAULT_APPROVALS_INDEX.read_text(encoding="utf-8"))
+        raw = json.loads(_get_approvals_index().read_text(encoding="utf-8"))
         if isinstance(raw, dict):
             return raw
     except (json.JSONDecodeError, OSError):
@@ -47,7 +58,7 @@ def _load_index() -> dict[str, dict]:
 
 def _save_index(index: dict[str, dict]) -> None:
     _ensure_dirs()
-    DEFAULT_APPROVALS_INDEX.write_text(
+    _get_approvals_index().write_text(
         json.dumps(index, indent=2, default=str) + "\n", encoding="utf-8"
     )
 

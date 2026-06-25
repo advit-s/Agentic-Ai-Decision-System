@@ -3,15 +3,17 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 
 from decision_system.connectors.models import ConnectorImportJob
 
-DEFAULT_JOBS_DIR = Path(".decision_system") / "connectors" / "jobs"
+def _default_jobs_dir() -> Path:
+    return get_data_root() / "connectors" / "jobs"
 
 
 def _jobs_dir() -> Path:
-    path = DEFAULT_JOBS_DIR
+    path = _default_jobs_dir()
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -67,7 +69,7 @@ class ConnectorJobStore:
     """Thin object-oriented facade over the module-level store helpers."""
 
     def __init__(self, jobs_dir: Path | None = None) -> None:
-        self._jobs_dir = jobs_dir or DEFAULT_JOBS_DIR
+        self._jobs_dir = jobs_dir if jobs_dir else _default_jobs_dir()
         self._jobs_dir.mkdir(parents=True, exist_ok=True)
 
     def save(self, job: ConnectorImportJob) -> Path:

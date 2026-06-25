@@ -5,16 +5,18 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
 from decision_system.provider_experiments.models import ProviderExperimentSuiteResult
 
 
-_DEFAULT_DIR = Path(".decision_system") / "evals"
+def _default_evals_dir() -> Path:
+    return get_data_root() / "evals"
 
 
 def save_experiment_results(
     suite: ProviderExperimentSuiteResult,
-    results_dir: Path | str = _DEFAULT_DIR,
+    results_dir: Path | str | None = None,
 ) -> Path:
     """Persist provider experiment results and return the output path."""
     output_dir = Path(results_dir)
@@ -28,7 +30,7 @@ def save_experiment_results(
 
 def load_latest_provider_results(
     provider_name: str,
-    results_dir: Path | str = _DEFAULT_DIR,
+    results_dir: Path | str | None = None,
 ) -> ProviderExperimentSuiteResult | None:
     """Load the most recent provider experiment results for a given provider."""
     output_dir = Path(results_dir)

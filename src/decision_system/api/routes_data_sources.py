@@ -10,9 +10,14 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
 
+from decision_system.identity.models import LocalUser, Permission
+from decision_system.identity.permissions import (
+    require_permission,
+    require_workspace_permission,
+)
 from decision_system.data_sources.models import (
     DataSource,
     DataSourceChunk,
@@ -36,7 +41,7 @@ from decision_system.data_sources.store import DataSourceStore, sanitize_filenam
 
 MAX_UPLOAD_SIZE_BYTES = 100 * 1024 * 1024  # 100 MB
 
-SUPPORTED_UPLOAD_EXTENSIONS: set[str] = {"txt", "md", "json", "csv", "pdf", "docx", "xlsx"}
+SUPPORTED_UPLOAD_EXTENSIONS: set[str] = {"txt", "md", "json", "csv", "pdf", "docx", "xlsx", "png", "jpg", "jpeg", "tiff", "tif", "bmp"}
 
 router = APIRouter(tags=["data-sources"])
 
@@ -88,6 +93,7 @@ def _emit_audit_event(event_type: str, data: dict) -> None:
 @router.post("/workspaces/{workspace_id}/data-sources/upload")
 def upload_data_source(
     workspace_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.DATA_SOURCE_UPLOAD)),
     filename: str = Query(..., description="Original filename with extension"),
     content: bytes = Body(..., description="Raw file content as bytes"),
 ) -> dict[str, Any]:
@@ -168,7 +174,7 @@ def upload_data_source(
 
 
 @router.get("/workspaces/{workspace_id}/data-sources")
-def list_data_sources(workspace_id: str) -> dict[str, Any]:
+def list_data_sources(workspace_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict[str, Any]:
     """List all data sources in a workspace."""
     store = _get_store()
     sources = store.list_by_workspace(workspace_id)
@@ -181,7 +187,7 @@ def list_data_sources(workspace_id: str) -> dict[str, Any]:
 
 
 @router.get("/workspaces/{workspace_id}/data-sources/{source_id}")
-def get_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
+def get_data_source(workspace_id: str, source_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict[str, Any]:
     """Get a single data source."""
     store = _get_store()
     source = store.load(workspace_id, source_id)
@@ -194,7 +200,11 @@ def get_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
 
 
 @router.delete("/workspaces/{workspace_id}/data-sources/{source_id}")
-def delete_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
+def delete_data_source(
+    workspace_id: str,
+    source_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.DATA_SOURCE_DELETE)),
+) -> dict[str, Any]:
     """Delete a data source and its associated files/chunks."""
     store = _get_store()
     source = store.load(workspace_id, source_id)
@@ -227,7 +237,11 @@ def delete_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
 
 
 @router.post("/workspaces/{workspace_id}/data-sources/{source_id}/parse")
-def parse_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
+def parse_data_source(
+    workspace_id: str,
+    source_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.DATA_SOURCE_PARSE_INDEX)),
+) -> dict[str, Any]:
     """Parse a document or dataset file into chunks using the local parser.
 
     Supports txt, md, json, pdf, docx, csv, xlsx.
@@ -359,7 +373,11 @@ def parse_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
     }
 
 @router.post("/workspaces/{workspace_id}/data-sources/{source_id}/index")
-def index_data_source(workspace_id: str, source_id: str) -> dict[str, Any]:
+def index_data_source(
+    workspace_id: str,
+    source_id: str,
+    user: LocalUser = Depends(require_workspace_permission(Permission.DATA_SOURCE_PARSE_INDEX)),
+) -> dict[str, Any]:
     """Index a parsed data source into the vector store for evidence search.
 
     Falls back to keyword search if vector dependencies are unavailable.
@@ -458,7 +476,7 @@ def get_data_source_status(workspace_id: str, source_id: str) -> dict[str, Any]:
 
 
 @router.get("/workspaces/{workspace_id}/data-sources/{source_id}/profile")
-def get_data_source_profile(workspace_id: str, source_id: str) -> dict[str, Any]:
+def get_data_source_profile(workspace_id: str, source_id: str, user: LocalUser = Depends(require_workspace_permission(Permission.WORKSPACE_READ))) -> dict[str, Any]:
     """Get the profile of a dataset data source (CSV/JSON)."""
     store = _get_store()
     source = store.load(workspace_id, source_id)
@@ -483,7 +501,9 @@ def get_data_source_profile(workspace_id: str, source_id: str) -> dict[str, Any]
 
 @router.post("/workspaces/{workspace_id}/evidence/search")
 def search_evidence(
-    workspace_id: str, request: EvidenceSearchRequest
+    workspace_id: str,
+    request: EvidenceSearchRequest,
+    user: LocalUser = Depends(require_workspace_permission(Permission.EVIDENCE_SEARCH)),
 ) -> EvidenceSearchResponse:
     """Search workspace evidence.
 
@@ -503,6 +523,7 @@ def search_evidence(
             store_dir=settings.store_dir,
             collection_name=settings.collection_name,
             top_k=request.limit,
+            workspace_id=workspace_id,
         )
 
         if chunks:

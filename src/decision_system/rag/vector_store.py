@@ -33,7 +33,7 @@ def index_chunks(
     store_dir: Path | str,
     collection_name: str,
 ) -> int:
-    """Refresh a Chroma collection with evidence chunks.
+    """Index evidence chunks into a Chroma collection, upserting by ID.
 
     Args:
         chunks: Evidence chunks to index.
@@ -42,19 +42,10 @@ def index_chunks(
 
     Returns:
         Number of chunks written.
-
-    Side effects:
-        Deletes and recreates the named local Chroma collection.
     """
 
     client = _client(store_dir)
     try:
-        try:
-            # v0.1 refreshes the whole collection for predictable local behavior.
-            client.delete_collection(collection_name)
-        except Exception:
-            pass
-
         collection = client.get_or_create_collection(
             name=collection_name,
             embedding_function=HashEmbeddingFunction(),
@@ -63,7 +54,7 @@ def index_chunks(
         if not chunks:
             return 0
 
-        collection.add(
+        collection.upsert(
             ids=[chunk.evidence_id for chunk in chunks],
             documents=[chunk.text for chunk in chunks],
             metadatas=[

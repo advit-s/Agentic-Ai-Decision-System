@@ -4,20 +4,27 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
 from decision_system.orchestration.models import DecisionSession
 
-DEFAULT_RUNS_DIR = Path(".decision_system") / "orchestration" / "runs"
+def _get_runs_dir() -> Path:
+    """Return the orchestration runs directory (lazy)."""
+    return get_data_root() / "orchestration" / "runs"
+
+
 LATEST_FILENAME = "latest.json"
 
 
-def _runs_dir(base: Path | str = DEFAULT_RUNS_DIR) -> Path:
+def _runs_dir(base: Path | str | None = None) -> Path:
+    if base is None:
+        base = get_data_root() / "orchestration" / "runs"
     return Path(base)
 
 
 def save_decision_session(
     session: DecisionSession,
-    runs_dir: Path | str = DEFAULT_RUNS_DIR,
+    runs_dir: Path | str | None = None,
 ) -> Path:
     """Write a DecisionSession to ``<runs_dir>/<run_id>.json`` and update
     ``<runs_dir>/latest.json``."""
@@ -42,7 +49,7 @@ def save_decision_session(
 
 def load_decision_session(
     run_id: str,
-    runs_dir: Path | str = DEFAULT_RUNS_DIR,
+    runs_dir: Path | str = _get_runs_dir(),
 ) -> DecisionSession | None:
     """Load a specific run by its run_id, or None on miss."""
 
@@ -58,7 +65,7 @@ def load_decision_session(
 
 
 def load_latest_session(
-    runs_dir: Path | str = DEFAULT_RUNS_DIR,
+    runs_dir: Path | str | None = None,
 ) -> DecisionSession | None:
     """Load the latest run (latest.json), or None."""
 
@@ -74,7 +81,7 @@ def load_latest_session(
 
 
 def list_runs(
-    runs_dir: Path | str = DEFAULT_RUNS_DIR,
+    runs_dir: Path | str = _get_runs_dir(),
 ) -> list[dict[str, str]]:
     """Return a summary of all saved run files (not latest.json)."""
 

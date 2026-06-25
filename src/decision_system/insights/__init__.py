@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from decision_system.insights.models import Insight, InsightCategory, InsightStore, InsightSeverity
 from decision_system.insights.store import (
-    DEFAULT_INSIGHTS_DIR,
     DEFAULT_INSIGHTS_FILENAME,
     _insights_path,
     load_insights,

@@ -77,7 +77,7 @@ _registry = create_default_registry()
 _workflow_store = JSONWorkflowStore(_api_store_dir)
 _execution_store = JSONExecutionStore(_api_store_dir)
 _version_store = JSONVersionStore(_api_store_dir)
-_claim_store = JSONClaimStore(_api_store_dir)
+_claim_store = JSONClaimStore(_data_dir)
 _provider_store = ProviderStore()
 _engine = DAGEngine(
     registry=_registry,
@@ -257,7 +257,7 @@ def list_node_types() -> NodeTypesResponse:
 
 
 @router.post("/workflows")
-def create_workflow(req: CreateWorkflowRequest) -> dict[str, Any]:
+def create_workflow(req: CreateWorkflowRequest, user: LocalUser = Depends(require_permission(Permission.WORKFLOW_CREATE))) -> dict[str, Any]:
     """Create a new workflow definition and snapshot version 1."""
     nodes = [NodeConfig(**n) for n in req.nodes]
     connections = [Connection(**c) for c in req.connections]
@@ -312,7 +312,7 @@ def get_workflow(workflow_id: str) -> dict[str, Any]:
 
 
 @router.put("/workflows/{workflow_id}")
-def update_workflow(workflow_id: str, req: CreateWorkflowRequest) -> dict[str, Any]:
+def update_workflow(workflow_id: str, req: CreateWorkflowRequest, user: LocalUser = Depends(require_permission(Permission.WORKFLOW_UPDATE))) -> dict[str, Any]:
     """Update an existing workflow definition and create a new version."""
     existing = _workflow_store.load(workflow_id)
     if existing is None:
@@ -344,7 +344,7 @@ def update_workflow(workflow_id: str, req: CreateWorkflowRequest) -> dict[str, A
 
 
 @router.delete("/workflows/{workflow_id}")
-def delete_workflow(workflow_id: str) -> dict[str, str]:
+def delete_workflow(workflow_id: str, user: LocalUser = Depends(require_permission(Permission.WORKFLOW_UPDATE))) -> dict[str, Any]:
     """Delete a workflow definition."""
     wf = _workflow_store.load(workflow_id)
     if wf is None:
@@ -367,6 +367,7 @@ def delete_workflow(workflow_id: str) -> dict[str, str]:
 @router.post("/workflows/{workflow_id}/execute")
 async def execute_workflow(
     workflow_id: str,
+    user: LocalUser = Depends(require_permission(Permission.WORKFLOW_EXECUTE)),
     body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Execute a workflow definition."""
@@ -924,6 +925,7 @@ class ResumeExecutionRequest(BaseModel):
 async def resume_execution_endpoint(
     execution_id: str,
     req: ResumeExecutionRequest,
+    user: LocalUser = Depends(require_permission(Permission.WORKFLOW_EXECUTE)),
 ) -> dict[str, Any]:
     """Resume a paused execution after a review gate.
 
@@ -1120,7 +1122,7 @@ VALID_CLAIM_TYPES = {"technical", "risk", "option", "recommendation", "assumptio
 VALID_CLAIM_STATUSES = {"pending", "verified", "unsupported", "contradicted", "uncertain"}
 
 @router.post("/claims")
-def create_claim(req: CreateClaimRequest) -> dict[str, Any]:
+def create_claim(req: CreateClaimRequest, user: LocalUser = Depends(require_permission(Permission.CLAIM_VERIFY))) -> dict[str, Any]:
     """Create a new claim with validated input."""
     if not req.claim_text or not req.claim_text.strip():
         raise HTTPException(status_code=422, detail="claim_text is required and cannot be empty")

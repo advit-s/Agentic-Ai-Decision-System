@@ -6,6 +6,7 @@ import shutil
 from typing import Any
 from datetime import datetime, timezone
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
 from decision_system.connectors.models import (
     ConnectorConfig,
@@ -243,7 +244,7 @@ def run_local_files_import(
         source_root = Path.cwd() / source_root
 
     job_id = _make_job_id()
-    dest_root = Path(".decision_system") / "connectors"
+    dest_root = get_data_root() / "connectors"
     status = "completed"
     warnings: list[str] = []
     imported_files: list[str] = []

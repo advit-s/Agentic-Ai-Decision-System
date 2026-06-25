@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from datetime import datetime, timezone
 
 from decision_system.security.models import (
@@ -24,13 +25,23 @@ from decision_system.security.models import (
 # Default paths
 # ---------------------------------------------------------------------------
 
-DEFAULT_SECURITY_DIR = Path(".decision_system") / "security"
-DEFAULT_SCAN_DIR = DEFAULT_SECURITY_DIR / "scans"
-DEFAULT_SCAN_JSON = DEFAULT_SCAN_DIR / "latest_scan.json"
-DEFAULT_AUDIT_DIR = DEFAULT_SECURITY_DIR / "audit"
+def _get_security_dir() -> Path:
+    """Return the security data directory (lazy)."""
+    return get_data_root() / "security"
+
+
+def _get_scan_dir() -> Path:
+    """Return the scan output directory (lazy)."""
+    return _get_security_dir() / "scans"
+
+
+def _get_scan_json() -> Path:
+    """Return the latest scan JSON path (lazy)."""
+    return _get_scan_dir() / "latest_scan.json"
+DEFAULT_AUDIT_DIR = _get_security_dir() / "audit"
 DEFAULT_AUDIT_LOG = DEFAULT_AUDIT_DIR / "audit_log.jsonl"
-DEFAULT_POLICY_RESULT = DEFAULT_SECURITY_DIR / "policy" / "latest.json"
-DEFAULT_APPROVALS_DIR = DEFAULT_SECURITY_DIR / "approvals"
+DEFAULT_POLICY_RESULT = _get_security_dir() / "policy" / "latest.json"
+DEFAULT_APPROVALS_DIR = _get_security_dir() / "approvals"
 DEFAULT_APPROVALS_INDEX = DEFAULT_APPROVALS_DIR / "index.json"
 
 SECURITY_IGNORE_DIRS: set[str] = {
@@ -78,10 +89,10 @@ def _load_json(path: Path) -> dict | None:
 
 def save_secret_scan(result: SecretScanResult) -> Path:
     """Persist a SecretScanResult and return the written path."""
-    return _save_json(DEFAULT_SCAN_JSON, result.model_dump(mode="json"))
+    return _save_json(_get_scan_json(), result.model_dump(mode="json"))
 
 
-def load_secret_scan(path: Path | str = DEFAULT_SCAN_JSON) -> SecretScanResult | None:
+def load_secret_scan(path: Path | str = _get_scan_json()) -> SecretScanResult | None:
     p = Path(path)
     raw = _load_json(p)
     if raw is None:
@@ -121,7 +132,7 @@ def load_policy_result(path: Path | str = DEFAULT_POLICY_RESULT) -> PolicyCheckR
 def save_redaction_result(result: RedactionPreviewResult) -> Path:
     """Persist a RedactionPreviewResult and return the written path."""
     ts = datetime.now(timezone.utc).isoformat().replace(":", "-")
-    path = DEFAULT_SECURITY_DIR / "redactions" / f"{ts}.json"
+    path = _get_security_dir() / "redactions" / f"{ts}.json"
     return _save_json(path, result.model_dump(mode="json"))
 
 

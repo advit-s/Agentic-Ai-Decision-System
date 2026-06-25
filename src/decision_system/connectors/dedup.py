@@ -12,6 +12,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 
 from decision_system.connectors.models import ConnectorFetchedContent
@@ -40,7 +41,7 @@ class DuplicateDetector:
     """
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        self._base_dir = Path(base_dir) if base_dir else Path(".decision_system") / "connectors" / "dedup"
+        self._base_dir = Path(base_dir) if base_dir else get_data_root() / "connectors" / "dedup"
         self._base_dir.mkdir(parents=True, exist_ok=True)
 
     def _store_path(self, connector_id: str, workspace_id: str | None = None) -> Path:

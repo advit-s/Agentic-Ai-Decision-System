@@ -22,10 +22,10 @@ from decision_system.provider_eval.runner import (
     run_provider_eval_suite,
 )
 from decision_system.provider_eval.store import (
-    DEFAULT_PROVIDER_EVAL_RESULTS_PATH,
     load_provider_eval_results,
     save_provider_eval_results,
 )
+from decision_system._data_root import get_data_root
 
 
 runner = CliRunner()
@@ -262,7 +262,7 @@ def test_cli_eval_providers_save_results_writes_fixed_ignored_path(tmp_path, mon
     result = runner.invoke(app, ["eval-providers", "--provider", "fake", "--save-results"])
 
     assert result.exit_code == 0
-    output_path = tmp_path / DEFAULT_PROVIDER_EVAL_RESULTS_PATH
+    output_path = tmp_path / ".decision_system" / "provider_evals" / "provider_eval_results.json"
     assert output_path.exists()
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert payload["saved_result_path"] == str(output_path.resolve())

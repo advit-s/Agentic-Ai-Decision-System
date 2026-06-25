@@ -100,7 +100,7 @@ class GraphExtractionNodeV2(WorkflowNode):
 
         from decision_system.graphing.extractor_v2 import extract_intelligence
         from decision_system.graphing.store import (
-            DEFAULT_DATA_ROOT,
+            get_default_data_root,
             upsert_edge,
             upsert_metric,
             upsert_node,
@@ -113,13 +113,13 @@ class GraphExtractionNodeV2(WorkflowNode):
         result = extract_intelligence(text_tuples, workspace_id)
 
         for node in result.to_node_list():
-            upsert_node(node, data_root=DEFAULT_DATA_ROOT)
+            upsert_node(node, data_root=get_default_data_root())
         for edge in result.to_edge_list():
-            upsert_edge(edge, data_root=DEFAULT_DATA_ROOT)
+            upsert_edge(edge, data_root=get_default_data_root())
         for risk in result.to_risk_list():
-            upsert_risk(risk, data_root=DEFAULT_DATA_ROOT)
+            upsert_risk(risk, data_root=get_default_data_root())
         for metric in result.to_metric_list():
-            upsert_metric(metric, data_root=DEFAULT_DATA_ROOT)
+            upsert_metric(metric, data_root=get_default_data_root())
 
         _duration_ms = (time.monotonic() - _start_time) * 1000.0
         graph_extraction_completed(
@@ -250,12 +250,12 @@ class RiskExtractionNode(WorkflowNode):
             return {"risks_extracted": 0, "risks": [], "warnings": ["No non-empty texts found"]}
 
         from decision_system.graphing.extractor_v2 import extract_intelligence
-        from decision_system.graphing.store import DEFAULT_DATA_ROOT, upsert_risk
+        from decision_system.graphing.store import get_default_data_root, upsert_risk
 
         result = extract_intelligence(text_tuples, workspace_id)
 
         for risk in result.to_risk_list():
-            upsert_risk(risk, data_root=DEFAULT_DATA_ROOT)
+            upsert_risk(risk, data_root=get_default_data_root())
 
         audit_risk_extraction_completed(workspace_id, risks_count=len(result.risks))
 
@@ -353,12 +353,12 @@ class MetricExtractionNode(WorkflowNode):
             return {"metrics_extracted": 0, "metrics": [], "warnings": ["No non-empty texts found"]}
 
         from decision_system.graphing.extractor_v2 import extract_intelligence
-        from decision_system.graphing.store import DEFAULT_DATA_ROOT, upsert_metric
+        from decision_system.graphing.store import get_default_data_root, upsert_metric
 
         result = extract_intelligence(text_tuples, workspace_id)
 
         for metric in result.to_metric_list():
-            upsert_metric(metric, data_root=DEFAULT_DATA_ROOT)
+            upsert_metric(metric, data_root=get_default_data_root())
 
         audit_metric_extraction_completed(workspace_id, metrics_count=len(result.metrics))
 
@@ -439,7 +439,7 @@ class GraphSummaryNode(WorkflowNode):
         workspace_id = inputs.get("workspace_id") or self.config.get("workspace_id", "default")
 
         from decision_system.graphing.store import (
-            DEFAULT_DATA_ROOT,
+            get_default_data_root,
             get_workspace_meta,
             list_edges,
             list_metrics,
@@ -447,11 +447,11 @@ class GraphSummaryNode(WorkflowNode):
             list_risks,
         )
 
-        meta = get_workspace_meta(workspace_id, data_root=DEFAULT_DATA_ROOT)
-        nodes = list_nodes(workspace_id, data_root=DEFAULT_DATA_ROOT)
-        edges = list_edges(workspace_id, data_root=DEFAULT_DATA_ROOT)
-        risks = list_risks(workspace_id, data_root=DEFAULT_DATA_ROOT)
-        metrics = list_metrics(workspace_id, data_root=DEFAULT_DATA_ROOT)
+        meta = get_workspace_meta(workspace_id, data_root=get_default_data_root())
+        nodes = list_nodes(workspace_id, data_root=get_default_data_root())
+        edges = list_edges(workspace_id, data_root=get_default_data_root())
+        risks = list_risks(workspace_id, data_root=get_default_data_root())
+        metrics = list_metrics(workspace_id, data_root=get_default_data_root())
 
         # Entity type breakdown
         entities_by_type: dict[str, int] = {}

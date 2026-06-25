@@ -48,8 +48,12 @@ def list_audit_events(
             seen.add(ev.event_id)
             unique_events.append(ev)
 
-    # Apply filters
-    filtered = unique_events
+    # Filter by workspace_id
+    filtered = [e for e in unique_events
+                if e.metadata.get("workspace_id") == id
+                or e.event_type.startswith("workspace_")]
+
+    # Apply additional filters
     if event_type:
         filtered = [e for e in filtered if e.event_type == event_type]
     if actor:
@@ -92,15 +96,20 @@ def audit_summary(
     store_events = load_store_events()
     all_events = events + store_events
 
+    # Filter by workspace_id
+    ws_events = [e for e in all_events
+                 if e.metadata.get("workspace_id") == id
+                 or e.event_type.startswith("workspace_")]
+
     # Event type counts
     type_counts: dict[str, int] = {}
     actor_counts: dict[str, int] = {}
-    for ev in all_events:
+    for ev in ws_events:
         type_counts[ev.event_type] = type_counts.get(ev.event_type, 0) + 1
         actor_counts[ev.actor] = actor_counts.get(ev.actor, 0) + 1
 
     return {
-        "total_events": len(all_events),
+        "total_events": len(ws_events),
         "by_type": type_counts,
         "by_actor": actor_counts,
     }

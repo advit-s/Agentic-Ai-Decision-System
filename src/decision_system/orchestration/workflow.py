@@ -9,10 +9,12 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 
+from decision_system.graphing.store import get_default_data_root
 from decision_system.data_catalog.initializer import (
-    DEFAULT_DATA_ROOT,
+    init_data_catalog,
 )
 from decision_system.data_catalog.models import (
     DataProfileStore,
@@ -22,13 +24,10 @@ from decision_system.data_catalog.store import (
 )
 from decision_system.graphing.store import load_knowledge_graph
 from decision_system.insights.detectors import run_detectors
-from decision_system.insights.store import DEFAULT_INSIGHTS_DIR, save_insights
+from decision_system.insights.store import save_insights
 from decision_system.insights.models import InsightStore
 from decision_system.ontology.mapper import map_profiles_to_ontology
-from decision_system.ontology.store import (
-    DEFAULT_ONTOLOGY_DIR,
-    save_ontology,
-)
+from decision_system.ontology.store import save_ontology
 from decision_system.orchestration.models import (
     DispatchPlan,
     JudgeSummary,
@@ -42,19 +41,25 @@ from decision_system.orchestration.sandbox import sandbox_execute
 from decision_system.orchestration.store import save_decision_session
 from decision_system.orchestration.judge import build_judge_summary
 
-DEFAULT_RUNS_DIR = Path(".decision_system") / "orchestration" / "runs"
+def _default_runs_dir() -> Path:
+    """Return the default runs directory (lazy)."""
+    return get_data_root() / "orchestration" / "runs"
+
 
 
 def run_orchestration(
     question: str,
     *,
-    base_data_root: Path | str = DEFAULT_DATA_ROOT,
+    base_data_root: Path | str | None = None,
     save: bool = True,
 ) -> dict[str, Any]:
     """Run the full orchestration pipeline for *question*.
 
     Returns a dict with all intermediate and final results.
     """
+    if base_data_root is None:
+        base_data_root = get_data_root() / "graph"
+    
 
     # 1. Session
     session = create_session(question)

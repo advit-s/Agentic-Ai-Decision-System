@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from html import unescape
 from importlib import import_module
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 from xml.etree import ElementTree
 
@@ -24,7 +25,8 @@ from decision_system.data_catalog.models import DataCategory
 
 
 DEFAULT_IMPORT_SOURCE_DIR = Path("datasets")
-DEFAULT_IMPORT_MANIFEST_PATH = Path(".decision_system") / "imports" / "import_manifest.json"
+def _default_import_manifest_path() -> Path:
+    return get_data_root() / "imports" / "import_manifest.json"
 
 
 class ImportRecord(BaseModel):
@@ -62,13 +64,15 @@ def import_datasets(
     source_dir: Path | str = DEFAULT_IMPORT_SOURCE_DIR,
     *,
     data_root: Path | str = Path("company_data"),
-    manifest_path: Path | str = DEFAULT_IMPORT_MANIFEST_PATH,
+    manifest_path: Path | str | None = None,
     max_rows: int = 5000,
     force: bool = False,
     dry_run: bool = False,
 ) -> ImportManifest:
     """Import supported local public datasets into categorized CSV files."""
 
+    if manifest_path is None:
+        manifest_path = _default_import_manifest_path()
     source_root = Path(source_dir)
     manifest = ImportManifest(
         created_at=datetime.now(timezone.utc).isoformat(),
@@ -149,10 +153,12 @@ def import_datasets(
 
 
 def load_import_manifest(
-    manifest_path: Path | str = DEFAULT_IMPORT_MANIFEST_PATH,
+    manifest_path: Path | str | None = None,
 ) -> ImportManifest:
     """Load the latest import manifest or return an empty manifest."""
 
+    if manifest_path is None:
+        manifest_path = _default_import_manifest_path()
     path = Path(manifest_path)
     if not path.exists():
         return ImportManifest(

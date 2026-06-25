@@ -8,15 +8,23 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 
 from decision_system.orchestration.models import DecisionSession
 
-DEFAULT_RUNS_DIR = Path(".decision_system") / "orchestration" / "runs"
+
+def _get_runs_dir() -> Path:
+    """Return the orchestration runs directory (lazy)."""
+    return get_data_root() / "orchestration" / "runs"
+
+
 DEFAULT_RUNS_FILENAME = "latest.json"
 
 
-def _runs_dir(base: Path | str = DEFAULT_RUNS_DIR) -> Path:
+def _runs_dir(base: Path | str | None = None) -> Path:
+    if base is None:
+        base = _get_runs_dir()
     return Path(base)
 
 
@@ -43,9 +51,11 @@ def create_session(
     )
 
 
-def load_latest_run(runs_dir: Path | str = DEFAULT_RUNS_DIR) -> DecisionSession | None:
+def load_latest_run(runs_dir: Path | str | None = None) -> DecisionSession | None:
     """Load the most recently saved orchestration run, or None."""
 
+    if runs_dir is None:
+        runs_dir = _get_runs_dir()
     d = _runs_dir(runs_dir)
     path = d / DEFAULT_RUNS_FILENAME
     if not path.exists():

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 
 from decision_system.graphing.models import (
@@ -24,7 +25,10 @@ from decision_system.graphing.models import (
 # Default data root
 # ---------------------------------------------------------------------------
 
-DEFAULT_DATA_ROOT = Path(".decision_system") / "graph"
+def get_default_data_root() -> Path:
+    """Return the default data root for graph storage (lazy)."""
+    return get_data_root() / "graph"
+
 
 
 # ---------------------------------------------------------------------------
@@ -89,9 +93,12 @@ def _write_json(path: Path, data: list[dict[str, Any]]) -> None:
 
 def upsert_node(
     node: WorkspaceNode,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> WorkspaceNode:
     """Insert or update a workspace node. Dedup by node_id."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     path = _nodes_path(data_root, node.workspace_id)
     nodes = _read_json(path)
     node.updated_at = datetime.now(timezone.utc)
@@ -111,10 +118,15 @@ def upsert_node(
 def get_node(
     node_id: str,
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> WorkspaceNode | None:
     """Get a single node by ID within a workspace."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     for entry in _read_json(_nodes_path(data_root, workspace_id)):
+        if data_root is None:
+            data_root = get_data_root() / "graph"
         if entry.get("node_id") == node_id:
             return WorkspaceNode.model_validate(entry)
     return None
@@ -123,9 +135,12 @@ def get_node(
 def list_nodes(
     workspace_id: str,
     node_type: NodeType | None = None,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> list[WorkspaceNode]:
     """List all nodes in a workspace, optionally filtered by type."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     nodes = _read_json(_nodes_path(data_root, workspace_id))
     result = [WorkspaceNode.model_validate(n) for n in nodes]
     if node_type:
@@ -136,9 +151,12 @@ def list_nodes(
 def search_nodes(
     query: str,
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> list[WorkspaceNode]:
     """Search nodes by name (case-insensitive substring match)."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     q = query.lower()
     nodes = _read_json(_nodes_path(data_root, workspace_id))
     return [
@@ -153,9 +171,12 @@ def search_nodes(
 def delete_node(
     node_id: str,
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> bool:
     """Delete a node and its associated edges. Returns True if deleted."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     path = _nodes_path(data_root, workspace_id)
     nodes = _read_json(path)
     new_nodes = [n for n in nodes if n.get("node_id") != node_id]
@@ -183,9 +204,12 @@ def delete_node(
 
 def upsert_edge(
     edge: WorkspaceEdge,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> WorkspaceEdge:
     """Insert or update an edge. Dedup by edge_id."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     path = _edges_path(data_root, edge.workspace_id)
     edges = _read_json(path)
     edge.updated_at = datetime.now(timezone.utc)
@@ -205,9 +229,13 @@ def upsert_edge(
 def get_edge(
     edge_id: str,
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> WorkspaceEdge | None:
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     for entry in _read_json(_edges_path(data_root, workspace_id)):
+        if data_root is None:
+            data_root = get_data_root() / "graph"
         if entry.get("edge_id") == edge_id:
             return WorkspaceEdge.model_validate(entry)
     return None
@@ -216,8 +244,10 @@ def get_edge(
 def list_edges(
     workspace_id: str,
     edge_type: str | None = None,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> list[WorkspaceEdge]:
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     edges = _read_json(_edges_path(data_root, workspace_id))
     result = [WorkspaceEdge.model_validate(e) for e in edges]
     if edge_type:
@@ -228,12 +258,16 @@ def list_edges(
 def delete_edge(
     edge_id: str,
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> bool:
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     path = _edges_path(data_root, workspace_id)
     edges = _read_json(path)
     new_edges = [e for e in edges if e.get("edge_id") != edge_id]
     if len(new_edges) == len(edges):
+        if data_root is None:
+            data_root = get_data_root() / "graph"
         return False
     _write_json(path, new_edges)
     _update_meta(data_root, workspace_id)
@@ -247,9 +281,12 @@ def delete_edge(
 
 def list_graph_for_workspace(
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> WorkspaceGraph:
     """Load the full graph (nodes + edges) for a workspace."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     return WorkspaceGraph(
         workspace_id=workspace_id,
         nodes=list_nodes(workspace_id, data_root=data_root),
@@ -264,8 +301,10 @@ def list_graph_for_workspace(
 
 def upsert_risk(
     risk: WorkspaceRisk,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> WorkspaceRisk:
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     path = _risks_path(data_root, risk.workspace_id)
     risks = _read_json(path)
     risk.updated_at = datetime.now(timezone.utc)
@@ -284,9 +323,13 @@ def upsert_risk(
 def get_risk(
     risk_id: str,
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> WorkspaceRisk | None:
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     for entry in _read_json(_risks_path(data_root, workspace_id)):
+        if data_root is None:
+            data_root = get_data_root() / "graph"
         if entry.get("risk_id") == risk_id:
             return WorkspaceRisk.model_validate(entry)
     return None
@@ -296,8 +339,10 @@ def list_risks(
     workspace_id: str,
     severity: str | None = None,
     category: str | None = None,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> list[WorkspaceRisk]:
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     risks = _read_json(_risks_path(data_root, workspace_id))
     result = [WorkspaceRisk.model_validate(r) for r in risks]
     if severity:
@@ -314,8 +359,10 @@ def list_risks(
 
 def upsert_metric(
     metric: WorkspaceMetric,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> WorkspaceMetric:
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     path = _metrics_path(data_root, metric.workspace_id)
     metrics = _read_json(path)
     metric.updated_at = datetime.now(timezone.utc)
@@ -334,9 +381,13 @@ def upsert_metric(
 def get_metric(
     metric_id: str,
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> WorkspaceMetric | None:
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     for entry in _read_json(_metrics_path(data_root, workspace_id)):
+        if data_root is None:
+            data_root = get_data_root() / "graph"
         if entry.get("metric_id") == metric_id:
             return WorkspaceMetric.model_validate(entry)
     return None
@@ -344,8 +395,10 @@ def get_metric(
 
 def list_metrics(
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> list[WorkspaceMetric]:
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     metrics = _read_json(_metrics_path(data_root, workspace_id))
     return [WorkspaceMetric.model_validate(m) for m in metrics]
 
@@ -372,11 +425,16 @@ def _update_meta(data_root: Path, workspace_id: str) -> None:
 
 def get_workspace_meta(
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> dict[str, Any]:
     """Get workspace graph metadata (counts, timestamps)."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     path = _meta_path(data_root, workspace_id)
     if not path.exists():
+        if data_root is None:
+            data_root = get_data_root() / "graph"
         _update_meta(data_root, workspace_id)
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -388,12 +446,17 @@ def get_workspace_meta(
 
 def delete_workspace(
     workspace_id: str,
-    data_root: Path = DEFAULT_DATA_ROOT,
+    data_root: Path | None = None,
 ) -> None:
     """Delete all graph data for a workspace."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     import shutil
     ws_dir = _workspace_dir(data_root, workspace_id)
     if ws_dir.exists():
+        if data_root is None:
+            data_root = get_data_root() / "graph"
         shutil.rmtree(ws_dir)
 
 
@@ -407,14 +470,19 @@ def delete_workspace(
 # ---------------------------------------------------------------------------
 
 
-DEFAULT_GRAPH_PATH = Path(".decision_system") / "graph" / "knowledge_graph.json"
+def get_default_graph_path() -> Path:
+    """Return the default graph JSON path (lazy)."""
+    return get_data_root() / "graph" / "knowledge_graph.json"
+
 
 
 def save_knowledge_graph(
     graph: "KnowledgeGraph",
-    path: Path | str = DEFAULT_GRAPH_PATH,
+    path: Path | str | None = None,
 ) -> Path:
     """Write a legacy v1 knowledge graph JSON file and return its path."""
+    if path is None:
+        path = get_data_root() / "graph" / "knowledge_graph.json"
     from decision_system.graphing.models import KnowledgeGraph
     if not isinstance(graph, KnowledgeGraph):
         graph = KnowledgeGraph.model_validate(graph)
@@ -424,8 +492,10 @@ def save_knowledge_graph(
     return graph_path
 
 
-def load_knowledge_graph(path: Path | str = DEFAULT_GRAPH_PATH) -> "KnowledgeGraph":
+def load_knowledge_graph(path: Path | str | None = None) -> "KnowledgeGraph":
     """Load a legacy v1 knowledge graph JSON file, or return an empty graph."""
+    if path is None:
+        path = get_data_root() / "graph" / "knowledge_graph.json"
     from decision_system.graphing.models import KnowledgeGraph
     graph_path = Path(path)
     if not graph_path.exists():
@@ -440,12 +510,18 @@ def load_knowledge_graph(path: Path | str = DEFAULT_GRAPH_PATH) -> "KnowledgeGra
 
 def _workspace_runs_path(workspace_id: str, data_root: Path | None = None) -> Path:
     """Return path to the extraction runs JSONL for a workspace."""
-    root = data_root or DEFAULT_DATA_ROOT
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
+    root = data_root or get_data_root() / "graph"
     return _workspace_dir(root, workspace_id) / "runs.jsonl"
 
 
 def save_extraction_run(run: "ExtractionRunRecord", data_root: Path | None = None) -> "ExtractionRunRecord":
     """Append an extraction run record to the workspace runs file."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     from decision_system.graphing.models import ExtractionRunRecord
     path = _workspace_runs_path(run.workspace_id, data_root)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -456,6 +532,9 @@ def save_extraction_run(run: "ExtractionRunRecord", data_root: Path | None = Non
 
 def list_extraction_runs(workspace_id: str, data_root: Path | None = None) -> list["ExtractionRunRecord"]:
     """List all extraction run records for a workspace, newest first."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     from decision_system.graphing.models import ExtractionRunRecord
     path = _workspace_runs_path(workspace_id, data_root)
     if not path.exists():
@@ -477,6 +556,9 @@ def list_extraction_runs(workspace_id: str, data_root: Path | None = None) -> li
 
 def get_extraction_run(workspace_id: str, run_id: str, data_root: Path | None = None) -> "ExtractionRunRecord | None":
     """Get a specific extraction run by ID."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     runs = list_extraction_runs(workspace_id, data_root)
     for r in runs:
         if r.run_id == run_id:
@@ -486,6 +568,9 @@ def get_extraction_run(workspace_id: str, run_id: str, data_root: Path | None = 
 
 def get_latest_extraction_run(workspace_id: str, data_root: Path | None = None) -> "ExtractionRunRecord | None":
     """Get the most recent extraction run for a workspace."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     runs = list_extraction_runs(workspace_id, data_root)
     return runs[0] if runs else None
 
@@ -511,6 +596,9 @@ def record_extraction_run(
 
     Returns the saved ExtractionRunRecord.
     """
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     from datetime import datetime, timezone
     from decision_system.graphing.models import ExtractionRunRecord
 
@@ -542,7 +630,10 @@ def record_extraction_run(
 
 def _workspace_claims_path(workspace_id: str, data_root: Path | None = None) -> Path:
     """Return path to the workspace claims JSONL file."""
-    root = data_root or DEFAULT_DATA_ROOT
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
+    root = data_root or get_data_root() / "graph"
     return _workspace_dir(root, workspace_id) / "claims.jsonl"
 
 
@@ -559,8 +650,13 @@ def save_workspace_claim(claim: dict) -> dict:
 
 def list_workspace_claims(workspace_id: str, data_root: Path | None = None) -> list[dict]:
     """List all claims for a workspace."""
+
+    if data_root is None:
+        data_root = get_data_root() / "graph"
     path = _workspace_claims_path(workspace_id, data_root)
     if not path.exists():
+        if data_root is None:
+            data_root = get_data_root() / "graph"
         return []
     claims: list[dict] = []
     with open(path, "r", encoding="utf-8") as f:

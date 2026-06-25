@@ -7,6 +7,7 @@ credentials must come from `.env` or process environment variables, never code.
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
 from dotenv import load_dotenv
 
@@ -34,10 +35,8 @@ class Settings:
     ollama_temperature: float
     ollama_max_tokens: int
     ollama_timeout_seconds: int
-    # Workspace (default so direct Settings(...) calls stay backward compatible)
-    workspace_db_path: str = str(
-        Path(".decision_system") / "workspaces" / "workspaces.sqlite"
-    )
+    # Workspace path (set at call time via env or computed lazily)
+    workspace_db_path: str = ""
 
 
 def load_settings() -> Settings:
@@ -74,7 +73,7 @@ def load_settings() -> Settings:
         ollama_timeout_seconds=int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "60")),
         workspace_db_path=os.getenv(
             "DECISION_WORKSPACE_DB",
-            str(Path(".decision_system") / "workspaces" / "workspaces.sqlite"),
+            str(get_data_root() / "workspaces" / "workspaces.sqlite"),
         ),
     )
 

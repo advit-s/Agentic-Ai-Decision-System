@@ -7,13 +7,13 @@ from uuid import uuid4
 
 from decision_system.context.models import DecisionContext, InsightEvidence
 from decision_system.context.selector import select_relevant_ontology_concepts, select_relevant_insights
-from decision_system.insights.store import load_insights, DEFAULT_INSIGHTS_DIR
-from decision_system.ontology.store import load_ontology, DEFAULT_ONTOLOGY_DIR
-from decision_system.orchestration.store import load_latest_session, DEFAULT_RUNS_DIR
+from decision_system.insights.store import load_insights
+from decision_system.ontology.store import load_ontology
+from decision_system.orchestration.store import load_latest_session
 from decision_system.orchestration.planner import plan_data_tools_roles
 from decision_system.orchestration.problem_analyzer import analyze_problem
 from decision_system.orchestration.models import ProblemAnalysis
-from decision_system.graphing.store import load_knowledge_graph, DEFAULT_GRAPH_PATH
+from decision_system.graphing.store import load_knowledge_graph
 from decision_system.graphing.models import KnowledgeGraph
 
 

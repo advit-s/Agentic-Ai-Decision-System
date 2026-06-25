@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
 from fastapi import APIRouter
 
@@ -36,7 +37,7 @@ def _count_store(store_dir: Path, filename: str, key: str) -> int:
 @router.get("/dashboard")
 def get_dashboard() -> dict:
     """Return aggregated system status for the web UI dashboard view."""
-    base = Path(".decision_system")
+    base = get_data_root()
 
     # Gather counts from generated stores.
     profile_count = _count_store(base / "data_profiles", "profiles.json", "profiles")

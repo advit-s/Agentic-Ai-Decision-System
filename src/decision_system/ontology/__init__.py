@@ -11,7 +11,6 @@ from decision_system.ontology.models import (
     OntologyMap,
 )
 from decision_system.ontology.store import (
-    DEFAULT_ONTOLOGY_DIR,
     DEFAULT_ONTOLOGY_FILENAME,
     _ontology_path,
     load_ontology,
@@ -23,7 +22,6 @@ __all__ = [
     "ConceptType",
     "OntologyConcept",
     "OntologyMap",
-    "DEFAULT_ONTOLOGY_DIR",
     "DEFAULT_ONTOLOGY_FILENAME",
     "load_ontology",
     "save_ontology",

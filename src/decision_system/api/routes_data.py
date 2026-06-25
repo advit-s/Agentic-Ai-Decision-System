@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
 from fastapi import APIRouter
 
@@ -30,7 +31,7 @@ def _read_json(path: Path) -> dict | list | None:
 @router.get("/data-profiles")
 def get_data_profiles() -> dict:
     """Return profiled CSV data from the generated data-profiles store."""
-    profiles_path = Path(".decision_system") / "data_profiles" / "profiles.json"
+    profiles_path = get_data_root() / "data_profiles" / "profiles.json"
     data = _read_json(profiles_path) or {}
     return {
         "generated_at": data.get("generated_at") or datetime.now(timezone.utc).isoformat(),
@@ -46,7 +47,7 @@ def get_data_profiles() -> dict:
 @router.get("/graph")
 def get_graph() -> dict:
     """Return the extracted knowledge graph entities and relationships."""
-    graph_path = Path(".decision_system") / "graph" / "knowledge_graph.json"
+    graph_path = get_data_root() / "graph" / "knowledge_graph.json"
     data = _read_json(graph_path) or {}
     return {
         "generated_at": data.get("generated_at") or datetime.now(timezone.utc).isoformat(),

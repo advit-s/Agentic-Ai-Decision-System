@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from decision_system._data_root import get_data_root
 from typing import Any
 
 from decision_system.path_util import ensure_safe_generated_write_path
@@ -17,9 +18,19 @@ from decision_system.storage.repositories import (
     WorkspaceRepository,
 )
 
-WORKSPACE_DIR = Path(".decision_system") / "workspaces"
-EXPORT_DIR = WORKSPACE_DIR / "exports"
-DEFAULT_DB_PATH = WORKSPACE_DIR / "workspaces.sqlite"
+def _get_workspace_dir() -> Path:
+    """Return the workspace directory (lazy)."""
+    return get_data_root() / "workspaces"
+
+
+def _get_export_dir() -> Path:
+    """Return the export directory (lazy)."""
+    return _get_workspace_dir() / "exports"
+
+
+def _get_default_db_path() -> Path:
+    """Return the default database path (lazy)."""
+    return _get_workspace_dir() / "workspaces.sqlite"
 
 # Artifact types that are safe to include in exports.
 # Raw datasets are stored as metadata references, not file blobs.
@@ -38,12 +49,12 @@ _EXPORTABLE_TYPES: set[str] = {
 
 
 def get_default_db_path() -> Path:
-    return DEFAULT_DB_PATH
+    return _get_default_db_path()
 
 
 def init_workspace_dir() -> Path:
-    WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
-    return WORKSPACE_DIR
+    _get_workspace_dir().mkdir(parents=True, exist_ok=True)
+    return _get_workspace_dir()
 
 
 class WorkspaceExporter:
@@ -75,12 +86,12 @@ class WorkspaceExporter:
         bundle = WorkspaceExport(workspace=ws, artifacts=filtered)
 
         if output_path is None:
-            EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+            _get_export_dir().mkdir(parents=True, exist_ok=True)
             safe_name = "".join(
                 c if c.isalnum() or c in ("-", "_") else "_"
                 for c in ws.name
             )
-            output_path = EXPORT_DIR / f"{safe_name}.json"
+            output_path = _get_export_dir() / f"{safe_name}.json"
 
         output_path = Path(output_path)
         # Guard against overwriting tracked source files.

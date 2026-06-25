@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from decision_system._data_root import get_data_root
 
 from decision_system.context.models import DecisionContext
 
 
-DEFAULT_CONTEXT_DIR = Path(".decision_system") / "contexts"
+def _get_context_dir() -> Path:
+    """Return the context directory (lazy)."""
+    return get_data_root() / "contexts"
+
+DEFAULT_CONTEXT_DIR = _get_context_dir()
 
 
 def _context_path(run_id: str, store_dir: Path | str = DEFAULT_CONTEXT_DIR) -> Path:
