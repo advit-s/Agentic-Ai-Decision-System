@@ -87,5 +87,5 @@ _build/
 
 # Diagnostics output (from collect-diagnostics.sh)
 diagnostics/
- # MCP knowledge-graph index artifacts (auto-generated)
- .codebase-memory/
+# MCP knowledge-graph index artifacts (auto-generated)
+.codebase-memory/
