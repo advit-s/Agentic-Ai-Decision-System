@@ -10,11 +10,14 @@ cancel/pause/resume, duplicate detection, and provenance/versioning.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+logger = logging.getLogger(__name__)
 
 from decision_system.connectors.audit import (
     record_duplicate_detected,
@@ -657,6 +660,29 @@ def run_import_v3(
             fetch_item_fn,
             progress_callback=lambda j: _store_connector_job_as_artifact(j, None),
         )
+
+        # Persist collected content into workspace evidence system
+        if _collected_content:
+            try:
+                from decision_system.connectors.evidence_bridge import persist_connector_content
+
+                bridge_result = persist_connector_content(
+                    workspace_id=workspace_id,
+                    content_list=_collected_content,
+                    connector_name=cfg.name,
+                    connector_id=cfg.connector_id,
+                )
+                job.metadata = job.metadata or {}
+                job.metadata["evidence_bridge"] = {
+                    "data_sources_created": bridge_result.get("data_sources_created", 0),
+                    "chunks_parsed": bridge_result.get("chunks_parsed", 0),
+                    "chunks_indexed": bridge_result.get("chunks_indexed", 0),
+                    "errors": bridge_result.get("errors", []),
+                }
+            except Exception as bridge_err:
+                logger.warning("Evidence bridge failed during import: %s", bridge_err)
+                job.metadata = job.metadata or {}
+                job.metadata["evidence_bridge"] = {"error": str(bridge_err)}
 
         # Record final audit
         record_import_completed(

@@ -53,8 +53,9 @@ class SyncResult(BaseModel):
     items_deleted_remote: int = 0
     duration_ms: float = 0
     job_id: str = ""
-    status: str = "completed"  # completed | failed
+    status: str = "completed"  # completed | failed | completed_with_warnings
     error: str | None = None
+    evidence_bridge_result: dict | None = None
 
 
 logger = logging.getLogger(__name__)
@@ -227,8 +228,41 @@ class SyncRunner:
                         bridge_result.get("chunks_parsed", 0),
                         bridge_result.get("chunks_indexed", 0),
                     )
+                    result.evidence_bridge_result = bridge_result
                 except Exception as bridge_err:
                     logger.warning("Sync evidence bridge failed: %s", bridge_err)
+                    result.evidence_bridge_result = {"error": str(bridge_err)}
+                    if result.status == "completed":
+                        result.status = "completed_with_warnings"
+
+            # Reconcile deleted_remote items: mark associated DataSources as archived
+            if result.items_deleted_remote > 0 and workspace_id:
+                try:
+                    from decision_system.data_sources.store import DataSourceStore
+
+                    ds_store = DataSourceStore()
+                    deleted_count = 0
+                    for ext_id in list(getattr(result, "_deleted_ids", [])):
+                        ds = ds_store.find_by_metadata(
+                            workspace_id=workspace_id,
+                            key="external_id",
+                            value=ext_id,
+                        )
+                        if ds and ds.status != "archived":
+                            ds.status = "archived"
+                            ds.updated_at = datetime.now(timezone.utc)
+                            if ds.metadata is None:
+                                ds.metadata = {}
+                            ds.metadata["archived_at"] = datetime.now(timezone.utc).isoformat()
+                            ds.metadata["archived_reason"] = "connector_sync_deleted_remote"
+                            ds_store.save(ds)
+                            deleted_count += 1
+                    if deleted_count:
+                        logger.info(
+                            "Archived %d DataSources for deleted_remote items", deleted_count
+                        )
+                except Exception as reconcile_err:
+                    logger.warning("Deleted_remote reconciliation failed: %s", reconcile_err)
 
             record_sync_completed(
                 connector_id=connector_id,

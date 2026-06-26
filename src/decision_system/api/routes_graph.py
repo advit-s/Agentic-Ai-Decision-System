@@ -50,7 +50,6 @@ router = APIRouter(prefix="/workspaces/{workspace_id}/graph", tags=["graph"])
 # Request/Response models
 # ---------------------------------------------------------------------------
 
-from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -479,7 +478,6 @@ def create_claim_from_graph_fact(
     if not fact_type or not fact_id:
         raise HTTPException(status_code=400, detail="fact_type and fact_id are required")
 
-    from datetime import timezone
     from uuid import uuid4
 
     # Build graph refs based on fact_type
@@ -545,33 +543,42 @@ def create_claim_from_graph_fact(
     if not claim_text:
         claim_text = f"Claim from {fact_type} {fact_id[:20]}"
 
-    claim = {
-        "claim_id": str(uuid4()),
-        "workspace_id": workspace_id,
-        "claim_text": claim_text,
-        "status": "pending",
-        "confidence": "medium",
-        "graph_node_refs": node_refs,
-        "graph_edge_refs": edge_refs,
-        "risk_refs": risk_refs,
-        "metric_refs": metric_refs,
-        "source_ids": source_ids,
-        "evidence_ids": evidence_ids,
-        "fact_type": fact_type,
-        "fact_id": fact_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
+    from decision_system._data_root import get_data_root
+    from decision_system.models import Claim as ClaimModel
+    from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
 
+    claim_id = str(uuid4())
+    claim = ClaimModel(
+        claim_id=claim_id,
+        run_id=str(uuid4()),
+        workspace_id=workspace_id,
+        source_agent="graph_extraction",
+        claim_text=claim_text,
+        claim_type="fact",
+        status="pending",
+        confidence="medium",
+        evidence_ids=evidence_ids or [],
+        source_ids=source_ids or [],
+        graph_node_refs=node_refs or [],
+        graph_edge_refs=edge_refs or [],
+        risk_refs=risk_refs or [],
+        metric_refs=metric_refs or [],
+    )
+
+    claim_store = JSONClaimStore(get_data_root())
+    claim_store.save(claim)
+
+    # Also save to graphing store for backward compat during migration
     from decision_system.graphing.store import save_workspace_claim
 
-    save_workspace_claim(claim)
+    save_workspace_claim(claim.model_dump(mode="json"))
 
     # Also emit audit event
     from decision_system.graphing.audit import graph_fact_created
 
     graph_fact_created(workspace_id, fact_type=fact_type, fact_id=fact_id)
 
-    return claim
+    return claim.model_dump(mode="json")
 
 
 @router.get("/claims")

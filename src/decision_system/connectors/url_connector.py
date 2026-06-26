@@ -7,6 +7,7 @@ SSRF attacks.
 
 from __future__ import annotations
 
+import ipaddress
 import re
 import socket
 from datetime import datetime, timezone
@@ -53,49 +54,33 @@ _ACCEPTABLE_CONTENT_TYPES = [
 
 
 def _is_private_ip(ip_str: str) -> bool:
-    """Check if a dotted-quad IP string is a private/reserved address."""
+    """Check if a dotted-quad IP string is a private/reserved address using ipaddress module."""
     if not ip_str:
         return False
-    if ip_str.startswith("127."):
-        return True
-    if ip_str.startswith("10."):
-        return True
-    if ip_str.startswith("172."):
-        parts = ip_str.split(".")
-        if len(parts) >= 2:
-            try:
-                second = int(parts[1])
-                if 16 <= second <= 31:
-                    return True
-            except ValueError:
-                pass
-    if ip_str.startswith("192.168."):
-        return True
-    if ip_str.startswith("169.254."):
-        return True
-    if ip_str.startswith("0."):
-        return True
-    return False
+    try:
+        addr = ipaddress.ip_address(ip_str)
+        return addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_unspecified
+    except ValueError:
+        return False
 
 
 def _resolve_and_check(hostname: str) -> bool:
     """Resolve a hostname via DNS and check if any resolved address is private.
 
     Returns True if the hostname resolves to a private/reserved IP.
-    Returns False if resolution fails or resolves to a public IP.
-    Uses a fallback so DNS failures do not block the request.
+    Returns False if the hostname resolves to a public IP only.
+    On DNS failure, returns True (fail closed) to block potentially unsafe hosts.
     """
     try:
-        *_, addresses = socket.getaddrinfo(hostname, 80, family=socket.AF_INET)
-        for addr_info in addresses:
+        for addr_info in socket.getaddrinfo(hostname, 80, family=socket.AF_INET):
             ip = addr_info[4][0]
             if _is_private_ip(ip):
                 return True
+        # All resolved addresses are public
+        return False
     except (socket.gaierror, OSError):
-        # DNS resolution failure - cannot determine safety, allow through
-        # to avoid blocking on transient DNS issues
-        pass
-    return False
+        # DNS resolution failure - fail closed to avoid SSRF on transient DNS issues
+        return True
 
 
 def _is_private_host(hostname: str) -> bool:

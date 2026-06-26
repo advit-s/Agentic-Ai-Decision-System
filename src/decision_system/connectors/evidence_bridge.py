@@ -102,8 +102,13 @@ def persist_connector_content(
                 existing_ds.metadata["imported_at"] = datetime.now(timezone.utc).isoformat()
                 if url:
                     existing_ds.metadata["source_url"] = url
-                store.save(existing_ds)
                 source_id = existing_ds.source_id
+                # Delete old chunks before re-parsing
+                try:
+                    store.delete_chunks(workspace_id, source_id)
+                except Exception as del_err:
+                    logger.warning("Failed to delete old chunks: %s", del_err)
+                store.save(existing_ds)
                 ds_count += 1
             else:
                 # 1. Create a new DataSource record
@@ -150,6 +155,12 @@ def persist_connector_content(
                         c.metadata["title"] = item.title
                 all_chunks.extend(chunks)
                 chunk_count += len(chunks)
+
+            # Save chunks to local store for keyword fallback search
+            try:
+                store.save_chunks(chunks)
+            except Exception as chunk_save_err:
+                logger.warning("Failed to save chunks locally: %s", chunk_save_err)
 
         except Exception as exc:
             logger.warning("Failed to persist connector item %s: %s", item.external_id, exc)
