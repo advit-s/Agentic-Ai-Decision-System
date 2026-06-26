@@ -299,6 +299,32 @@ def run_import_v2(
             output_paths.append(f".decision_system/connectors/imported/{job_id}/{fname}")
 
         completed_at = datetime.now(timezone.utc)
+        # Persist imported content into workspace evidence system
+        content_list = result.get("content_list", [])
+        if workspace_id and content_list:
+            try:
+                from decision_system.connectors.evidence_bridge import (
+                    persist_connector_content,
+                )
+
+                bridge_result = persist_connector_content(
+                    workspace_id=workspace_id,
+                    content_list=content_list,
+                    connector_name=cfg.name,
+                    connector_id=cfg.connector_id,
+                )
+                job.metadata = job.metadata or {}
+                job.metadata["evidence_bridge"] = {
+                    "data_sources_created": bridge_result.get("data_sources_created", 0),
+                    "chunks_parsed": bridge_result.get("chunks_parsed", 0),
+                    "chunks_indexed": bridge_result.get("chunks_indexed", 0),
+                    "errors": bridge_result.get("errors", []),
+                }
+            except Exception as bridge_err:
+                logger.warning("Evidence bridge failed during import: %s", bridge_err)
+                job.metadata = job.metadata or {}
+                job.metadata["evidence_bridge"] = {"error": str(bridge_err)}
+
         job.status = "completed"
         job.items_found = items_found
         job.items_imported = items_imported

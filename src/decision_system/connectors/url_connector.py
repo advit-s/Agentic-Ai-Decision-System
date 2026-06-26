@@ -72,7 +72,8 @@ def _resolve_and_check(hostname: str) -> bool:
     On DNS failure, returns True (fail closed) to block potentially unsafe hosts.
     """
     try:
-        for addr_info in socket.getaddrinfo(hostname, 80, family=socket.AF_INET):
+        # Check IPv4 and IPv6 to prevent SSRF bypass via IPv6-only private hosts
+        for addr_info in socket.getaddrinfo(hostname, 80, family=socket.AF_UNSPEC):
             ip = addr_info[4][0]
             if _is_private_ip(ip):
                 return True
@@ -286,6 +287,42 @@ class UrlConnectorRuntime(ConnectorRuntime):
                     content_text="",
                     content_type="text/plain",
                     metadata={"error": f"HTTP {resp.status_code}"},
+                )
+
+            # Re-validate final URL after redirects to prevent SSRF via redirect
+            if not self._allow_private:
+                final_url = str(resp.url)
+                final_parsed = urlparse(final_url)
+                if final_parsed.hostname and _is_private_host(final_parsed.hostname):
+                    return ConnectorFetchedContent(
+                        external_id=item.external_id,
+                        title=item.title,
+                        filename="page.txt",
+                        content_text="",
+                        content_type="text/plain",
+                        metadata={
+                            "error": "blocked_private_address_after_redirect",
+                            "url": final_url,
+                            "original_url": url,
+                        },
+                    )
+
+            # Enforce content-type allowlist
+            raw_content_type = (resp.headers.get("content-type") or "").lower()
+            # Extract the MIME type without parameters (e.g. "text/html; charset=utf-8" -> "text/html")
+            mime_type = raw_content_type.split(";")[0].strip()
+            if mime_type not in _ACCEPTABLE_CONTENT_TYPES:
+                return ConnectorFetchedContent(
+                    external_id=item.external_id,
+                    title=item.title,
+                    filename="page.txt",
+                    content_text=f"[Blocked: content-type '{mime_type}' is not in acceptable list]",
+                    content_type=mime_type,
+                    metadata={
+                        "error": "blocked_content_type",
+                        "content_type": mime_type,
+                        "url": url,
+                    },
                 )
 
             # Check size

@@ -153,6 +153,17 @@ class DataSourceStore:
             self._save_index(workspace_id, ids)
         return existed
 
+    def find_by_metadata(self, workspace_id: str, key: str, value: object) -> DataSource | None:
+        """Find a single data source by a metadata key/value pair.
+
+        Returns the first match (metadata keys are not guaranteed unique),
+        or None if no match is found.
+        """
+        for source in self.list_by_workspace(workspace_id):
+            if source.metadata and source.metadata.get(key) == value:
+                return source
+        return None
+
     def create(
         self,
         workspace_id: str,

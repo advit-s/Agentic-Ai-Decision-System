@@ -430,7 +430,7 @@ def list_connector_jobs(
     """List connector import jobs for a workspace."""
     jobs = _load_jobs()
     # Filter by workspace_id
-    ws_jobs = [j for j in jobs if j.workspace_id == workspace_id or j.workspace_id is None]
+    ws_jobs = [j for j in jobs if j.workspace_id == workspace_id]
     return {"jobs": [inspect_import_job(j) for j in ws_jobs]}
 
 
@@ -446,6 +446,8 @@ def get_connector_job(
     job = get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Import job not found")
+    if job.workspace_id != workspace_id:
+        raise HTTPException(status_code=404, detail="Import job not found")
     return {"job": inspect_import_job(job)}
 
 
@@ -459,7 +461,11 @@ class DryRunRequest(BaseModel):
 
 
 @router.post("/connectors/{connector_id}/dry-run")
-def dry_run_connector(connector_id: str, request: DryRunRequest) -> dict[str, Any]:
+def dry_run_connector(
+    connector_id: str,
+    request: DryRunRequest,
+    _user: LocalUser = Depends(require_permission(Permission.CONNECTOR_READ)),
+) -> dict[str, Any]:
     """Run a connector dry-run (v1.1 backward compat)."""
     definition = get_connector_definition(connector_id)
     if definition is None:

@@ -588,15 +588,17 @@ def list_workspace_claims(
     status: str | None = Query(None, description="Filter by status"),
 ) -> dict:
     """List claims created from graph facts for a workspace."""
-    from decision_system.graphing.store import list_workspace_claims as _list_claims
+    from decision_system._data_root import get_data_root
+    from decision_system.workflow_engine.stores.claim_store import JSONClaimStore
 
-    claims = _list_claims(workspace_id)
+    store = JSONClaimStore(get_data_root())
+    claims = store.list(workspace_id=workspace_id)
 
     if status:
-        claims = [c for c in claims if c.get("status") == status]
+        claims = [c for c in claims if c.status == status]
 
     return {
         "workspace_id": workspace_id,
-        "claims": claims,
+        "claims": [c.model_dump(mode="json") for c in claims],
         "total_count": len(claims),
     }

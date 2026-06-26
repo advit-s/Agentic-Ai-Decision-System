@@ -56,6 +56,7 @@ class SyncResult(BaseModel):
     status: str = "completed"  # completed | failed | completed_with_warnings
     error: str | None = None
     evidence_bridge_result: dict | None = None
+    deleted_ids: list[str] = []
 
 
 logger = logging.getLogger(__name__)
@@ -171,6 +172,7 @@ class SyncRunner:
                 if ext_id not in seen_ids and prev.status != "deleted_remote":
                     self._sync_store.mark_deleted_remote(workspace_id, connector_id, ext_id)
                     result.items_deleted_remote += 1
+                    result.deleted_ids.append(ext_id)
 
             # Update job
             completed_at = datetime.now(timezone.utc)
@@ -242,7 +244,7 @@ class SyncRunner:
 
                     ds_store = DataSourceStore()
                     deleted_count = 0
-                    for ext_id in list(getattr(result, "_deleted_ids", [])):
+                    for ext_id in result.deleted_ids:
                         ds = ds_store.find_by_metadata(
                             workspace_id=workspace_id,
                             key="external_id",
