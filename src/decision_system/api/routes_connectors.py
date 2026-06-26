@@ -478,7 +478,11 @@ def dry_run_connector(connector_id: str, request: DryRunRequest) -> dict[str, An
 
 
 @router.post("/connectors/{connector_id}/import")
-def import_connector_v1(connector_id: str, request: ImportRequest) -> dict[str, Any]:
+def import_connector_v1(
+    connector_id: str,
+    request: ImportRequest,
+    _user: LocalUser = Depends(require_permission(Permission.CONNECTOR_MANAGE)),
+) -> dict[str, Any]:
     """Run a connector import (v1.1 backward compat)."""
     definition = get_connector_definition(connector_id)
     if definition is None:

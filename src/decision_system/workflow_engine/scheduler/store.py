@@ -14,6 +14,12 @@ from decision_system.workflow_engine.scheduler.models import (
 )
 
 
+def get_default_schedule_dir() -> Path:
+    from decision_system._data_root import get_data_root
+
+    return get_data_root() / "schedules"
+
+
 class ScheduleStore:
     """JSON file-backed store for ScheduleDefinition objects.
 
@@ -22,7 +28,7 @@ class ScheduleStore:
 
     Usage::
 
-        store = ScheduleStore(Path(".decision_system/schedules"))
+        store = ScheduleStore(get_default_schedule_dir())
         sd = store.save(ScheduleDefinition(workflow_id="wf-1"))
         loaded = store.load(sd.id)
         all_schedules = store.list()

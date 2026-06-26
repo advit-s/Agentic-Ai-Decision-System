@@ -122,7 +122,19 @@ def create_app() -> FastAPI:
     api.include_router(routes_data_sources.router)
     # Specific report routes must be registered before catch-all /reports/{report_id}
     # in routes_execution_reports to avoid shadowing.
-    _lazy_router(api, "decision_system.api.routes_reports")
+    # Legacy LangGraph report routes are opt-in via DECISION_ENABLE_LEGACY_REPORTS.
+    # These endpoints (/ask, /reports/latest, etc.) are superseded by the
+    # DAG workflow engine and execution-based trust reports.
+    import os as _os
+
+    if _os.environ.get("DECISION_ENABLE_LEGACY_REPORTS", "").lower() in ("1", "true", "yes"):
+        import logging as _logging
+
+        _logging.warning(
+            "Legacy LangGraph report routes enabled via DECISION_ENABLE_LEGACY_REPORTS. "
+            "These are deprecated — use the DAG workflow engine instead."
+        )
+        _lazy_router(api, "decision_system.api.routes_reports")
     api.include_router(routes_execution_reports.router)
     api.include_router(routes_verification.router)
     api.include_router(routes_providers.router)

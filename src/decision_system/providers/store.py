@@ -25,8 +25,9 @@ from decision_system.providers.models import (
 
 def _get_store_dir() -> Path:
     """Return the provider store directory, creating it if needed."""
-    base = Path(os.environ.get("DECISION_SYSTEM_DATA_DIR", ".decision_system"))
-    store_dir = base / "providers"
+    from decision_system._data_root import get_data_root
+
+    store_dir = get_data_root() / "providers"
     store_dir.mkdir(parents=True, exist_ok=True)
     return store_dir
 

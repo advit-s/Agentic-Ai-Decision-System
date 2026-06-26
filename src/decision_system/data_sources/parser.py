@@ -1,12 +1,18 @@
 """Local document parsing and chunking for supported file types.
 
-Supports: .txt, .md, .json, .csv, .pdf, .docx, .xlsx
+Supports: .txt, .md, .json, .csv, .pdf, .docx, .xlsx, .png, .jpg, .jpeg, .tiff
 
-All parsing is local. No cloud services, no OCR.
-PDF: text extraction only (pypdf). Scanned image PDFs will show an error.
+All parsing is local. No cloud services.
+PDF: text extraction via pypdf. Scanned PDFs fall back to local OCR (tesseract)
+     when the ``decision_system.data_sources.ocr_parser`` module is available.
+Image files (PNG, JPG, TIFF): OCR via tesseract when optional dependencies present.
 DOCX: paragraphs, headings, tables (python-docx).
 XLSX: sheet detection, profiling, searchable text (openpyxl).
 CSV: profiling with column type detection, missing value analysis.
+
+.. note::
+    OCR requires ``tesserocr`` and system Tesseract installation.
+    Without these, images and scanned PDFs will fail with an error.
 """
 
 from __future__ import annotations
@@ -308,7 +314,7 @@ class PdfParser(BaseParser):
 
         if not full_text.strip():
             warnings.append(
-                "PDF contains no extractable text. OCR is not supported in this local parser."
+                "PDF contains no extractable text. Attempting OCR fallback for scanned PDF..."
             )
 
         return ParseResult(

@@ -81,11 +81,12 @@ class DataSourceStore:
     """
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        self._base = Path(
-            base_dir
-            if base_dir is not None
-            else os.environ.get("DECISION_SYSTEM_DATA_DIR", ".decision_system")
-        )
+        if base_dir is not None:
+            self._base = Path(base_dir)
+        else:
+            from decision_system._data_root import get_data_root
+
+            self._base = get_data_root()
         self._sources_dir = self._base / "data_sources"
         _ensure_dir(self._sources_dir)
 

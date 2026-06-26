@@ -49,6 +49,7 @@ class Permission(StrEnum):
     WORKSPACE_READ = "workspace.read"
     WORKSPACE_MANAGE = "workspace.manage"
     DATA_SOURCE_UPLOAD = "data_source.upload"
+    PROVIDER_READ = "provider.read"
     DATA_SOURCE_DELETE = "data_source.delete"
     DATA_SOURCE_PARSE_INDEX = "data_source.parse_index"
     EVIDENCE_SEARCH = "evidence.search"
@@ -84,6 +85,7 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
     UserRole.OWNER: {
         Permission.CONNECTOR_READ,
         Permission.CONNECTOR_MANAGE,
+        Permission.PROVIDER_READ,
         Permission.CONNECTOR_IMPORT,
         Permission.CONNECTOR_SYNC,
         Permission.CONNECTOR_SCHEDULE,
@@ -108,6 +110,7 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
     UserRole.ADMIN: {
         Permission.CONNECTOR_READ,
         Permission.CONNECTOR_MANAGE,
+        Permission.PROVIDER_READ,
         Permission.CONNECTOR_IMPORT,
         Permission.CONNECTOR_SYNC,
         Permission.CONNECTOR_SCHEDULE,
@@ -131,6 +134,7 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
     },
     UserRole.ANALYST: {
         Permission.CONNECTOR_READ,
+        Permission.PROVIDER_READ,
         Permission.CONNECTOR_IMPORT,
         Permission.CONNECTOR_SYNC,
         Permission.WORKSPACE_READ,
@@ -148,6 +152,7 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
     },
     UserRole.REVIEWER: {
         Permission.CONNECTOR_READ,
+        Permission.PROVIDER_READ,
         Permission.WORKSPACE_READ,
         Permission.EVIDENCE_SEARCH,
         Permission.REVIEW_RESOLVE,
@@ -155,6 +160,7 @@ ROLE_PERMISSIONS: dict[UserRole, set[Permission]] = {
     },
     UserRole.VIEWER: {
         Permission.CONNECTOR_READ,
+        Permission.PROVIDER_READ,
         Permission.WORKSPACE_READ,
         Permission.EVIDENCE_SEARCH,
         Permission.AUDIT_READ,

@@ -6,6 +6,7 @@ Does not require external worker infrastructure.
 
 from __future__ import annotations
 
+import logging
 import time
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -54,6 +55,9 @@ class SyncResult(BaseModel):
     job_id: str = ""
     status: str = "completed"  # completed | failed
     error: str | None = None
+
+
+logger = logging.getLogger(__name__)
 
 
 class SyncRunner:
@@ -201,6 +205,30 @@ class SyncRunner:
 
             result.duration_ms = duration_ms
             result.job_id = job_id
+
+            # Reindex new/changed content into evidence system
+            if workspace_id and content_list and (result.items_new > 0 or result.items_changed > 0):
+                try:
+                    from decision_system.connectors.evidence_bridge import (
+                        persist_connector_content,
+                    )
+
+                    bridge_result = persist_connector_content(
+                        workspace_id=workspace_id,
+                        content_list=[
+                            c for c in content_list if getattr(c, "external_id", "") in seen_ids
+                        ],
+                        connector_name=cfg.name,
+                        connector_id=cfg.connector_id,
+                    )
+                    logger.info(
+                        "Sync evidence bridge: %d data sources, %d chunks, %d indexed",
+                        bridge_result.get("data_sources_created", 0),
+                        bridge_result.get("chunks_parsed", 0),
+                        bridge_result.get("chunks_indexed", 0),
+                    )
+                except Exception as bridge_err:
+                    logger.warning("Sync evidence bridge failed: %s", bridge_err)
 
             record_sync_completed(
                 connector_id=connector_id,

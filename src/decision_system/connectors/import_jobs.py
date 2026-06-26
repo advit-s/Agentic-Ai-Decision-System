@@ -560,6 +560,9 @@ def run_import_v3(
         processor = get_batch_processor()
         processor.batch_size = batch_size
 
+        # Collect fetched content for evidence bridge integration
+        _collected_content: list[ConnectorFetchedContent] = []
+
         def fetch_item_fn(item: ConnectorRuntimeItem) -> ConnectorFetchedContent | None:
             """Fetch a single item with dedup and provenance tracking."""
             from decision_system.connectors.runtime_dispatch import fetch_item
@@ -641,6 +644,9 @@ def run_import_v3(
                     content.metadata = {}
                 content.metadata["version_number"] = version.version_number
                 content.metadata["source_version_id"] = version.version_id
+
+            # Add to evidence bridge collector
+            _collected_content.append(content)
 
             return content
 

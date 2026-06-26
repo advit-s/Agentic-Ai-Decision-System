@@ -1,4 +1,12 @@
-"""Decision report endpoints."""
+"""Decision report endpoints (LEGACY — prefer workflows/execution reports).
+
+.. deprecated::
+    This module implements the legacy LangGraph-based decision pipeline
+    (``/ask``, ``/reports/latest``). New development should use the
+    DAG workflow engine (``/workflows``) and execution-based trust reports
+    (``/workspaces/.../executions/.../reports``) via
+    ``routes_execution_reports.py``.
+"""
 
 from __future__ import annotations
 

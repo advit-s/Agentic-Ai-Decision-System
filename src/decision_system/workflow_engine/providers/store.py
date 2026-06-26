@@ -82,7 +82,13 @@ class ProviderStore:
     """
 
     def __init__(self, path: str | Path | None = None) -> None:
-        self._path = Path(path) if path else Path(".decision_system/providers.json")
+        self._path = Path(path) if path else self._default_path()
+
+    @staticmethod
+    def _default_path() -> Path:
+        from decision_system._data_root import get_data_root
+
+        return get_data_root() / "workflow_providers.json"
 
     # ── Public API ────────────────────────────────────────────────────
 

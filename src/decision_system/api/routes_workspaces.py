@@ -165,6 +165,28 @@ def create_workspace(
         ws_repo.ensure_exists(ws)
         if req.activate:
             ws_repo.set_active(ws.workspace_id)
+        # Ensure the creating user has owner membership in the new workspace
+        try:
+            from decision_system.identity.models import UserRole, WorkspaceMembership
+            from decision_system.identity.store import ensure_owner_membership, get_membership
+
+            ensure_owner_membership(workspace_id)
+            from decision_system.identity.store import save_membership
+
+            # Also add the creating user with owner role
+            creating_user_id = getattr(user, "user_id", None) or "local/system"
+            if creating_user_id != "local/system":
+                existing = get_membership(workspace_id, creating_user_id)
+                if existing is None:
+                    save_membership(
+                        WorkspaceMembership(
+                            workspace_id=workspace_id,
+                            user_id=creating_user_id,
+                            role=UserRole.OWNER,
+                        )
+                    )
+        except Exception:
+            pass
         created = ws_repo.get_by_id(ws.workspace_id)
         return {
             "status": "created",

@@ -65,7 +65,9 @@ def _get_data_dir() -> Path:
     if raw:
         d = Path(raw).expanduser().resolve()
     else:
-        d = Path.cwd() / ".decision_system"
+        from decision_system._data_root import get_data_root
+
+        d = get_data_root()
     d.mkdir(parents=True, exist_ok=True)
     return d
 

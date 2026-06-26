@@ -54,7 +54,7 @@ def load_settings() -> Settings:
 
     return Settings(
         docs_dir=Path(os.getenv("DECISION_DOCS_DIR", "company_docs")),
-        store_dir=Path(os.getenv("DECISION_STORE_DIR", ".decision_system/chroma")),
+        store_dir=Path(os.getenv("DECISION_STORE_DIR", str(get_data_root() / "chroma"))),
         collection_name=os.getenv("DECISION_COLLECTION", "decision_chunks"),
         provider=os.getenv("DECISION_PROVIDER", "fake"),
         nvidia_api_key=os.getenv("NVIDIA_API_KEY", ""),

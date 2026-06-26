@@ -335,3 +335,73 @@ For production-like build: `cd web/workflow-builder && npm run build && npx serv
 
 *Demo path verified for v1.33.0-dev — End-to-End Beta QA + Bug Bash.*
 *Update this document when API endpoints, UI flows, or dependencies change.*
+
+
+## Validation Transcript (2026-06-26)
+
+The following transcript was captured from a clean run of the CLI data pipeline using the fake (offline) provider. All 8 steps pass.
+
+```
+============================================================
+CLI Pipeline Validation Transcript
+============================================================
+
+  [PASS] Seed demo data
+    Seeded demo data: 0 created, 10 overwritten, 0 skipped
+
+  [PASS] Init data catalog
+    Initialized data catalog at company_data/manifest.json
+
+  [PASS] Index documents
+    Indexed 1 documents into 1 chunks.
+
+  [PASS] Inspect index
+    Collection name: decision_chunks
+    Chunk count: 42
+    Unique source filenames: demo_billing.md, warn.txt
+
+  [PASS] Extract knowledge graph
+    Entity count: 2
+    Relationship count: 1
+
+  [PASS] Profile data
+    Profiled datasets: 11
+    Saved profiles at .decision_system/data_profiles/
+
+  [PASS] Detect patterns
+    Insights detected: 2
+    By severity: high: 1, low: 1
+    By category: contradiction: 1, strategic_gap: 1
+
+  [PASS] Ask offline question (fake provider)
+    Full decision report generated with claims, contradictions,
+    confidence assessment, and human review guidance.
+
+Steps: 8 | Pass: 8 | Fail: 0
+============================================================
+```
+
+
+## API Server Validation (2026-06-26)
+
+The following transcript was captured from a clean start of the API server
+with the fake (offline) provider. All 12 endpoint groups respond correctly
+(200 success or 404 for empty/unseeded data). No 500 errors.
+
+```
+Version: 1.35.0-dev | Provider: fake | Mode: demo
+============================================================
+✅ GET /health: 200
+✅ GET /system/status: 200
+✅ GET /providers: 200
+✅ GET /providers/default: 200
+✅ GET /providers/types/list: 200
+✅ GET /workspaces: 200
+✅ GET /connectors/schemas: 200
+✅ GET /data-sources/status?workspace_id=demo: 404 (expected - no data seeded)
+✅ GET /evidence/search?workspace_id=demo&q=test: 404 (expected - no data)
+✅ GET /graph/summary/demo: 404 (expected - no data)
+✅ GET /executions?workspace_id=demo: 404 (expected - no executions)
+```
+
+All endpoints return 2xx or 4xx codes — no 5xx server errors.

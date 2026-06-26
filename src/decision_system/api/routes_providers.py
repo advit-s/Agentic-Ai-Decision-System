@@ -34,7 +34,9 @@ router = APIRouter(prefix="/providers", tags=["providers"])
 
 
 @router.get("", response_model=ProviderListResponse)
-def list_all_providers():
+def list_all_providers(
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_READ)),
+):
     """List all configured providers."""
     providers = list_providers()
     return ProviderListResponse(providers=providers, total=len(providers))
@@ -68,7 +70,9 @@ def create_new_provider(
 
 @router.post("/default", response_model=ProviderConfig)
 def set_default_provider(
-    request: ProviderCreateRequest | None = None, provider_id: str | None = None
+    request: ProviderCreateRequest | None = None,
+    provider_id: str | None = None,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_MANAGE)),
 ):
     """Set a provider as the default (stored in the first provider slot)."""
     # We use a simple convention: the first provider in the list is the default
@@ -85,7 +89,9 @@ def set_default_provider(
 
 
 @router.get("/default", response_model=ProviderConfig | None)
-def get_default_provider():
+def get_default_provider(
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_READ)),
+):
     """Get the default provider (first in the list)."""
     providers = list_providers()
     if not providers:
@@ -94,7 +100,10 @@ def get_default_provider():
 
 
 @router.get("/{provider_id}", response_model=ProviderConfig)
-def get_provider_by_id(provider_id: str):
+def get_provider_by_id(
+    provider_id: str,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_READ)),
+):
     """Get a single provider configuration by ID."""
     config = get_provider(provider_id)
     if config is None:
@@ -147,7 +156,10 @@ def delete_provider_by_id(
 
 
 @router.get("/{provider_id}/status", response_model=ProviderStatusResponse)
-def get_provider_status(provider_id: str):
+def get_provider_status(
+    provider_id: str,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_READ)),
+):
     """Get the current status of a provider."""
     config = get_provider(provider_id)
     if config is None:
@@ -174,7 +186,10 @@ def get_provider_status(provider_id: str):
 
 
 @router.post("/{provider_id}/test", response_model=ProviderTestResult)
-def test_provider_connection(provider_id: str):
+def test_provider_connection(
+    provider_id: str,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_MANAGE)),
+):
     """Test the connection to a provider."""
     config = get_provider(provider_id)
     if config is None:
@@ -246,7 +261,10 @@ def test_provider_connection(provider_id: str):
 
 
 @router.get("/{provider_id}/models", response_model=dict)
-def list_provider_models(provider_id: str):
+def list_provider_models(
+    provider_id: str,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_READ)),
+):
     """List available models for a provider."""
     config = get_provider(provider_id)
     if config is None:
@@ -262,25 +280,22 @@ def list_provider_models(provider_id: str):
 
 
 @router.get("/types/list", response_model=list[str])
-def list_provider_types():
+def list_provider_types(
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_READ)),
+):
     """List all supported provider types."""
     return ["fake", "ollama", "openai_compatible", "openai", "anthropic"]
 
 
 @router.post("/system/default")
-def set_default_provider_system(body: dict[str, str]) -> dict[str, Any]:
+def set_default_provider_system(
+    body: dict[str, str],
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_MANAGE)),
+) -> dict[str, Any]:
     """Backward-compat alias: POST /providers/system/default -> POST /providers/default.
 
     Legacy endpoint used by older frontend clients and tests.
     """
-    from decision_system.identity.permissions import (
-        get_current_user,
-        user_has_permission,
-    )
-
-    user = get_current_user()
-    if not user_has_permission(user, Permission.PROVIDER_MANAGE):
-        raise api_error(403, "permission_denied", "You do not have permission to manage providers.")
     name = body.get("name", "")
     if not name:
         raise api_error(400, "missing_name", "'name' field is required")
@@ -303,7 +318,10 @@ def set_default_provider_system(body: dict[str, str]) -> dict[str, Any]:
 
 
 @router.get("/by-name/{name}")
-def get_provider_by_name_route(name: str) -> dict[str, Any]:
+def get_provider_by_name_route(
+    name: str,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_READ)),
+) -> dict[str, Any]:
     """Look up a provider by its human-readable name."""
     from decision_system.providers import get_provider_by_name as _get_by_name
 
@@ -314,7 +332,10 @@ def get_provider_by_name_route(name: str) -> dict[str, Any]:
 
 
 @router.post("/by-name/{name}/test")
-def test_provider_by_name(name: str) -> dict[str, Any]:
+def test_provider_by_name(
+    name: str,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_MANAGE)),
+) -> dict[str, Any]:
     """Test a provider connection by its human-readable name."""
     from decision_system.providers import get_provider_by_name as _get_by_name
 
@@ -334,7 +355,10 @@ def test_provider_by_name(name: str) -> dict[str, Any]:
 
 
 @router.delete("/by-name/{name}", status_code=204)
-def delete_provider_by_name(name: str) -> None:
+def delete_provider_by_name(
+    name: str,
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_MANAGE)),
+) -> None:
     """Delete a provider by its human-readable name."""
     from decision_system.providers import get_provider_by_name as _get_by_name
 
@@ -348,7 +372,11 @@ def delete_provider_by_name(name: str) -> None:
 
 
 @router.put("/by-name/{name}")
-def update_provider_by_name(name: str, body: dict[str, Any]) -> dict[str, Any]:
+def update_provider_by_name(
+    name: str,
+    body: dict[str, Any],
+    _user: LocalUser = Depends(require_permission(Permission.PROVIDER_MANAGE)),
+) -> dict[str, Any]:
     """Update a provider by its human-readable name."""
     from decision_system.providers import get_provider_by_name as _get_by_name
 
